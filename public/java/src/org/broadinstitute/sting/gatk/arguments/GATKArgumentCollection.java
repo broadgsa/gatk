@@ -35,6 +35,8 @@ import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -454,5 +456,26 @@ public class GATKArgumentCollection {
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // VCF/BCF index parameters
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Specify the Tribble indexing strategy to use for VCFs.
+     *
+     * LINEAR creates a LinearIndex with bins of equal width, specified by the Bin Width parameter
+     * INTERVAL creates an IntervalTreeIndex with bins with an equal amount of features, specified by the Features Per Bin parameter
+     * DYNAMIC_SEEK attempts to optimize for minimal seek time by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
+     * DYNAMIC_SIZE attempts to optimize for minimal index size by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
+     */
+
+    @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="which type of IndexCreator to use for VCF/BCF indices",required=false)
+    public GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
+
+    @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="the parameter (bin width or features per bin) to pass to the VCF/BCF IndexCreator",required=false)
+    public int variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
 }
 

@@ -25,6 +25,10 @@
 
 package org.broadinstitute.sting.utils.variant;
 
+import org.broad.tribble.index.DynamicIndexCreator;
+import org.broad.tribble.index.IndexCreator;
+import org.broad.tribble.index.interval.IntervalIndexCreator;
+import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -35,8 +39,10 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
@@ -82,5 +88,42 @@ public class GATKVCFUtilsUnitTest extends BaseTest {
         final Set<VCFHeaderLine> lines2 = header.getMetaDataInInputOrder();
         Assert.assertTrue(lines2.contains(line1));
         Assert.assertTrue(lines2.contains(line2));
+    }
+
+    private class IndexCreatorTest extends TestDataProvider {
+        private final GATKVCFIndexType type;
+        private final int parameter;
+        private final Class expectedClass;
+        private final int expectedDefaultBinSize;
+        private final int expectedBinSize;
+
+        private IndexCreatorTest(GATKVCFIndexType type, int parameter, Class expectedClass, int expectedDefaultBinSize, int expectedBinSize) {
+            super(IndexCreatorTest.class);
+
+            this.type = type;
+            this.parameter = parameter;
+            this.expectedClass = expectedClass;
+            this.expectedDefaultBinSize = expectedDefaultBinSize;
+            this.expectedBinSize = expectedBinSize;
+        }
+    }
+
+    @DataProvider(name = "indexCreator")
+    public Object[][] indexCreatorData() {
+        new IndexCreatorTest(GATKVCFIndexType.DYNAMIC_SEEK, 0, DynamicIndexCreator.class, -1, -1);
+        new IndexCreatorTest(GATKVCFIndexType.DYNAMIC_SIZE, 0, DynamicIndexCreator.class, -1, -1);
+        new IndexCreatorTest(GATKVCFIndexType.LINEAR, 100, LinearIndexCreator.class, LinearIndexCreator.DEFAULT_BIN_WIDTH, 100);
+        new IndexCreatorTest(GATKVCFIndexType.INTERVAL, 200, IntervalIndexCreator.class, IntervalIndexCreator.DEFAULT_FEATURE_COUNT, 200);
+
+        return IndexCreatorTest.getTests(IndexCreatorTest.class);
+    }
+
+    @Test(dataProvider = "indexCreator")
+    public void testGetIndexCreator(IndexCreatorTest spec) {
+        File dummy = new File("");
+        IndexCreator ic = GATKVCFUtils.getIndexCreator(spec.type, spec.parameter, dummy);
+        Assert.assertEquals(ic.getClass(), spec.expectedClass, "Wrong IndexCreator type");
+        Assert.assertEquals(ic.defaultBinSize(), spec.expectedDefaultBinSize, "Wrong default bin size");
+        Assert.assertEquals(ic.getBinSize(), spec.expectedBinSize, "Wrong bin size");
     }
 }

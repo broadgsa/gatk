@@ -31,12 +31,15 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureReader;
+import org.broad.tribble.index.IndexCreator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.vcf.VCFCodec;
@@ -123,6 +126,12 @@ public class CatVariants extends CommandLineProgram {
     @Argument(fullName = "assumeSorted", shortName = "assumeSorted", doc = "assumeSorted should be true if he input files are already sorted (based on the position of the variants", required = false)
     private Boolean assumeSorted = false;
 
+    @Argument(fullName = "variant_index_type", doc = "which type of IndexCreator to use for VCF/BCF indices", required = false)
+    private GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
+
+    @Argument(fullName = "variant_index_parameter", doc = "the parameter (bin width or features per bin) to pass to the VCF/BCF IndexCreator", required = false)
+    private Integer variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
+
     /*
      * print usage information
      */
@@ -204,7 +213,8 @@ public class CatVariants extends CommandLineProgram {
 
         FileOutputStream outputStream = new FileOutputStream(outputFile);
         EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
-        final VariantContextWriter outputWriter = VariantContextWriterFactory.create(outputFile, outputStream, ref.getSequenceDictionary(), options);
+        final IndexCreator idxCreator = GATKVCFUtils.getIndexCreator(variant_index_type, variant_index_parameter, outputFile);
+        final VariantContextWriter outputWriter = VariantContextWriterFactory.create(outputFile, outputStream, ref.getSequenceDictionary(), idxCreator, options);
 
         boolean firstFile = true;
         int count =0;

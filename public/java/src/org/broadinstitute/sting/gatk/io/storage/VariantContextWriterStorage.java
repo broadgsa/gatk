@@ -133,14 +133,21 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
 
         // The GATK/Tribble can't currently index block-compressed files on the fly.  Disable OTF indexing even if the user explicitly asked for it.
         EnumSet<Options> options = stub.getWriterOptions(indexOnTheFly);
-        VariantContextWriter writer = VariantContextWriterFactory.create(file, this.stream, stub.getMasterSequenceDictionary(), options);
+        VariantContextWriter writer = VariantContextWriterFactory.create(file, this.stream, stub.getMasterSequenceDictionary(), stub.getIndexCreator(), options);
 
         // if the stub says to test BCF, create a secondary writer to BCF and an 2 way out writer to send to both
         // TODO -- remove me when argument generateShadowBCF is removed
         if ( stub.alsoWriteBCFForTest() && ! VariantContextWriterFactory.isBCFOutput(file, options)) {
             final File bcfFile = BCF2Utils.shadowBCF(file);
             if ( bcfFile != null ) {
-                VariantContextWriter bcfWriter = VariantContextWriterFactory.create(bcfFile, stub.getMasterSequenceDictionary(), options);
+                FileOutputStream bcfStream;
+                try {
+                    bcfStream = new FileOutputStream(bcfFile);
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(bcfFile + ": Unable to create BCF writer", e);
+                }
+
+                VariantContextWriter bcfWriter = VariantContextWriterFactory.create(bcfFile, bcfStream, stub.getMasterSequenceDictionary(), stub.getIndexCreator(), options);
                 writer = new TestWriter(writer, bcfWriter);
             }
         }

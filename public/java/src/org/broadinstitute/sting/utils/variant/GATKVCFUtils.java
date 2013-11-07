@@ -28,6 +28,11 @@ package org.broadinstitute.sting.utils.variant;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
+import org.broad.tribble.index.DynamicIndexCreator;
+import org.broad.tribble.index.IndexCreator;
+import org.broad.tribble.index.IndexFactory;
+import org.broad.tribble.index.interval.IntervalIndexCreator;
+import org.broad.tribble.index.linear.LinearIndexCreator;
 import org.broad.tribble.readers.LineIterator;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
@@ -43,6 +48,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 
+
 /**
  * A set of GATK-specific static utility methods for common operations on VCF files/records.
  */
@@ -54,6 +60,9 @@ public class GATKVCFUtils {
     private GATKVCFUtils() { }
 
     public final static String GATK_COMMAND_LINE_KEY = "GATKCommandLine";
+
+    public final static GATKVCFIndexType DEFAULT_INDEX_TYPE = GATKVCFIndexType.DYNAMIC_SEEK;  // by default, optimize for seek time.  All indices prior to Nov 2013 used this type.
+    public final static Integer DEFAULT_INDEX_PARAMETER = -1;           // the default DYNAMIC_SEEK does not use a parameter
 
     /**
      * Gets the appropriately formatted header for a VCF file describing this GATK run
@@ -173,6 +182,27 @@ public class GATKVCFUtils {
      */
     public static VCFHeader withUpdatedContigs(final VCFHeader header, final GenomeAnalysisEngine engine) {
         return VCFUtils.withUpdatedContigs(header, engine.getArguments().referenceFile, engine.getMasterSequenceDictionary());
+    }
+
+    /**
+     * Create and return an IndexCreator
+     * @param type
+     * @param parameter
+     * @param outFile
+     * @return
+     */
+    public static IndexCreator getIndexCreator(GATKVCFIndexType type, int parameter, File outFile) {
+        IndexCreator idxCreator;
+        switch (type) {
+            case DYNAMIC_SEEK: idxCreator = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME); break;
+            case DYNAMIC_SIZE: idxCreator = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SIZE); break;
+            case LINEAR: idxCreator = new LinearIndexCreator(); break;
+            case INTERVAL: idxCreator = new IntervalIndexCreator(); break;
+            default: throw new IllegalArgumentException("Unknown IndexCreator type: " + type);
+        }
+
+        idxCreator.initialize(outFile, parameter);
+        return idxCreator;
     }
 
     /**
