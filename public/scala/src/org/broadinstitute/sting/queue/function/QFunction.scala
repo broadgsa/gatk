@@ -150,6 +150,11 @@ trait QFunction extends Logging with QJobReport {
       case _ => analysisName
     }
   }
+  
+  /**
+   * The name of the job as submitted to the job runner
+   */
+  def jobRunnerJobName = shortDescription
 
   /**
    * Returns true if the function is done.
