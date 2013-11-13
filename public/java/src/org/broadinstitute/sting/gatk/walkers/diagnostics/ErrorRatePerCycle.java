@@ -44,10 +44,11 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.io.PrintStream;
 
 /**
- * Computes the read error rate per position in read (in the original 5'->3' orientation that the read had coming off the machine)
+ * Compute the read error rate per position
  *
- * Emits a GATKReport containing readgroup, cycle, mismatches, counts, qual, and error rate for each read
- * group in the input BAMs FOR ONLY THE FIRST OF PAIR READS.
+ * <p>This tool computes the read error rate per position in sequence reads. It does this in the original 5'->3'
+ * orientation that the read had coming off the machine. It then emits a GATKReport containing readgroup, cycle,
+ * mismatches, counts, qual, and error rate for each read group in the input BAMs.</p>
  *
  * <h3>Input</h3>
  *  <p>
@@ -56,9 +57,9 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  *  <p>
- *      GATKReport containing readgroup, cycle, mismatches, counts, qual, and error rate.
+ *      A GATKReport containing readgroup, cycle, mismatches, counts, qual, and error rate.
  *
- *      For example, running this tool on the NA12878 data sets:
+ *      For example, running this tool on the NA12878 data sets yields the following table:
  *
  *      <pre>
  *      ##:GATKReport.v0.2 ErrorRatePerCycle : The error rate per sequenced position in the reads
@@ -82,15 +83,19 @@ import java.io.PrintStream;
  *      </pre>
  *  </p>
  *
- * <h3>Examples</h3>
+ * <h3>Example</h3>
  *  <pre>
  *    java
  *      -jar GenomeAnalysisTK.jar
  *      -T ErrorRatePerCycle
- *      -I bundle/current/b37/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam
- *      -R bundle/current/b37/human_g1k_v37.fasta
- *      -o example.gatkreport.txt
+ *      -R human_g1k_v37.fasta
+ *      -I my_sequence_reads.bam
+ *      -o error_rates.gatkreport.txt
  *  </pre>
+ *
+ * <h3>Caveat</h3>
+ *
+ * <p>Note that when it is run on paired-end sequence data, this tool only uses the first read in a pair.</p>
  *
  * @author Kiran Garimella, Mark DePristo
  */
