@@ -362,21 +362,16 @@ public class ClippingOp {
      * @return a cloned version of read that has been properly trimmed down
      */
     private GATKSAMRecord hardClip(GATKSAMRecord read, int start, int stop) {
-        final int firstBaseAfterSoftClips = read.getAlignmentStart() - read.getSoftStart();
-        final int lastBaseBeforeSoftClips = read.getSoftEnd() - read.getSoftStart();
-
-        if (start == firstBaseAfterSoftClips && stop == lastBaseBeforeSoftClips)                                        // note that if the read has no soft clips, these constants will be 0 and read length - 1 (beauty of math).
-            return GATKSAMRecord.emptyRead(read);
 
         // If the read is unmapped there is no Cigar string and neither should we create a new cigar string
-        CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);
+        final CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);
 
         // the cigar may force a shift left or right (or both) in case we are left with insertions
         // starting or ending the read after applying the hard clip on start/stop.
-        int newLength = read.getReadLength() - (stop - start + 1) - cigarShift.shiftFromStart - cigarShift.shiftFromEnd;
-        byte[] newBases = new byte[newLength];
-        byte[] newQuals = new byte[newLength];
-        int copyStart = (start == 0) ? stop + 1 + cigarShift.shiftFromStart : cigarShift.shiftFromStart;
+        final int newLength = read.getReadLength() - (stop - start + 1) - cigarShift.shiftFromStart - cigarShift.shiftFromEnd;
+        final byte[] newBases = new byte[newLength];
+        final byte[] newQuals = new byte[newLength];
+        final int copyStart = (start == 0) ? stop + 1 + cigarShift.shiftFromStart : cigarShift.shiftFromStart;
 
         System.arraycopy(read.getReadBases(), copyStart, newBases, 0, newLength);
         System.arraycopy(read.getBaseQualities(), copyStart, newQuals, 0, newLength);
@@ -396,8 +391,8 @@ public class ClippingOp {
             hardClippedRead.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), cigarShift.cigar));
 
         if (read.hasBaseIndelQualities()) {
-            byte[] newBaseInsertionQuals = new byte[newLength];
-            byte[] newBaseDeletionQuals = new byte[newLength];
+            final byte[] newBaseInsertionQuals = new byte[newLength];
+            final byte[] newBaseDeletionQuals = new byte[newLength];
             System.arraycopy(read.getBaseInsertionQualities(), copyStart, newBaseInsertionQuals, 0, newLength);
             System.arraycopy(read.getBaseDeletionQualities(), copyStart, newBaseDeletionQuals, 0, newLength);
             hardClippedRead.setBaseQualities(newBaseInsertionQuals, EventType.BASE_INSERTION);
@@ -516,20 +511,20 @@ public class ClippingOp {
     }
 
     /**
-     * Checks if a hard clipped cigar left a read starting or ending with insertions/deletions
+     * Checks if a hard clipped cigar left a read starting or ending with deletions or gap (N)
      * and cleans it up accordingly.
      *
      * @param cigar the original cigar
      * @return an object with the shifts (see CigarShift class)
      */
-    private CigarShift cleanHardClippedCigar(Cigar cigar) {
-        Cigar cleanCigar = new Cigar();
+    private CigarShift cleanHardClippedCigar(final Cigar cigar) {
+        final Cigar cleanCigar = new Cigar();
         int shiftFromStart = 0;
         int shiftFromEnd = 0;
         Stack<CigarElement> cigarStack = new Stack<CigarElement>();
-        Stack<CigarElement> inverseCigarStack = new Stack<CigarElement>();
+        final Stack<CigarElement> inverseCigarStack = new Stack<CigarElement>();
 
-        for (CigarElement cigarElement : cigar.getCigarElements())
+        for (final CigarElement cigarElement : cigar.getCigarElements())
             cigarStack.push(cigarElement);
 
         for (int i = 1; i <= 2; i++) {
@@ -542,8 +537,8 @@ public class ClippingOp {
                 CigarElement cigarElement = cigarStack.pop();
 
                 if (!readHasStarted &&
-//                        cigarElement.getOperator() != CigarOperator.INSERTION &&
                         cigarElement.getOperator() != CigarOperator.DELETION &&
+                        cigarElement.getOperator() != CigarOperator.SKIPPED_REGION &&
                         cigarElement.getOperator() != CigarOperator.HARD_CLIP)
                     readHasStarted = true;
 
@@ -551,6 +546,9 @@ public class ClippingOp {
                     totalHardClip += cigarElement.getLength();
 
                 else if (!readHasStarted && cigarElement.getOperator() == CigarOperator.DELETION)
+                    totalHardClip += cigarElement.getLength();
+
+                else if (!readHasStarted && cigarElement.getOperator() == CigarOperator.SKIPPED_REGION)
                     totalHardClip += cigarElement.getLength();
 
                 if (readHasStarted) {

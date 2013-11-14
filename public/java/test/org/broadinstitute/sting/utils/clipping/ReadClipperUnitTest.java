@@ -30,6 +30,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.sam.CigarUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -241,7 +242,7 @@ public class ReadClipperUnitTest extends BaseTest {
 
                 int expectedLength = read.getReadLength() - leadingCigarElementLength(read.getCigar(), CigarOperator.INSERTION);
                 if (cigarHasElementsDifferentThanInsertionsAndHardClips(read.getCigar()))
-                    expectedLength -= leadingCigarElementLength(ReadClipperTestUtils.invertCigar(read.getCigar()), CigarOperator.INSERTION);
+                    expectedLength -= leadingCigarElementLength(CigarUtils.invertCigar(read.getCigar()), CigarOperator.INSERTION);
 
                 if (!clippedRead.isEmpty()) {
                     Assert.assertEquals(expectedLength, clippedRead.getReadLength(), String.format("%s -> %s", read.getCigarString(), clippedRead.getCigarString()));  // check that everything else is still there
@@ -256,7 +257,7 @@ public class ReadClipperUnitTest extends BaseTest {
     public void testRevertSoftClippedBases() {
         for (Cigar cigar : cigarList) {
             final int leadingSoftClips = leadingCigarElementLength(cigar, CigarOperator.SOFT_CLIP);
-            final int tailSoftClips = leadingCigarElementLength(ReadClipperTestUtils.invertCigar(cigar), CigarOperator.SOFT_CLIP);
+            final int tailSoftClips = leadingCigarElementLength(CigarUtils.invertCigar(cigar), CigarOperator.SOFT_CLIP);
 
             final GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             final GATKSAMRecord unclipped = ReadClipper.revertSoftClippedBases(read);
@@ -278,7 +279,7 @@ public class ReadClipperUnitTest extends BaseTest {
     public void testRevertSoftClippedBasesWithThreshold() {
         for (Cigar cigar : cigarList) {
             final int leadingSoftClips = leadingCigarElementLength(cigar, CigarOperator.SOFT_CLIP);
-            final int tailSoftClips = leadingCigarElementLength(ReadClipperTestUtils.invertCigar(cigar), CigarOperator.SOFT_CLIP);
+            final int tailSoftClips = leadingCigarElementLength(CigarUtils.invertCigar(cigar), CigarOperator.SOFT_CLIP);
 
             final GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             final GATKSAMRecord unclipped = ReadClipper.revertSoftClippedBases(read);
@@ -348,7 +349,7 @@ public class ReadClipperUnitTest extends BaseTest {
      * @param clipped clipped read
      */
     private void assertUnclippedLimits(GATKSAMRecord original, GATKSAMRecord clipped) {
-        if (ReadClipperTestUtils.readHasNonClippedBases(clipped)) {
+        if (CigarUtils.readHasNonClippedBases(clipped)) {
             Assert.assertEquals(original.getUnclippedStart(), clipped.getUnclippedStart());
             Assert.assertEquals(original.getUnclippedEnd(), clipped.getUnclippedEnd());
         }
