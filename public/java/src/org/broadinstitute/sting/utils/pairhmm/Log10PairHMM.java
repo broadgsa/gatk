@@ -85,9 +85,6 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
             Arrays.fill(insertionMatrix[iii], Double.NEGATIVE_INFINITY);
             Arrays.fill(deletionMatrix[iii], Double.NEGATIVE_INFINITY);
         }
-
-        transition = new double[paddedMaxReadLength][6];
-        prior = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
     }
 
     /**

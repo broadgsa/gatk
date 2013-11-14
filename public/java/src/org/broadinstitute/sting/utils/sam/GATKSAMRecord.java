@@ -139,7 +139,7 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     public static GATKSAMRecord createRandomRead(int length) {
-        List<CigarElement> cigarElements = new LinkedList<CigarElement>();
+        List<CigarElement> cigarElements = new LinkedList<>();
         cigarElements.add(new CigarElement(length, CigarOperator.M));
         Cigar cigar = new Cigar(cigarElements);
         return ArtificialSAMUtils.createArtificialRead(cigar);
@@ -536,10 +536,7 @@ public class GATKSAMRecord extends BAMRecord {
      * @return True if an attribute has been set for this key.
      */
     public boolean containsTemporaryAttribute(Object key) {
-        if(temporaryAttributes != null) {
-            return temporaryAttributes.containsKey(key);
-        }
-        return false;
+        return temporaryAttributes != null && temporaryAttributes.containsKey(key);
     }
 
     /**
@@ -556,7 +553,7 @@ public class GATKSAMRecord extends BAMRecord {
      */
     public Object setTemporaryAttribute(Object key, Object value) {
         if(temporaryAttributes == null) {
-            temporaryAttributes = new HashMap<Object, Object>();
+            temporaryAttributes = new HashMap<>();
         }
         return temporaryAttributes.put(key, value);
     }
@@ -751,6 +748,46 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     /**
+     * Creates a new GATKSAMRecord with the source read's header, read group and mate
+     * information, but with the following fields set to user-supplied values:
+     *  - Read Bases
+     *  - Base Qualities
+     *  - Base Insertion Qualities
+     *  - Base Deletion Qualities
+     *
+     *  Cigar string is empty (not-null)
+     *
+     * Use this method if you want to create a new GATKSAMRecord based on
+     * another GATKSAMRecord, but with modified bases and qualities
+     *
+     * @param read a read to copy the header from
+     * @param readBases an array containing the new bases you wish use in place of the originals
+     * @param baseQualities an array containing the new base qualities you wish use in place of the originals
+     * @param baseInsertionQualities an array containing the new base insertion qaulities
+     * @param baseDeletionQualities an array containing the new base deletion qualities
+     * @return a read with modified bases and qualities, safe for the GATK
+     */
+    public static GATKSAMRecord createQualityModifiedRead(final GATKSAMRecord read,
+                                                          final byte[] readBases,
+                                                          final byte[] baseQualities,
+                                                          final byte[] baseInsertionQualities,
+                                                          final byte[] baseDeletionQualities) {
+        if ( baseQualities.length != readBases.length || baseInsertionQualities.length != readBases.length || baseDeletionQualities.length != readBases.length )
+            throw new IllegalArgumentException("Read bases and read quality arrays aren't the same size: Bases:" + readBases.length
+                                                + " vs Base Q's:" + baseQualities.length
+                                                + " vs Insert Q's:" + baseInsertionQualities.length
+                                                + " vs Delete Q's:" + baseDeletionQualities.length);
+
+        final GATKSAMRecord processedRead = GATKSAMRecord.emptyRead(read);
+        processedRead.setReadBases(readBases);
+        processedRead.setBaseQualities(baseQualities, EventType.BASE_SUBSTITUTION);
+        processedRead.setBaseQualities(baseInsertionQualities, EventType.BASE_INSERTION);
+        processedRead.setBaseQualities(baseDeletionQualities, EventType.BASE_DELETION);
+
+        return processedRead;
+    }
+
+    /**
      * Shallow copy of everything, except for the attribute list and the temporary attributes. 
      * A new list of the attributes is created for both, but the attributes themselves are copied by reference.  
      * This should be safe because callers should never modify a mutable value returned by any of the get() methods anyway.
@@ -762,7 +799,7 @@ public class GATKSAMRecord extends BAMRecord {
     public Object clone() throws CloneNotSupportedException {
         final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
         if (temporaryAttributes != null) {
-            clone.temporaryAttributes = new HashMap<Object, Object>();
+            clone.temporaryAttributes = new HashMap<>();
             for (Object attribute : temporaryAttributes.keySet())
                 clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
         }
