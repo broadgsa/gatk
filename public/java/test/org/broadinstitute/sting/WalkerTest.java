@@ -388,7 +388,6 @@ public class WalkerTest extends BaseTest {
     private void executeTest(String testName, String testClassName, String args, Class expectedException) {
         CommandLineGATK instance = new CommandLineGATK();
         String[] command = Utils.escapeExpressions(args);
-
         // run the executable
         boolean gotAnException = false;
         try {
