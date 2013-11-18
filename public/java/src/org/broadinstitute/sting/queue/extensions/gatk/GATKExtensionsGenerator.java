@@ -325,7 +325,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      * @throws IOException If the file cannot be written.
      */
     private void writeFile(String fullClassName, String content) throws IOException {
-        File outputFile = new File(outputDirectory, fullClassName.replace(".", "/") + "MoleculoPipeline.scala");
+        File outputFile = new File(outputDirectory, fullClassName.replace(".", "/") + ".scala");
         if (outputFile.exists()) {
             String existingContent = FileUtils.readFileToString(outputFile);
             if (StringUtils.equals(content, existingContent))
