@@ -565,11 +565,11 @@ public class GATKVariantContextUtils {
      * @param newLikelihoods a vector of likelihoods to use if the method requires PLs, should be log10 likelihoods, cannot be null
      * @param allelesToUse the alleles we are using for our subsetting
      */
-    protected static void updateGenotypeAfterSubsetting(final List<Allele> originalGT,
-                                                        final GenotypeBuilder gb,
-                                                        final GenotypeAssignmentMethod assignmentMethod,
-                                                        final double[] newLikelihoods,
-                                                        final List<Allele> allelesToUse) {
+    public static void updateGenotypeAfterSubsetting(final List<Allele> originalGT,
+                                                     final GenotypeBuilder gb,
+                                                     final GenotypeAssignmentMethod assignmentMethod,
+                                                     final double[] newLikelihoods,
+                                                     final List<Allele> allelesToUse) {
         gb.noAD();
         switch ( assignmentMethod ) {
             case SET_TO_NO_CALL:

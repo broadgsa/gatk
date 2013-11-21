@@ -1472,4 +1472,34 @@ public class MathUtils {
         return sliceListByIndices(sampleIndicesWithoutReplacement(list.size(),N),list);
     }
 
+    /**
+     * Return the likelihood of observing the counts of categories having sampled a population
+     * whose categorial frequencies are distributed according to a Dirichlet distribution
+     * @param dirichletParams - params of the prior dirichlet distribution
+     * @param dirichletSum - the sum of those parameters
+     * @param counts - the counts of observation in each category
+     * @param countSum - the sum of counts (number of trials)
+     * @return - associated likelihood
+     */
+    public static double dirichletMultinomial(final double[] dirichletParams, final double dirichletSum,
+                                              final int[] counts, final int countSum) {
+        if ( dirichletParams.length != counts.length ) {
+            throw new IllegalStateException("The number of dirichlet parameters must match the number of categories");
+        }
+        // todo -- lots of lnGammas here. At some point we can safely switch to x * ( ln(x) - 1)
+        double likelihood = log10MultinomialCoefficient(countSum,counts);
+        likelihood += log10Gamma(dirichletSum);
+        likelihood -= log10Gamma(dirichletSum+countSum);
+        for ( int idx = 0; idx < counts.length; idx++ ) {
+            likelihood += log10Gamma(counts[idx] + dirichletParams[idx]);
+            likelihood -= log10Gamma(dirichletParams[idx]);
+        }
+
+        return likelihood;
+    }
+
+    public static double dirichletMultinomial(double[] params, int[] counts) {
+        return dirichletMultinomial(params,sum(params),counts,(int) sum(counts));
+    }
+
 }

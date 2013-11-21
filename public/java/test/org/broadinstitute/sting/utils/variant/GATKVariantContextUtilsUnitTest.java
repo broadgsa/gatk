@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.vcf.VCFConstants;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -56,11 +57,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         ATCATC = Allele.create("ATCATC");
     }
 
-    private Genotype makeG(String sample, Allele a1, Allele a2) {
-        return GenotypeBuilder.create(sample, Arrays.asList(a1, a2));
-    }
-
-    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double... pls) {
+    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, int... pls) {
         return new GenotypeBuilder(sample, Arrays.asList(a1, a2)).log10PError(log10pError).PL(pls).make();
     }
 
