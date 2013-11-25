@@ -95,4 +95,7 @@ class QSettings {
 
   @Argument(fullName="job_scatter_gather_directory", shortName="jobSGDir", doc="Default directory to place scatter gather output for compute farm jobs.", required=false)
   var jobScatterGatherDirectory: File = _
+  
+  @Argument(fullName="log_directory", shortName="logDir", doc="Directory to write log files into.", required=false)
+  var logDirectory: File = _
 }
