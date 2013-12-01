@@ -1532,6 +1532,15 @@ public class MathUtils {
     }
 
     /**
+    * Draw N random elements from list with replacement
+    * @param list - the list from which to draw randomly
+    * @param N - the number of elements to draw
+    */
+    public static <T> List<T> randomSample(final List<T> list, final int N) {
+        return sliceListByIndices(sampleIndicesWithReplacement(list.size(),N),list);
+    }
+
+    /**
      * Return the likelihood of observing the counts of categories having sampled a population
      * whose categorial frequencies are distributed according to a Dirichlet distribution
      * @param dirichletParams - params of the prior dirichlet distribution
