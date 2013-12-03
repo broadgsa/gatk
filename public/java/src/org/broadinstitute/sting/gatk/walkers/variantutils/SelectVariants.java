@@ -299,7 +299,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(doc="indel size select",required=false,fullName="maxIndelSize")
     private int maxIndelSize = Integer.MAX_VALUE;
 
-    @Argument(doc="Allow a samples other than those in the VCF to be specified on the command line. These samples will be ignored.",required=false,fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES")
+    @Argument(doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.",required=false,fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES")
     private boolean ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES = false;
 
 
@@ -657,6 +657,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * Helper method to subset a VC record, modifying some metadata stored in the INFO field (i.e. AN, AC, AF).
      *
      * @param vc       the VariantContext record to subset
+     * @param excludeNonVariants should we exclude sites that have AC=0 for any alternate alleles?
      * @return the subsetted VariantContext
      */
     private VariantContext subsetRecord(final VariantContext vc, final boolean excludeNonVariants) {
@@ -665,14 +666,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         final VariantContext sub = vc.subContextFromSamples(samples, excludeNonVariants); // strip out the alternate alleles that aren't being used
 
-        VariantContextBuilder builder = new VariantContextBuilder(sub);
+        final VariantContextBuilder builder = new VariantContextBuilder(sub);
 
-        GenotypesContext newGC = sub.getGenotypes();
-
-        // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs and AD (because they are no longer accurate)
-        final boolean lostAllelesInSelection = vc.getAlleles().size() != sub.getAlleles().size();
-        if ( lostAllelesInSelection )
-            newGC = GATKVariantContextUtils.stripPLsAndAD(sub.getGenotypes());
+        // if there are fewer alternate alleles now in the selected VC, we need to fix the PL and AD values
+        GenotypesContext newGC = GATKVariantContextUtils.updatePLsAndAD(sub, vc);
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
         if ( vc.getNSamples() != sub.getNSamples() ) {
@@ -682,11 +679,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         // Remove a fraction of the genotypes if needed
         if ( fractionGenotypes > 0 ){
-            ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
+            final ArrayList<Genotype> genotypes = new ArrayList<>();
             for ( Genotype genotype : newGC ) {
                 //Set genotype to no call if it falls in the fraction.
                 if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
-                    List<Allele> alleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+                    final List<Allele> alleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
                     genotypes.add(new GenotypeBuilder(genotype).alleles(alleles).noGQ().make());
                 }
                 else{
@@ -698,7 +695,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         builder.genotypes(newGC);
 
-        addAnnotations(builder, sub, lostAllelesInSelection);
+        addAnnotations(builder, sub, vc.getAlleles().size() != sub.getAlleles().size());
 
         return builder.make();
     }

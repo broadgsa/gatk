@@ -976,6 +976,16 @@ public class MathUtils {
         return count;
     }
 
+    public static int countOccurrences(final boolean element, final boolean[] array) {
+        int count = 0;
+        for (final boolean b : array) {
+            if (element == b)
+                count++;
+        }
+
+        return count;
+    }
+
 
     /**
      * Returns n random indices drawn with replacement from the range 0..(k-1)

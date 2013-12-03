@@ -1320,4 +1320,112 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
             }
         }
     }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test updatePLsAndAD
+    //
+    // --------------------------------------------------------------------------------
+
+    @DataProvider(name = "updatePLsAndADData")
+    public Object[][] makeUpdatePLsAndADData() {
+        List<Object[]> tests = new ArrayList<>();
+
+        final Allele A = Allele.create("A", true);
+        final Allele C = Allele.create("C");
+        final Allele G = Allele.create("G");
+
+        final List<Allele> AA = Arrays.asList(A,A);
+        final List<Allele> AC = Arrays.asList(A,C);
+        final List<Allele> CC = Arrays.asList(C,C);
+        final List<Allele> AG = Arrays.asList(A,G);
+        final List<Allele> CG = Arrays.asList(C,G);
+        final List<Allele> GG = Arrays.asList(G,G);
+        final List<Allele> ACG = Arrays.asList(A,C,G);
+
+        final VariantContext vcBase = new VariantContextBuilder("test", "20", 10, 10, AC).make();
+
+        final double[] homRefPL = MathUtils.normalizeFromRealSpace(new double[]{0.9, 0.09, 0.01});
+        final double[] hetPL = MathUtils.normalizeFromRealSpace(new double[]{0.09, 0.9, 0.01});
+        final double[] homVarPL = MathUtils.normalizeFromRealSpace(new double[]{0.01, 0.09, 0.9});
+        final double[] uninformative = new double[]{0, 0, 0};
+
+        final Genotype base = new GenotypeBuilder("NA12878").DP(10).GQ(100).make();
+
+        // make sure we don't screw up the simple case where no selection happens
+        final Genotype aaGT = new GenotypeBuilder(base).alleles(AA).AD(new int[]{10,2}).PL(homRefPL).GQ(8).make();
+        final Genotype acGT = new GenotypeBuilder(base).alleles(AC).AD(new int[]{10,2}).PL(hetPL).GQ(8).make();
+        final Genotype ccGT = new GenotypeBuilder(base).alleles(CC).AD(new int[]{10,2}).PL(homVarPL).GQ(8).make();
+
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(aaGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(new GenotypeBuilder(aaGT).make())});
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(acGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(new GenotypeBuilder(acGT).make())});
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(ccGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(new GenotypeBuilder(ccGT).make())});
+
+        // uninformative test cases
+        final Genotype uninformativeGT = new GenotypeBuilder(base).alleles(CC).noAD().PL(uninformative).GQ(0).make();
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(uninformativeGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(uninformativeGT)});
+        final Genotype emptyGT = new GenotypeBuilder(base).alleles(GATKVariantContextUtils.NO_CALL_ALLELES).noAD().noPL().noGQ().make();
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(emptyGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(emptyGT)});
+
+        // actually subsetting down from multiple alt values
+        final double[] homRef3AllelesPL = new double[]{0, -10, -20, -30, -40, -50};
+        final double[] hetRefC3AllelesPL = new double[]{-10, 0, -20, -30, -40, -50};
+        final double[] homC3AllelesPL = new double[]{-20, -10, 0, -30, -40, -50};
+        final double[] hetRefG3AllelesPL = new double[]{-20, -10, -30, 0, -40, -50};
+        final double[] hetCG3AllelesPL = new double[]{-20, -10, -30, -40, 0, -50}; // AA, AC, CC, AG, CG, GG
+        final double[] homG3AllelesPL = new double[]{-20, -10, -30, -40, -50, 0};  // AA, AC, CC, AG, CG, GG
+
+        final int[] homRef3AllelesAD = new int[]{20, 0, 1};
+        final int[] hetRefC3AllelesAD = new int[]{10, 10, 1};
+        final int[] homC3AllelesAD = new int[]{0, 20, 1};
+        final int[] hetRefG3AllelesAD = new int[]{10, 0, 11};
+        final int[] hetCG3AllelesAD = new int[]{0, 12, 11}; // AA, AC, CC, AG, CG, GG
+        final int[] homG3AllelesAD = new int[]{0, 1, 21};  // AA, AC, CC, AG, CG, GG
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(homRef3AllelesAD).PL(homRef3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AC).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{0, -10, -20}).AD(new int[]{20, 0}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(hetRefC3AllelesAD).PL(hetRefC3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AC).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-10, 0, -20}).AD(new int[]{10, 10}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(homC3AllelesAD).PL(homC3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AC).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-20, -10, 0}).AD(new int[]{0, 20}).GQ(100).make())});
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(hetRefG3AllelesAD).PL(hetRefG3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AG).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-20, 0, -50}).AD(new int[]{10, 11}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(hetCG3AllelesAD).PL(hetCG3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AG).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{0, -20, -30}).AD(new int[]{0, 11}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(homG3AllelesAD).PL(homG3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AG).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-20, -40, 0}).AD(new int[]{0, 21}).GQ(100).make())});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "updatePLsAndADData")
+    public void testUpdatePLsAndADData(final VariantContext originalVC,
+                                       final VariantContext selectedVC,
+                                       final List<Genotype> expectedGenotypes) {
+        final VariantContext selectedVCwithGTs = new VariantContextBuilder(selectedVC).genotypes(originalVC.getGenotypes()).make();
+        final GenotypesContext actual = GATKVariantContextUtils.updatePLsAndAD(selectedVCwithGTs, originalVC);
+
+        Assert.assertEquals(actual.size(), expectedGenotypes.size());
+        for ( final Genotype expected : expectedGenotypes ) {
+            final Genotype actualGT = actual.get(expected.getSampleName());
+            Assert.assertNotNull(actualGT);
+            assertGenotypesAreEqual(actualGT, expected);
+        }
+    }
 }
