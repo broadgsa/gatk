@@ -201,6 +201,7 @@ public class WalkerTest extends BaseTest {
             this.testClass = getCallingTestClass();
         }
 
+        // @Test(expectedExceptions) doesn't work in integration tests, so use this instead
         public WalkerTestSpec(String args, int nOutputFiles, Class expectedException) {
             this.args = args;
             this.nOutputFiles = nOutputFiles;
