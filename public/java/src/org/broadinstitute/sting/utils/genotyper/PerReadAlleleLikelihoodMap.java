@@ -305,18 +305,16 @@ public class PerReadAlleleLikelihoodMap {
     /**
      * Debug method to dump contents of object into string for display
      */
-    @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         sb.append("Alelles in map:");
-        for (Allele a:alleles) {
+        for (final Allele a:alleles) {
             sb.append(a.getDisplayString()+",");
-
         }
         sb.append("\n");
-        for (Map.Entry <GATKSAMRecord, Map<Allele, Double>> el : getLikelihoodReadMap().entrySet() ) {
-            for (Map.Entry<Allele,Double> eli : el.getValue().entrySet()) {
+        for (final Map.Entry <GATKSAMRecord, Map<Allele, Double>> el : getLikelihoodReadMap().entrySet() ) {
+            for (final Map.Entry<Allele,Double> eli : el.getValue().entrySet()) {
                 sb.append("Read "+el.getKey().getReadName()+". Allele:"+eli.getKey().getDisplayString()+" has likelihood="+Double.toString(eli.getValue())+"\n");
             }
 

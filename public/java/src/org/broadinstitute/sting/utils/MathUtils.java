@@ -30,7 +30,6 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -425,7 +424,6 @@ public class MathUtils {
      * happen when: any value is negative or larger than a short.  This method is optimized for speed; it is not intended to serve as a 
      * utility function.
      */
-    @Nullable
     static Long fastGenerateUniqueHashFromThreeIntegers(final int one, final int two, final int three) {
         if (one < 0 || two < 0 || three < 0 || Short.MAX_VALUE < one || Short.MAX_VALUE < two || Short.MAX_VALUE < three) {
             return null;

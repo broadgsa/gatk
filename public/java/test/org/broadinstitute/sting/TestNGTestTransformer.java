@@ -54,7 +54,7 @@ public class TestNGTestTransformer implements IAnnotationTransformer {
                           Method testMethod)
     {
         if ( annotation.getTimeOut() == 0 ) {
-            logger.warn("test " + testMethod.toString() + " has no specified timeout, adding default timeout " + DEFAULT_TIMEOUT / 1000 / 60 + " minutes");
+            logger.warn("test " + (testMethod == null ? "<null>" : testMethod.toString()) + " has no specified timeout, adding default timeout " + DEFAULT_TIMEOUT / 1000 / 60 + " minutes");
             annotation.setTimeOut(DEFAULT_TIMEOUT);
         }
     }
