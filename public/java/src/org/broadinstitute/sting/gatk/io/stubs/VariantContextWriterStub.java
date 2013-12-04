@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broad.tribble.index.IndexCreator;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
@@ -71,6 +72,17 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     private final PrintStream genotypeStream;
 
     /**
+     * A hack: push the argument sources into the VCF header so that the VCF header
+     * can rebuild the command-line arguments.
+     */
+    private final Collection<Object> argumentSources;
+
+    /**
+     * Which IndexCreator to use
+     */
+    private final IndexCreator indexCreator;
+
+    /**
      * The cached VCF header (initialized to null)
      */
     private VCFHeader vcfHeader = null;
@@ -79,12 +91,6 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * Should we emit a compressed output stream?
      */
     private boolean isCompressed = false;
-
-    /**
-     * A hack: push the argument sources into the VCF header so that the VCF header
-     * can rebuild the command-line arguments.
-     */
-    private final Collection<Object> argumentSources;
 
     /**
      * Should the header be written out?  A hidden argument.
@@ -118,6 +124,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
+        this.indexCreator = GATKVCFUtils.getIndexCreator(engine.getArguments().variant_index_type, engine.getArguments().variant_index_parameter, genotypeFile);
         this.argumentSources = argumentSources;
     }
 
@@ -132,6 +139,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
+        this.indexCreator = null;
         this.argumentSources = argumentSources;
     }
 
@@ -173,6 +181,10 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
 
     public void setForceBCF(boolean forceBCF) {
         this.forceBCF = forceBCF;
+    }
+
+    public IndexCreator getIndexCreator() {
+        return indexCreator;
     }
 
     /**

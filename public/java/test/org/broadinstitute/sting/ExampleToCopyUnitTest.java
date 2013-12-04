@@ -105,6 +105,42 @@ public class ExampleToCopyUnitTest extends BaseTest {
     }
 
     /**
+     * DataProvider example using a class-based data structure
+     */
+    private class MyDataProviderClass extends TestDataProvider {
+        private int start;
+        private int size;
+
+        private MyDataProviderClass(int start, int size) {
+            super(MyDataProviderClass.class);
+            this.start = start;
+            this.size = size;
+        }
+    }
+
+    @DataProvider(name = "MyClassBasedDataProvider")
+    public Object[][] makeMyDataProviderClass() {
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        for ( final int start : Arrays.asList(1, 10, 100) ) {
+            for ( final int size : Arrays.asList(1, 10, 100, 1000) ) {
+                new MyDataProviderClass(start, size);
+            }
+        }
+
+        return TestDataProvider.getTests(MyDataProviderClass.class);
+    }
+
+    /**
+     * Example testng test using MyClassBasedDataProvider
+     */
+    @Test(dataProvider = "MyClassBasedDataProvider")
+    public void testMyDataProviderClass(MyDataProviderClass testSpec) {
+        // adaptor this code to do whatever testing you want given the arguments start and size
+        Assert.assertTrue(testSpec.start >= 0);
+        Assert.assertTrue(testSpec.size >= 0);
+    }
+
+    /**
      * A unit test that creates an artificial read for testing some code that uses reads
      */
     @Test()

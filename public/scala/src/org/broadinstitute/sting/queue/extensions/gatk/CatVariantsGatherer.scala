@@ -48,6 +48,9 @@ class CatVariantsGatherer extends CatVariants with GatherFunction with RetryMemo
     this.variant = this.gatherParts.zipWithIndex map { case (input, index) => new TaggedFile(input, "input"+index) }
     this.outputFile = this.originalOutput
     this.assumeSorted = true
+    this.variant_index_type = originalGATK.variant_index_type
+    this.variant_index_parameter = originalGATK.variant_index_parameter
+
     super.freezeFieldValues()
   }
 
