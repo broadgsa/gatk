@@ -473,9 +473,11 @@ public class GATKArgumentCollection {
      */
 
     @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="which type of IndexCreator to use for VCF/BCF indices",required=false)
+    @Advanced
     public GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
 
     @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="the parameter (bin width or features per bin) to pass to the VCF/BCF IndexCreator",required=false)
+    @Advanced
     public int variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
 }
 
