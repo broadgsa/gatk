@@ -230,7 +230,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
         genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
 
-        VariantContextUtils.engine.setSilent(true);
+        VariantContextUtils.engine.get().setSilent(true);
 
         initializeVcfWriter();
     }
