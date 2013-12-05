@@ -1415,6 +1415,13 @@
         <run-test testtype="${pipetype}" outputdir="${report}/${pipetype}" runfailed="false"/>
     </target>
 
+    <target name="knowledgebasetest" depends="test.compile,test.init" description="Run knowledge base tests">
+        <condition property="ktype" value="*KnowledgeBaseTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${ktype}" outputdir="${report}/${ktype}" runfailed="false"/>
+    </target>
+
     <target name="failed-unit" depends="test.compile,test.init">
         <run-test testtype="${report}/*UnitTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
