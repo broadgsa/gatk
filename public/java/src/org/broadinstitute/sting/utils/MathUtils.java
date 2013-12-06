@@ -27,6 +27,8 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.apache.commons.math.distribution.ExponentialDistribution;
+import org.apache.commons.math.distribution.ExponentialDistributionImpl;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -1510,4 +1512,7 @@ public class MathUtils {
         return dirichletMultinomial(params,sum(params),counts,(int) sum(counts));
     }
 
+    public static ExponentialDistribution exponentialDistribution( final double mean ) {
+        return new ExponentialDistributionImpl(mean);
+    }
 }
