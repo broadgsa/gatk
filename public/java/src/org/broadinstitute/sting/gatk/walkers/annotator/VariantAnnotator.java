@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
@@ -83,6 +84,7 @@ import java.util.*;
 @Requires(value={})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
+@Downsample(by= DownsampleType.BY_SAMPLE, toCoverage=250)
 @By(DataSource.REFERENCE)
 public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatible, TreeReducible<Integer> {
 
@@ -132,21 +134,21 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * See the -list argument to view available annotations.
      */
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
-    protected List<String> annotationsToUse = new ArrayList<String>();
+    protected List<String> annotationsToUse = new ArrayList<>();
 
     /**
      * Note that this argument has higher priority than the -A or -G arguments,
      * so annotations will be excluded even if they are explicitly included with the other options.
      */
     @Argument(fullName="excludeAnnotation", shortName="XA", doc="One or more specific annotations to exclude", required=false)
-    protected List<String> annotationsToExclude = new ArrayList<String>();
+    protected List<String> annotationsToExclude = new ArrayList<>();
 
     /**
      * If specified, all available annotations in the group will be applied. See the VariantAnnotator -list argument to view available groups.
      * Keep in mind that RODRequiringAnnotations are not intended to be used as a group, because they require specific ROD inputs.
      */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
-    protected List<String> annotationGroupsToUse = new ArrayList<String>();
+    protected List<String> annotationGroupsToUse = new ArrayList<>();
 
     /**
      * This option enables you to add annotations from one VCF to another.
@@ -193,8 +195,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         }
 
         // get the list of all sample names from the variant VCF input rod, if applicable
-        List<String> rodName = Arrays.asList(variantCollection.variants.getName());
-        Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
+        final List<String> rodName = Arrays.asList(variantCollection.variants.getName());
+        final Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
 
         if ( USE_ALL_ANNOTATIONS )
             engine = new VariantAnnotatorEngine(annotationsToExclude, this, getToolkit());
@@ -204,23 +206,23 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        final Set<VCFHeaderLine> hInfo = new HashSet<>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
+        for ( final VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
         // for the expressions, pull the info header line from the header of the resource rod
-        for ( VariantAnnotatorEngine.VAExpression expression : engine.getRequestedExpressions() ) {
+        for ( final VariantAnnotatorEngine.VAExpression expression : engine.getRequestedExpressions() ) {
             // special case the ID field
             if ( expression.fieldName.equals("ID") ) {
                 hInfo.add(new VCFInfoHeaderLine(expression.fullName, 1, VCFHeaderLineType.String, "ID field transferred from external VCF resource"));
                 continue;
             }
             VCFInfoHeaderLine targetHeaderLine = null;
-            for ( VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), Arrays.asList(expression.binding.getName())) ) {
+            for ( final VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), Arrays.asList(expression.binding.getName())) ) {
                 if ( line instanceof VCFInfoHeaderLine ) {
-                    VCFInfoHeaderLine infoline = (VCFInfoHeaderLine)line;
+                    final VCFInfoHeaderLine infoline = (VCFInfoHeaderLine)line;
                     if ( infoline.getID().equals(expression.fieldName) ) {
                         targetHeaderLine = infoline;
                         break;
@@ -285,7 +287,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
-            annotatedVCs = new ArrayList<VariantContext>(VCs.size());
+            annotatedVCs = new ArrayList<>(VCs.size());
             for ( VariantContext vc : VCs )
                 annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
         }

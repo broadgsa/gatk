@@ -33,10 +33,10 @@ import java.io.File
 import scala.tools.nsc.reporters.AbstractReporter
 import java.lang.String
 import org.apache.log4j.Level
-import scala.tools.nsc.util.{FakePos, NoPosition, Position}
 import org.broadinstitute.sting.queue.util.TextFormatUtils._
 import org.broadinstitute.sting.utils.classloader.JVMUtils
-import tools.util.StringOps
+import scala.reflect.internal.util.{FakePos, NoPosition, Position, StringOps}
+import org.broadinstitute.sting.utils.exceptions.UserException
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
@@ -47,13 +47,21 @@ class QScriptManager() extends Logging {
    * Heavily based on scala/src/compiler/scala/tools/ant/Scalac.scala
    */
   def loadScripts(scripts: Seq[File], tempDir: File) {
+    // Make sure the scripts actually exist.
+    scripts.foreach{
+        file => if( !file.exists()) throw new UserException.CouldNotReadInputFile(file, "it does not exist.")
+    }
+
     if (scripts.size > 0) {
       val settings = new Settings((error: String) => logger.error(error))
       settings.deprecation.value = true
       settings.outdir.value = tempDir.getPath
 
       // Set the classpath to the current class path.
-      JVMUtils.getClasspathURLs.foreach(url => settings.classpath.append(url.getPath))
+      JVMUtils.getClasspathURLs.foreach(url => {
+          settings.bootclasspath.append(url.getPath)
+          settings.classpath.append(url.getPath)
+      })
 
       val reporter = new QScriptManager.Log4JReporter(settings)
 

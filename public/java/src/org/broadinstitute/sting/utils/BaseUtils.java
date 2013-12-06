@@ -138,6 +138,48 @@ public class BaseUtils {
         return simpleBaseToBaseIndex(base1) == simpleBaseToBaseIndex(base2);
     }
 
+    /**
+     * Checks whether to bases are the same in fact ignore ambiguous 'N' bases.
+     *
+     * @param base1 first base to compare.
+     * @param base2 second base to compare.
+     * @return true if {@code base1 == base2} or either is an 'N', false otherwise.
+     */
+    static public boolean basesAreEqualIgnoreAmbiguous(final byte base1, final byte base2) {
+        if (base1 == base2) return true;
+        else if (base1 == 'n' || base1 == 'N' || base2 == 'N' || base2 == 'n') return true;
+        else return false;
+    }
+
+    /**
+     * Compare to base arrays ranges checking whether they contain the same bases.
+     *
+     * <p>
+     *     By default two array have equal bases, i.e. {@code length == 0} results results in {@code true}.
+     * </p>
+     *
+     * @param bases1 first base array to compare.
+     * @param offset1 position of the first base in bases1 to compare.
+     * @param bases2 second base array to compare.
+     * @param offset2 position of the first base in bases2 to compare.
+     * @param length number of bases to compare.
+     *
+     * @throws NullPointerException if {@code bases1} or {@code bases2} is {@code null}.
+     * @throws ArrayIndexOutOfBoundsException if:
+     * <ul>
+     *      <li>{@code offset1} is not within the range [0,{@code bases1.length}) or</li>
+     *     <li>{@code offset2} is not within the range [0,{@code bases2.length}) or</li>
+     *     <li>{@code offset1 + length} is not within the range [0,{@code bases1.length}) or </li>
+     *     <li>{@code offset2 + length} is not within the range [0,{@code bases2.length})</li>
+     * </ul>
+     * @return
+     */
+    static public boolean basesAreEqualIgnoreAmbiguous(final byte[] bases1, final int offset1, final byte[] bases2, final int offset2, final int length) {
+        for (int i = 0; i < length; i++)
+            if (!basesAreEqualIgnoreAmbiguous(bases1[offset1 + i],bases2[offset2 + i])) return false;
+        return true;
+    }
+
     static public boolean extendedBasesAreEqual(byte base1, byte base2) {
         return extendedBaseToBaseIndex(base1) == extendedBaseToBaseIndex(base2);
     }

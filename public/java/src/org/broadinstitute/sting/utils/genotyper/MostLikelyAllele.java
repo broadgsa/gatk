@@ -65,7 +65,7 @@ public final class MostLikelyAllele {
      * @param log10LikelihoodOfMostLikely the log10 likelihood of the most likely allele
      * @param log10LikelihoodOfSecondBest the log10 likelihood of the next most likely allele (should be NEGATIVE_INFINITY if none is available)
      */
-    public MostLikelyAllele(Allele mostLikely, Allele secondMostLikely, double log10LikelihoodOfMostLikely, double log10LikelihoodOfSecondBest) {
+    public MostLikelyAllele(final Allele mostLikely, final Allele secondMostLikely, double log10LikelihoodOfMostLikely, double log10LikelihoodOfSecondBest) {
         if ( mostLikely == null ) throw new IllegalArgumentException("mostLikely allele cannot be null");
         if ( log10LikelihoodOfMostLikely != Double.NEGATIVE_INFINITY && ! MathUtils.goodLog10Probability(log10LikelihoodOfMostLikely) )
             throw new IllegalArgumentException("log10LikelihoodOfMostLikely must be either -Infinity or a good log10 prob but got " + log10LikelihoodOfMostLikely);

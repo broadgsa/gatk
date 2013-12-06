@@ -30,7 +30,6 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -425,7 +424,6 @@ public class MathUtils {
      * happen when: any value is negative or larger than a short.  This method is optimized for speed; it is not intended to serve as a 
      * utility function.
      */
-    @Nullable
     static Long fastGenerateUniqueHashFromThreeIntegers(final int one, final int two, final int three) {
         if (one < 0 || two < 0 || three < 0 || Short.MAX_VALUE < one || Short.MAX_VALUE < two || Short.MAX_VALUE < three) {
             return null;
@@ -845,17 +843,29 @@ public class MathUtils {
     }
 
     /**
-     * Compute the median element of the array of integers
+     * Compute the median element of the list of integers
      * @param array a list of integers
      * @return the median element
      */
-    public static int median(final List<Integer> array) {
+    public static <T extends Comparable<? super T>> T median(final List<T> array) {
+         /* TODO -- from Valentin
+        the current implementation is not the usual median when the input is of even length. More concretely it returns the ith element of the list where i = floor(input.size() / 2).
+
+        But actually that is not the "usual" definition of a median, as it is supposed to return the average of the two middle values when the sample length is an even number (i.e. median(1,2,3,4,5,6) == 3.5). [Sources: R and wikipedia]
+
+        My suggestion for a solution is then:
+
+        unify median and medianDoubles to public static <T extends Number> T median(Collection<T>)
+        check on null elements and throw an exception if there are any or perhaps return a null; documented in the javadoc.
+        relocate, rename and refactor MathUtils.median(X) to Utils.ithElement(X,X.size()/2)
+        In addition, the current median implementation sorts the whole input list witch is O(n log n). However find out the ith element (thus calculate the median) can be done in O(n)
+        */
         if ( array == null ) throw new IllegalArgumentException("Array must be non-null");
         final int size = array.size();
         if ( size == 0 ) throw new IllegalArgumentException("Array cannot have size 0");
         else if ( size == 1 ) return array.get(0);
         else {
-            final ArrayList<Integer> sorted = new ArrayList<>(array);
+            final ArrayList<T> sorted = new ArrayList<>(array);
             Collections.sort(sorted);
             return sorted.get(size / 2);
         }
@@ -960,6 +970,16 @@ public class MathUtils {
         int count = 0;
         for (byte y : array) {
             if (element == y)
+                count++;
+        }
+
+        return count;
+    }
+
+    public static int countOccurrences(final boolean element, final boolean[] array) {
+        int count = 0;
+        for (final boolean b : array) {
+            if (element == b)
                 count++;
         }
 
@@ -1405,7 +1425,7 @@ public class MathUtils {
      * @return
      */
     public static List<Integer> log10LinearRange(final int start, final int stop, final double eps) {
-        final LinkedList<Integer> values = new LinkedList<Integer>();
+        final LinkedList<Integer> values = new LinkedList<>();
         final double log10range = Math.log10(stop - start);
 
         if ( start == 0 )
@@ -1458,6 +1478,36 @@ public class MathUtils {
         }
 
         return sliceListByIndices(sampleIndicesWithoutReplacement(list.size(),N),list);
+    }
+
+    /**
+     * Return the likelihood of observing the counts of categories having sampled a population
+     * whose categorial frequencies are distributed according to a Dirichlet distribution
+     * @param dirichletParams - params of the prior dirichlet distribution
+     * @param dirichletSum - the sum of those parameters
+     * @param counts - the counts of observation in each category
+     * @param countSum - the sum of counts (number of trials)
+     * @return - associated likelihood
+     */
+    public static double dirichletMultinomial(final double[] dirichletParams, final double dirichletSum,
+                                              final int[] counts, final int countSum) {
+        if ( dirichletParams.length != counts.length ) {
+            throw new IllegalStateException("The number of dirichlet parameters must match the number of categories");
+        }
+        // todo -- lots of lnGammas here. At some point we can safely switch to x * ( ln(x) - 1)
+        double likelihood = log10MultinomialCoefficient(countSum,counts);
+        likelihood += log10Gamma(dirichletSum);
+        likelihood -= log10Gamma(dirichletSum+countSum);
+        for ( int idx = 0; idx < counts.length; idx++ ) {
+            likelihood += log10Gamma(counts[idx] + dirichletParams[idx]);
+            likelihood -= log10Gamma(dirichletParams[idx]);
+        }
+
+        return likelihood;
+    }
+
+    public static double dirichletMultinomial(double[] params, int[] counts) {
+        return dirichletMultinomial(params,sum(params),counts,(int) sum(counts));
     }
 
 }

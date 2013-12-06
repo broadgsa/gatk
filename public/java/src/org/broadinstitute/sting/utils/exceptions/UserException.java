@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.File;
@@ -452,6 +453,14 @@ public class UserException extends ReviewedStingException {
                                 "If this key was valid in the past, it's likely been revoked. " +
                                 "Please see %s for help.",
                                 f.getAbsolutePath(), PHONE_HOME_DOCS_URL));
+        }
+    }
+
+    public static class GVCFIndexException extends UserException {
+        public GVCFIndexException (GATKVCFIndexType indexType, int indexParameter) {
+            super(String.format("GVCF output requires a specific indexing strategy.  Please re-run including the arguments " +
+                    "-variant_index_type %s -variant_index_parameter %d.",
+                    indexType, indexParameter));
         }
     }
 

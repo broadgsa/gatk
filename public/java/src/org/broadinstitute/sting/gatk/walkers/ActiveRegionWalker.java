@@ -180,4 +180,6 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         }
         return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, IntervalMergingRule.ALL);
     }
+
+
 }

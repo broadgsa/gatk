@@ -23,27 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.sting.utils.variant;
 
-import net.sf.picard.util.PeekableIterator;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-
-import java.util.Iterator;
+import org.broadinstitute.sting.commandline.EnumerationArgumentDefault;
 
 /**
- * Balances maximally granular file pointers into shards of reasonable size.
+ * Choose the Tribble indexing strategy
  */
-public abstract class ShardBalancer implements Iterable<Shard> {
-    protected SAMDataSource readsDataSource;
-    protected PeekableIterator<FilePointer> filePointers;
-    protected GenomeLocParser parser;
-
-    public void initialize(final SAMDataSource readsDataSource, final Iterator<FilePointer> filePointers, final GenomeLocParser parser) {
-        this.readsDataSource = readsDataSource;
-        this.filePointers = new PeekableIterator<FilePointer>(filePointers);
-        this.parser = parser;
-    }
-    public void close() {
-      this.filePointers.close();
-    }
+public enum GATKVCFIndexType {
+    @EnumerationArgumentDefault
+    DYNAMIC_SEEK,       // use DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME)
+    DYNAMIC_SIZE,       // use DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SIZE)
+    LINEAR,             // use LinearIndexCreator()
+    INTERVAL            // use IntervalIndexCreator()
 }

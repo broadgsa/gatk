@@ -32,9 +32,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
-import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -108,6 +106,12 @@ public class ActiveRegion implements HasGenomeLocation {
      * partially overlap this region.
      */
     private GenomeLoc spanIncludingReads;
+
+
+    /**
+     * Indicates whether the active region has been finalized
+     */
+    private boolean hasBeenFinalized;
 
     /**
      * Create a new ActiveRegion containing no reads
@@ -205,7 +209,7 @@ public class ActiveRegion implements HasGenomeLocation {
      * @return a non-null array of bytes holding the reference bases in referenceReader
      */
     @Ensures("result != null")
-    private byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
+    public byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
         if ( referenceReader == null ) throw new IllegalArgumentException("referenceReader cannot be null");
         if ( padding < 0 ) throw new IllegalArgumentException("padding must be a positive integer but got " + padding);
         if ( genomeLoc == null ) throw new IllegalArgumentException("genomeLoc cannot be null");
@@ -450,5 +454,13 @@ public class ActiveRegion implements HasGenomeLocation {
         final int requiredExtension = Math.min(Math.max(requiredOnLeft, requiredOnRight), getExtension());
 
         return new ActiveRegion( subActive, Collections.<ActivityProfileState>emptyList(), isActive, genomeLocParser, requiredExtension );
+    }
+
+    public void setFinalized(final boolean value) {
+        hasBeenFinalized = value;
+    }
+
+    public boolean isFinalized() {
+        return hasBeenFinalized;
     }
 }

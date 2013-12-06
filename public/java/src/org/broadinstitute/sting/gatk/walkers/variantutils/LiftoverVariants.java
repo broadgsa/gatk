@@ -42,6 +42,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -118,7 +119,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
 
         final VCFHeader vcfHeader = new VCFHeader(metaData, samples);
-        writer = VariantContextWriterFactory.create(file, getMasterSequenceDictionary(), VariantContextWriterFactory.NO_OPTIONS);
+        writer = VariantContextWriterFactory.create(file, getMasterSequenceDictionary(), EnumSet.of(Options.ALLOW_MISSING_FIELDS_IN_HEADER));
         writer.writeHeader(vcfHeader);
     }
 

@@ -63,6 +63,7 @@ public class QualityUtils {
     private static double qualToErrorProbCache[] = new double[256];
     private static double qualToProbLog10Cache[] = new double[256];
 
+
     static {
         for (int i = 0; i < 256; i++) {
             qualToErrorProbCache[i] = qualToErrorProb((double) i);

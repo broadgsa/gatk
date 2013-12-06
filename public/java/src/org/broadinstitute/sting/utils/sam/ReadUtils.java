@@ -152,8 +152,8 @@ public class ReadUtils {
     public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
         validateCompressionLevel(compression);
         if (file.endsWith(".bam"))
-            return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
-        return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
+            return new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(header, presorted, new File(file), compression);
+        return new SAMFileWriterFactory().setCreateIndex(true).makeSAMOrBAMWriter(header, presorted, new File(file));
     }
 
     public static int validateCompressionLevel(final int requestedCompressionLevel) {

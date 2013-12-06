@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.pairhmm;
 
@@ -40,18 +40,18 @@ import static java.lang.Math.log10;
  * User: rpoplin, carneiro
  * Date: 3/1/12
  */
-public final class Log10PairHMM extends N2MemoryPairHMM {
+public class Log10PairHMM extends N2MemoryPairHMM {
     /**
      * Should we use exact log10 calculation (true), or an approximation (false)?
      */
     private final boolean doExactLog10;
 
-    private static final int matchToMatch = 0;
-    private static final int indelToMatch = 1;
-    private static final int matchToInsertion = 2;
-    private static final int insertionToInsertion = 3;
-    private static final int matchToDeletion = 4;
-    private static final int deletionToDeletion = 5;
+    protected static final int matchToMatch = 0;
+    protected static final int indelToMatch = 1;
+    protected static final int matchToInsertion = 2;
+    protected static final int insertionToInsertion = 3;
+    protected static final int matchToDeletion = 4;
+    protected static final int deletionToDeletion = 5;
 
     // we divide e by 3 because the observed base could have come from any of the non-observed alleles
     protected final static double log10_3 = log10(3.0);
@@ -85,9 +85,6 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
             Arrays.fill(insertionMatrix[iii], Double.NEGATIVE_INFINITY);
             Arrays.fill(deletionMatrix[iii], Double.NEGATIVE_INFINITY);
         }
-
-        transition = new double[paddedMaxReadLength][6];
-        prior = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
     }
 
     /**
@@ -101,19 +98,17 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
                                                                final byte[] deletionGOP,
                                                                final byte[] overallGCP,
                                                                final int hapStartIndex,
-                                                               final boolean recacheReadValues ) {
+                                                               final boolean recacheReadValues,
+                                                               final int nextHapStartIndex) {
 
-        if (previousHaplotypeBases == null || previousHaplotypeBases.length != haplotypeBases.length) {
-            // set the initial value (free deletions in the beginning) for the first row in the deletion matrix
-            final double initialValue = Math.log10(1.0 / haplotypeBases.length);
-            for( int j = 0; j < paddedHaplotypeLength; j++ ) {
-                deletionMatrix[0][j] = initialValue;
-            }
-        }
 
         if ( ! constantsAreInitialized || recacheReadValues )
             initializeProbabilities(insertionGOP, deletionGOP, overallGCP);
         initializePriors(haplotypeBases, readBases, readQuals, hapStartIndex);
+        if (previousHaplotypeBases == null || previousHaplotypeBases.length != haplotypeBases.length) {
+            // set the initial value (free deletions in the beginning) for the first row in the deletion matrix
+            initializeMatrixValues(haplotypeBases);
+        }
 
         for (int i = 1; i < paddedReadLength; i++) {
             // +1 here is because hapStartIndex is 0-based, but our matrices are 1 based
@@ -125,13 +120,26 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
         // final probability is the log10 sum of the last element in the Match and Insertion state arrays
         // this way we ignore all paths that ended in deletions! (huge)
         // but we have to sum all the paths ending in the M and I matrices, because they're no longer extended.
+        double finalSumProbabilities = finalLikelihoodCalculation();
+
+        return finalSumProbabilities;
+    }
+
+    protected void initializeMatrixValues(final byte[] haplotypeBases) {
+        final double initialValue = Math.log10(1.0 / haplotypeBases.length);
+        for( int j = 0; j < paddedHaplotypeLength; j++ ) {
+            deletionMatrix[0][j] = initialValue;
+        }
+    }
+
+    protected double finalLikelihoodCalculation() {
         final int endI = paddedReadLength - 1;
         double finalSumProbabilities = myLog10SumLog10(new double[]{matchMatrix[endI][1], insertionMatrix[endI][1]});
         for (int j = 2; j < paddedHaplotypeLength; j++)
             finalSumProbabilities = myLog10SumLog10(new double[]{finalSumProbabilities, matchMatrix[endI][j], insertionMatrix[endI][j]});
-
         return finalSumProbabilities;
     }
+
 
     /**
      * Initializes the matrix that holds all the constants related to the editing
@@ -171,7 +179,7 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
             "overallGCP != null"
     })
     @Ensures("constantsAreInitialized")
-    private void initializeProbabilities(final byte[] insertionGOP, final byte[] deletionGOP, final byte[] overallGCP) {
+    protected void initializeProbabilities(final byte[] insertionGOP, final byte[] deletionGOP, final byte[] overallGCP) {
         for (int i = 0; i < insertionGOP.length; i++) {
             final int qualIndexGOP = Math.min(insertionGOP[i] + deletionGOP[i], Byte.MAX_VALUE);
             transition[i+1][matchToMatch] = QualityUtils.qualToProbLog10((byte) qualIndexGOP);
@@ -201,7 +209,7 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
      * @return the log10 of the sum of the probabilities
      */
     @Requires("values != null")
-    private double myLog10SumLog10(final double[] values) {
+    protected double myLog10SumLog10(final double[] values) {
         return doExactLog10 ? MathUtils.log10sumLog10(values) : MathUtils.approximateLog10SumLog10(values);
     }
 
@@ -216,7 +224,7 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
      * @param prior            the likelihood editing distance matrix for the read x haplotype
      * @param transition        an array with the six transition relevant to this location
      */
-    private void updateCell( final int indI, final int indJ, final double prior, final double[] transition) {
+    protected void updateCell( final int indI, final int indJ, final double prior, final double[] transition) {
 
         matchMatrix[indI][indJ] = prior +
                 myLog10SumLog10(new double[]{matchMatrix[indI - 1][indJ - 1] + transition[matchToMatch],

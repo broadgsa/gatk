@@ -201,6 +201,7 @@ public class WalkerTest extends BaseTest {
             this.testClass = getCallingTestClass();
         }
 
+        // @Test(expectedExceptions) doesn't work in integration tests, so use this instead
         public WalkerTestSpec(String args, int nOutputFiles, Class expectedException) {
             this.args = args;
             this.nOutputFiles = nOutputFiles;
@@ -388,7 +389,6 @@ public class WalkerTest extends BaseTest {
     private void executeTest(String testName, String testClassName, String args, Class expectedException) {
         CommandLineGATK instance = new CommandLineGATK();
         String[] command = Utils.escapeExpressions(args);
-
         // run the executable
         boolean gotAnException = false;
         try {

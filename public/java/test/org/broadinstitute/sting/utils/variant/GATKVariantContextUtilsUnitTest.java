@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.vcf.VCFConstants;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -56,11 +57,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         ATCATC = Allele.create("ATCATC");
     }
 
-    private Genotype makeG(String sample, Allele a1, Allele a2) {
-        return GenotypeBuilder.create(sample, Arrays.asList(a1, a2));
-    }
-
-    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double... pls) {
+    private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, int... pls) {
         return new GenotypeBuilder(sample, Arrays.asList(a1, a2)).log10PError(log10pError).PL(pls).make();
     }
 
@@ -107,7 +104,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
         private MergeAllelesTest(List<Allele>... arg) {
             super(MergeAllelesTest.class);
-            LinkedList<List<Allele>> all = new LinkedList<List<Allele>>(Arrays.asList(arg));
+            LinkedList<List<Allele>> all = new LinkedList<>(Arrays.asList(arg));
             expected = all.pollLast();
             inputs = all;
         }
@@ -185,7 +182,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 inputs, priority,
                 GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false, false);
 
         Assert.assertEquals(merged.getAlleles(), cfg.expected);
     }
@@ -243,7 +240,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 inputs, null,
                 GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false, false);
         Assert.assertEquals(merged.getID(), cfg.expected);
     }
 
@@ -358,7 +355,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     public void testMergeFiltered(MergeFilteredTest cfg) {
         final List<String> priority = vcs2priority(cfg.inputs);
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
-                cfg.inputs, priority, cfg.type, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+                cfg.inputs, priority, cfg.type, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false, false);
 
         // test alleles are equal
         Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
@@ -485,7 +482,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     public void testMergeGenotypes(MergeGenotypesTest cfg) {
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 cfg.inputs, cfg.priority, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false, false);
 
         // test alleles are equal
         Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
@@ -526,10 +523,10 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 Arrays.asList(vc1, vc2), null, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false, false);
 
         // test genotypes
-        Assert.assertEquals(merged.getSampleNames(), new HashSet<String>(Arrays.asList("s1.1", "s1.2")));
+        Assert.assertEquals(merged.getSampleNames(), new HashSet<>(Arrays.asList("s1.1", "s1.2")));
     }
 
 // TODO: remove after testing
@@ -540,7 +537,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 //
 //        final VariantContext merged = VariantContextUtils.simpleMerge(
 //                Arrays.asList(vc1, vc2), null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-//                VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE, false, false, "set", false, false);
+//                VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE, false, false, "set", false, false, false);
 //    }
 
     // --------------------------------------------------------------------------------
@@ -559,7 +556,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
                 final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                         Arrays.asList(vc1, vc2), priority, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                        GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false);
+                        GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false, false);
 
                 if ( annotate )
                     Assert.assertEquals(merged.getAttribute(set), GATKVariantContextUtils.MERGE_INTERSECTION);
@@ -570,7 +567,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     }
 
     private static final List<String> vcs2priority(final Collection<VariantContext> vcs) {
-        final List<String> priority = new ArrayList<String>();
+        final List<String> priority = new ArrayList<>();
 
         for ( final VariantContext vc : vcs ) {
             priority.add(vc.getSource());
@@ -997,7 +994,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "PrimitiveAlleleSplittingData")
     public Object[][] makePrimitiveAlleleSplittingData() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         // no split
         tests.add(new Object[]{"A", "C", 0, null});
@@ -1039,6 +1036,26 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         }
     }
 
+    @Test(enabled = !DEBUG)
+    public void testFillInNonRefSymbolicAlleles() {
+        final int start = 10;
+        final String ref = "A";
+        final String alt = "C";
+        final VariantContext vcAlt = GATKVariantContextUtils.makeFromAlleles("test", "20", start, Arrays.asList(ref, alt));
+        final VariantContext vcRef = GATKVariantContextUtils.makeFromAlleles("test", "20", start, Arrays.asList(ref, "<"+GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE_NAME+">"));
+
+        List<VariantContext> VCs = Arrays.asList(vcAlt, vcRef);
+        VCs = GATKVariantContextUtils.fillInNonRefSymbolicAlleles(VCs, Collections.<VariantContext>emptyList());
+
+        // make sure the non ref symbolic alleles have all been filled in with the appropriate alternate allele
+        for( final VariantContext vc : VCs ) {
+            Assert.assertTrue(vc.getAlternateAlleles().size() == 1);
+            Assert.assertTrue(vc.getAlternateAllele(0).isNonReference());
+            Assert.assertTrue(!vc.getReference().isSymbolic());
+            Assert.assertTrue(!vc.getAlternateAllele(0).isSymbolic());
+        }
+    }
+
     // --------------------------------------------------------------------------------
     //
     // test allele remapping
@@ -1047,7 +1064,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "AlleleRemappingData")
     public Object[][] makeAlleleRemappingData() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         final Allele originalBase1 = Allele.create((byte)'A');
         final Allele originalBase2 = Allele.create((byte)'T');
@@ -1055,7 +1072,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         for ( final byte base1 : BaseUtils.BASES ) {
             for ( final byte base2 : BaseUtils.BASES ) {
                 for ( final int numGenotypes : Arrays.asList(0, 1, 2, 5) ) {
-                    Map<Allele, Allele> map = new HashMap<Allele, Allele>(2);
+                    Map<Allele, Allele> map = new HashMap<>(2);
                     map.put(originalBase1, Allele.create(base1));
                     map.put(originalBase2, Allele.create(base2));
 
@@ -1301,6 +1318,114 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
                     assertGenotypesAreEqual(gc.get(i), tests.get(genotypes.get(i)));
                 }
             }
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test updatePLsAndAD
+    //
+    // --------------------------------------------------------------------------------
+
+    @DataProvider(name = "updatePLsAndADData")
+    public Object[][] makeUpdatePLsAndADData() {
+        List<Object[]> tests = new ArrayList<>();
+
+        final Allele A = Allele.create("A", true);
+        final Allele C = Allele.create("C");
+        final Allele G = Allele.create("G");
+
+        final List<Allele> AA = Arrays.asList(A,A);
+        final List<Allele> AC = Arrays.asList(A,C);
+        final List<Allele> CC = Arrays.asList(C,C);
+        final List<Allele> AG = Arrays.asList(A,G);
+        final List<Allele> CG = Arrays.asList(C,G);
+        final List<Allele> GG = Arrays.asList(G,G);
+        final List<Allele> ACG = Arrays.asList(A,C,G);
+
+        final VariantContext vcBase = new VariantContextBuilder("test", "20", 10, 10, AC).make();
+
+        final double[] homRefPL = MathUtils.normalizeFromRealSpace(new double[]{0.9, 0.09, 0.01});
+        final double[] hetPL = MathUtils.normalizeFromRealSpace(new double[]{0.09, 0.9, 0.01});
+        final double[] homVarPL = MathUtils.normalizeFromRealSpace(new double[]{0.01, 0.09, 0.9});
+        final double[] uninformative = new double[]{0, 0, 0};
+
+        final Genotype base = new GenotypeBuilder("NA12878").DP(10).GQ(100).make();
+
+        // make sure we don't screw up the simple case where no selection happens
+        final Genotype aaGT = new GenotypeBuilder(base).alleles(AA).AD(new int[]{10,2}).PL(homRefPL).GQ(8).make();
+        final Genotype acGT = new GenotypeBuilder(base).alleles(AC).AD(new int[]{10,2}).PL(hetPL).GQ(8).make();
+        final Genotype ccGT = new GenotypeBuilder(base).alleles(CC).AD(new int[]{10,2}).PL(homVarPL).GQ(8).make();
+
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(aaGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(new GenotypeBuilder(aaGT).make())});
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(acGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(new GenotypeBuilder(acGT).make())});
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(ccGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(new GenotypeBuilder(ccGT).make())});
+
+        // uninformative test cases
+        final Genotype uninformativeGT = new GenotypeBuilder(base).alleles(CC).noAD().PL(uninformative).GQ(0).make();
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(uninformativeGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(uninformativeGT)});
+        final Genotype emptyGT = new GenotypeBuilder(base).alleles(GATKVariantContextUtils.NO_CALL_ALLELES).noAD().noPL().noGQ().make();
+        tests.add(new Object[]{new VariantContextBuilder(vcBase).genotypes(emptyGT).make(), new VariantContextBuilder(vcBase).alleles(AC).make(), Arrays.asList(emptyGT)});
+
+        // actually subsetting down from multiple alt values
+        final double[] homRef3AllelesPL = new double[]{0, -10, -20, -30, -40, -50};
+        final double[] hetRefC3AllelesPL = new double[]{-10, 0, -20, -30, -40, -50};
+        final double[] homC3AllelesPL = new double[]{-20, -10, 0, -30, -40, -50};
+        final double[] hetRefG3AllelesPL = new double[]{-20, -10, -30, 0, -40, -50};
+        final double[] hetCG3AllelesPL = new double[]{-20, -10, -30, -40, 0, -50}; // AA, AC, CC, AG, CG, GG
+        final double[] homG3AllelesPL = new double[]{-20, -10, -30, -40, -50, 0};  // AA, AC, CC, AG, CG, GG
+
+        final int[] homRef3AllelesAD = new int[]{20, 0, 1};
+        final int[] hetRefC3AllelesAD = new int[]{10, 10, 1};
+        final int[] homC3AllelesAD = new int[]{0, 20, 1};
+        final int[] hetRefG3AllelesAD = new int[]{10, 0, 11};
+        final int[] hetCG3AllelesAD = new int[]{0, 12, 11}; // AA, AC, CC, AG, CG, GG
+        final int[] homG3AllelesAD = new int[]{0, 1, 21};  // AA, AC, CC, AG, CG, GG
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(homRef3AllelesAD).PL(homRef3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AC).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{0, -10, -20}).AD(new int[]{20, 0}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(hetRefC3AllelesAD).PL(hetRefC3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AC).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-10, 0, -20}).AD(new int[]{10, 10}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(homC3AllelesAD).PL(homC3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AC).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-20, -10, 0}).AD(new int[]{0, 20}).GQ(100).make())});
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(hetRefG3AllelesAD).PL(hetRefG3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AG).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-20, 0, -50}).AD(new int[]{10, 11}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(hetCG3AllelesAD).PL(hetCG3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AG).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{0, -20, -30}).AD(new int[]{0, 11}).GQ(100).make())});
+
+        tests.add(new Object[]{
+                new VariantContextBuilder(vcBase).alleles(ACG).genotypes(new GenotypeBuilder(base).alleles(AA).AD(homG3AllelesAD).PL(homG3AllelesPL).make()).make(),
+                new VariantContextBuilder(vcBase).alleles(AG).make(),
+                Arrays.asList(new GenotypeBuilder(base).alleles(AA).PL(new double[]{-20, -40, 0}).AD(new int[]{0, 21}).GQ(100).make())});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "updatePLsAndADData")
+    public void testUpdatePLsAndADData(final VariantContext originalVC,
+                                       final VariantContext selectedVC,
+                                       final List<Genotype> expectedGenotypes) {
+        final VariantContext selectedVCwithGTs = new VariantContextBuilder(selectedVC).genotypes(originalVC.getGenotypes()).make();
+        final GenotypesContext actual = GATKVariantContextUtils.updatePLsAndAD(selectedVCwithGTs, originalVC);
+
+        Assert.assertEquals(actual.size(), expectedGenotypes.size());
+        for ( final Genotype expected : expectedGenotypes ) {
+            final Genotype actualGT = actual.get(expected.getSampleName());
+            Assert.assertNotNull(actualGT);
+            assertGenotypesAreEqual(actualGT, expected);
         }
     }
 }

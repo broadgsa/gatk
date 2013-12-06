@@ -88,7 +88,7 @@
 </#macro>
 
 <?php $group = '${group}'; ?>
-<@makeHeader title="${name} documentation" isIndex=false />
+<@makeHeader title="GATK | ${name} documentation" isIndex=false />
 <section class="span4">
     <aside class="well">
         <h2>Categories</h2>
@@ -174,11 +174,16 @@
 		</#if>
 		<#if downsampling?size != 0>
 			<h3>Downsampling settings</h3>
-			<p>This tool overrides the engine's default downsampling settings.</p>
-			<ul>
-				<li>Mode: <b>${downsampling.by}</b></li>
-				<li>To coverage: <b>${downsampling.to_cov}</b></li>
-			</ul>
+			<#if downsampling.by == "NONE">
+				<p>This tool does not apply any downsampling by default.</p>
+			</#if>
+			<#if downsampling.by != "NONE">
+				<p>This tool applies the following downsampling settings by default.</p>
+				<ul>
+					<li>Mode: <b>${downsampling.by}</b></li>
+					<li>To coverage: <b>${downsampling.to_cov}</b></li>
+				</ul>
+			</#if>
 		</#if>
 		<#if refwindow?size != 0>
 			<h3>Window size</h3>
