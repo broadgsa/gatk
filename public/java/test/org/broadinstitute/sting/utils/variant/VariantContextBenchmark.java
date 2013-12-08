@@ -234,7 +234,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                         GATKVariantContextUtils.simpleMerge(toMerge, null,
                                 GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
                                 GATKVariantContextUtils.GenotypeMergeType.UNSORTED,
-                                true, false, "set", false, true, false);
+                                true, false, "set", false, true);
                     }
                 };
 
