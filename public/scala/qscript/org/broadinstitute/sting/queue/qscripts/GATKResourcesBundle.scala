@@ -168,11 +168,18 @@ class GATKResourcesBundle extends QScript {
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
 
     //
-    // CEU trio (NA12878,NA12891,NA12892) best practices results (including PBT)
+    // CEU trio (NA12878,NA12891,NA12892) best practices results
     //
 
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/callsets/CEUtrio_BestPractices/CEUTrio.HiSeq.WGS.b37.snps_and_indels.recalibrated.filtered.phased.CURRENT.vcf",
-      "CEUTrio.HiSeq.WGS.b37.bestPractices.phased",b37,true,false))
+    addResource(new Resource("/humgen/1kg/processing/production_wgs_final/trio/CEU/CEU.wgs.HaplotypeCaller.20131118.snps_indels.high_coverage_pcr_free.genotypes.vcf",
+      "CEUTrio.HiSeq.WGS.b37.bestPractices",b37,true,false))
+
+    //
+    // NA12878 knowledgebase snapshot
+    //
+
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/knowledgeBase/snapshots/NA12878.wgs.broad_truth_set.20131119.snps_and_indels.genotypes.vcf",
+      "NA12878.knowledgebase.snapshot.20131119",b37,true,false))
 
     //
     // example call set for documentation guide tutorial
@@ -290,9 +297,8 @@ class GATKResourcesBundle extends QScript {
         }
       }
 
-      createCurrentLink(BUNDLE_DIR)
-
     } else {
+      createCurrentLink(BUNDLE_DIR)
       createBundleDirectories(DOWNLOAD_DIR)
       createDownloadsFromBundle(BUNDLE_DIR, DOWNLOAD_DIR)
     }
