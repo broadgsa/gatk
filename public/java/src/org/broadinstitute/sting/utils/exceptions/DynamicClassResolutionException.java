@@ -29,10 +29,6 @@ import java.lang.reflect.InvocationTargetException;
 
 /**
  * Class for handling common failures of dynamic class resolution
- *
- * User: depristo
- * Date: Sep 3, 2010
- * Time: 2:24:09 PM
  */
 public class DynamicClassResolutionException extends UserException {
     public DynamicClassResolutionException(Class c, Exception ex) {

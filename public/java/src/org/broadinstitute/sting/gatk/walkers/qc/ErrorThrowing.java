@@ -41,10 +41,9 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 
 /**
- * a walker that simply throws errors.  Allows us to test that the engine is behaving as expected with error handling
+ * A walker that simply throws errors.  Allows us to test that the engine is behaving as expected with error handling
  */
-@Hidden
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_TEST, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_TOY, extraDocs = {CommandLineGATK.class} )
 public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeReducible<Integer>, NanoSchedulable {
     @Input(fullName="exception", shortName = "E", doc="Java class of exception to throw", required=true)
     public String exceptionToThrow;

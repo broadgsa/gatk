@@ -42,10 +42,6 @@ import java.io.File;
  * Represents the common user errors detected by Sting / GATK
  *
  * Root class for all GATK user errors, as well as the container for errors themselves
- *
- * User: depristo
- * Date: Sep 3, 2010
- * Time: 2:24:09 PM
  */
 @DocumentedGATKFeature(
         groupName = HelpConstants.DOCS_CAT_USRERR,

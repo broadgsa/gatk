@@ -58,7 +58,7 @@
     <small>${version}</small>
 </h1>
 <div class="accordion" id="index">
-    <#assign seq = ["engine", "tools", "utilities", "other"]>
+    <#assign seq = ["engine", "tools", "utilities", "other", "dev"]>
 	<#list seq as supercat>
 		<hr>
 		<#list groups?sort_by("name") as group>
@@ -70,4 +70,5 @@
 </div>
 
 <@footerInfo />
+<@footerClose />
 <@pageFooter />

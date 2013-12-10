@@ -50,19 +50,20 @@ import java.util.concurrent.TimeUnit;
  */
 public class GATKArgumentCollection {
 
-    /* our version number */
-    private float versionNumber = 1;
-    private String description = "GATK Arguments";
-
     /** the constructor */
     public GATKArgumentCollection() {
     }
 
     // parameters and their defaults
-    @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
+    /**
+     * An input file containing sequence data mapped to a reference, in SAM or BAM format, or a text file containing a
+     * list of input files (with extension .list). Note that the GATK requires an accompanying index for each SAM or
+     * BAM file. Please see our online documentation for more details on input formatting requirements.
+     */
+    @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (SAM or BAM)", required = false)
     public List<String> samFiles = new ArrayList<String>();
 
-    @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
+    @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false, minValue = 0)
     public Integer readBufferSize = null;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -71,21 +72,30 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? AWS is the default, can be NO_ET so nothing is posted to the run repository. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    /**
+     * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains basic
+     * non-identifying statistics (which tool was used, whether the run was successful etc.) that help us for debugging
+     * and development. You can use this option to turn off reporting if your run environment is not connected to the
+     * internet or if your data is subject to stringent confidentiality clauses (e.g. clinical patient data).
+     * To do so you will need to request a key using the online request form on our website.
+     */
+    @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
-
-    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    /**
+     * Please see the online documentation FAQs for more details on the key system and how to request a key.
+     */
+    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK key file required to run with -et NO_ET", required = false)
     public File gatkKeyFile = null;
 
     /**
-     * The GATKRunReport supports (as of GATK 2.2) tagging GATK runs with an arbitrary String tag that can be
+     * The GATKRunReport supports (as of GATK 2.2) tagging GATK runs with an arbitrary tag that can be
      * used to group together runs during later analysis.  One use of this capability is to tag runs as GATK
      * performance tests, so that the performance of the GATK over time can be assessed from the logs directly.
      *
      * Note that the tags do not conform to any ontology, so you are free to use any tags that you might find
      * meaningful.
      */
-    @Argument(fullName = "tag", shortName = "tag", doc="Arbitrary tag string to identify this GATK run as part of a group of runs, for later analysis", required = false)
+    @Argument(fullName = "tag", shortName = "tag", doc="Tag to identify this GATK run as part of a group of runs", required = false)
     public String tag = "NA";
 
     // --------------------------------------------------------------------------------------------------------------
@@ -94,26 +104,48 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
-    public List<String> readFilters = new ArrayList<String>();
+    /**
+     * Reads that fail the specified filters will not be used in the analysis. Multiple filters can be specified separately,
+     * e.g. you can do -rf MalformedRead -rf BadCigar and so on. Available read filters are listed in the online tool
+     * documentation. Note that the read name format is e.g. MalformedReadFilter, but at the command line the filter
+     * name should be given without the Filter suffix; e.g. -rf MalformedRead (NOT -rf MalformedReadFilter, which is not
+     * recognized by the program). Note also that some read filters are applied by default for some analysis tools; this
+     * is specified in each tool's documentation. The default filters cannot be disabled.
+     */
+    @Argument(fullName = "read_filter", shortName = "rf", doc = "Filters to apply to reads before analysis", required = false)
+    public final List<String> readFilters = new ArrayList<String>();
 
     @ArgumentCollection
     public IntervalArgumentCollection intervalArguments = new IntervalArgumentCollection();
-
+    /**
+     * The reference genome against which the sequence data was mapped. The GATK requires an index file and a dictionary
+     * file accompanying the reference (please see the online documentation FAQs for more details on these files). Although
+     * this argument is indicated as being optional, almost all GATK tools require a reference in order to run.
+     * Note also that while GATK can in theory process genomes from any organism with any number of chromosomes or contigs,
+     * it is not designed to process draft genome assemblies and performance will decrease as the number of contigs in
+     * the reference increases. We strongly discourage the use of unfinished genome assemblies containing more than a few
+     * hundred contigs. Contig numbers in the thousands will most probably cause memory-related crashes.
+     */
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
-
-    @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
+    /**
+     * If this flag is enabled, the random numbers generated will be different in every run, causing GATK to behave non-deterministically.
+     */
+    @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Use a non-deterministic random seed", required = false)
     public boolean nonDeterministicRandomSeed = false;
-
+    /**
+     * To be used in the testing framework where dynamic parallelism can result in differing numbers of calls to the random generator.
+     */
     @Hidden
-    @Argument(fullName = "disableDithering",doc="Completely eliminates randomized dithering from rank sum tests. To be used in the testing framework where dynamic parallelism can result in differing numbers of calls to the random generator.")
+    @Argument(fullName = "disableDithering",doc="Completely eliminates randomized dithering from rank sum tests.")
     public boolean disableDithering = false;
-
-    @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="If provided, that GATK will stop execution cleanly as soon after maxRuntime has been exceeded, truncating the run but not exiting with a failure.  By default the value is interpreted in minutes, but this can be changed by maxRuntimeUnits", required = false)
+    /**
+     * This will truncate the run but without exiting with a failure. By default the value is interpreted in minutes, but this can be changed with the maxRuntimeUnits argument.
+     */
+    @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="Stop execution cleanly as soon as maxRuntime has been reached", required = false, minValue = 0)
     public long maxRuntime = GenomeAnalysisEngine.NO_RUNTIME_LIMIT;
 
-    @Argument(fullName = "maxRuntimeUnits", shortName = "maxRuntimeUnits", doc="The TimeUnit for maxRuntime", required = false)
+    @Argument(fullName = "maxRuntimeUnits", shortName = "maxRuntimeUnits", doc="Unit of time used by maxRuntime", required = false)
     public TimeUnit maxRuntimeUnits = TimeUnit.MINUTES;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -122,32 +154,47 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
     /**
-     * Reads will be selected randomly to be removed from the pile based on the method described here.
+     * There are several ways to downsample reads, i.e. to removed reads from the pile of reads that will be used for analysis.
+     * See the documentation of the individual downsampling options for details on how they work. Note that Many GATK tools
+     * specify a default downsampling type and target, but this behavior can be overridden from command line using the
+     * downsampling arguments.
      */
-    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus", required = false)
+    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of read downsampling to employ at a given locus", required = false)
     public DownsampleType downsamplingType = null;
-
-    @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
+    /**
+     * Reads will be downsampled so the specified fraction remains; e.g. if you specify -dfrac 0.25, three-quarters of
+     * the reads will be removed, and the remaining one quarter will be used in the analysis. This method of downsampling
+     * is truly unbiased and random. It is typically used to simulate the effect of generating different amounts of
+     * sequence data for a given sample. For example, you can use this in a pilot experiment to evaluate how much target
+     * coverage you need to aim for in order to obtain enough coverage in all loci of interest.
+     */
+    @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction of reads to downsample to", required = false, minValue = 0.0, maxValue = 1.0)
     public Double downsampleFraction = null;
 
     /**
-     * For locus-based traversals (LocusWalkers and ActiveRegionWalkers), downsample_to_coverage controls the
-     * maximum depth of coverage at each locus. For read-based traversals (ReadWalkers), it controls the
-     * maximum number of reads sharing the same alignment start position. For ReadWalkers you will typically need to use
-     * much lower dcov values than you would with LocusWalkers to see an effect. Note that this downsampling option does
-     * not produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of the
-     * to-coverage downsampler is to maintain an even representation of reads from all alignment start positions when
-     * removing excess coverage. For a truly unbiased random sampling of reads, use -dfrac instead. Also note
-     * that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling
-     * algorithm will under some circumstances retain slightly more or less coverage than requested.
+     * The principle of this downsampling type is to downsample reads to a given capping threshold coverage. Its purpose is to
+     * get rid of excessive coverage, because above a certain depth, having additional data is not informative and imposes
+     * unreasonable computational costs. The downsampling process takes two different forms depending on the type of
+     * analysis it is used with.
+     *
+     * For locus-based traversals (LocusWalkers like UnifiedGenotyper and ActiveRegionWalkers like HaplotypeCaller),
+     * downsample_to_coverage controls the maximum depth of coverage at each locus. For read-based traversals
+     * (ReadWalkers like BaseRecalibrator), it controls the maximum number of reads sharing the same alignment start
+     * position. For ReadWalkers you will typically need to use much lower dcov values than you would with LocusWalkers
+     * to see an effect. Note that this downsampling option does not produce an unbiased random sampling from all available
+     * reads at each locus: instead, the primary goal of the to-coverage downsampler is to maintain an even representation
+     * of reads from all alignment start positions when removing excess coverage. For a truly unbiased random sampling of
+     * reads, use -dfrac instead. Also note that the coverage target is an approximate goal that is not guaranteed to be
+     * met exactly: the downsampling algorithm will under some circumstances retain slightly more or less coverage than
+     * requested.
      */
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov",
-              doc = "Coverage [integer] to downsample to per locus (for locus walkers) or per alignment start position (for read walkers)",
-              required = false)
+              doc = "Target coverage threshold for downsampling to coverage",
+              required = false, minValue = 0)
     public Integer downsampleCoverage = null;
 
     /**
-     * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
+     * Gets the downsampling method explicitly specified by the user. If the user didn't specify
      * a default downsampling mechanism, return the default.
      * @return The explicitly specified downsampling mechanism, or the default if none exists.
      */
@@ -178,8 +225,10 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
     public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.OFF;
-
-    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
+    /**
+     *  Phred-scaled gap open penalty for BAQ calculation. Although the default value is 40, a value of 30 may be better for whole genome call sets.
+     */
+    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty", required = false, minValue = 0)
     public double BAQGOP = BAQ.DEFAULT_GOP;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -189,19 +238,33 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * Q0 == ASCII 33 according to the SAM specification, whereas Illumina encoding starts at Q64.  The idea here is
-     * simple: we just iterate over all reads and subtract 31 from every quality score.
+     * By default the GATK assumes that base quality scores start at Q0 == ASCII 33 according to the SAM specification.
+     * However, encoding in some datasets (especially older Illumina ones) starts at Q64. This argument will fix the
+     * encodings on the fly (as the data is read in) by subtracting 31 from every quality score. Note that this argument should
+     * NEVER be used by default; you should only use it when you have confirmed that the quality scores in your data are
+     * not in the correct encoding.
      */
     @Argument(fullName = "fix_misencoded_quality_scores", shortName="fixMisencodedQuals", doc="Fix mis-encoded base quality scores", required = false)
     public boolean FIX_MISENCODED_QUALS = false;
-
-    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountering base qualities that are too high and that seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
+    /**
+     * This flag tells GATK to ignore warnings when encountering base qualities that are too high and that seemingly
+     * indicate a problem with the base quality encoding of the BAM file. You should only use this if you really know
+     * what you are doing; otherwise you could seriously mess up your data and ruin your analysis.
+     */
+    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Ignore warnings about base quality score encoding", required = false)
     public boolean ALLOW_POTENTIALLY_MISENCODED_QUALS = false;
-
-    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
+    /**
+     * This flag tells GATK to use the original base qualities (that were in the data before BQSR/recalibration) which
+     * are stored in the OQ tag, if they are present, rather than use the post-recalibration quality scores. If no OQ
+     * tag is present for a read, the standard qual score will be used.
+     */
+    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "Use the base quality scores from the OQ tag", required=false)
     public Boolean useOriginalBaseQualities = false;
-
-    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
+    /**
+     * If reads are missing some or all base quality scores, this value will be used for all base quality scores.
+     * By default this is set to -1 to disable default base quality assignment.
+     */
+    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "Assign a default base quality", required=false, minValue = 0, maxValue = Byte.MAX_VALUE)
     public byte defaultBaseQualities = -1;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -213,9 +276,9 @@ public class GATKArgumentCollection {
     /**
      * The file name for the GATK performance log output, or null if you don't want to generate the
      * detailed performance logging table.  This table is suitable for importing into R or any
-     * other analysis software that can read tsv files
+     * other analysis software that can read tsv files.
      */
-    @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
+    @Argument(fullName = "performanceLog", shortName="PF", doc="Write GATK runtime performance log to this file", required = false)
     public File performanceLog = null;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -225,10 +288,11 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * Enables on-the-fly recalibrate of base qualities.  The covariates tables are produced by the BaseQualityScoreRecalibrator tool.
-     * Please be aware that one should only run recalibration with the covariates file created on the same input bam(s).
+     * Enables on-the-fly recalibrate of base qualities, intended primarily for use with BaseRecalibrator and PrintReads
+     * (see Best Practices workflow documentation). The covariates tables are produced by the BaseRecalibrator tool.
+     * Please be aware that you should only run recalibration with the covariates file created on the same input bam(s).
      */
-    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration (intended for use with BaseRecalibrator and PrintReads)")
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Input covariates table file for on-the-fly base quality score recalibration")
     public File BQSR_RECAL_FILE = null;
 
     /**
@@ -243,36 +307,41 @@ public class GATKArgumentCollection {
     public int quantizationLevels = 0;
 
     /**
-     * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument and only the base substitution qualities will be produced.
+     * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument. Only the base substitution qualities will be produced.
      */
-    @Argument(fullName="disable_indel_quals", shortName = "DIQ", doc = "If true, disables printing of base insertion and base deletion tags (with -BQSR)", required=false)
+    @Argument(fullName="disable_indel_quals", shortName = "DIQ", doc = "Disable printing of base insertion and deletion tags (with -BQSR)", required=false)
     public boolean disableIndelQuals = false;
 
     /**
-     * By default, the OQ tag in not emitted when using the -BQSR argument.
+     * By default, the OQ tag in not emitted when using the -BQSR argument. Use this flag to include OQ tags in the output BAM file.
+     * Note that this may results in significant file size increase.
      */
-    @Argument(fullName="emit_original_quals", shortName = "EOQ", doc = "If true, enables printing of the OQ tag with the original base qualities (with -BQSR)", required=false)
+    @Argument(fullName="emit_original_quals", shortName = "EOQ", doc = "Emit the OQ tag with the original base qualities (with -BQSR)", required=false)
     public boolean emitOriginalQuals = false;
 
     /**
-     * Do not modify quality scores less than this value but rather just write them out unmodified in the recalibrated BAM file.
+     * This flag tells GATK not to modify quality scores less than this value. Instead they will be written out unmodified in the recalibrated BAM file.
      * In general it's unsafe to change qualities scores below < 6, since base callers use these values to indicate random or bad bases.
      * For example, Illumina writes Q2 bases when the machine has really gone wrong. This would be fine in and of itself,
      * but when you select a subset of these reads based on their ability to align to the reference and their dinucleotide effect,
      * your Q2 bin can be elevated to Q8 or Q10, leading to issues downstream.
      */
-    @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Bases with quality scores less than this threshold won't be recalibrated (with -BQSR)", required = false)
+    @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Don't recalibrate bases with quality scores less than this threshold (with -BQSR)", required = false, minValue = 0, minRecommendedValue = QualityUtils.MIN_USABLE_Q_SCORE)
     public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
-
-    @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "The global Qscore Bayesian prior to use in the BQSR. If specified, this value will be used as the prior for all mismatch quality scores instead of the actual reported quality score", required = false)
+    /**
+     * If specified, this value will be used as the prior for all mismatch quality scores instead of the actual reported quality score.
+     */
+    @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "Global Qscore Bayesian prior to use for BQSR", required = false)
     public double globalQScorePrior = -1.0;
 
     /**
-     * For the sake of your data, please only use this option if you know what you are doing.  It is absolutely not recommended practice
-     * to run base quality score recalibration on reduced BAM files.
+     * It is absolutely not recommended practice to run base quality score recalibration on BAM files that have been
+     * processed with ReduceReads. By default, the GATK will error out if it detects that you are trying to recalibrate
+     * a reduced BAM file. However, this flag allows you to disable the warning and proceed anyway. For the sake of your
+     * data, please only use this option if you really know what you are doing.
      */
     @Advanced
-    @Argument(fullName = "allow_bqsr_on_reduced_bams_despite_repeated_warnings", shortName="allowBqsrOnReducedBams", doc="Do not fail when running base quality score recalibration on a reduced BAM file even though we highly recommend against it", required = false)
+    @Argument(fullName = "allow_bqsr_on_reduced_bams_despite_repeated_warnings", shortName="allowBqsrOnReducedBams", doc="Ignore all warnings about how it's a really bad idea to run BQSR on a reduced BAM file (AT YOUR OWN RISK!)", required = false)
     public boolean ALLOW_BQSR_ON_REDUCED_BAMS = false;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -281,35 +350,45 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Keep in mind that if you set this to LENIENT, we may refuse to provide you with support if anything goes wrong.
+     */
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
-
-    @Argument(fullName = "remove_program_records", shortName = "rpr", doc = "Should we override the Walker's default and remove program records from the SAM header", required = false)
+    /**
+     * Some tools keep program records in the SAM header by default. Use this argument to override that behavior and discard program records for the SAM header.
+     */
+    @Argument(fullName = "remove_program_records", shortName = "rpr", doc = "Remove program records from the SAM header", required = false)
     public boolean removeProgramRecords = false;
-
-    @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Should we override the Walker's default and keep program records from the SAM header", required = false)
+    /**
+     * Some tools discard program records from the SAM header by default. Use this argument to override that behavior and keep program records in the SAM header.
+     */
+    @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Keep program records in the SAM header", required = false)
     public boolean keepProgramRecords = false;
-
+    /**
+     * This option requires that each BAM file listed in the mapping file have only a single sample specified in its header
+     * (though there may be multiple read groups for that sample). Each line of the mapping file must contain the absolute
+     * path to a BAM file, followed by whitespace, followed by the new sample name for that BAM file.
+     */
     @Advanced
-    @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file",
-              doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file. This option requires that " +
-                    "each BAM file listed in the mapping file have only a single sample specified in its header (though there " +
-                    "may be multiple read groups for that sample). Each line of the mapping file must contain the absolute path " +
-                    "to a BAM file, followed by whitespace, followed by the new sample name for that BAM file.",
-              required = false)
+    @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file", doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file", required = false)
     public File sampleRenameMappingFile = null;
-
-    @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
+    /**
+     * For expert users only who know what they are doing. We do not support usage of this argument, so we may refuse to help you if you use it and something goes wrong.
+     */
+    @Argument(fullName = "unsafe", shortName = "U", doc = "Enable unsafe operations: nothing will be checked at runtime", required = false)
     public ValidationExclusion.TYPE unsafe;
-
+    /**
+     * UNSAFE FOR GENERAL USE (FOR TEST SUITE USE ONLY). Disable both auto-generation of index files and index file locking
+     * when reading VCFs and other rods and an index isn't present or is out-of-date. The file locking necessary for auto index
+     * generation to work safely is prone to random failures/hangs on certain platforms, which makes it desirable to disable it
+     * for situations like test suite runs where the indices are already known to exist, however this option is unsafe in general
+     * because it allows reading from index files without first acquiring a lock.
+     */
     @Hidden
     @Advanced
     @Argument(fullName = "disable_auto_index_creation_and_locking_when_reading_rods", shortName = "disable_auto_index_creation_and_locking_when_reading_rods",
-              doc = "UNSAFE FOR GENERAL USE (FOR TEST SUITE USE ONLY). Disable both auto-generation of index files and index file locking " +
-                    "when reading VCFs and other rods and an index isn't present or is out-of-date. The file locking necessary for auto index " +
-                    "generation to work safely is prone to random failures/hangs on certain platforms, which makes it desirable to disable it " +
-                    "for situations like test suite runs where the indices are already known to exist, however this option is unsafe in general " +
-                    "because it allows reading from index files without first acquiring a lock.",
+              doc = "Disable both auto-generation of index files and index file locking",
               required = false)
     public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
 
@@ -320,23 +399,22 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * How many data threads should be allocated to this analysis?  Data threads contains N cpu threads per
-     * data thread, and act as completely data parallel processing, increasing the memory usage of GATK
-     * by M data threads.  Data threads generally scale extremely effectively, up to 24 cores
+     * Data threads contains N cpu threads per data thread, and act as completely data parallel processing, increasing
+     * the memory usage of GATK by M data threads. Data threads generally scale extremely effectively, up to 24 cores.
+     * See online documentation FAQs for more information.
      */
-    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many data threads should be allocated to running this analysis.", required = false)
+    @Argument(fullName = "num_threads", shortName = "nt", doc = "Number of data threads to allocate to this analysis", required = false, minValue = 1)
     public Integer numberOfDataThreads = 1;
 
     /**
-     * How many CPU threads should be allocated per data thread?  Each CPU thread operates the map
-     * cycle independently, but may run into earlier scaling problems with IO than data threads.  Has
-     * the benefit of not requiring X times as much memory per thread as data threads do, but rather
-     * only a constant overhead.
+     * Each CPU thread operates the map cycle independently, but may run into earlier scaling problems with IO than
+     * data threads. Has the benefit of not requiring X times as much memory per thread as data threads do, but rather
+     * only a constant overhead. See online documentation FAQs for more information.
      */
-    @Argument(fullName="num_cpu_threads_per_data_thread", shortName = "nct", doc="How many CPU threads should be allocated per data thread to running this analysis?", required = false)
+    @Argument(fullName="num_cpu_threads_per_data_thread", shortName = "nct", doc="Number of CPU threads to allocate per data thread", required = false, minValue = 1)
     public int numberOfCPUThreadsPerDataThread = 1;
 
-    @Argument(fullName="num_io_threads", shortName = "nit", doc="How many of the given threads should be allocated to IO", required = false)
+    @Argument(fullName="num_io_threads", shortName = "nit", doc="Number of given threads to allocate to IO", required = false, minValue = 0)
     @Hidden
     public int numberOfIOThreads = 0;
 
@@ -345,13 +423,15 @@ public class GATKArgumentCollection {
      * cost (< 0.1%) in runtime because of turning on the JavaBean.  This is largely for
      * debugging purposes. Note that this argument is not compatible with -nt, it only works with -nct.
      */
-    @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable GATK threading efficiency monitoring", required = false)
+    @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable threading efficiency monitoring", required = false)
     public Boolean monitorThreadEfficiency = false;
 
-    @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="The total number of BAM file handles to keep open simultaneously", required=false)
+    @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="Total number of BAM file handles to keep open simultaneously", required=false, minValue = 1)
     public Integer numberOfBAMFileHandles = null;
-
-    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
+    /**
+     * This will filter out read groups matching <TAG>:<STRING> (e.g. SM:sample1) or a .txt file containing the filter strings one per line.
+     */
+    @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Exclude read groups based on tags", required = false)
     public List<String> readGroupBlackList = null;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -433,7 +513,7 @@ public class GATKArgumentCollection {
     /**
      * How strict should we be in parsing the PED files?
      */
-    @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="How strict should we be in validating the pedigree information?",required=false)
+    @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="Validation strictness for pedigree information",required=false)
     public PedigreeValidationType pedigreeValidationType = PedigreeValidationType.STRICT;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -441,8 +521,10 @@ public class GATKArgumentCollection {
     // BAM indexing and sharding arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-
-    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
+    /**
+     * NO INTEGRATION TESTS are available.  Use at your own risk.
+     */
+    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM",required=false)
     @Hidden
     public boolean allowIntervalsWithUnindexedBAM = false;
 
@@ -451,8 +533,10 @@ public class GATKArgumentCollection {
     // testing BCF2
     //
     // --------------------------------------------------------------------------------------------------------------
-
-    @Argument(fullName="generateShadowBCF",shortName = "generateShadowBCF",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
+    /**
+     * If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes.
+     */
+    @Argument(fullName="generateShadowBCF",shortName = "generateShadowBCF",doc="Write a BCF copy of the output VCF",required=false)
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
@@ -471,12 +555,13 @@ public class GATKArgumentCollection {
      * DYNAMIC_SEEK attempts to optimize for minimal seek time by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
      * DYNAMIC_SIZE attempts to optimize for minimal index size by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
      */
-
-    @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="which type of IndexCreator to use for VCF/BCF indices",required=false)
+    @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="Type of IndexCreator to use for VCF/BCF indices",required=false)
     @Advanced
     public GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
-
-    @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="the parameter (bin width or features per bin) to pass to the VCF/BCF IndexCreator",required=false)
+    /**
+     * This is either the bin width or the number of features per bin, depending on the indexing strategy
+     */
+    @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="Parameter to pass to the VCF/BCF IndexCreator",required=false)
     @Advanced
     public int variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
 }

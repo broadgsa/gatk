@@ -44,15 +44,31 @@ import java.util.*;
 /**
  * All command line parameters accepted by all tools in the GATK.
  *
- * The GATK engine itself.  Manages map/reduce data access and runs walkers.
+ * <h3>Info for general users</h3>
  *
- * We run command line GATK programs using this class.  It gets the command line args, parses them, and hands the
- * gatk all the parsed out information.  Pretty much anything dealing with the underlying system should go here,
- * the gatk engine should  deal with any data related information.
+ * <p>This is a list of options and parameters that are generally available to all tools in the GATK.</p>
+ *
+ * <p>There may be a few restrictions, which are indicated in individual argument descriptions. For example the -BQSR
+ * argument is only meant to be used with a subset of tools, and the -pedigree argument will only be effectively used
+ * by a subset of tools as well. Some arguments conflict with others, and some conversely are dependent on others. This
+ * is all indicated in the detailed argument descriptions, so be sure to read those in their entirety rather than just
+ * skimming the one-line summaey in the table.</p>
+ *
+ * <h3>Info for developers</h3>
+ *
+ * <p>This class is the GATK engine itself, which manages map/reduce data access and runs walkers.</p>
+ *
+ * <p>We run command line GATK programs using this class. It gets the command line args, parses them, and hands the
+ * gatk all the parsed out information. Pretty much anything dealing with the underlying system should go here;
+ * the GATK engine should deal with any data related information.</p>
  */
 @DocumentedGATKFeature(groupName = HelpConstants.DOCS_CAT_ENGINE)
 public class CommandLineGATK extends CommandLineExecutable {
-    @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
+    /**
+     * A complete list of tools (sometimes also called walkers because they "walk" through the data to perform analyses)
+     * is available in the online documentation.
+     */
+    @Argument(fullName = "analysis_type", shortName = "T", doc = "Name of the tool to run")
     private String analysisName = null;
 
     // our argument collection, the collection of command line args we accept
