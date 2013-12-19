@@ -33,6 +33,7 @@ import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -945,5 +946,147 @@ public class ParsingEngineUnitTest extends BaseTest {
         } finally {
             FileUtils.deleteQuietly(argsFile);
         }
+    }
+
+    private class NumericRangeArgProvider {
+        @Argument(fullName = "intWithHardMinAndMax", minValue = 5, maxValue = 10)
+        public int intWithHardMinAndMax;
+
+        @Argument(fullName = "intWithHardMin", minValue = 5)
+        public int intWithHardMin;
+
+        @Argument(fullName = "intWithHardMax", maxValue = 10)
+        public int intWithHardMax;
+
+        @Argument(fullName = "intWithSoftMinAndMax", minRecommendedValue = 5, maxRecommendedValue = 10)
+        public int intWithSoftMinAndMax;
+
+        @Argument(fullName = "intWithSoftMin", minRecommendedValue = 5)
+        public int intWithSoftMin;
+
+        @Argument(fullName = "intWithSoftMax", maxRecommendedValue = 10)
+        public int intWithSoftMax;
+
+        @Argument(fullName = "intWithHardAndSoftMinAndMax", minValue = 5, minRecommendedValue = 7, maxValue = 10, maxRecommendedValue = 9)
+        public int intWithHardAndSoftMinAndMax;
+
+        @Argument(fullName = "intWithHardAndSoftMin", minValue = 5, minRecommendedValue = 7)
+        public int intWithHardAndSoftMin;
+
+        @Argument(fullName = "intWithHardAndSoftMax", maxValue = 10, maxRecommendedValue = 8)
+        public int intWithHardAndSoftMax;
+
+        @Argument(fullName = "intWithHardMinAndMaxDefaultOutsideRange", minValue = 5, maxValue = 10)
+        public int intWithHardMinAndMaxDefaultOutsideRange = -1;
+
+        @Argument(fullName = "integerWithHardMinAndMax", minValue = 5, maxValue = 10)
+        public Integer integerWithHardMinAndMax;
+
+        @Argument(fullName = "byteWithHardMinAndMax", minValue = 5, maxValue = 10)
+        public byte byteWithHardMinAndMax;
+
+        @Argument(fullName = "byteWithHardMin", minValue = 5)
+        public byte byteWithHardMin;
+
+        @Argument(fullName = "byteWithHardMax", maxValue = 10)
+        public byte byteWithHardMax;
+
+        @Argument(fullName = "doubleWithHardMinAndMax", minValue = 5.5, maxValue = 10.0)
+        public double doubleWithHardMinAndMax;
+
+        @Argument(fullName = "doubleWithHardMin", minValue = 5.5)
+        public double doubleWithHardMin;
+
+        @Argument(fullName = "doubleWithHardMax", maxValue = 10.0)
+        public double doubleWithHardMax;
+    }
+
+    @DataProvider(name = "NumericRangeConstraintViolationDataProvider")
+    public Object[][] numericRangeConstraintViolationDataProvider() {
+        return new Object[][] {
+                { new String[]{"--intWithHardMinAndMax", "11"} },
+                { new String[]{"--intWithHardMinAndMax", "4"} },
+                { new String[]{"--intWithHardMin", "4"} },
+                { new String[]{"--intWithHardMax", "11"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "11"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "4"} },
+                { new String[]{"--intWithHardAndSoftMin", "4"} },
+                { new String[]{"--intWithHardAndSoftMax", "11"} },
+                { new String[]{"--intWithHardMinAndMaxDefaultOutsideRange", "11"} },
+                { new String[]{"--intWithHardMinAndMaxDefaultOutsideRange", "4"} },
+                { new String[]{"--integerWithHardMinAndMax", "11"} },
+                { new String[]{"--integerWithHardMinAndMax", "4"} },
+                { new String[]{"--byteWithHardMinAndMax", "11"} },
+                { new String[]{"--byteWithHardMinAndMax", "4"} },
+                { new String[]{"--byteWithHardMin", "4"} },
+                { new String[]{"--byteWithHardMax", "11"} },
+                { new String[]{"--doubleWithHardMinAndMax", "5.4"} },
+                { new String[]{"--doubleWithHardMinAndMax", "10.1"} },
+                { new String[]{"--doubleWithHardMin", "5.4"} },
+                { new String[]{"--doubleWithHardMax", "10.1"} }
+        };
+    }
+
+    @Test(dataProvider = "NumericRangeConstraintViolationDataProvider",
+          expectedExceptions = ArgumentValueOutOfRangeException.class)
+    public void testNumericRangeWithConstraintViolation( final String[] commandLine ) {
+        runNumericArgumentRangeTest(commandLine);
+    }
+
+    @DataProvider(name = "NumericRangeWithoutConstraintViolationDataProvider")
+    public Object[][] numericRangeWithoutConstraintViolationDataProvider() {
+        return new Object[][] {
+                { new String[]{"--intWithHardMinAndMax", "10"} },
+                { new String[]{"--intWithHardMinAndMax", "5"} },
+                { new String[]{"--intWithHardMinAndMax", "7"} },
+                { new String[]{"--intWithHardMin", "11"} },
+                { new String[]{"--intWithHardMax", "4"} },
+                { new String[]{"--intWithSoftMinAndMax", "11"} },
+                { new String[]{"--intWithSoftMinAndMax", "4"} },
+                { new String[]{"--intWithSoftMin", "4"} },
+                { new String[]{"--intWithSoftMax", "11"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "5"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "7"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "8"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "9"} },
+                { new String[]{"--intWithHardAndSoftMinAndMax", "10"} },
+                { new String[]{"--intWithHardAndSoftMin", "5"} },
+                { new String[]{"--intWithHardAndSoftMin", "6"} },
+                { new String[]{"--intWithHardAndSoftMin", "7"} },
+                { new String[]{"--intWithHardAndSoftMax", "10"} },
+                { new String[]{"--intWithHardAndSoftMax", "9"} },
+                { new String[]{"--intWithHardAndSoftMax", "8"} },
+                { new String[]{"--intWithHardMinAndMaxDefaultOutsideRange", "10"} },
+                { new String[]{"--intWithHardMinAndMaxDefaultOutsideRange", "5"} },
+                { new String[]{"--intWithHardMinAndMaxDefaultOutsideRange", "7"} },
+                { new String[]{"--integerWithHardMinAndMax", "10"} },
+                { new String[]{"--integerWithHardMinAndMax", "5"} },
+                { new String[]{"--byteWithHardMinAndMax", "10"} },
+                { new String[]{"--byteWithHardMinAndMax", "5"} },
+                { new String[]{"--byteWithHardMinAndMax", "7"} },
+                { new String[]{"--byteWithHardMin", "5"} },
+                { new String[]{"--byteWithHardMax", "10"} },
+                { new String[]{"--doubleWithHardMinAndMax", "5.5"} },
+                { new String[]{"--doubleWithHardMinAndMax", "10.0"} },
+                { new String[]{"--doubleWithHardMinAndMax", "7.5"} },
+                { new String[]{"--doubleWithHardMin", "5.5"} },
+                { new String[]{"--doubleWithHardMin", "15.5"} },
+                { new String[]{"--doubleWithHardMax", "10.0"} },
+                { new String[]{"--doubleWithHardMax", "7.5"} }
+        };
+    }
+
+    @Test(dataProvider = "NumericRangeWithoutConstraintViolationDataProvider")
+    public void testNumericRangeWithoutConstraintViolation( final String[] commandLine ) {
+        // These tests succeed if no exception is thrown, since no constraints have been violated
+        runNumericArgumentRangeTest(commandLine);
+    }
+
+    private void runNumericArgumentRangeTest( final String[] commandLine ) {
+        parsingEngine.addArgumentSource(NumericRangeArgProvider.class);
+        parsingEngine.parse(commandLine);
+
+        NumericRangeArgProvider argProvider = new NumericRangeArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
     }
 }

@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.help.HelpFormatter;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -46,6 +47,7 @@ import java.util.*;
  * A parser for Sting command-line arguments.
  */
 public class ParsingEngine {
+
     /**
      * The loaded argument sources along with their back definitions.
      */
@@ -376,6 +378,19 @@ public class ParsingEngine {
      * @param object Object into which to add arguments.
      */
     public void loadArgumentsIntoObject( Object object ) {
+        loadArgumentsIntoObject(object, true);
+    }
+
+    /**
+     * Loads a set of matched command-line arguments into the given object.
+     * @param object Object into which to add arguments.
+     * @param enforceArgumentRanges If true, check that the argument value is within the range specified
+     *                              in the corresponding Argument annotation by min/max value attributes. This
+     *                              check is only performed for numeric types, and only when a min and/or
+     *                              max value is actually defined in the annotation. It is also only performed
+     *                              for values actually specified on the command line, and not for default values.
+     */
+    public void loadArgumentsIntoObject( Object object, boolean enforceArgumentRanges ) {
         List<ArgumentSource> argumentSources = extractArgumentSources(object.getClass());
 
         List<ArgumentSource> dependentArguments = new ArrayList<ArgumentSource>();
@@ -389,13 +404,13 @@ public class ParsingEngine {
                 dependentArguments.add(argumentSource);
                 continue;
             }
-            loadValueIntoObject( argumentSource, object, argumentMatches.findMatches(this,argumentSource) );
+            loadValueIntoObject(argumentSource, object, argumentMatches.findMatches(this,argumentSource), enforceArgumentRanges);
         }
 
         for(ArgumentSource dependentArgument: dependentArguments) {
             MultiplexArgumentTypeDescriptor dependentDescriptor = dependentArgument.createDependentTypeDescriptor(this,object);
             ArgumentSource dependentSource = dependentArgument.copyWithCustomTypeDescriptor(dependentDescriptor);
-            loadValueIntoObject(dependentSource,object,argumentMatches.findMatches(this,dependentSource));
+            loadValueIntoObject(dependentSource,object,argumentMatches.findMatches(this,dependentSource), enforceArgumentRanges);
         }
     }
 
@@ -447,8 +462,13 @@ public class ParsingEngine {
      * @param argumentMatches Argument matches to load into the object.
      * @param source Argument source to load into the object.
      * @param instance Object into which to inject the value.  The target might be in a container within the instance.
+     * @param enforceArgumentRanges If true, check that the argument value is within the range specified
+     *                              in the corresponding Argument annotation by min/max value attributes. This
+     *                              check is only performed for numeric types, and only when a min and/or
+     *                              max value is actually defined in the annotation. It is also only performed
+     *                              for values actually specified on the command line, and not for default values.
      */
-    private void loadValueIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
+    private void loadValueIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches, boolean enforceArgumentRanges ) {
         // Nothing to load
         if( argumentMatches.size() == 0 && ! source.createsTypeDefault() )
             return;
@@ -461,9 +481,75 @@ public class ParsingEngine {
             throw new ReviewedStingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createTypeDefault(this);
+            Object value;
+            boolean usedTypeDefault = false;
+            if ( argumentMatches.size() != 0 ) {
+                value = source.parse(this,argumentMatches);
+            }
+            else {
+                value = source.createTypeDefault(this);
+                usedTypeDefault = true;
+            }
+
+            // Only check argument ranges if a check was requested AND we used a value from the command line rather
+            // than the type default
+            if ( enforceArgumentRanges && ! usedTypeDefault ) {
+                checkArgumentRange(source, value);
+            }
 
             JVMUtils.setFieldValue(source.field,target,value);
+        }
+    }
+
+    /**
+     * Check the provided value against any range constraints specified in the Argument annotation
+     * for the corresponding field. Throw an exception if hard limits are violated, or emit a warning
+     * if soft limits are violated.
+     *
+     * Only checks numeric types (int, double, etc.)
+     * Only checks fields with an actual @Argument annotation
+     * Only checks manually-specified constraints (there are no default constraints).
+     *
+     * @param argumentSource The source field for the command-line argument
+     * @param argumentValue The value we're considering putting in that source field
+     */
+    private void checkArgumentRange( final ArgumentSource argumentSource, final Object argumentValue ) {
+        // Only validate numeric types
+        if ( ! (argumentValue instanceof Number) ) {
+            return;
+        }
+        final double argumentDoubleValue = ((Number)argumentValue).doubleValue();
+
+        // Only validate fields with an @Argument annotation
+        final Annotation argumentAnnotation = argumentSource.field.getAnnotation(Argument.class);
+        if ( argumentAnnotation == null ) {
+            return;
+        }
+
+        final double minValue = (Double)CommandLineUtils.getValue(argumentAnnotation, "minValue");
+        final double maxValue = (Double)CommandLineUtils.getValue(argumentAnnotation, "maxValue");
+        final double minRecommendedValue = (Double)CommandLineUtils.getValue(argumentAnnotation, "minRecommendedValue");
+        final double maxRecommendedValue = (Double)CommandLineUtils.getValue(argumentAnnotation, "maxRecommendedValue");
+        final String argumentName = (String)CommandLineUtils.getValue(argumentAnnotation, "fullName");
+
+        // Check hard limits first, if specified
+        if ( minValue != Double.NEGATIVE_INFINITY && argumentDoubleValue < minValue ) {
+            throw new ArgumentValueOutOfRangeException(argumentName, argumentDoubleValue, minValue, "minimum");
+        }
+
+        if ( maxValue != Double.POSITIVE_INFINITY && argumentDoubleValue > maxValue ) {
+            throw new ArgumentValueOutOfRangeException(argumentName, argumentDoubleValue, maxValue, "maximum");
+        }
+
+        // Then check soft limits, if specified
+        if ( minRecommendedValue != Double.NEGATIVE_INFINITY && argumentDoubleValue < minRecommendedValue ) {
+            logger.warn(String.format("WARNING: argument --%s has value %.2f, but minimum recommended value is %.2f",
+                        argumentName, argumentDoubleValue, minRecommendedValue));
+        }
+
+        if ( maxRecommendedValue != Double.POSITIVE_INFINITY && argumentDoubleValue > maxRecommendedValue ) {
+            logger.warn(String.format("WARNING: argument --%s has value %.2f, but maximum recommended value is %.2f",
+                        argumentName, argumentDoubleValue, maxRecommendedValue));
         }
     }
 
@@ -654,6 +740,13 @@ class InvalidArgumentValueException extends ArgumentException {
     }
 }
 
+class ArgumentValueOutOfRangeException extends ArgumentException {
+    public ArgumentValueOutOfRangeException( final String argumentName, final double argumentActualValue,
+                                             final double argumentBoundaryValue, final String argumentBoundaryType ) {
+        super(String.format("Argument --%s has value %.2f, but %s allowed value is %.2f",
+                            argumentName, argumentActualValue, argumentBoundaryType, argumentBoundaryValue));
+    }
+}
 
 /**
  * An exception for values that can't be mated with any argument.
