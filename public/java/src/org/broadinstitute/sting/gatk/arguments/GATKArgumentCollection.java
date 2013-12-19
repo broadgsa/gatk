@@ -35,6 +35,8 @@ import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -119,21 +121,28 @@ public class GATKArgumentCollection {
     // Downsampling Arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here", required = false)
+    /**
+     * Reads will be selected randomly to be removed from the pile based on the method described here.
+     */
+    @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus", required = false)
     public DownsampleType downsamplingType = null;
 
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
+    /**
+     * For locus-based traversals (LocusWalkers and ActiveRegionWalkers), downsample_to_coverage controls the
+     * maximum depth of coverage at each locus. For read-based traversals (ReadWalkers), it controls the
+     * maximum number of reads sharing the same alignment start position. For ReadWalkers you will typically need to use
+     * much lower dcov values than you would with LocusWalkers to see an effect. Note that this downsampling option does
+     * not produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of the
+     * to-coverage downsampler is to maintain an even representation of reads from all alignment start positions when
+     * removing excess coverage. For a truly unbiased random sampling of reads, use -dfrac instead. Also note
+     * that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling
+     * algorithm will under some circumstances retain slightly more or less coverage than requested.
+     */
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov",
-              doc = "Coverage [integer] to downsample to. For locus-based traversals (eg., LocusWalkers and ActiveRegionWalkers)," +
-                    "this controls the maximum depth of coverage at each locus. For non-locus-based traversals (eg., ReadWalkers), " +
-                    "this controls the maximum number of reads sharing the same alignment start position. Note that this downsampling " +
-                    "option does NOT produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of " +
-                    "the to-coverage downsampler is to maintain an even representation of reads from all alignment start positions " +
-                    "when removing excess coverage. For a true across-the-board unbiased random sampling of reads, use -dfrac instead. " +
-                    "Also note that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling " +
-                    "algorithm will under some circumstances retain slightly more coverage than requested.",
+              doc = "Coverage [integer] to downsample to per locus (for locus walkers) or per alignment start position (for read walkers)",
               required = false)
     public Integer downsampleCoverage = null;
 
@@ -281,6 +290,15 @@ public class GATKArgumentCollection {
     @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Should we override the Walker's default and keep program records from the SAM header", required = false)
     public boolean keepProgramRecords = false;
 
+    @Advanced
+    @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file",
+              doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file. This option requires that " +
+                    "each BAM file listed in the mapping file have only a single sample specified in its header (though there " +
+                    "may be multiple read groups for that sample). Each line of the mapping file must contain the absolute path " +
+                    "to a BAM file, followed by whitespace, followed by the new sample name for that BAM file.",
+              required = false)
+    public File sampleRenameMappingFile = null;
+
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
@@ -323,9 +341,9 @@ public class GATKArgumentCollection {
     public int numberOfIOThreads = 0;
 
     /**
-     * Enable GATK to monitor its own threading efficiency, at a itsy-bitsy tiny
+     * Enable GATK to monitor its own threading efficiency, at an itsy-bitsy tiny
      * cost (< 0.1%) in runtime because of turning on the JavaBean.  This is largely for
-     * debugging purposes.
+     * debugging purposes. Note that this argument is not compatible with -nt, it only works with -nct.
      */
     @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable GATK threading efficiency monitoring", required = false)
     public Boolean monitorThreadEfficiency = false;
@@ -438,5 +456,28 @@ public class GATKArgumentCollection {
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // VCF/BCF index parameters
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Specify the Tribble indexing strategy to use for VCFs.
+     *
+     * LINEAR creates a LinearIndex with bins of equal width, specified by the Bin Width parameter
+     * INTERVAL creates an IntervalTreeIndex with bins with an equal amount of features, specified by the Features Per Bin parameter
+     * DYNAMIC_SEEK attempts to optimize for minimal seek time by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
+     * DYNAMIC_SIZE attempts to optimize for minimal index size by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
+     */
+
+    @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="which type of IndexCreator to use for VCF/BCF indices",required=false)
+    @Advanced
+    public GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
+
+    @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="the parameter (bin width or features per bin) to pass to the VCF/BCF IndexCreator",required=false)
+    @Advanced
+    public int variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
 }
 

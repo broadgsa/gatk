@@ -38,10 +38,13 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 public class Haplotype extends Allele {
+
+
     private GenomeLoc genomeLocation = null;
     private EventMap eventMap = null;
     private Cigar cigar;
@@ -214,7 +217,7 @@ public class Haplotype extends Allele {
     public void setCigar( final Cigar cigar ) {
         this.cigar = AlignmentUtils.consolidateCigar(cigar);
         if ( this.cigar.getReadLength() != length() )
-            throw new IllegalArgumentException("Read length " + length() + " not equal to the read length of the cigar " + cigar.getReadLength());
+            throw new IllegalArgumentException("Read length " + length() + " not equal to the read length of the cigar " + cigar.getReadLength() + " " + this.cigar);
     }
 
     @Requires({"refInsertLocation >= 0"})
@@ -311,4 +314,30 @@ public class Haplotype extends Allele {
     public void setScore(double score) {
         this.score = this.isReference() ? Double.MAX_VALUE : score;
     }
+
+    /**
+     * Comparator used to sort haplotypes, alphanumerically.
+     *
+     * <p>
+     *     If one haplotype is the prefix of the other, the shorter one comes first.
+     * </p>
+     */
+    public static final Comparator<Haplotype> ALPHANUMERICAL_COMPARATOR = new Comparator<Haplotype>() {
+
+        @Override
+        public int compare(final Haplotype o1, final Haplotype o2) {
+            if (o1 == o2)
+                return 0;
+            final byte[] bases1 = o1.getBases();
+            final byte[] bases2 = o2.getBases();
+            final int iLimit = Math.min(bases1.length, bases2.length);
+            for (int i = 0; i < iLimit; i++) {
+                final int cmp = Byte.compare(bases1[i], bases2[i]);
+                if (cmp != 0) return cmp;
+            }
+            if (bases1.length == bases2.length) return 0;
+            return (bases1.length > bases2.length) ? -1 : 1; // is a bit better to get the longest haplotypes first.
+        }
+    };
+
 }

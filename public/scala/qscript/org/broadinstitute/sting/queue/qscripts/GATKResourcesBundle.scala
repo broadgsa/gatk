@@ -95,6 +95,7 @@ class GATKResourcesBundle extends QScript {
   def isBAM(file: File) = file.getName.endsWith(".bam")
   def isOUT(file: File) = file.getName.endsWith(".out")
   def isFASTA(file: File) = file.getName.endsWith(".fasta")
+  def isIntervalList(file: File) = file.getName.endsWith(".interval_list")
 
   var RESOURCES: List[Resource] = Nil
   def addResource(comp: Resource) { RESOURCES = comp :: RESOURCES }
@@ -148,8 +149,8 @@ class GATKResourcesBundle extends QScript {
     //
     // standard VCF files.  Will be lifted to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_137_b37.leftAligned.vcf",
-      "dbsnp_137", b37, true, false))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_138_b37.leftAligned.vcf",
+      "dbsnp_138", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_sites_2141_samples.b37.vcf",
       "1000G_omni2.5", b37, true, false))
@@ -167,11 +168,18 @@ class GATKResourcesBundle extends QScript {
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
 
     //
-    // CEU trio (NA12878,NA12891,NA12892) best practices results (including PBT)
+    // CEU trio (NA12878,NA12891,NA12892) best practices results
     //
 
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/callsets/CEUtrio_BestPractices/CEUTrio.HiSeq.WGS.b37.snps_and_indels.recalibrated.filtered.phased.CURRENT.vcf",
-      "CEUTrio.HiSeq.WGS.b37.bestPractices.phased",b37,true,false))
+    addResource(new Resource("/humgen/1kg/processing/production_wgs_final/trio/CEU/CEU.wgs.HaplotypeCaller.20131118.snps_indels.high_coverage_pcr_free.genotypes.vcf",
+      "CEUTrio.HiSeq.WGS.b37.bestPractices",b37,true,false))
+
+    //
+    // NA12878 knowledgebase snapshot
+    //
+
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/knowledgeBase/snapshots/NA12878.wgs.broad_truth_set.20131119.snps_and_indels.genotypes.vcf",
+      "NA12878.knowledgebase.snapshot.20131119",b37,true,false))
 
     //
     // example call set for documentation guide tutorial
@@ -180,10 +188,16 @@ class GATKResourcesBundle extends QScript {
       "NA12878.HiSeq.WGS.bwa.cleaned.raw.subset", b37, true, true))
 
     //
-    // Test BAM file, specific to each reference
+    // Test BAM file, only for the b37 reference
     //
     addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37.NA12878.bam",
       "IGNORE", b37, false, false))
+
+    //
+    // Exome targets file, only for the b37 reference
+    //
+    addResource(new Resource("/seq/references/HybSelOligos/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list",
+      "Broad.human.exome", b37, true, false, false))
 
     //
     // refGene files specific to each reference
@@ -217,7 +231,7 @@ class GATKResourcesBundle extends QScript {
 
     val currentLink = new File(BUNDLE_ROOT + "/current")
 
-    if ( currentLink.exists ) currentLink.delete()
+    if ( currentLink.exists ) add(new deleteLink(currentLink))
 
     add(new linkFile(bundleDir, currentLink))
   }
@@ -275,14 +289,16 @@ class GATKResourcesBundle extends QScript {
               }
             }
           }
+        } else if ( isIntervalList(resource.file) ) {
+            val out = destFile(BUNDLE_DIR, resource.ref, resource.destname(resource.ref))
+            add(new cpFile(resource.file, out))
         } else {
           //throw new ReviewedStingException("Unknown file type: " + resource)
         }
       }
 
-      createCurrentLink(BUNDLE_DIR)
-
     } else {
+      createCurrentLink(BUNDLE_DIR)
       createBundleDirectories(DOWNLOAD_DIR)
       createDownloadsFromBundle(BUNDLE_DIR, DOWNLOAD_DIR)
     }
@@ -352,6 +368,10 @@ class GATKResourcesBundle extends QScript {
 
   class cpFile(@Input val in: File, @Output val out: File) extends CommandLineFunction {
     def commandLine = "cp %s %s".format(in.getAbsolutePath, out.getAbsolutePath)
+  }
+
+  class deleteLink(@Input val in: File) extends CommandLineFunction {
+    def commandLine = "rm %s".format(in.getAbsolutePath)
   }
 
   class linkFile(@Input val in: File, @Output val out: File) extends CommandLineFunction {

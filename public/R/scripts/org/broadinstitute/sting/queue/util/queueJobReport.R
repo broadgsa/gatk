@@ -57,7 +57,7 @@ plotJobsGantt <- function(gatkReport, sortOverall, title, includeText) {
   p <- p + xlim(0, maxRelTime * 1.3)
   p <- p + xlab(paste("Start time, relative to first job", RUNTIME_UNITS))
   p <- p + ylab("Job number")
-  p <- p + ggtitle(title)
+  p <- p + opts(title = title)
   print(p)
 }
 

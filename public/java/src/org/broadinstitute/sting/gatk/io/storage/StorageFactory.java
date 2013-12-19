@@ -62,7 +62,7 @@ public class StorageFactory {
      * @param <T> Type of the stream to create.
      * @return Storage object with a facade of type T.
      */
-        public static <T> Storage<T> createStorage( Stub<T> stub, File file ) {
+     public static <T> Storage<T> createStorage( Stub<T> stub, File file ) {
         Storage storage;
 
         if(stub instanceof OutputStreamStub) {

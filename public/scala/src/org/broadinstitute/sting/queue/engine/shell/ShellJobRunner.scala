@@ -83,8 +83,8 @@ class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRu
       try {
         controller.tryDestroy()
       } catch {
-        case e =>
-          logger.error("Unable to kill shell job: " + function.description)
+        case e: Exception =>
+          logger.error("Unable to kill shell job: " + function.description, e)
       }
     }
   }

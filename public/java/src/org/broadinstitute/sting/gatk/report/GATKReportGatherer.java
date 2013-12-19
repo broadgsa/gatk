@@ -42,23 +42,21 @@ public class GATKReportGatherer extends Gatherer {
         try {
             o = new PrintStream(output);
         } catch (FileNotFoundException e) {
-            throw new UserException("File to be output by CoverageByRG Gather function was not found");
+            throw new UserException(String.format("File %s to be output by GATKReportGatherer function was not found", output));
         }
 
         GATKReport current = new GATKReport();
         boolean isFirst = true;
         for (File input : inputs) {
-
-            // If the table is empty
             if (isFirst) {
                 current = new GATKReport(input);
                 isFirst = false;
             } else {
-                GATKReport toAdd = new GATKReport(input);
-                current.concat(toAdd);
+                current.concat(new GATKReport(input));
             }
         }
 
         current.print(o);
+        o.close();
     }
 }

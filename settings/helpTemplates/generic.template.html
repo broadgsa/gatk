@@ -88,7 +88,7 @@
 </#macro>
 
 <?php $group = '${group}'; ?>
-<@makeHeader title="${name} documentation" isIndex=false />
+<@makeHeader title="GATK | ${name} documentation" isIndex=false />
 <section class="span4">
     <aside class="well">
         <h2>Categories</h2>
@@ -123,8 +123,13 @@
 			<small>${partitiontype}</small>
 		</h3>
 	</#if>
+	<#if annotfield != "" >
+		<h3>VCF Field
+			<small>${annotfield}</small>
+		</h3>
+	</#if>
 	<#if annotinfo != "" >
-		<h3>Annotation type
+		<h3>Type
 			<small>${annotinfo}</small>
 		</h3>
 	</#if>
@@ -169,11 +174,16 @@
 		</#if>
 		<#if downsampling?size != 0>
 			<h3>Downsampling settings</h3>
-			<p>This tool overrides the engine's default downsampling settings.</p>
-			<ul>
-				<li>Mode: <b>${downsampling.by}</b></li>
-				<li>To coverage: <b>${downsampling.to_cov}</b></li>
-			</ul>
+			<#if downsampling.by == "NONE">
+				<p>This tool does not apply any downsampling by default.</p>
+			</#if>
+			<#if downsampling.by != "NONE">
+				<p>This tool applies the following downsampling settings by default.</p>
+				<ul>
+					<li>Mode: <b>${downsampling.by}</b></li>
+					<li>To coverage: <b>${downsampling.to_cov}</b></li>
+				</ul>
+			</#if>
 		</#if>
 		<#if refwindow?size != 0>
 			<h3>Window size</h3>
@@ -230,11 +240,20 @@
 					</tr>
 					</thead>
 					<tbody>
-					<@argumentlist name="Required" myargs=arguments.required/>
-					<@argumentlist name="Optional" myargs=arguments.optional/>
-					<@argumentlist name="Advanced" myargs=arguments.advanced/>
+					<@argumentlist name="Required Inputs" myargs=arguments.required_in/>
+					<@argumentlist name="Required Outputs" myargs=arguments.required_out/>
+					<@argumentlist name="Required Parameters" myargs=arguments.required_param/>
+					<@argumentlist name="Required Flags" myargs=arguments.required_flag/>
+					<@argumentlist name="Optional Inputs" myargs=arguments.optional_in/>
+					<@argumentlist name="Optional Outputs" myargs=arguments.optional_out/>
+					<@argumentlist name="Optional Parameters" myargs=arguments.optional_param/>
+					<@argumentlist name="Optional Flags" myargs=arguments.optional_flag/>
+					<@argumentlist name="Advanced Inputs" myargs=arguments.advanced_in/>
+					<@argumentlist name="Advanced Outputs" myargs=arguments.advanced_out/>
+					<@argumentlist name="Advanced Parameters" myargs=arguments.advanced_param/>
+					<@argumentlist name="Advanced Flags" myargs=arguments.advanced_flag/>
 					<@argumentlist name="Hidden" myargs=arguments.hidden/>
-					<@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+					<@argumentlist name="Deprecated" myargs=arguments.deprecated/>
 					</tbody>
 				</table>
 			</#if>

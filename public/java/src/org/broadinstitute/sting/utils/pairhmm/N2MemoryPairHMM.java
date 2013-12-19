@@ -26,10 +26,6 @@
 package org.broadinstitute.sting.utils.pairhmm;
 
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MathUtils;
-
-import java.util.Arrays;
 
 /**
  * Superclass for PairHMM that want to use a full read x haplotype matrix for their match, insertion, and deletion matrix
@@ -43,6 +39,13 @@ abstract class N2MemoryPairHMM extends PairHMM {
     protected double[][] matchMatrix = null;
     protected double[][] insertionMatrix = null;
     protected double[][] deletionMatrix = null;
+
+    // only used for debugging purposes
+    protected boolean doNotUseTristateCorrection = false;
+
+    public void doNotUseTristateCorrection() {
+        doNotUseTristateCorrection = true;
+    }
 
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
@@ -58,6 +61,9 @@ abstract class N2MemoryPairHMM extends PairHMM {
         matchMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
         insertionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
         deletionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
+
+        transition = new double[paddedMaxReadLength][6];
+        prior = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
     }
 
     /**

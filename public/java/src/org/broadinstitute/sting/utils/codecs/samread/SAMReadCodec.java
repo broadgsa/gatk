@@ -29,8 +29,8 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.TextCigarCodec;
 import net.sf.samtools.util.StringUtil;
 import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
+import org.broad.tribble.readers.LineIterator;
 import org.broad.tribble.util.ParsingUtils;
 
 /**
@@ -113,5 +113,11 @@ public class SAMReadCodec extends AsciiFeatureCodec<SAMReadFeature> {
                                   inferredInsertSize,
                                   bases,
                                   qualities);
+    }
+
+    @Override
+    public Object readActualHeader(LineIterator lineIterator) {
+        // No header for this format
+        return null;
     }
 }

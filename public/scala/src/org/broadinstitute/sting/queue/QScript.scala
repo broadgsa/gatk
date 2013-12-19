@@ -105,7 +105,7 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
     this.functions ++= functions
   }
 
-  def addAll(functions: Seq[QFunction]) {
+  def addAll(functions: Traversable[QFunction]) {
     functions.foreach( f => add(f) )
   }
 

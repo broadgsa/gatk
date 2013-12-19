@@ -98,7 +98,7 @@ public class SAMReaderID implements Comparable {
         if(!(other instanceof SAMReaderID)) return false;
 
         SAMReaderID otherID = (SAMReaderID)other;
-        return this.samFile.equals(otherID.samFile);
+        return this.getSamFilePath().equals(otherID.getSamFilePath());
     }
 
     /**
@@ -107,7 +107,7 @@ public class SAMReaderID implements Comparable {
      */
     @Override
     public int hashCode() {
-        return samFile.hashCode();
+        return samFile.getAbsolutePath().hashCode();
     }
 
     /**

@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.codecs.refseq;
 import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
+import org.broad.tribble.readers.LineIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -93,7 +94,8 @@ public class RefSeqCodec extends AsciiFeatureCodec<RefSeqFeature> implements Ref
     }
 
     @Override
-    public Feature decodeLoc(String line) {
+    public Feature decodeLoc(final LineIterator lineIterator) {
+        final String line = lineIterator.next();
         if (line.startsWith("#")) return null;
         String fields[] = line.split("\t");
         if (fields.length < 3) throw new TribbleException("RefSeq (decodeLoc) : Unable to parse line -> " + line + ", we expected at least 3 columns, we saw " + fields.length);
@@ -159,5 +161,11 @@ public class RefSeqCodec extends AsciiFeatureCodec<RefSeqFeature> implements Ref
         feature.setExons(exons);
         feature.setExon_frames(exon_frames);
         return feature;
+    }
+
+    @Override
+    public Object readActualHeader(LineIterator lineIterator) {
+        // No header for this format
+        return null;
     }
 }

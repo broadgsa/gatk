@@ -50,7 +50,7 @@ class DrmaaJobRunner(val session: Session, val function: CommandLineFunction) ex
     session.synchronized {
       val drmaaJob: JobTemplate = session.createJobTemplate
 
-      drmaaJob.setJobName(function.description.take(jobNameLength).replaceAll(jobNameFilter, "_"))
+      drmaaJob.setJobName(function.jobRunnerJobName.take(jobNameLength).replaceAll(jobNameFilter, "_"))
 
       // Set the current working directory
       drmaaJob.setWorkingDirectory(function.commandDirectory.getPath)
@@ -160,7 +160,7 @@ class DrmaaJobRunner(val session: Session, val function: CommandLineFunction) ex
           // resource of the designated queue to SIGTERM
           session.control(jobId, Session.TERMINATE)
         } catch {
-          case e =>
+          case e: Exception =>
             logger.error("Unable to kill job " + jobId, e)
         }
       }

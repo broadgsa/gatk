@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
 import org.apache.log4j.Logger;
@@ -745,7 +744,7 @@ public class Utils {
     /**
      * @see #calcMD5(byte[])
      */
-    public static String calcMD5(final String s) throws NoSuchAlgorithmException {
+    public static String calcMD5(final String s) {
         return calcMD5(s.getBytes());
     }
 
@@ -754,17 +753,21 @@ public class Utils {
      *
      * @param bytes the bytes to calculate the md5 of
      * @return the md5 of bytes, as a 32-character long string
-     * @throws NoSuchAlgorithmException
      */
     @Ensures({"result != null", "result.length() == 32"})
-    public static String calcMD5(final byte[] bytes) throws NoSuchAlgorithmException {
+    public static String calcMD5(final byte[] bytes) {
         if ( bytes == null ) throw new IllegalArgumentException("bytes cannot be null");
-        final byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytes);
-        final BigInteger bigInt = new BigInteger(1, thedigest);
+        try {
+            final byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytes);
+            final BigInteger bigInt = new BigInteger(1, thedigest);
 
-        String md5String = bigInt.toString(16);
-        while (md5String.length() < 32) md5String = "0" + md5String; // pad to length 32
-        return md5String;
+            String md5String = bigInt.toString(16);
+            while (md5String.length() < 32) md5String = "0" + md5String; // pad to length 32
+            return md5String;
+        }
+        catch ( NoSuchAlgorithmException e ) {
+            throw new IllegalStateException("MD5 digest algorithm not present");
+        }
     }
 
     /**
@@ -834,5 +837,19 @@ public class Utils {
 
         // don't perform array copies if we need to copy everything anyways
         return  ( trimFromFront == 0 && trimFromBack == 0 ) ? seq : Arrays.copyOfRange(seq, trimFromFront, seq.length - trimFromBack);
+    }
+
+    /**
+     * Simple wrapper for sticking elements of a int[] array into a List<Integer>
+     * @param ar - the array whose elements should be listified
+     * @return - a List<Integer> where each element has the same value as the corresponding index in @ar
+     */
+    public static List<Integer> listFromPrimitives(final int[] ar) {
+        final ArrayList<Integer> lst = new ArrayList<>(ar.length);
+        for ( final int d : ar ) {
+            lst.add(d);
+        }
+
+        return lst;
     }
 }

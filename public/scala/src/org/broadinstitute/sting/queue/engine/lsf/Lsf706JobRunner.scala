@@ -71,7 +71,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
       for (i <- 0 until LibLsf.LSF_RLIM_NLIMITS)
         request.rLimits(i) = LibLsf.DEFAULT_RLIMIT;
 
-      request.jobName = function.description.take(LibBat.MAX_JOB_NAME_LEN)
+      request.jobName = function.jobRunnerJobName.take(LibBat.MAX_JOB_NAME_LEN)
       request.options |= LibBat.SUB_JOB_NAME
 
       // Set the output file for stdout
@@ -361,7 +361,7 @@ object Lsf706JobRunner extends Logging {
           if (LibBat.lsb_signaljob(runner.jobId, SIGTERM) < 0)
             logger.error(LibBat.lsb_sperror("Unable to kill job " + runner.jobId))
         } catch {
-          case e =>
+          case e: Exception=>
             logger.error("Unable to kill job " + runner.jobId, e)
         }
       }

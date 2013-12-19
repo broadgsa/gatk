@@ -32,9 +32,22 @@ import org.broadinstitute.sting.commandline.Argument;
  * A read filter (transformer) that sets all reads mapping quality to a given value.
  *
  *  <p>
- *     If a BAM file contains erroneous or missing mapping qualities, this 'filter' will set
- *     all your mapping qualities to a given value. Default being 60.
+ *     If a BAM file contains erroneous or missing mapping qualities (MAPQ), this read transformer will set all your
+ *     mapping qualities to a given value (see arguments list for default value).
  *  </p>
+ *
+ * <h3>See also</h3>
+ *
+ * <p>ReassignOneMappingQualityFilter: reassigns a single MAPQ value, as opposed to all those found in the BAM file.</p>
+ *
+ * <h3>Caveats</h3>
+ *
+ * <p>Note that due to the order of operations involved in applying filters, it is possible that other read filters
+ * (determined either at command-line or internally by the tool you are using) will be applied to your data before
+ * this read transformation can be applied. If one of those other filters acts on the read mapping quality (MAPQ),
+ * then you may not obtain the expected results. Unfortunately it is currently not possible to change the order of
+ * operations from command line. To avoid the problem, we recommend applying this filter separately from any other
+ * analysis, using PrintReads.</p>
  *
  *
  * <h3>Input</h3>
@@ -50,9 +63,9 @@ import org.broadinstitute.sting.commandline.Argument;
  *
  * <h3>Examples</h3>
  *  <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -rf ReassignMappingQuality
+ *  java -jar GenomeAnalysisTK.jar \
+ *      -T PrintReads \
+ *      -rf ReassignMappingQuality \
  *      -DMQ 35
  *  </pre>
  *

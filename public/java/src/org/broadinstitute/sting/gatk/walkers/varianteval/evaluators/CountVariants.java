@@ -197,6 +197,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     break;
                 case MIXED:
                     break;
+                case UNAVAILABLE:
+                    break;
                 default:
                     throw new ReviewedStingException("BUG: Unexpected genotype type: " + g);
             }

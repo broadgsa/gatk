@@ -69,10 +69,20 @@ public class SWPairwiseAlignment implements SmithWaterman {
          * Add softclips for the overhangs
          */
         SOFTCLIP,
+
         /*
          * Treat the overhangs as proper insertions/deletions
          */
         INDEL,
+
+        /*
+         * Treat the overhangs as proper insertions/deletions for leading (but not trailing) overhangs.
+         * This is useful e.g. when we want to merge dangling tails in an assembly graph: because we don't
+         * expect the dangling tail to reach the end of the reference path we are okay ignoring trailing
+         * deletions - but leading indels are still very much relevant.
+         */
+        LEADING_INDEL,
+
         /*
          * Just ignore the overhangs
          */
@@ -125,10 +135,11 @@ public class SWPairwiseAlignment implements SmithWaterman {
      *
      * @param seq1 the first sequence we want to align
      * @param seq2 the second sequence we want to align
+     * @param parameters the SW parameters to use
      * @param strategy   the overhang strategy to use
      */
-    public SWPairwiseAlignment(final byte[] seq1, final byte[] seq2, final OVERHANG_STRATEGY strategy) {
-        this(SWParameterSet.ORIGINAL_DEFAULT.parameters);
+    public SWPairwiseAlignment(final byte[] seq1, final byte[] seq2, final SWParameterSet parameters, final OVERHANG_STRATEGY strategy) {
+        this(parameters.parameters);
         overhang_strategy = strategy;
         align(seq1, seq2);
     }
@@ -226,7 +237,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
         final int[] gap_size_h = new int[n+1];
 
         // we need to initialize the SW matrix with gap penalties if we want to keep track of indels at the edges of alignments
-        if ( overhang_strategy == OVERHANG_STRATEGY.INDEL ) {
+        if ( overhang_strategy == OVERHANG_STRATEGY.INDEL || overhang_strategy == OVERHANG_STRATEGY.LEADING_INDEL ) {
             // initialize the first row
             sw[1] = parameters.w_open;
             double currentValue = parameters.w_open;
@@ -371,7 +382,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
             p1 = refLength;
             p2 = altLength;
         } else {
-            // look for largest score. we use >= combined with the traversal direction
+            // look for the largest score on the rightmost column. we use >= combined with the traversal direction
             // to ensure that if two scores are equal, the one closer to diagonal gets picked
             for ( int i = 1, data_offset = altLength+1+altLength ; i < refLength+1 ; i++, data_offset += (altLength+1) ) {
                 // data_offset is the offset of [i][m]
@@ -380,18 +391,21 @@ public class SWPairwiseAlignment implements SmithWaterman {
                 }
             }
 
-            for ( int j = 1, data_offset = refLength*(altLength+1)+1 ; j < altLength+1 ; j++, data_offset++ ) {
-                // data_offset is the offset of [n][j]
-                if ( sw[data_offset] > maxscore || sw[data_offset] == maxscore && Math.abs(refLength-j) < Math.abs(p1 - p2)) {
-                    p1 = refLength;
-                    p2 = j ;
-                    maxscore = sw[data_offset];
-                    segment_length = altLength - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
+            // now look for a larger score on the bottom-most row
+            if ( overhang_strategy != OVERHANG_STRATEGY.LEADING_INDEL ) {
+                for ( int j = 1, data_offset = refLength*(altLength+1)+1 ; j < altLength+1 ; j++, data_offset++ ) {
+                    // data_offset is the offset of [n][j]
+                    if ( sw[data_offset] > maxscore || sw[data_offset] == maxscore && Math.abs(refLength-j) < Math.abs(p1 - p2)) {
+                        p1 = refLength;
+                        p2 = j ;
+                        maxscore = sw[data_offset];
+                        segment_length = altLength - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
+                    }
                 }
             }
         }
 
-        List<CigarElement> lce = new ArrayList<CigarElement>(5);
+        final List<CigarElement> lce = new ArrayList<CigarElement>(5);
 
         if ( segment_length > 0 && overhang_strategy == OVERHANG_STRATEGY.SOFTCLIP ) {
             lce.add(makeElement(State.CLIP, segment_length));
@@ -452,7 +466,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
         } else if ( overhang_strategy == OVERHANG_STRATEGY.IGNORE ) {
             lce.add(makeElement(state, segment_length + p2));
             alignment_offset = p1 - p2;
-        } else {  // overhang_strategy == OVERHANG_STRATEGY.INDEL
+        } else {  // overhang_strategy == OVERHANG_STRATEGY.INDEL || overhang_strategy == OVERHANG_STRATEGY.LEADING_INDEL
 
             // take care of the actual alignment
             lce.add(makeElement(state, segment_length));

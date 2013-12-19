@@ -31,6 +31,7 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -47,8 +48,10 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -131,6 +134,11 @@ public class SAMDataSource {
      */
     private final Map<SAMReaderID,ReadGroupMapping> originalToMergedReadGroupMappings = new HashMap<SAMReaderID,ReadGroupMapping>();
 
+    /**
+     * Mapping from bam file ID to new sample name. Used only when doing on-the-fly sample renaming.
+     */
+    private Map<SAMReaderID, String> sampleRenameMap = null;
+
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(SAMDataSource.class);
 
@@ -202,7 +210,8 @@ public class SAMDataSource {
                 includeReadsWithDeletionAtLoci,
                 (byte) -1,
                 false,
-                false);
+                false,
+                null);
     }
 
     /**
@@ -219,6 +228,8 @@ public class SAMDataSource {
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
      * @param keepReadsInLIBS should we keep a unique list of reads in LIBS?
+     * @param sampleRenameMap Map of BAM file to new sample ID used during on-the-fly runtime sample renaming.
+     *                        Will be null if we're not doing sample renaming.
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -235,7 +246,9 @@ public class SAMDataSource {
             boolean includeReadsWithDeletionAtLoci,
             byte defaultBaseQualities,
             boolean removeProgramRecords,
-            final boolean keepReadsInLIBS) {
+            final boolean keepReadsInLIBS,
+            final Map<SAMReaderID, String> sampleRenameMap) {
+
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
@@ -260,6 +273,8 @@ public class SAMDataSource {
             // Now we are simply setting it to 100K reads
             ReadShard.setReadBufferSize(100000);
         }
+
+        this.sampleRenameMap = sampleRenameMap;
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
         SAMReaders readers = resourcePool.getAvailableReaders();
@@ -335,6 +350,14 @@ public class SAMDataSource {
         }
 
         resourcePool.releaseReaders(readers);
+    }
+
+    public void close() {
+        SAMReaders readers = resourcePool.getAvailableReaders();
+        for(SAMReaderID readerID: readerIDs) {
+            SAMFileReader reader = readers.getReader(readerID);
+            reader.close();
+        }
     }
 
     /**
@@ -825,8 +848,31 @@ public class SAMDataSource {
             if ( totalNumberOfFiles > 0 ) logger.info(String.format("Done initializing BAM readers: total time %.2f", timer.getElapsedTime()));
 
             Collection<SAMFileHeader> headers = new LinkedList<SAMFileHeader>();
-            for(SAMFileReader reader: readers.values())
-                headers.add(reader.getFileHeader());
+
+            // Examine the bam headers, perform any requested sample renaming on them, and add
+            // them to the list of headers to pass to the Picard SamFileHeaderMerger:
+            for ( final Map.Entry<SAMReaderID, SAMFileReader> readerEntry : readers.entrySet() ) {
+                final SAMReaderID readerID = readerEntry.getKey();
+                final SAMFileReader reader = readerEntry.getValue();
+                final SAMFileHeader header = reader.getFileHeader();
+
+                // The remappedSampleName will be null if either no on-the-fly sample renaming was requested,
+                // or the user's sample rename map file didn't contain an entry for this bam file:
+                final String remappedSampleName = sampleRenameMap != null ? sampleRenameMap.get(readerID) : null;
+
+                // If we've been asked to rename the sample for this bam file, do so now. We'll check to
+                // make sure this bam only contains reads from one sample before proceeding.
+                //
+                // IMPORTANT: relies on the fact that the Picard SamFileHeaderMerger makes a copy of
+                //            the existing read group attributes (including sample name) when merging
+                //            headers, regardless of whether there are read group collisions or not.
+                if ( remappedSampleName != null ) {
+                    remapSampleName(readerID, header, remappedSampleName);
+                }
+
+                headers.add(header);
+            }
+
             headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,headers,true);
 
             // update all read groups to GATKSAMRecordReadGroups
@@ -835,6 +881,43 @@ public class SAMDataSource {
                 gatkReadGroups.add(new GATKSAMReadGroupRecord(rg));
             }
             headerMerger.getMergedHeader().setReadGroups(gatkReadGroups);
+        }
+
+        /**
+         * Changes the sample name in the read groups for the provided bam file header to match the
+         * remappedSampleName. Blows up with a UserException if the header contains more than one
+         * sample name.
+         *
+         * @param readerID ID for the bam file from which the provided header came from
+         * @param header The bam file header. Will be modified by this call.
+         * @param remappedSampleName New sample name to replace the existing sample attribute in the
+         *                           read groups for the header.
+         */
+        private void remapSampleName( final SAMReaderID readerID, final SAMFileHeader header, final String remappedSampleName ) {
+            String firstEncounteredSample = null;
+
+            for ( final SAMReadGroupRecord readGroup : header.getReadGroups() ) {
+                final String thisReadGroupSample = readGroup.getSample();
+
+                if ( thisReadGroupSample == null ) {
+                    throw new UserException(String.format("On-the fly sample renaming was requested for bam file %s, however this " +
+                                                          "bam file contains a read group (id: %s) with a null sample attribute",
+                                                          readerID.getSamFilePath(), readGroup.getId()));
+                }
+                else if ( firstEncounteredSample == null ) {
+                    firstEncounteredSample = thisReadGroupSample;
+                }
+                else if ( ! firstEncounteredSample.equals(thisReadGroupSample) ) {
+                    throw new UserException(String.format("On-the-fly sample renaming was requested for bam file %s, " +
+                                                          "however this bam file contains reads from more than one sample " +
+                                                          "(encountered samples %s and %s in the bam header). The GATK requires that " +
+                                                          "all bams for which on-the-fly sample renaming is requested " +
+                                                          "contain reads from only a single sample per bam.",
+                                                          readerID.getSamFilePath(), firstEncounteredSample, thisReadGroupSample));
+                }
+
+                readGroup.setSample(remappedSampleName);
+            }
         }
 
         final private void printReaderPerformance(final int nExecutedTotal,

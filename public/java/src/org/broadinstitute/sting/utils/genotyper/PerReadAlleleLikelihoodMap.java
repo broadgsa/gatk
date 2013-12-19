@@ -110,7 +110,7 @@ public class PerReadAlleleLikelihoodMap {
      * @return a map from each allele to a list of reads that 'support' the allele
      */
     protected Map<Allele,List<GATKSAMRecord>> getAlleleStratifiedReadMap() {
-        final Map<Allele, List<GATKSAMRecord>> alleleReadMap = new HashMap<Allele, List<GATKSAMRecord>>(alleles.size());
+        final Map<Allele, List<GATKSAMRecord>> alleleReadMap = new HashMap<>(alleles.size());
         for ( final Allele allele : alleles )
             alleleReadMap.put(allele, new ArrayList<GATKSAMRecord>());
 
@@ -152,7 +152,7 @@ public class PerReadAlleleLikelihoodMap {
      /**
      * Does the current map contain the key associated with a particular SAM record in pileup?
      * @param p                 Pileup element
-     * @return
+     * @return true if the map contains pileup element, else false
      */
     public boolean containsPileupElement(final PileupElement p) {
         return likelihoodReadMap.containsKey(p.getRead());
@@ -176,9 +176,9 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.keySet();
     }
 
-    public Collection<Map<Allele,Double>> getLikelihoodMapValues() {
-        return likelihoodReadMap.values();
-    }
+//    public Collection<Map<Allele,Double>> getLikelihoodMapValues() {
+//        return likelihoodReadMap.values();
+//    }
 
     public int getNumberOfStoredElements() {
         return likelihoodReadMap.size();
@@ -189,6 +189,21 @@ public class PerReadAlleleLikelihoodMap {
             return null;
 
         return likelihoodReadMap.get(p.getRead());
+    }
+
+
+    /**
+     * Get the log10 likelihood associated with an individual read/allele
+     *
+     * @param read the read whose likelihood we want
+     * @param allele the allele whose likelihood we want
+     * @return the log10 likelihood that this read matches this allele
+     */
+    public double getLikelihoodAssociatedWithReadAndAllele(final GATKSAMRecord read, final Allele allele){
+        if (!allelesSet.contains(allele) || !likelihoodReadMap.containsKey(read))
+            return 0.0;
+
+        return likelihoodReadMap.get(read).get(allele);
     }
 
     /**
@@ -290,18 +305,16 @@ public class PerReadAlleleLikelihoodMap {
     /**
      * Debug method to dump contents of object into string for display
      */
-    @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         sb.append("Alelles in map:");
-        for (Allele a:alleles) {
+        for (final Allele a:alleles) {
             sb.append(a.getDisplayString()+",");
-
         }
         sb.append("\n");
-        for (Map.Entry <GATKSAMRecord, Map<Allele, Double>> el : getLikelihoodReadMap().entrySet() ) {
-            for (Map.Entry<Allele,Double> eli : el.getValue().entrySet()) {
+        for (final Map.Entry <GATKSAMRecord, Map<Allele, Double>> el : getLikelihoodReadMap().entrySet() ) {
+            for (final Map.Entry<Allele,Double> eli : el.getValue().entrySet()) {
                 sb.append("Read "+el.getKey().getReadName()+". Allele:"+eli.getKey().getDisplayString()+" has likelihood="+Double.toString(eli.getValue())+"\n");
             }
 

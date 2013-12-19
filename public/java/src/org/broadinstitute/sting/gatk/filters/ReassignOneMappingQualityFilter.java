@@ -32,7 +32,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * A read filter (transformer) that changes a given read mapping quality to a different value.
  *
  *  <p>
- *     This 'filter' will change a certain read mapping quality to a different value without affecting reads that
+ *     This read transformer will change a certain read mapping quality to a different value without affecting reads that
  *     have other mapping qualities. This is intended primarily for users of RNA-Seq data handling programs such
  *     as TopHat, which use MAPQ = 255 to designate uniquely aligned reads. According to convention, 255 normally
  *     designates "unknown" quality, and most GATK tools automatically ignore such reads. By reassigning a different
@@ -45,7 +45,6 @@ import org.broadinstitute.sting.commandline.Argument;
  *     ReassignMappingQuality will change ALL mapping qualities to a single one, and is typically used for datasets
  *     that have no assigned mapping qualities.
  *  </p>
- *
  *
  * <h3>Input</h3>
  *  <p>
@@ -60,8 +59,8 @@ import org.broadinstitute.sting.commandline.Argument;
  *
  * <h3>Examples</h3>
  *  <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
+ *    java -jar GenomeAnalysisTK.jar
+ *      -T PrintReads
  *      -rf ReassignOneMappingQuality
  *      -RMQF 255
  *      -RMQT 60
