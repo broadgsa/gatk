@@ -39,18 +39,19 @@ import java.util.*;
  * Basic unit test for MathUtils
  */
 public class MathUtilsUnitTest extends BaseTest {
+
     @BeforeClass
     public void init() {
     }
 
     /**
-     * Tests that we get unqiue values for the valid (non-null-producing) input space for {@link MathUtils#fastGenerateUniqueHashFromThreeIntegers(int, int, int)}.
+     * Tests that we get unique values for the valid (non-null-producing) input space for {@link MathUtils#fastGenerateUniqueHashFromThreeIntegers(int, int, int)}.
      */
     @Test
     public void testGenerateUniqueHashFromThreePositiveIntegers() {
         logger.warn("Executing testGenerateUniqueHashFromThreePositiveIntegers");
 
-        final Set<Long> observedLongs = new HashSet<Long>();
+        final Set<Long> observedLongs = new HashSet<>();
         for (short i = 0; i < Byte.MAX_VALUE; i++) {
             for (short j = 0; j < Byte.MAX_VALUE; j++) {
                 for (short k = 0; k < Byte.MAX_VALUE; k++) {
@@ -70,6 +71,80 @@ public class MathUtilsUnitTest extends BaseTest {
                 }
             }
         }
+    }
+
+    @Test(dataProvider = "log10OneMinusPow10Data")
+    public void testLog10OneMinusPow10(final double x, final double expected) {
+        final double actual = MathUtils.log10OneMinusPow10(x);
+        if (Double.isNaN(expected))
+            Assert.assertTrue(Double.isNaN(actual));
+        else
+            Assert.assertEquals(actual,expected,1E-9);
+    }
+
+    @Test(dataProvider = "log1mexpData")
+    public void testLog1mexp(final double x, final double expected) {
+        final double actual = MathUtils.log1mexp(x);
+        if (Double.isNaN(expected))
+            Assert.assertTrue(Double.isNaN(actual));
+        else
+            Assert.assertEquals(actual,expected,1E-9);
+    }
+
+    @DataProvider(name = "log10OneMinusPow10Data")
+    public Iterator<Object[]> log10OneMinusPow10Data() {
+
+          final double[] inValues = new double[] { Double.NaN, 10, 1, 0, -1, -3, -10, -30, -100, -300, -1000, -3000 };
+          return new Iterator<Object[]>() {
+
+              private int i = 0;
+
+              @Override
+              public boolean hasNext() {
+                return i < inValues.length;
+
+              }
+
+              @Override
+              public Object[] next() {
+                  final double input = inValues[i++];
+                  final double output = Math.log10( 1 - Math.pow(10,input));
+                  return new Object[] { input, output };
+              }
+
+              @Override
+              public void remove() {
+                  throw new UnsupportedOperationException();
+              }
+          };
+    }
+
+    @DataProvider(name = "log1mexpData")
+    public Iterator<Object[]> log1mexpData() {
+
+        final double[] inValues = new double[] { Double.NaN, 10, 1, 0, -1, -3, -10, -30, -100, -300, -1000, -3000 };
+        return new Iterator<Object[]>() {
+
+            private int i = 0;
+
+            @Override
+            public boolean hasNext() {
+                return i < inValues.length;
+
+            }
+
+            @Override
+            public Object[] next() {
+                final double input = inValues[i++];
+                final double output = Math.log( 1 - Math.exp(input));
+                return new Object[] { input, output };
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
     }
 
     /**
@@ -144,7 +219,7 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertTrue(MathUtils.sampleIndicesWithReplacement(5, 1000).size() == 1000);
 
         // Check that the list contains only the k element range that as asked for - no more, no less
-        List<Integer> Five = new ArrayList<Integer>();
+        List<Integer> Five = new ArrayList<>();
         Collections.addAll(Five, 0, 1, 2, 3, 4);
         List<Integer> BigFive = MathUtils.sampleIndicesWithReplacement(5, 10000);
         Assert.assertTrue(BigFive.containsAll(Five));
@@ -160,9 +235,9 @@ public class MathUtilsUnitTest extends BaseTest {
 
         // Check that the list contains only the k element range that as asked for - no more, no less but now
         // use the index list to pull elements from another list using sliceListByIndices
-        List<Integer> Five = new ArrayList<Integer>();
+        List<Integer> Five = new ArrayList<>();
         Collections.addAll(Five, 0, 1, 2, 3, 4);
-        List<Character> FiveAlpha = new ArrayList<Character>();
+        List<Character> FiveAlpha = new ArrayList<>();
         Collections.addAll(FiveAlpha, 'a', 'b', 'c', 'd', 'e');
         List<Integer> BigFive = MathUtils.sampleIndicesWithReplacement(5, 10000);
         List<Character> BigFiveAlpha = MathUtils.sliceListByIndices(BigFive, FiveAlpha);
@@ -180,8 +255,8 @@ public class MathUtilsUnitTest extends BaseTest {
         int[] numbers = {1, 2, 4, 5, 3, 128, 25678, -24};
         MathUtils.RunningAverage r = new MathUtils.RunningAverage();
 
-        for (int i = 0; i < numbers.length; i++)
-            r.add((double) numbers[i]);
+        for (final double b : numbers)
+            r.add(b);
 
         Assert.assertEquals((long) numbers.length, r.observationCount());
         Assert.assertTrue(r.mean() - 3224.625 < 2e-10);
@@ -251,24 +326,6 @@ public class MathUtilsUnitTest extends BaseTest {
             Assert.assertEquals(MathUtils.log10Factorial(med_start+i),log10factorial_middle,1e-3);
             Assert.assertEquals(MathUtils.log10Factorial(large_start+i),log10factorial_large,1e-1);
         }
-    }
-
-    /**
-     * Private functions used by testArrayShuffle()
-     */
-    private boolean hasUniqueElements(Object[] x) {
-        for (int i = 0; i < x.length; i++)
-            for (int j = i + 1; j < x.length; j++)
-                if (x[i].equals(x[j]) || x[i] == x[j])
-                    return false;
-        return true;
-    }
-
-    private boolean hasAllElements(final Object[] expected, final Object[] actual) {
-        HashSet<Object> set = new HashSet<Object>();
-        set.addAll(Arrays.asList(expected));
-        set.removeAll(Arrays.asList(actual));
-        return set.isEmpty();
     }
 
     @Test
@@ -451,7 +508,7 @@ public class MathUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "ArrayMinData")
     public Object[][] makeArrayMinData() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         // this functionality can be adapted to provide input data for whatever you might want in your data
         tests.add(new Object[]{Arrays.asList(10), 10});
@@ -554,9 +611,11 @@ public class MathUtilsUnitTest extends BaseTest {
         // generate the partitions of an integer, each partition sorted numerically
         int n;
         List<Integer> a;
+
         int y;
         int k;
         int state;
+
         int x;
         int l;
 
@@ -564,7 +623,7 @@ public class MathUtilsUnitTest extends BaseTest {
             this.n = n;
             this.y = n - 1;
             this.k = 1;
-            this.a = new ArrayList<Integer>();
+            this.a = new ArrayList<>();
             for ( int i = 0; i < n; i++ ) {
                 this.a.add(i);
             }
@@ -588,9 +647,9 @@ public class MathUtilsUnitTest extends BaseTest {
             }
 
             if ( this.state == 1 ) {
-                while ( 2*x <= y ) {
+                while ( 2 * x <= y ) {
                     this.a.set(k,x);
-                    this.y -= x;
+                    this.y -= (int) x;
                     this.k++;
                 }
                 this.l = 1+this.k;
@@ -620,7 +679,7 @@ public class MathUtilsUnitTest extends BaseTest {
         }
 
         public String toString() {
-            StringBuffer buf = new StringBuffer();
+            final StringBuilder buf = new StringBuilder();
             buf.append("{ ");
             while ( hasNext() ) {
                 buf.append("[");
@@ -671,12 +730,7 @@ public class MathUtilsUnitTest extends BaseTest {
         }
 
         private int[] clone(int[] arr) {
-            int[] a = new int[arr.length];
-            for ( int idx = 0; idx < a.length ; idx ++) {
-                a[idx] = arr[idx];
-            }
-
-            return a;
+            return Arrays.copyOf(arr, arr.length);
         }
 
         private int[] nextFromPartitioner() {
@@ -834,7 +888,7 @@ public class MathUtilsUnitTest extends BaseTest {
         for ( double[] alleles : testAlleles ) {
             for ( int count : numAlleleSampled ) {
                 // test that everything sums to one. Generate all multinomial draws
-                List<Double> likelihoods = new ArrayList<Double>(100000);
+                List<Double> likelihoods = new ArrayList<>(100000);
                 NextCounts generator = new NextCounts(alleles.length,count);
                 double maxLog = Double.MIN_VALUE;
                 //List<String> countLog = new ArrayList<String>(200);
