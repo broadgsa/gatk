@@ -1152,11 +1152,11 @@ public class GATKVariantContextUtils {
      * @param builder the VC builder
      */
     private static void removeStaleAttributesAfterMerge(final VariantContextBuilder builder) {
-        builder.rmAttribute(VCFConstants.ALLELE_COUNT_KEY);
-        builder.rmAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
-        builder.rmAttribute(VCFConstants.ALLELE_NUMBER_KEY);
-        builder.rmAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY);
-        builder.rmAttribute(VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
+        builder.rmAttributes(Arrays.asList(VCFConstants.ALLELE_COUNT_KEY,
+                VCFConstants.ALLELE_FREQUENCY_KEY,
+                VCFConstants.ALLELE_NUMBER_KEY,
+                VCFConstants.MLE_ALLELE_COUNT_KEY,
+                VCFConstants.MLE_ALLELE_FREQUENCY_KEY));
     }
 
     /**
