@@ -170,7 +170,36 @@ public class RefMetaDataTracker {
     @Requires({"type != null", "onlyAtThisLoc != null"})
     public <T extends Feature> T getFirstValue(final Class<T> type, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, onlyAtThisLoc));
+    }
 
+    /**
+     * Same logic as @link #getFirstValue(RodBinding, boolean) but prioritizes records from prioritizeThisLoc if available
+     *
+     * @param rodBindings Only Features coming from the tracks associated with one of rodBindings are fetched
+     * @param <T> The Tribble Feature type of the rodBinding, and consequently the type of the resulting list of Features
+     * @param prioritizeThisLoc only Features starting at this site are considered
+     * @return A freshly allocated list of all of the bindings, or an empty list if none are bound.
+     */
+    @Requires({"rodBindings != null", "prioritizeThisLoc != null"})
+    @Ensures("result != null")
+    public <T extends Feature> List<T> getPrioritizedValue(final Collection<RodBinding<T>> rodBindings, final GenomeLoc prioritizeThisLoc) {
+        final List<T> results = new ArrayList<>();
+
+        for ( final RodBinding<T> rodBinding : rodBindings ) {
+
+            // if there's a value at the prioritized location, take it
+            T value = getFirstValue(rodBinding, prioritizeThisLoc);
+
+            // otherwise, grab any one
+            if ( value == null )
+                value = getFirstValue(rodBinding);
+
+            // add if not null
+            if ( value != null )
+                results.add(value);
+        }
+
+        return results;
     }
 
     /**
