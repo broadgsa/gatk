@@ -457,21 +457,22 @@ public class ReadUtils {
     /**
      * Returns the read coordinate corresponding to the requested reference coordinate.
      *
-     * WARNING: if the requested reference coordinate happens to fall inside a deletion in the read, this function
-     * will return the last read base before the deletion. This function returns a
-     * Pair(int readCoord, boolean fallsInsideDeletion) so you can choose which readCoordinate to use when faced with
-     * a deletion.
+     * WARNING: if the requested reference coordinate happens to fall inside or just before a deletion (or skipped region) in the read, this function
+     * will return the last read base before the deletion (or skipped region). This function returns a
+     * Pair(int readCoord, boolean fallsInsideOrJustBeforeDeletionOrSkippedRegion) so you can choose which readCoordinate to use when faced with
+     * a deletion (or skipped region).
      *
      * SUGGESTION: Use getReadCoordinateForReferenceCoordinate(GATKSAMRecord, int, ClippingTail) instead to get a
      * pre-processed result according to normal clipping needs. Or you can use this function and tailor the
      * behavior to your needs.
      *
      * @param read
-     * @param refCoord
+     * @param refCoord the requested reference coordinate
      * @return the read coordinate corresponding to the requested reference coordinate. (see warning!)
      */
     @Requires({"refCoord >= read.getSoftStart()", "refCoord <= read.getSoftEnd()"})
     @Ensures({"result.getFirst() >= 0", "result.getFirst() < read.getReadLength()"})
+    //TODO since we do not have contracts any more, should we check for the requirements in the method code?
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord) {
         return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, false);
     }
@@ -479,9 +480,11 @@ public class ReadUtils {
     public static Pair<Integer, Boolean> getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final boolean allowGoalNotReached) {
         int readBases = 0;
         int refBases = 0;
-        boolean fallsInsideDeletion = false;
+        boolean fallsInsideDeletionOrSkippedRegion = false;
+        boolean endJustBeforeDeletionOrSkippedRegion = false;
+        boolean fallsInsideOrJustBeforeDeletionOrSkippedRegion = false;
 
-        int goal = refCoord - alignmentStart;  // The goal is to move this many reference bases
+        final int goal = refCoord - alignmentStart;  // The goal is to move this many reference bases
         if (goal < 0) {
             if (allowGoalNotReached) {
                 return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
@@ -493,7 +496,7 @@ public class ReadUtils {
 
         Iterator<CigarElement> cigarElementIterator = cigar.getCigarElements().iterator();
         while (!goalReached && cigarElementIterator.hasNext()) {
-            CigarElement cigarElement = cigarElementIterator.next();
+            final CigarElement cigarElement = cigarElementIterator.next();
             int shift = 0;
 
             if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP) {
@@ -511,7 +514,7 @@ public class ReadUtils {
 
             if (goalReached) {
                 // Is this base's reference position within this cigar element? Or did we use it all?
-                boolean endsWithinCigar = shift < cigarElement.getLength();
+                final boolean endsWithinCigar = shift < cigarElement.getLength();
 
                 // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
                 // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
@@ -523,13 +526,13 @@ public class ReadUtils {
                     }
                 }
 
-                CigarElement nextCigarElement;
+                CigarElement nextCigarElement = null;
 
-                // if we end inside the current cigar element, we just have to check if it is a deletion
+                // if we end inside the current cigar element, we just have to check if it is a deletion (or skipped region)
                 if (endsWithinCigar)
-                    fallsInsideDeletion = cigarElement.getOperator() == CigarOperator.DELETION;
+                    fallsInsideDeletionOrSkippedRegion = (cigarElement.getOperator() == CigarOperator.DELETION || cigarElement.getOperator() == CigarOperator.SKIPPED_REGION) ;
 
-                // if we end outside the current cigar element, we need to check if the next element is an insertion or deletion.
+                // if we end outside the current cigar element, we need to check if the next element is an insertion, deletion or skipped region.
                 else {
                     nextCigarElement = cigarElementIterator.next();
 
@@ -547,22 +550,27 @@ public class ReadUtils {
                         nextCigarElement = cigarElementIterator.next();
                     }
 
-                    // if it's a deletion, we will pass the information on to be handled downstream.
-                    fallsInsideDeletion = nextCigarElement.getOperator() == CigarOperator.DELETION;
+                    // if it's a deletion (or skipped region), we will pass the information on to be handled downstream.
+                    endJustBeforeDeletionOrSkippedRegion = (nextCigarElement.getOperator() == CigarOperator.DELETION || nextCigarElement.getOperator() == CigarOperator.SKIPPED_REGION);
                 }
 
-                // If we reached our goal outside a deletion, add the shift
-                if (!fallsInsideDeletion && cigarElement.getOperator().consumesReadBases())
+                fallsInsideOrJustBeforeDeletionOrSkippedRegion = endJustBeforeDeletionOrSkippedRegion || fallsInsideDeletionOrSkippedRegion;
+
+                // If we reached our goal outside a deletion (or skipped region), add the shift
+                if (!fallsInsideOrJustBeforeDeletionOrSkippedRegion && cigarElement.getOperator().consumesReadBases())
                     readBases += shift;
 
-                // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
+                // If we reached our goal just before a deletion (or skipped region) we need
                 // to add the shift of the current cigar element but go back to it's last element to return the last
-                // base before the deletion (see warning in function contracts)
-                else if (fallsInsideDeletion && !endsWithinCigar && cigarElement.getOperator().consumesReadBases())
+                // base before the deletion (or skipped region) (see warning in function contracts)
+                else if (endJustBeforeDeletionOrSkippedRegion && cigarElement.getOperator().consumesReadBases())
                     readBases += shift - 1;
 
-                // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
-                else if (fallsInsideDeletion && endsWithinCigar)
+                // If we reached our goal inside a deletion (or skipped region), or just between a deletion and a skipped region,
+                // then we must backtrack to the last base before the deletion (or skipped region)
+                else if (fallsInsideDeletionOrSkippedRegion ||
+                        (endJustBeforeDeletionOrSkippedRegion && nextCigarElement.getOperator().equals(CigarOperator.N)) ||
+                        (endJustBeforeDeletionOrSkippedRegion && nextCigarElement.getOperator().equals(CigarOperator.D)))
                     readBases--;
             }
         }
@@ -575,7 +583,7 @@ public class ReadUtils {
             }
         }
 
-        return new Pair<Integer, Boolean>(readBases, fallsInsideDeletion);
+        return new Pair<Integer, Boolean>(readBases, fallsInsideOrJustBeforeDeletionOrSkippedRegion);
     }
 
     /**

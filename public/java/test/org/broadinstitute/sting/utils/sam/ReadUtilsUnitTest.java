@@ -220,7 +220,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     }
 
     @Test (enabled = true)
-    public void testReadWithNs() throws FileNotFoundException {
+    public void testReadWithNsRefIndexInDeletion() throws FileNotFoundException {
 
         final IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
@@ -232,6 +232,22 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setCigarString("3M414N1D73M");
 
         final int result = ReadUtils.getReadCoordinateForReferenceCoordinateUpToEndOfRead(read, 9392, ReadUtils.ClippingTail.LEFT_TAIL);
+        Assert.assertEquals(result, 2);
+    }
+
+    @Test (enabled = true)
+    public void testReadWithNsRefAfterDeletion() throws FileNotFoundException {
+
+        final IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
+        final int readLength = 76;
+
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 8975, readLength);
+        read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
+        read.setBaseQualities(Utils.dupBytes((byte)30, readLength));
+        read.setCigarString("3M414N1D73M");
+
+        final int result = ReadUtils.getReadCoordinateForReferenceCoordinateUpToEndOfRead(read, 9393, ReadUtils.ClippingTail.LEFT_TAIL);
         Assert.assertEquals(result, 3);
     }
 

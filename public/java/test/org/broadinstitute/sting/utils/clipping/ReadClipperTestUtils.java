@@ -31,6 +31,7 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.TextCigarCodec;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.CigarUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 
@@ -57,11 +58,15 @@ public class ReadClipperTestUtils {
     }
 
     public static GATKSAMRecord makeReadFromCigar(String cigarString) {
-        return makeReadFromCigar(cigarFromString(cigarString));
+        return makeReadFromCigar(CigarUtils.cigarFromString(cigarString));
+    }
+
+    public static List<Cigar> generateCigarList(int maximumLength) {
+        return generateCigarList(maximumLength, cigarElements);
     }
 
         /**
-        * This function generates every valid permutation of cigar strings with a given length.
+        * This function generates every valid permutation of cigar strings (with a given set of cigarElement) with a given length.
         *
         * A valid cigar object obeys the following rules:
         *  - No Hard/Soft clips in the middle of the read
@@ -72,7 +77,7 @@ public class ReadClipperTestUtils {
         * @param maximumLength the maximum number of elements in the cigar
         * @return a list with all valid Cigar objects
         */
-    public static List<Cigar> generateCigarList(int maximumLength) {
+    public static List<Cigar> generateCigarList(int maximumLength, CigarElement[] cigarElements) {
         int numCigarElements = cigarElements.length;
         LinkedList<Cigar> cigarList = new LinkedList<Cigar>();
         byte [] cigarCombination = new byte[maximumLength];
@@ -80,9 +85,9 @@ public class ReadClipperTestUtils {
         Utils.fillArrayWithByte(cigarCombination, (byte) 0);               // we start off with all 0's in the combination array.
         int currentIndex = 0;
         while (true) {
-            Cigar cigar = createCigarFromCombination(cigarCombination);    // create the cigar
-            cigar = combineAdjacentCigarElements(cigar);                   // combine adjacent elements
-            if (isCigarValid(cigar)) {                                     // check if it's valid
+            Cigar cigar = createCigarFromCombination(cigarCombination, cigarElements);    // create the cigar
+            cigar = CigarUtils.combineAdjacentCigarElements(cigar);                   // combine adjacent elements
+            if (CigarUtils.isCigarValid(cigar)) {                                     // check if it's valid
                 cigarList.add(cigar);                                      // add it
             }
 
@@ -107,78 +112,12 @@ public class ReadClipperTestUtils {
         return cigarList;
     }
 
-    private static boolean isCigarValid(Cigar cigar) {
-        if (cigar.isValid(null, -1) == null) {                                                                          // This should take care of most invalid Cigar Strings (picard's "exhaustive" implementation)
-
-            Stack<CigarElement> cigarElementStack = new Stack<CigarElement>();                                          // Stack to invert cigar string to find ending operator
-            CigarOperator startingOp = null;
-            CigarOperator endingOp = null;
-
-            // check if it doesn't start with deletions
-            boolean readHasStarted = false;                                                                             // search the list of elements for the starting operator
-            for (CigarElement cigarElement : cigar.getCigarElements()) {
-                if (!readHasStarted) {
-                    if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP) {
-                        readHasStarted = true;
-                        startingOp = cigarElement.getOperator();
-                    }
-                }
-                cigarElementStack.push(cigarElement);
-            }
-
-            while (!cigarElementStack.empty()) {
-                CigarElement cigarElement = cigarElementStack.pop();
-                if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP) {
-                    endingOp = cigarElement.getOperator();
-                    break;
-                }
-            }
-
-              if (startingOp != CigarOperator.DELETION && endingOp != CigarOperator.DELETION)
-                  return true;                                                                                          // we don't accept reads starting or ending in deletions (add any other constraint here)
-        }
-
-        return false;
-    }
-
-    private static Cigar createCigarFromCombination(byte[] cigarCombination) {
+    private static Cigar createCigarFromCombination(byte[] cigarCombination, CigarElement[] cigarElements) {
         Cigar cigar = new Cigar();
         for (byte i : cigarCombination) {
             cigar.add(cigarElements[i]);
         }
         return cigar;
-    }
-
-
-    /**
-     * Combines equal adjacent elements of a Cigar object
-     *
-     * @param rawCigar the cigar object
-     * @return a combined cigar object
-     */
-    private static Cigar combineAdjacentCigarElements(Cigar rawCigar) {
-        Cigar combinedCigar = new Cigar();
-        CigarElement lastElement = null;
-        int lastElementLength = 0;
-        for (CigarElement cigarElement : rawCigar.getCigarElements()) {
-            if (lastElement != null &&
-                    ((lastElement.getOperator() == cigarElement.getOperator()) ||
-                     (lastElement.getOperator() == CigarOperator.I && cigarElement.getOperator() == CigarOperator.D) ||
-                     (lastElement.getOperator() == CigarOperator.D && cigarElement.getOperator() == CigarOperator.I)))
-                lastElementLength += cigarElement.getLength();
-            else
-            {
-                if (lastElement != null)
-                    combinedCigar.add(new CigarElement(lastElementLength, lastElement.getOperator()));
-
-                lastElement = cigarElement;
-                lastElementLength = cigarElement.getLength();
-            }
-        }
-        if (lastElement != null)
-            combinedCigar.add(new CigarElement(lastElementLength, lastElement.getOperator()));
-
-        return combinedCigar;
     }
 
     public static GATKSAMRecord makeRead() {
@@ -201,34 +140,5 @@ public class ReadClipperTestUtils {
         // Otherwise test if they're both empty
         else
             Assert.assertEquals(actual.isEmpty(), expected.isEmpty());
-    }
-
-    public static Cigar invertCigar (Cigar cigar) {
-        Stack<CigarElement> cigarStack = new Stack<CigarElement>();
-        for (CigarElement cigarElement : cigar.getCigarElements())
-            cigarStack.push(cigarElement);
-
-        Cigar invertedCigar = new Cigar();
-        while (!cigarStack.isEmpty())
-            invertedCigar.add(cigarStack.pop());
-
-        return invertedCigar;
-    }
-
-    /**
-     * Checks whether or not the read has any cigar element that is not H or S
-     *
-     * @param read the read
-     * @return true if it has any M, I or D, false otherwise
-     */
-    public static boolean readHasNonClippedBases(GATKSAMRecord read) {
-        for (CigarElement cigarElement : read.getCigar().getCigarElements())
-            if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP)
-                return true;
-        return false;
-    }
-
-    public static Cigar cigarFromString(String cigarString) {
-        return TextCigarCodec.getSingleton().decode(cigarString);
-    }
+     }
 }
