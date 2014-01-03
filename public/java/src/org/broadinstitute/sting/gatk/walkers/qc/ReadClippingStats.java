@@ -26,8 +26,8 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
 import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -48,31 +48,45 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 /**
+ * Read clipping statistics for all reads.
+ *
+ * Walks over the input reads, printing out statistics about the read length, number of clipping events, and length
+ * of the clipping to the output stream.
+ *
+ * Note: Ignores N's in the Cigar string.
+ *
+ * <h3>Input</h3>
+ * One or more BAM files
+ *
+ * <h3>Output</h3>
+ * A simple tabulated text file with read length and clipping statistics for every read (or every N reads if the "skip"
+ * option is used)
+ *
  * User: depristo
  * Date: May 5, 2010
  * Time: 12:16:41 PM
  */
 
-/**
- * Walks over the input reads, printing out statistics about the read length, number of clipping events, and length
- * of the clipping to the output stream.
- */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClippingInfo,Integer> {
     @Output
     protected PrintStream out;
 
-    @Argument(fullName="mappedOnly", shortName="mo", doc="when this flag is set (default), statistics will be collected "+
-                "on mapped reads only, while unmapped reads will be discarded", required=false)
-    protected boolean MAPPED_ONLY = true;
+    /**
+     * when this flag is set (default), statistics will be collected on unmapped reads as well. The default behavior
+     * is to ignore unmapped reads."
+     */
+    @Argument(fullName="include_unmapped", shortName="u", doc="Include unmapped reads in the analysis", required=false)
+    protected boolean INCLUDE_UNMAPPED = false;
 
-    @Argument(fullName="skip", shortName="skip", doc="When provided, only every skip reads are analyzed", required=false)
+    /**
+     * print every read whose read number is divisible by SKIP. READ_NUMBER % SKIP == 0. First read in the file has read number = 1,
+     * second is 2, third is 3, ... A value of 1 means print every read. A value of 1000 means print every 1000th read.
+     */
+    @Advanced
+    @Argument(fullName="skip", shortName="skip", doc="Do not print all reads, skip some.", required=false)
     protected int SKIP = 1;
-
-//    public void initialize() {
-//
-//    }
 
     public class ReadClippingInfo {
         SAMReadGroupRecord rg;
@@ -80,7 +94,7 @@ public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClipping
     }
 
     public ReadClippingInfo map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
-        if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY)
+        if ( AlignmentUtils.isReadUnmapped(read) && !INCLUDE_UNMAPPED)
             return null;
 
         ReadClippingInfo info = new ReadClippingInfo();
@@ -89,24 +103,21 @@ public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClipping
         if ( info.rg == null ) throw new UserException.ReadMissingReadGroup(read);
 
         for ( CigarElement elt : read.getCigar().getCigarElements() ) {
-            if ( elt.getOperator() != CigarOperator.N )
-
             switch ( elt.getOperator()) {
                 case H : // ignore hard clips
                 case S : // soft clip
                     info.nClippingEvents++;
                     info.nClippedBases += elt.getLength();
-                    // note the fall through here
+                    break;
                 case M :
                 case D : // deletion w.r.t. the reference
                 case P : // ignore pads
                 case I : // insertion w.r.t. the reference
-                    info.readLength += elt.getLength(); // Unless we have a reference skip, the read gets longer
-                    break;
                 case N : // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
                     break;
                 default : throw new IllegalStateException("Case statement didn't deal with cigar op: " + elt.getOperator());
             }
+            info.readLength = read.getReadLength();
         }
 
         return info;  //To change body of implemented methods use File | Settings | File Templates.
@@ -137,13 +148,10 @@ public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClipping
                         id, info.readLength, info.nClippingEvents, info.nClippedBases,
                         100.0 * MathUtils.ratio(info.nClippedBases, info.readLength));
             }
-            return sum + 1;  //To change body of implemented methods use File | Settings | File Templates.
+            return sum + 1;
         } else {
             return sum;
         }
     }
 
-    public void onTraversalDone(Integer result) {
-
-    }
 }

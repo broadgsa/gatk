@@ -191,9 +191,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
     public boolean MERGE_INFO_WITH_MAX_AC = false;
 
-    @Argument(fullName="combineAnnotations", shortName="combineAnnotations", doc="If true, combine the annotation values in some straightforward manner assuming the input callsets are i.i.d.", required=false)
-    public boolean COMBINE_ANNOTATIONS = false;
-
     private List<String> priority = null;
 
     /** Optimization to strip out genotypes before merging if we are doing a sites_only output */
@@ -260,12 +257,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
-        Collection<VariantContext> potentialRefVCs = tracker.getValues(variants);
-        potentialRefVCs.removeAll(vcs);
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);
-            potentialRefVCs = VariantContextUtils.sitesOnlyVariantContexts(potentialRefVCs);
         }
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
@@ -307,17 +301,16 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
                 // make sure that it is a variant or in case it is not, that we want to include the sites with no variants
                 if (!EXCLUDE_NON_VARIANTS || !type.equals(VariantContext.Type.NO_VARIATION)) {
                     if (VCsByType.containsKey(type)) {
-                        mergedVCs.add(GATKVariantContextUtils.simpleMerge(VCsByType.get(type), potentialRefVCs,
-                                priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                                SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC, COMBINE_ANNOTATIONS));
+                        mergedVCs.add(GATKVariantContextUtils.simpleMerge(VCsByType.get(type), priority, rodNames.size(),
+                                filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                                SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
                     }
                 }
             }
         }
         else if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
-            mergedVCs.add(GATKVariantContextUtils.simpleMerge(vcs, potentialRefVCs,
-                    priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                    SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC, COMBINE_ANNOTATIONS));
+            mergedVCs.add(GATKVariantContextUtils.simpleMerge(vcs, priority, rodNames.size(), filteredRecordsMergeType,
+                    genotypeMergeOption, true, printComplexMerges, SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
         else {
             logger.warn("Ignoring all records at site " + ref.getLocus());

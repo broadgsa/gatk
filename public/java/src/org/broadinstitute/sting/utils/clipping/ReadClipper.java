@@ -30,6 +30,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.EventType;
+import org.broadinstitute.sting.utils.sam.CigarUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -348,20 +349,38 @@ public class ReadClipper {
     public static GATKSAMRecord hardClipToRegion( final GATKSAMRecord read, final int refStart, final int refStop ) {
         final int start = read.getAlignmentStart();
         final int stop = read.getAlignmentEnd();
+        return hardClipToRegion(read, refStart, refStop,start,stop);
+    }
 
+    /**
+     * Hard clip the read to the variable region (from refStart to refStop) processing also the clipped bases
+     *
+     * @param read     the read to be clipped
+     * @param refStart the beginning of the variant region (inclusive)
+     * @param refStop  the end of the variant region (inclusive)
+     * @return the read hard clipped to the variant region
+     */
+    public static GATKSAMRecord hardClipToRegionIncludingClippedBases( final GATKSAMRecord read, final int refStart, final int refStop ) {
+        final int start = read.getOriginalAlignmentStart();
+        final int stop = start + CigarUtils.countRefBasesBasedOnCigar(read,0,read.getCigarLength()) - 1;
+        return hardClipToRegion(read, refStart, refStop,start,stop);
+    }
+
+    private static GATKSAMRecord hardClipToRegion( final GATKSAMRecord read, final int refStart, final int refStop, final int alignmentStart, final int alignmentStop){
         // check if the read is contained in region
-        if (start <= refStop && stop >= refStart) {
-            if (start < refStart && stop > refStop)
+        if (alignmentStart <= refStop && alignmentStop >= refStart) {
+            if (alignmentStart < refStart && alignmentStop > refStop)
                 return hardClipBothEndsByReferenceCoordinates(read, refStart - 1, refStop + 1);
-            else if (start < refStart)
+            else if (alignmentStart < refStart)
                 return hardClipByReferenceCoordinatesLeftTail(read, refStart - 1);
-            else if (stop > refStop)
+            else if (alignmentStop > refStop)
                 return hardClipByReferenceCoordinatesRightTail(read, refStop + 1);
             return read;
         } else
             return GATKSAMRecord.emptyRead(read);
 
     }
+
     public static List<GATKSAMRecord> hardClipToRegion( final List<GATKSAMRecord> reads, final int refStart, final int refStop ) {
         final List<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>( reads.size() );
         for( final GATKSAMRecord read : reads ) {
