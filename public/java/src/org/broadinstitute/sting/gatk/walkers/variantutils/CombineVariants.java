@@ -131,7 +131,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
      * a rod priority list is provided.
      */
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
-    public List<RodBinding<VariantContext>> variants;
+    public List<RodBindingCollection<VariantContext>> variantCollections;
+    final private List<RodBinding<VariantContext>> variants = new ArrayList<>();
 
     @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
@@ -230,6 +231,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         VCFHeader vcfHeader = new VCFHeader(headerLines, samples);
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);
+
+        // collect the actual rod bindings into a list for use later
+        for ( final RodBindingCollection<VariantContext> variantCollection : variantCollections )
+            variants.addAll(variantCollection.getRodBindings());
     }
 
     private void validateAnnotateUnionArguments() {

@@ -83,6 +83,7 @@ public class ParsingEngine {
     private static final Set<ArgumentTypeDescriptor> STANDARD_ARGUMENT_TYPE_DESCRIPTORS = new LinkedHashSet<ArgumentTypeDescriptor>( Arrays.asList(new SimpleArgumentTypeDescriptor(),
             new IntervalBindingArgumentTypeDescriptor(),
             new RodBindingArgumentTypeDescriptor(),
+            new RodBindingCollectionArgumentTypeDescriptor(),
             new CompoundArgumentTypeDescriptor(),
             new MultiplexArgumentTypeDescriptor()) );
 
