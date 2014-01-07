@@ -33,6 +33,7 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFConstants;
 
@@ -1064,7 +1065,6 @@ public class GATKVariantContextUtils {
         final Set<String> inconsistentAttributes = new HashSet<>();
         final Set<String> rsIDs = new LinkedHashSet<>(1); // most of the time there's one id
 
-        VariantContext longestVC = first;
         int depth = 0;
         final Map<String, List<Comparable>> annotationMap = new LinkedHashMap<>();
         GenotypesContext genotypes = GenotypesContext.create();
@@ -1084,10 +1084,6 @@ public class GATKVariantContextUtils {
             if ( isSpanningEvent )
                 continue;
 
-            // keep track of the longest location that starts here
-            if ( VariantContextUtils.getSize(vc) > VariantContextUtils.getSize(longestVC) )
-                longestVC = vc;
-
             // special case ID (just preserve it)
             if ( vc.hasID() ) rsIDs.add(vc.getID());
 
@@ -1105,14 +1101,14 @@ public class GATKVariantContextUtils {
         if ( depth > 0 )
             attributes.put(VCFConstants.DEPTH_KEY, String.valueOf(depth));
 
+        // remove stale AC and AF based attributes
+        removeStaleAttributesAfterMerge(attributes);
+
         final String ID = rsIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(",", rsIDs);
 
         final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID).alleles(alleles)
-                .loc(longestVC.getChr(), longestVC.getStart(), longestVC.getEnd())
+                .chr(loc.getContig()).start(loc.getStart()).computeEndFromAlleles(alleles, loc.getStart())
                 .genotypes(genotypes).unfiltered().attributes(new TreeMap<>(attributes)).log10PError(CommonInfo.NO_LOG10_PERROR);  // we will need to regenotype later
-
-        // remove stale AC and AF based attributes
-        removeStaleAttributesAfterMerge(builder);
 
         return builder.make();
     }
@@ -1147,16 +1143,17 @@ public class GATKVariantContextUtils {
     }
 
     /**
-     * Remove the stale attributes from the merged VariantContext (builder)
+     * Remove the stale attributes from the merged set
      *
-     * @param builder the VC builder
+     * @param attributes the attribute map
      */
-    private static void removeStaleAttributesAfterMerge(final VariantContextBuilder builder) {
-        builder.rmAttributes(Arrays.asList(VCFConstants.ALLELE_COUNT_KEY,
-                VCFConstants.ALLELE_FREQUENCY_KEY,
-                VCFConstants.ALLELE_NUMBER_KEY,
-                VCFConstants.MLE_ALLELE_COUNT_KEY,
-                VCFConstants.MLE_ALLELE_FREQUENCY_KEY));
+    private static void removeStaleAttributesAfterMerge(final Map<String, Object> attributes) {
+        attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
+        attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
+        attributes.remove(VCFConstants.ALLELE_NUMBER_KEY);
+        attributes.remove(VCFConstants.MLE_ALLELE_COUNT_KEY);
+        attributes.remove(VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
+        attributes.remove(VCFConstants.END_KEY);
     }
 
     /**
@@ -1544,7 +1541,7 @@ public class GATKVariantContextUtils {
             final String name = g.getSampleName();
             if ( !mergedGenotypes.containsSample(name) ) {
                 // we need to modify it even if it already contains all of the alleles because we need to purge the <ALT> PLs out anyways
-                final int[] indexesOfRelevantAlleles = getIndexesOfRelevantAlleles(remappedAlleles, targetAlleles);
+                final int[] indexesOfRelevantAlleles = getIndexesOfRelevantAlleles(remappedAlleles, targetAlleles, VC.getStart());
                 final int[] PLs = generatePLs(g, indexesOfRelevantAlleles);
                 // note that we set the alleles to null here (as we expect it to be re-genotyped)
                 final Genotype newG = new GenotypeBuilder(g).name(name).alleles(null).PL(PLs).noAD().noGQ().make();
@@ -1559,15 +1556,16 @@ public class GATKVariantContextUtils {
      *
      * @param remappedAlleles   the list of alleles to evaluate
      * @param targetAlleles     the target list of alleles
+     * @param position          position to use for error messages
      * @return non-null array of ints representing indexes
      */
-    protected static int[] getIndexesOfRelevantAlleles(final List<Allele> remappedAlleles, final List<Allele> targetAlleles) {
+    protected static int[] getIndexesOfRelevantAlleles(final List<Allele> remappedAlleles, final List<Allele> targetAlleles, final int position) {
 
         if ( remappedAlleles == null || remappedAlleles.size() == 0 ) throw new IllegalArgumentException("The list of input alleles must not be null or empty");
         if ( targetAlleles == null || targetAlleles.size() == 0 ) throw new IllegalArgumentException("The list of target alleles must not be null or empty");
 
         if ( !remappedAlleles.contains(NON_REF_SYMBOLIC_ALLELE) )
-            throw new IllegalArgumentException("The list of input alleles must contain " + NON_REF_SYMBOLIC_ALLELE + " as an allele; please use the Haplotype Caller with gVCF output to generate appropriate records");
+            throw new UserException("The list of input alleles must contain " + NON_REF_SYMBOLIC_ALLELE + " as an allele but that is not the case at position " + position + "; please use the Haplotype Caller with gVCF output to generate appropriate records");
         final int indexOfGenericAlt = remappedAlleles.indexOf(NON_REF_SYMBOLIC_ALLELE);
 
         final int[] indexMapping = new int[targetAlleles.size()];
