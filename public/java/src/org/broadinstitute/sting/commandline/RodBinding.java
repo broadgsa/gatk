@@ -32,7 +32,7 @@ import org.broad.tribble.Feature;
 import java.util.*;
 
 /**
- * A RodBinding representing a walker argument that gets bound to a ROD track.
+ * A RodBinding represents a walker argument that gets bound to a ROD track.
  *
  * The RodBinding<T> is a formal GATK argument that bridges between a walker and
  * the RefMetaDataTracker to obtain data about this rod track at runtime.  The RodBinding
@@ -77,7 +77,7 @@ public final class RodBinding<T extends Feature> {
     final private String tribbleType;
     /** The command line tags associated with this RodBinding */
     final private Tags tags;
-    /** The Java class expected for this RodBinding.  Must correspond to the type emited by Tribble */
+    /** The Java class expected for this RodBinding.  Must correspond to the type emitted by Tribble */
     final private Class<T> type;
     /** True for all RodBindings except the special UNBOUND binding, which is the default for optional arguments */
     final private boolean bound;

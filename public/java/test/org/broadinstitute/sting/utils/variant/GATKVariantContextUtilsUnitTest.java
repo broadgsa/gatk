@@ -29,6 +29,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.variant.variantcontext.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
@@ -1463,14 +1464,14 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         }
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class)
+    @Test(expectedExceptions = UserException.class)
     public void testGetIndexesOfRelevantAllelesWithNoALT() {
 
         final List<Allele> alleles1 = new ArrayList<>(1);
         alleles1.add(Allele.create("A", true));
         final List<Allele> alleles2 = new ArrayList<>(1);
         alleles2.add(Allele.create("A", true));
-        GATKVariantContextUtils.getIndexesOfRelevantAlleles(alleles1, alleles2);
+        GATKVariantContextUtils.getIndexesOfRelevantAlleles(alleles1, alleles2, -1);
         Assert.fail("We should have thrown an exception because the <ALT> allele was not present");
     }
 
@@ -1502,7 +1503,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         if ( allelesIndex > 0 )
             myAlleles.add(allAlleles.get(allelesIndex));
 
-        final int[] indexes = GATKVariantContextUtils.getIndexesOfRelevantAlleles(myAlleles, allAlleles);
+        final int[] indexes = GATKVariantContextUtils.getIndexesOfRelevantAlleles(myAlleles, allAlleles, -1);
 
         Assert.assertEquals(indexes.length, allAlleles.size());
 

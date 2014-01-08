@@ -57,7 +57,7 @@ public final class IntervalBinding<T extends Feature> {
 
     @Requires({"type != null", "rawName != null", "source != null", "tribbleType != null", "tags != null"})
     public IntervalBinding(Class<T> type, final String rawName, final String source, final String tribbleType, final Tags tags) {
-        featureIntervals = new RodBinding<T>(type, rawName, source, tribbleType, tags);
+        featureIntervals = new RodBinding<>(type, rawName, source, tribbleType, tags);
     }
 
     @Requires({"intervalArgument != null"})
@@ -66,9 +66,7 @@ public final class IntervalBinding<T extends Feature> {
     }
 
     public String getSource() {
-        if ( featureIntervals != null )
-            return featureIntervals.getSource();
-        return stringIntervals;
+        return ( featureIntervals != null ? featureIntervals.getSource() : stringIntervals );
     }
 
     public List<GenomeLoc> getIntervals(final GenomeAnalysisEngine toolkit) {
@@ -79,7 +77,7 @@ public final class IntervalBinding<T extends Feature> {
         List<GenomeLoc> intervals;
 
         if ( featureIntervals != null ) {
-            intervals = new ArrayList<GenomeLoc>();
+            intervals = new ArrayList<>();
 
             // TODO -- after ROD system cleanup, go through the ROD system so that we can handle things like gzipped files
 

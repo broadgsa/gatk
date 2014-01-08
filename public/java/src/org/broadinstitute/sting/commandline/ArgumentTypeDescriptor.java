@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
@@ -36,6 +37,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
@@ -306,6 +308,7 @@ public abstract class ArgumentTypeDescriptor {
      * @param source             source
      * @param type               type to check
      * @param matches            matches
+     * @param tags               argument tags
      * @return the RodBinding/IntervalBinding object depending on the value of createIntervalBinding.
      */
     protected Object parseBinding(ArgumentSource source, Type type, ArgumentMatches matches, Tags tags) {
@@ -409,6 +412,95 @@ public abstract class ArgumentTypeDescriptor {
                                 value, fieldName, e.getMessage()));
         }
     }
+
+    /**
+     * Parse the source of a RodBindingCollection, which can be either a file of RodBindings or an actual RodBinding.
+     *
+     * @param parsingEngine the parsing engine used to validate this argument type descriptor
+     * @param source             source
+     * @param type               type
+     * @param matches            matches
+     * @param tags               argument tags
+     * @return the newly created binding object
+     */
+    public Object parseRodBindingCollectionSource(final ParsingEngine parsingEngine,
+                                                  final ArgumentSource source,
+                                                  final Type type,
+                                                  final ArgumentMatches matches,
+                                                  final Tags tags) {
+
+        final ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
+        final ArgumentMatchValue value = getArgumentValue(defaultDefinition, matches);
+        @SuppressWarnings("unchecked")
+        Class<? extends Feature> parameterType = JVMUtils.getParameterizedTypeClass(type);
+        String name = defaultDefinition.fullName;
+
+        // if this a list of files, get those bindings
+        final File file = value.asFile();
+        try {
+            if (file.getAbsolutePath().endsWith(".list")) {
+                return getRodBindingsCollection(file, parsingEngine, parameterType, name, tags, source.field.getName());
+            }
+        } catch (IOException e) {
+            throw new UserException.CouldNotReadInputFile(file, e);
+        }
+
+        // otherwise, treat this as an individual binding
+        final RodBinding binding = (RodBinding)parseBinding(value, parameterType, RodBinding.class, name, tags, source.field.getName());
+        parsingEngine.addTags(binding, tags);
+        parsingEngine.addRodBinding(binding);
+        return RodBindingCollection.createRodBindingCollectionOfType(parameterType, Arrays.asList(binding));
+    }
+
+    /**
+     * Retrieve and parse a collection of RodBindings from the given file.
+     *
+     * @param file             the source file
+     * @param parsingEngine    the engine responsible for parsing
+     * @param parameterType    the Tribble Feature parameter type
+     * @param bindingName      the name of the binding passed to the constructor.
+     * @param defaultTags      general tags for the binding used for parsing and passed to the constructor.
+     * @param fieldName        the name of the field that was parsed. Used for error reporting.
+     * @return the newly created collection of binding objects.
+     */
+    public static Object getRodBindingsCollection(final File file,
+                                                  final ParsingEngine parsingEngine,
+                                                  final Class<? extends Feature> parameterType,
+                                                  final String bindingName,
+                                                  final Tags defaultTags,
+                                                  final String fieldName) throws IOException {
+        final List<RodBinding> bindings = new ArrayList<>();
+
+        // parse each line separately using the given Tags if none are provided on each line
+        for ( final String line: FileUtils.readLines(file) ) {
+            final String[] tokens = line.split("\\s+");
+            final RodBinding binding;
+
+            if ( tokens.length == 0 ) {
+                continue; // empty line, so do nothing
+            }
+            // use the default tags if none are provided for this binding
+            else if ( tokens.length == 1 ) {
+                final ArgumentMatchValue value = new ArgumentMatchStringValue(tokens[0]);
+                binding = (RodBinding)parseBinding(value, parameterType, RodBinding.class, bindingName, defaultTags, fieldName);
+                parsingEngine.addTags(binding, defaultTags);
+            }
+            // use the new tags if provided
+            else if ( tokens.length == 2 ) {
+                final Tags tags = ParsingMethod.parseTags(fieldName, tokens[0]);
+                final ArgumentMatchValue value = new ArgumentMatchStringValue(tokens[1]);
+                binding = (RodBinding)parseBinding(value, parameterType, RodBinding.class, bindingName, tags, fieldName);
+                parsingEngine.addTags(binding, tags);
+            } else {
+                throw new UserException.BadArgumentValue(fieldName, "data lines should consist of an optional set of tags along with a path to a file; too many tokens are present for line: " + line);
+            }
+
+            bindings.add(binding);
+            parsingEngine.addRodBinding(binding);
+        }
+
+        return RodBindingCollection.createRodBindingCollectionOfType(parameterType, bindings);
+    }
 }
 
 /**
@@ -488,13 +580,59 @@ class IntervalBindingArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 }
 
 /**
+ * Parser for RodBindingCollection objects
+ */
+class RodBindingCollectionArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+    /**
+     * We only want RodBindingCollection class objects
+     * @param type The type to check.
+     * @return true if the provided class is an RodBindingCollection.class
+     */
+    @Override
+    public boolean supports( final Class type ) {
+        return isRodBindingCollection(type);
+    }
+
+    public static boolean isRodBindingCollection( final Class type ) {
+        return RodBindingCollection.class.isAssignableFrom(type);
+    }
+
+    /**
+     * See note from RodBindingArgumentTypeDescriptor.parse().
+     *
+     * @param parsingEngine      parsing engine
+     * @param source             source
+     * @param type               type to check
+     * @param matches            matches
+     * @return the IntervalBinding object.
+     */
+    @Override
+    public Object parse(final ParsingEngine parsingEngine, final ArgumentSource source, final Type type, final ArgumentMatches matches) {
+        final Tags tags = getArgumentTags(matches);
+        return parseRodBindingCollectionSource(parsingEngine, source, type, matches, tags);
+    }
+}
+
+/**
  * Parse simple argument types: java primitives, wrapper classes, and anything that has
  * a simple String constructor.
  */
 class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+
+    /**
+     * @param type  the class type
+     * @return true if this class is a binding type, false otherwise
+     */
+    private boolean isBinding(final Class type) {
+        return RodBindingArgumentTypeDescriptor.isRodBinding(type) ||
+                IntervalBindingArgumentTypeDescriptor.isIntervalBinding(type) ||
+                RodBindingCollectionArgumentTypeDescriptor.isRodBindingCollection(type);
+    }
+
+
     @Override
     public boolean supports( Class type ) {
-        if ( RodBindingArgumentTypeDescriptor.isRodBinding(type) || IntervalBindingArgumentTypeDescriptor.isIntervalBinding(type) ) return false;
+        if ( isBinding(type) ) return false;
         if ( type.isPrimitive() ) return true;
         if ( type.isEnum() ) return true;
         if ( primitiveToWrapperMap.containsValue(type) ) return true;
