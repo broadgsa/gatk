@@ -33,18 +33,38 @@ import java.util.Collections;
 /**
  * Run validating pileup across a set of core data as proof of the integrity of the GATK core.
  *
- * @author mhanna
- * @version 0.1
+ * Tests both types of old-school pileup formats (basic and consensus).
+ *
+ * @author mhanna, vdauwera
+ * @version 0.2
  */
 public class CheckPileupIntegrationTest extends WalkerTest {
+    /**
+     * This test runs on a consensus pileup containing 10-column lines for SNPs and 13-column lines for indels
+     */
     @Test(enabled = true)
-    public void testEcoliThreaded() {
+    public void testEcoliConsensusPileup() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T CheckPileup" +
                 " -I " + validationDataLocation + "MV1994.selected.bam" +
                 " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                 " --pileup:SAMPileup "+ validationDataLocation + "MV1994.selected.pileup" +
                 " -S SILENT -nt 8",0, Collections.<String>emptyList());
-        executeTest("testEcoliThreaded",spec);
+        executeTest("testEcoliConsensusPileup",spec);
+    }
+
+    /**
+     * This test runs on a basic pileup containing 6-column lines for all variants  TODO
+     */
+    @Test
+    public void testEcoliBasicPileup() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CheckPileup" +
+                        " -I " + validationDataLocation + "MV1994.selected.bam" +
+                        " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
+                        " --pileup:SAMPileup "+ validationDataLocation + "MV1994.basic.pileup" +
+                        " -L Escherichia_coli_K12:1-49" +
+                        " -S SILENT -nt 8",0, Collections.<String>emptyList());
+        executeTest("testEcoliBasicPileup",spec);
     }
 }

@@ -48,11 +48,17 @@ import java.util.List;
 /**
  * Emulates the samtools pileup command to print aligned reads
  *
- * <p>Prints the alignment in something similar to the samtools pileup format.  Each line represents a genomic position,
- * consisting of chromosome name, coordinate, reference base, read bases, and read qualities.
+ * <p>Prints the alignment in something similar to the Samtools pileup format (see the
+ * <a href="http://samtools.sourceforge.net/pileup.shtml">Pileup format documentation</a> for more details about
+ * the original format). There is one line per genomic position, listing the chromosome name, coordinate, reference
+ * base, read bases, and read qualities. In addition to these default fields, additional information can be added to
+ * the output as extra columns; see options detailed below.</p>
  *
- * Emulated command:
- * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
+ * <h4>Emulated command:</h4>
+ * <pre>
+ *  samtools pileup -f in.ref.fasta -l in.site_list input.bam
+ * </pre>
+
  *
  * <h3>Input</h3>
  * <p>
@@ -61,16 +67,31 @@ import java.util.List;
  *
  * <h3>Output</h3>
  * <p>
- * Formatted pileup-style alignment of reads.
+ *  Alignment of reads formatted in the Pileup style.
  * </p>
  *
  * <h3>Example</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -T Pileup \
- *   -R ref.fasta \
- *   -I aligned_reads.bam \
+ *   -R exampleFASTA.fasta \
+ *   -I exampleBAM.bam \
+ *   -L chr1:257-267
  *   -o output.txt
+ * </pre>
+ * <h4>Expected output</h4>
+ * <pre>
+ *     chr1 257 A CAA '&=
+ *     chr1 258 C TCC A:=
+ *     chr1 259 C CCC )A=
+ *     chr1 260 C ACC (=<
+ *     chr1 261 T TCT '44
+ *     chr1 262 A AAA '?:
+ *     chr1 263 A AGA 1'6
+ *     chr1 264 C TCC 987
+ *     chr1 265 C CCC (@(
+ *     chr1 266 C GCC ''=
+ *     chr1 267 T AAT 7%>
  * </pre>
  *
  */
@@ -83,18 +104,25 @@ public class Pileup extends LocusWalker<String, Integer> implements TreeReducibl
     PrintStream out;
 
     /**
-     * In addition to the standard pileup output, adds 'verbose' output too.  The verbose output contains the number of spanning deletions,
+     * In addition to the standard pileup output, adds 'verbose' output too. The verbose output contains the number of spanning deletions,
      * and for each read in the pileup it has the read name, offset in the base string, read length, and read mapping quality.  These per
      * read items are delimited with an '@' character.
      */
     @Argument(fullName="showVerbose",shortName="verbose",doc="Add an extra verbose section to the pileup output", required=false)
     public boolean SHOW_VERBOSE = false;
-
-    @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
+    /**
+     * This enables annotating the pileup to show overlaps with metadata from a ROD file.
+     * For example, if you provide a VCF and there is a SNP at a given location covered by the pileup, the pileup
+     * output at that position will be annotated with the corresponding source ROD identifier.
+     */
+    @Input(fullName="metadata",shortName="metadata",doc="ROD file containing metadata", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
-
+    /**
+     * Adds the length of the insert each base comes from to the output pileup. Here, "insert" refers to the DNA insert
+     * produced during library generation before sequencing.
+     */
     @Hidden
-    @Argument(fullName="outputInsertLength",shortName = "outputInsertLength",doc="Add a column which contains the length of the insert each base comes from.",required=false)
+    @Argument(fullName="outputInsertLength",shortName = "outputInsertLength",doc="Output insert length",required=false)
     public boolean outputInsertLength=false;
 
     @Override
