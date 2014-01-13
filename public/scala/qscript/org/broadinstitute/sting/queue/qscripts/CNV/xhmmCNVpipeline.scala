@@ -196,7 +196,7 @@ class xhmmCNVpipeline extends QScript {
     }
     addAll(docs)
 
-    val mergeDepths = new MergeGATKdepths(docs.map(u => u.intervalSampleOut), outputBase.getPath + RD_OUTPUT_SUFFIX, "_mean_cvg", xhmmExec, sampleIDsMap, sampleIDsMapFromColumn, sampleIDsMapToColumn, None, false) with WholeMatrixMemoryLimit
+    val mergeDepths = new MergeGATKdepths(docs.map(u => u.intervalSampleOut), outputBase.getPath + RD_OUTPUT_SUFFIX, "_mean_cvg", xhmmExec, sampleIDsMap, sampleIDsMapFromColumn, sampleIDsMapToColumn, None, false) with WholeMatrixMemoryLimit with LongRunTime
     add(mergeDepths)
 
     var excludeTargets : List[File] = List[File]()
@@ -305,7 +305,7 @@ class xhmmCNVpipeline extends QScript {
     }
   }
 
-  class FilterCenterRawMatrix(inputParam: File, excludeTargetsIn : List[File]) extends CommandLineFunction with WholeMatrixMemoryLimit {
+  class FilterCenterRawMatrix(inputParam: File, excludeTargetsIn : List[File]) extends CommandLineFunction with WholeMatrixMemoryLimit with LongRunTime {
     @Input(doc = "")
     val input = inputParam
 
@@ -335,7 +335,7 @@ class xhmmCNVpipeline extends QScript {
     override def description = "Filters samples and targets and then mean-centers the targets: " + command
   }
 
-  class PCA(inputParam: File) extends CommandLineFunction with WholeMatrixMemoryLimit {
+  class PCA(inputParam: File) extends CommandLineFunction with WholeMatrixMemoryLimit with LongRunTime {
     @Input(doc = "")
     val input = inputParam
 
@@ -358,7 +358,7 @@ class xhmmCNVpipeline extends QScript {
     override def description = "Runs PCA on mean-centered data: " + command
   }
 
-  class Normalize(pca: PCA) extends CommandLineFunction {
+  class Normalize(pca: PCA) extends CommandLineFunction with LongRunTime {
     @Input(doc = "")
     val input = pca.input
 
@@ -387,7 +387,7 @@ class xhmmCNVpipeline extends QScript {
     override def description = "Normalizes mean-centered data using PCA information: " + command
   }
 
-  class FilterAndZscoreNormalized(inputParam: File) extends CommandLineFunction with WholeMatrixMemoryLimit {
+  class FilterAndZscoreNormalized(inputParam: File) extends CommandLineFunction with WholeMatrixMemoryLimit with LongRunTime {
     @Input(doc = "")
     val input = inputParam
 
@@ -413,7 +413,7 @@ class xhmmCNVpipeline extends QScript {
     override def description = "Filters and z-score centers (by sample) the PCA-normalized data: " + command
   }
 
-  class FilterOriginalData(inputParam: File, filt1: FilterCenterRawMatrix, filt2: FilterAndZscoreNormalized) extends CommandLineFunction with WholeMatrixMemoryLimit {
+  class FilterOriginalData(inputParam: File, filt1: FilterCenterRawMatrix, filt2: FilterAndZscoreNormalized) extends CommandLineFunction with WholeMatrixMemoryLimit with LongRunTime {
     @Input(doc = "")
     val input = inputParam
 
