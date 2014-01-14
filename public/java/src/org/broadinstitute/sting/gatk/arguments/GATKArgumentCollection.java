@@ -142,7 +142,7 @@ public class GATKArgumentCollection {
     /**
      * This will truncate the run but without exiting with a failure. By default the value is interpreted in minutes, but this can be changed with the maxRuntimeUnits argument.
      */
-    @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="Stop execution cleanly as soon as maxRuntime has been reached", required = false, minValue = 0)
+    @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="Stop execution cleanly as soon as maxRuntime has been reached", required = false)
     public long maxRuntime = GenomeAnalysisEngine.NO_RUNTIME_LIMIT;
 
     @Argument(fullName = "maxRuntimeUnits", shortName = "maxRuntimeUnits", doc="Unit of time used by maxRuntime", required = false)
