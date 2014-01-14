@@ -30,6 +30,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
+import java.net.InetAddress;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -295,12 +296,30 @@ public class HelpFormatter {
             String output = sourceName + " Args: " + entry.getValue().getDescription();
             logger.info(output);
         }
+        logger.info(generateUserHelpData());
         logger.info("Date/Time: " + dateFormat.format(date));
         logger.info(barrier);
 
         for(String attribution: applicationDetails.attribution)
             logger.info(attribution);
         logger.info(barrier);
+    }
+
+    /**
+     * Create the user-related help information.
+     * @return a non-null, non-empty String with the relevant information.
+     */
+    private static String generateUserHelpData() {
+	try {
+	    return "Executing as " +
+		System.getProperty("user.name") + "@" + InetAddress.getLocalHost().getHostName() +
+		" on " + System.getProperty("os.name") + " " + System.getProperty("os.version") +
+		" " + System.getProperty("os.arch") + "; " + System.getProperty("java.vm.name") +
+		" " + System.getProperty("java.runtime.version") + ".";
+	} catch (Exception e) {
+	    // don't fail
+	    return "";
+	}
     }
 
     /**
