@@ -33,6 +33,10 @@ import java.util.List;
 /**
  * A tribble feature representing a SAM pileup.
  *
+ * Allows intake of both simple (6-column) or extended/consensus (10/13-column) pileups. Simple pileup features will
+ * contain only basic information, no observed alleles or variant/genotype inferences, and so shouldn't be used as
+ * input for analysis that requires that information.
+ *
  * @author mhanna
  * @version 0.1
  */
