@@ -43,26 +43,29 @@ public abstract class CommandLineProgram {
     /** The command-line program and the arguments it returned. */
     public ParsingEngine parser = null;
 
-    /** the default log level */
-    @Argument(fullName = "logging_level",
-              shortName = "l",
-              doc = "Set the minimum level of logging, i.e. setting INFO get's you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging.",
-              required = false)
+    /**
+     * Setting INFO gets you INFO up to FATAL, setting ERROR gets you ERROR and FATAL level logging, and so on.
+     */
+    @Argument(fullName = "logging_level", shortName = "l", doc = "Set the minimum level of logging", required = false)
     protected String logging_level = "INFO";
 
-
-    /** where to send the output of our logger */
-    @Output(fullName = "log_to_file",
-              shortName = "log",
-              doc = "Set the logging location",
-              required = false)
+    /**
+     * File to save the logging output.
+     */
+    @Output(fullName = "log_to_file", shortName = "log", doc = "Set the logging location", required = false)
     protected String toFile = null;
 
-    /** this is used to indicate if they've asked for help */
-    @Argument(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
+    /**
+     * This will produce a help message in the terminal with general usage information, listing available arguments
+     * as well as tool-specific information if applicable.
+     */
+    @Argument(fullName = "help", shortName = "h", doc = "Generate the help message", required = false)
     public Boolean help = false;
 
-    /** This is used to indicate if they've asked for the version information */
+    /**
+     * Use this to check the version number of the GATK executable you are invoking. Note that the version number is
+     * always included in the output at the start of every run as well as any error message.
+     */
     @Argument(fullName = "version", shortName = "version", doc ="Output version information", required = false)
     public Boolean version = false;
 

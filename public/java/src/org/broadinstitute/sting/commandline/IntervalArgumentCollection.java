@@ -33,38 +33,53 @@ import java.util.List;
 
 public class IntervalArgumentCollection {
     /**
-     * Using this option one can instruct the GATK engine to traverse over only part of the genome.  This argument can be specified multiple times.
-     * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
-     * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
-     * To specify the completely unmapped reads in the BAM file (i.e. those without a reference contig) use -L unmapped.
+     * Use this option to perform the analysis over only part of the genome. This argument can be specified multiple times.
+     * You can use samtools-style intervals either explicitly on the command line (e.g. -L chr1 or -L chr1:100-200) or
+     * by loading in a file containing a list of intervals (e.g. -L myFile.intervals).
+     *
+     * Additionally, you can also specify a ROD file (such as a VCF file) in order to perform the analysis at specific
+     * positions based on the records present in the file (e.g. -L file.vcf).
+     *
+     * Finally, you can also use this to perform the analysis on the reads that are completely unmapped in the BAM file
+     * (i.e. those without a reference contig) by specifying -L unmapped.
      */
-    @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
+    @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate", required = false)
     public List<IntervalBinding<Feature>> intervals = null;
 
     /**
-     * Using this option one can instruct the GATK engine NOT to traverse over certain parts of the genome.  This argument can be specified multiple times.
-     * One may use samtools-style intervals either explicitly (e.g. -XL chr1 or -XL chr1:100-200) or listed in a file (e.g. -XL myFile.intervals).
-     * Additionally, one may specify a rod file to skip over the positions for which there is a record in the file (e.g. -XL file.vcf).
-     */
-    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
+     * Use this option to exclude certain parts of the genome from the analysis (like -L, but the opposite).
+     * This argument can be specified multiple times. You can use samtools-style intervals either explicitly on the
+     * command line (e.g. -XL chr1 or -XL chr1:100-200) or by loading in a file containing a list of intervals
+     * (e.g. -XL myFile.intervals).
+     *
+     * Additionally, you can also specify a ROD file (such as a VCF file) in order to exclude specific
+     * positions from the analysis based on the records present in the file (e.g. -L file.vcf).
+     * */
+    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing", required = false)
     public List<IntervalBinding<Feature>> excludeIntervals = null;
 
     /**
-     * How should the intervals specified by multiple -L or -XL arguments be combined?  Using this argument one can, for example, traverse over all of the positions
-     * for which there is a record in a VCF but just in chromosome 20 (-L chr20 -L file.vcf -isr INTERSECTION).
+     * By default, the program will take the UNION of all intervals specified using -L and/or -XL. However, you can
+     * change this setting, for example if you want to take the INTERSECTION of the sets instead. E.g. to perform the
+     * analysis on positions for which there is a record in a VCF, but restrict this to just those on chromosome 20,
+     * you would do -L chr20 -L file.vcf -isr INTERSECTION.
      */
-    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L or -XL inputs", required = false)
+    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Set merging approach to use for combining interval inputs", required = false)
     public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;
 
     /**
-     * Should abutting (but not overlapping) intervals be treated as separate intervals?
+     * By default, the program merges abutting intervals (i.e. intervals that are directly side-by-side but do not
+     * actually overlap) into a single continuous interval. However you can change this behavior if you want them to be
+     * treated as separate intervals instead.
      */
-    @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
+    @Argument(fullName = "interval_merging", shortName = "im", doc = "Interval merging rule for abutting intervals", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
     /**
-     * For example, '-L chr1:100' with a padding value of 20 would turn into '-L chr1:80-120'.
+     * Use this to add padding to the intervals specified using -L and/or -XL. For example, '-L chr1:100' with a
+     * padding value of 20 would turn into '-L chr1:80-120'. This is typically used to add padding around exons when
+     * analyzing exomes. The general Broad exome calling pipeline uses 100 bp padding by default.
      */
-    @Argument(fullName = "interval_padding", shortName = "ip", doc = "Indicates how many basepairs of padding to include around each of the intervals specified with the -L/--intervals argument", required = false)
+    @Argument(fullName = "interval_padding", shortName = "ip", doc = "Amount of padding (in bp) to add to each interval", required = false, minValue = 0)
     public int intervalPadding = 0;
 }

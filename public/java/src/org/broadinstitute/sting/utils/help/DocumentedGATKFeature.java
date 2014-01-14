@@ -37,7 +37,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface DocumentedGATKFeature {
-    /** Should we actually document this feature, even through it's annotated? */
+    /** Should we actually document this feature, even though it's annotated? */
     public boolean enable() default true;
     /** The overall group name (walkers, readfilters) this feature is associated with */
     public String groupName();
@@ -45,4 +45,6 @@ public @interface DocumentedGATKFeature {
     public String summary() default "";
     /** Are there links to other docs that we should include?  CommandLineGATK.class for walkers, for example? */
     public Class[] extraDocs() default {};
+    /** Who is the go-to developer for operation/documentation issues? */
+    public String gotoDev() default "NA";
 }

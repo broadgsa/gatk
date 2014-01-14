@@ -123,6 +123,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         for (Tag tag : toProcess.classDoc.tags()) {
             root.put(tag.name(), tag.text());
         }
+
+        root.put("gotoDev", toProcess.annotation.gotoDev());
     }
 
     /**
@@ -160,17 +162,29 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         try {
             // loop over all of the arguments according to the parsing engine
             for (final ArgumentSource argumentSource : parsingEngine.extractArgumentSources(DocletUtils.getClassForDoc(toProcess.classDoc))) {
-                // todo -- why can you have multiple ones?
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(toProcess.classDoc, argumentSource.field.getName());
                 Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef);
                 if (!argumentSource.isHidden() || getDoclet().showHiddenFeatures()) {
                     final String kind = docKindOfArg(argumentSource);
-
+                    // Retrieve default value
                     final Object value = argumentValue(toProcess.clazz, argumentSource);
                     if (value != null)
                         argBindings.put("defaultValue", prettyPrintValueString(value));
-
+                    // Retrieve min and max / hard and soft value thresholds for numeric args
+                    if (value instanceof Number) {
+                        if (argumentSource.field.isAnnotationPresent(Argument.class))   {
+                            argBindings.put("minValue", argumentSource.field.getAnnotation(Argument.class).minValue());
+                            argBindings.put("maxValue", argumentSource.field.getAnnotation(Argument.class).maxValue());
+                            if (argumentSource.field.getAnnotation(Argument.class).minRecommendedValue() != Double.NEGATIVE_INFINITY) {
+                                argBindings.put("minRecValue", argumentSource.field.getAnnotation(Argument.class).minRecommendedValue());
+                            }
+                            if (argumentSource.field.getAnnotation(Argument.class).maxRecommendedValue() != Double.POSITIVE_INFINITY) {
+                                argBindings.put("maxRecValue", argumentSource.field.getAnnotation(Argument.class).maxRecommendedValue());
+                            }
+                        }
+                    }
+                    // Finalize argument bindings
                     args.get(kind).add(argBindings);
                     args.get("all").add(argBindings);
                 }
@@ -742,8 +756,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
     /**
      * Returns a Pair of (main, synonym) names for argument with fullName s1 and
-     * shortName s2.  The main is selected to be the longest of the two, provided
-     * it doesn't exceed MAX_DISPLAY_NAME, in which case the shorter is taken.
+     * shortName s2.
+     *
+     * Previously we had it so the main name was selected to be the longest of the two, provided
+     * it didn't exceed MAX_DISPLAY_NAME, in which case the shorter was taken. But we now disable
+     * the length-based name rearrangement in order to maintain consistency in the GATKDocs table.
+     *
+     * This may cause messed up spacing in the CLI-help display but we don't care as much about that
+     * since more users use the online GATKDocs for looking up arguments.
      *
      * @param s1 the short argument name without -, or null if not provided
      * @param s2 the long argument name without --, or null if not provided
@@ -758,13 +778,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         if (s1 == null) return new Pair<String, String>(s2, null);
         if (s2 == null) return new Pair<String, String>(s1, null);
 
-        String l = s1.length() > s2.length() ? s1 : s2;
-        String s = s1.length() > s2.length() ? s2 : s1;
-
-        if (l.length() > MAX_DISPLAY_NAME)
-            return new Pair<String, String>(s, l);
-        else
-            return new Pair<String, String>(l, s);
+        return new Pair<String, String>(s2, s1);
     }
 
     /**

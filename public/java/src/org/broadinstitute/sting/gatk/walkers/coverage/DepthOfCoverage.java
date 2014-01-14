@@ -57,10 +57,10 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Toolbox for assessing sequence coverage by a wide array of metrics, partitioned by sample, read group, or library
+ * Assess sequence coverage by a wide array of metrics, partitioned by sample, read group, or library
  *
  * <p>
- * Coverage processes a set of bam files to determine coverage at different levels of partitioning and
+ * This tool processes a set of bam files to determine coverage at different levels of partitioning and
  * aggregation. Coverage can be analyzed per locus, per interval, per gene, or in total; can be partitioned by
  * sample, by read group, by technology, by center, or by library; and can be summarized by mean, median, quartiles,
  * and/or percentage of bases covered to or beyond a threshold.
@@ -73,7 +73,7 @@ import java.util.*;
  * <p>
  *(Optional) A REFSEQ Rod to aggregate coverage to the gene level
  * <p>
- * (for information about creating the REFSEQ Rod, please consult the RefSeqCodec documentation)
+ * (for information about creating the REFSEQ Rod, please consult the online documentation)
  *</p></p>
  * <h3>Output</h3>
  * <p>
@@ -117,7 +117,7 @@ import java.util.*;
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class}, gotoDev = HelpConstants.MC)
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)
@@ -125,53 +125,63 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     @Output
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
     Map<DoCOutputType,PrintStream> out;
-    
-    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth. Defaults to -1.", required = false)
+    /**
+     * Reads with mapping quality values lower than this threshold will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     */
+    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
     int minMappingQuality = -1;
-    @Argument(fullName = "maxMappingQuality", doc = "Maximum mapping quality of reads to count towards depth. Defaults to 2^31-1 (Integer.MAX_VALUE).", required = false)
+    /**
+     * Reads with mapping quality values higher than this threshold will be skipped. The default value is the largest number that can be represented as an integer by the program.
+     */
+    @Argument(fullName = "maxMappingQuality", doc = "Maximum mapping quality of reads to count towards depth", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
     int maxMappingQuality = Integer.MAX_VALUE;
-
-    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to -1.", required = false)
+    /**
+     * Bases with quality scores lower than this threshold will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     */
+    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth", required = false, minValue = 0, maxValue = Byte.MAX_VALUE)
     byte minBaseQuality = -1;
-    @Argument(fullName = "maxBaseQuality", doc = "Maximum quality of bases to count towards depth. Defaults to 127 (Byte.MAX_VALUE).", required = false)
+    /**
+     * Bases with quality scores higher than this threshold will be skipped. The default value is the largest number that can be represented as a byte.
+     */
+    @Argument(fullName = "maxBaseQuality", doc = "Maximum quality of bases to count towards depth", required = false, minValue = 0, maxValue = Byte.MAX_VALUE)
     byte maxBaseQuality = Byte.MAX_VALUE;
 
     @Argument(fullName = "countType", doc = "How should overlapping reads from the same fragment be handled?", required = false)
     CoverageUtils.CountPileupType countType = CoverageUtils.CountPileupType.COUNT_READS;
 
     /**
-     * Instead of reporting depth, report the base pileup at each locus
+     * Instead of reporting depth, the program will report the base pileup at each locus
      */
-    @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Will add base counts to per-locus output.", required = false)
+    @Argument(fullName = "printBaseCounts", shortName = "baseCounts", doc = "Add base counts to per-locus output", required = false)
     boolean printBaseCounts = false;
 
     /**
-     * Do not tabulate locus statistics (# loci covered by sample by coverage)
+     * Disabling the tabulation of locus statistics (# loci covered by sample by coverage) should speed up processing.
      */
-    @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Will not calculate the per-sample per-depth counts of loci, which should result in speedup", required = false)
+    @Argument(fullName = "omitLocusTable", shortName = "omitLocusTable", doc = "Do not calculate per-sample per-depth counts of loci", required = false)
     boolean omitLocusTable = false;
 
     /**
-     * Do not tabulate interval statistics (mean, median, quartiles AND # intervals by sample by coverage)
+     * Disabling the tabulation of interval statistics (mean, median, quartiles AND # intervals by sample by coverage) should speed up processing. This option is required in order to use -nt parallelism.
      */
-    @Argument(fullName = "omitIntervalStatistics", shortName = "omitIntervals", doc = "Will omit the per-interval statistics section, which should result in speedup", required = false)
+    @Argument(fullName = "omitIntervalStatistics", shortName = "omitIntervals", doc = "Do not calculate per-interval statistics", required = false)
     boolean omitIntervals = false;
     /**
-     * Do not print the total coverage at every base
+     * Disabling the tabulation of total coverage at every base should speed up processing.
      */
-    @Argument(fullName = "omitDepthOutputAtEachBase", shortName = "omitBaseOutput", doc = "Will omit the output of the depth of coverage at each base, which should result in speedup", required = false)
+    @Argument(fullName = "omitDepthOutputAtEachBase", shortName = "omitBaseOutput", doc = "Do not output depth of coverage at each base", required = false)
     boolean omitDepthOutput = false;
 
     /**
-     * Path to the RefSeq file for use in aggregating coverage statistics over genes
+     * Specify a RefSeq file for use in aggregating coverage statistics over genes.
      */
-    @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate the coverage statistics over this list of genes. Currently accepts RefSeq.", required = false)
+    @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate coverage statistics over this list of genes", required = false)
     File refSeqGeneList = null;
 
     /**
-     * The format of the output file
+     * Output file format (e.g. csv, table, rtable); defaults to r-readable table.
      */
-    @Argument(fullName = "outputFormat", doc = "the format of the output file (e.g. csv, table, rtable); defaults to r-readable table", required = false)
+    @Argument(fullName = "outputFormat", doc = "The format of the output file", required = false)
     String outputFormat = "rtable";
 
 
@@ -180,42 +190,47 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     // Advanced arguments
     //
     // ---------------------------------------------------------------------------
+
+    /**
+     * Normally, sites where the reference is N (or another non-canonical base) are skipped. If this option is enabled, these sites will be included in DoC calculations if there is coverage from neighboring reads.
+     */
     @Advanced
-    @Argument(fullName = "includeRefNSites", doc = "If provided, sites with reference N bases but with coverage from neighboring reads will be included in DoC calculations.", required = false)
+    @Argument(fullName = "includeRefNSites", doc = "Include sites where the reference is N", required = false)
     boolean includeRefNBases = false;
-
+    /**
+     * Use this option to calibrate what bins you want before performing full calculations on your data.
+     */
     @Advanced
-    @Argument(fullName = "printBinEndpointsAndExit", doc = "Prints the bin values and exits immediately. Use to calibrate what bins you want before running on data.", required = false)
+    @Argument(fullName = "printBinEndpointsAndExit", doc = "Print the bin values and exit immediately", required = false)
     boolean printBinEndpointsAndExit = false;
-
     /**
      * Sets the low-coverage cutoff for granular binning. All loci with depth < START are counted in the first bin.
      */
     @Advanced
-    @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false)
+    @Argument(fullName = "start", doc = "Starting (left endpoint) for granular binning", required = false, minValue = 0)
     int start = 1;
     /**
-     * Sets the high-coverage cutoff for granular binning. All loci with depth > END are counted in the last bin.
+     * Sets the high-coverage cutoff for granular binning. All loci with depth > STOP are counted in the last bin.
      */
     @Advanced
-    @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false)
+    @Argument(fullName = "stop", doc = "Ending (right endpoint) for granular binning", required = false, minValue = 1)
     int stop = 500;
     /**
      * Sets the number of bins for granular binning
      */
     @Advanced
-    @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false)
+    @Argument(fullName = "nBins", doc = "Number of bins to use for granular binning", required = false, minValue = 0, minRecommendedValue = 1)
     int nBins = 499;
 
     /**
-     * Do not tabulate the sample summary statistics (total, mean, median, quartile coverage per sample)
+     * This option simply disables writing separate files for per-sample summary statistics (total, mean, median, quartile coverage per sample). These statistics are still calculated internally, so enabling this option will not improve runtime.
      */
-    @Argument(fullName = "omitPerSampleStats", shortName = "omitSampleSummary", doc = "Omits the summary files per-sample. These statistics are still calculated, so this argument will not improve runtime.", required = false)
+    @Argument(fullName = "omitPerSampleStats", shortName = "omitSampleSummary", doc = "Do not output the summary files per-sample", required = false)
     boolean omitSampleSummary = false;
     /**
-     * A way of partitioning reads into groups. Can be sample, readgroup, or library.
+     * By default, coverage is partitioning by sample, but it can be any combination of sample, readgroup and/or library.
      */
-    @Argument(fullName = "partitionType", shortName = "pt", doc = "Partition type for depth of coverage. Defaults to sample. Can be any combination of sample, readgroup, library.", required = false)
+    @Argument(fullName = "partitionType", shortName = "pt", doc = "Partition type for depth of coverage", required = false)
     Set<DoCOutputType.Partition> partitionTypes = EnumSet.of(DoCOutputType.Partition.sample);
 
     /**
@@ -230,10 +245,10 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     boolean ignoreDeletionSites = false;
     
     /**
-     * A coverage threshold for summarizing (e.g. % bases >= CT for each sample)
+     * For summary file outputs, report the percentage of bases covered to an amount equal to or greater than this number  (e.g. % bases >= CT for each sample). Defaults to 15; can take multiple arguments.
      */
     @Advanced
-    @Argument(fullName = "summaryCoverageThreshold", shortName = "ct", doc = "for summary file outputs, report the % of bases coverd to >= this number. Defaults to 15; can take multiple arguments.", required = false)
+    @Argument(fullName = "summaryCoverageThreshold", shortName = "ct", doc = "Coverage threshold (in percent) for summarizing statistics", required = false)
     int[] coverageThresholds = {15};
 
     String[] OUTPUT_FORMATS = {"table","rtable","csv"};
@@ -425,7 +440,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
                 }
             }
         } else {
-            throw new UserException.CommandLineException("Cannot reduce by interval without interval list provided. Please provide a -L argument.");
+            throw new UserException.CommandLineException("Cannot reduce by interval without a list of intervals. Please provide an interval list using the -L argument.");
         }
 
         onTraversalDone(mergeAll(statsByInterval));

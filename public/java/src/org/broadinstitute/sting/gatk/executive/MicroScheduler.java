@@ -147,7 +147,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
             if (walker.isReduceByInterval())
-                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+                throw new UserException.BadArgumentValue("nt", String.format("This run of %s is set up to aggregate results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option or check if this tool has an option to disable per-interval calculations.", engine.getWalkerName(walker.getClass())));
 
             if ( ! (walker instanceof TreeReducible) ) {
                 throw badNT("nt", engine, walker);

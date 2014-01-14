@@ -51,23 +51,50 @@ import java.util.*;
  *
  * <p>
  *  GenotypeConcordance takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
- *  and for each sample, the genotype-by-genotype counts (for instance, the number of sites at which a sample was
- *  called homozygous reference in the EVAL callset, but homozygous variant in the COMP callset). It outputs these
+ *  and for each sample, the genotype-by-genotype counts (e.g. the number of sites at which a sample was
+ *  called homozygous-reference in the EVAL callset, but homozygous-variant in the COMP callset). It outputs these
  *  counts as well as convenient proportions (such as the proportion of het calls in the EVAL which were called REF in
  *  the COMP) and metrics (such as NRD and NRS).
+ *  </p>
  *
  *  <h3>Input</h3>
  *  <p>
  *  Genotype concordance requires two callsets (as it does a comparison): an EVAL and a COMP callset, specified via
- *  the -eval and -comp arguments.
- *
+ *  the -eval and -comp arguments. Typically, the EVAL callset is an experimental set you want to evaluate, while the
+ *  COMP callset is a previously existing set used as a standard for comparison (taken to represent "truth").
+ *  </p>
+ *  <p>
  *  (Optional) Jexl expressions for genotype-level filtering of EVAL or COMP genotypes, specified via the -gfe and
  *  -cfe arguments, respectively.
  *  </p>
  *
  *  <h3>Output</h3>
- *  Genotype Concordance writes a GATK report to the specified file (via -o) , consisting of multiple tables of counts
- *  and proportions. These tables may be optionally moltenized via the -moltenize argument. That is, the standard table
+ *  <p>
+ *  Genotype Concordance writes a GATK report to the specified file (via -o), consisting of multiple tables of counts
+ *  and proportions. These tables are constructed on a per-sample basis, and include counts of EVAL vs COMP genotype states, and the
+ *  number of times the alternate alleles between the EVAL and COMP sample did not match up.
+ *  </p>
+ *
+ *  <h4>Term and metrics definitions</h4>
+ * <p>
+ * <ul>
+ *          <li>HET: heterozygous</li>
+ *          <li>HOM_REF: homozygous reference</li>
+ *          <li>HOM_VAR: homozygous variant</li>
+ *          <li>MIXED: something like ./1</li>
+ *          <li>ALLELES_MATCH: counts of calls at the same site where the alleles match</li>
+ *          <li>ALLELES_DO_NOT_MATCH: counts of calls at the same location with different alleles, such as the eval set calling a 'G' alternate allele, and the comp set calling a 'T' alternate allele</li>
+ *          <li>EVAL_ONLY: counts of sites present only in the EVAL set, not in the COMP set</li>
+ *          <li>TRUTH_ONLY: counts of sites present only in the COMP set, not in the EVAL set</li>
+ *          <li>Non-Reference_Discrepancy (NRD): genotype concordance excluding concordant reference sites</li>
+ *          <li>Non-Reference_Sensitivity (NRS): sensitivity of the EVAL calls to polymorphic calls in the COMP set, calculated by (# true positive)/(# true polymorphic)</li>
+ *          <li>Overall_Genotype_Concordance: overall concordance calculated by (# concordant genotypes)/(# genotypes)</li>
+ * </ul>
+ * </p>
+ *
+ *  <h4>Moltenized tables</h4>
+ *
+ * <p>These tables may be optionally moltenized via the -moltenize argument. That is, the standard table
  *
  *  <pre>
  *  Sample   NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR   (...)
@@ -87,30 +114,32 @@ import java.util.*;
  *  (...)
  *  </pre>
  *
+ * <h4>Site-level allelic concordance</h4>
  *
- *  These tables are constructed on a per-sample basis, and include counts of eval vs comp genotype states, and the
- *  number of times the alternate alleles between the eval and comp sample did not match up.
- *
- *  In addition, Genotype Concordance produces site-level allelic concordance. For strictly bi-allelic VCFs,
- *  only the ALLELES_MATCH, EVAL_ONLY, TRUTH_ONLY fields will be populated, but where multi-allelic sites are involved
- *  counts for EVAL_SUBSET_TRUTH and EVAL_SUPERSET_TRUTH will be generated.
- *
+ * <p>
+ *  For strictly bi-allelic VCFs, only the ALLELES_MATCH, EVAL_ONLY, TRUTH_ONLY fields will be populated,
+ *  but where multi-allelic sites are involved counts for EVAL_SUBSET_TRUTH and EVAL_SUPERSET_TRUTH will be generated.
+ * </p>
+ * <p>
  *  For example, in the following situation
  *  <pre>
  *    eval:  ref - A   alt - C
  *    comp:  ref - A   alt - C,T
  *  </pre>
  *  then the site is tabulated as EVAL_SUBSET_TRUTH. Were the situation reversed, it would be EVAL_SUPERSET_TRUTH.
- *  However, in the case where eval has both C and T alternate alleles, both must be observed in the genotypes
+ *  However, in the case where EVAL has both C and T alternate alleles, both must be observed in the genotypes
  *  (that is, there must be at least one of (0/1,1/1) and at least one of (0/2,1/2,2/2) in the genotype field). If
- *  one of the alleles has no observations in the genotype fields of the eval, the site-level concordance is
+ *  one of the alleles has no observations in the genotype fields of the EVAL, the site-level concordance is
  *  tabulated as though that allele were not present in the record.
+ * </p>
  *
- *  <h3>Monomorphic Records</h3>
+ *  <h4>Monomorphic Records</h4>
+ *  <p>
  *  A site which has an alternate allele, but which is monomorphic in samples, is treated as not having been
- *  discovered, and will be recorded in the TRUTH_ONLY column (if a record exists in the comp VCF), or not at all
- *  (if no record exists in the comp VCF).
- *
+ *  discovered, and will be recorded in the TRUTH_ONLY column (if a record exists in the COMP set), or not at all
+ *  (if no record exists in the COMP set).
+ *  </p>
+ *  <p>
  *  That is, in the situation
  *  <pre>
  *   eval:  ref - A   alt - C   genotypes - 0/0  0/0  0/0 ... 0/0
@@ -121,14 +150,18 @@ import java.util.*;
  *   eval:  ref - A   alt - .   genotypes - 0/0  0/0  0/0 ... 0/0
  *   comp:  ref - A   alt - C   ...         0/0  0/0  ...
  *  </pre>
- *
- *  When a record is present in the comp VCF the *genotypes* for the monomorphic site will still be used to evaluate
+ *  </p>
+ *  <p>
+ *  When a record is present in the COMP set the *genotypes* for the monomorphic site will still be used to evaluate
  *  per-sample genotype concordance counts.
+ * </p>
  *
- *  <h3>Filtered Records</h3>
+ *  <h4>Filtered Records</h4>
  *  Filtered records are treated as though they were not present in the VCF, unless -ignoreSiteFilters is provided,
  *  in which case all records are used. There is currently no way to assess concordance metrics on filtered sites
  *  exclusively. SelectVariants can be used to extract filtered sites, and VariantFiltration used to un-filter them.
+ *
+
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,VariantContext>>,ConcordanceMetrics> {

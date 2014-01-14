@@ -36,19 +36,20 @@ class DocumentedGATKFeatureObject {
     private final Class classToDoc;
     /** Are we enabled? */
     private final boolean enable;
-    private final String groupName, summary;
+    private final String groupName, summary, gotoDev;
     private final Class[] extraDocs;
 
-    public DocumentedGATKFeatureObject(Class classToDoc, final boolean enable, final String groupName, final String summary, final Class[] extraDocs) {
+    public DocumentedGATKFeatureObject(Class classToDoc, final boolean enable, final String groupName, final String summary, final Class[] extraDocs, final String gotoDev) {
         this.classToDoc = classToDoc;
         this.enable = enable;
         this.groupName = groupName;
         this.summary = summary;
         this.extraDocs = extraDocs;
+        this.gotoDev = gotoDev;
     }
 
-    public DocumentedGATKFeatureObject(Class classToDoc, final String groupName, final String summary) {
-        this(classToDoc, true, groupName, summary, new Class[]{});
+    public DocumentedGATKFeatureObject(Class classToDoc, final String groupName, final String summary, final String gotoDev) {
+        this(classToDoc, true, groupName, summary, new Class[]{}, gotoDev);
     }
 
     public Class getClassToDoc() { return classToDoc; }
@@ -56,4 +57,5 @@ class DocumentedGATKFeatureObject {
     public String groupName() { return groupName; }
     public String summary() { return summary; }
     public Class[] extraDocs() { return extraDocs; }
+    public String gotoDev() { return gotoDev; }
 }

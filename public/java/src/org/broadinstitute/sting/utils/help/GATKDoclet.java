@@ -118,7 +118,8 @@ public class GATKDoclet {
     static {
         STATIC_DOCS.add(new DocumentedGATKFeatureObject(FeatureCodec.class,
                 HelpConstants.DOCS_CAT_RODCODECS,
-                "Tribble codecs for reading reference ordered data (ROD) files such as VCF or BED"));
+                "Tribble codecs for reading reference ordered data (ROD) files such as VCF or BED",
+                "NA"));
     }
 
 
@@ -332,11 +333,11 @@ public class GATKDoclet {
 
         if (docClass.isAnnotationPresent(DocumentedGATKFeature.class)) {
             DocumentedGATKFeature f = docClass.getAnnotation(DocumentedGATKFeature.class);
-            return new DocumentedGATKFeatureObject(docClass, f.enable(), f.groupName(), f.summary(), f.extraDocs());
+            return new DocumentedGATKFeatureObject(docClass, f.enable(), f.groupName(), f.summary(), f.extraDocs(), f.gotoDev());
         } else {
             for (DocumentedGATKFeatureObject staticDocs : STATIC_DOCS) {
                 if (staticDocs.getClassToDoc().isAssignableFrom(docClass)) {
-                    return new DocumentedGATKFeatureObject(docClass, staticDocs.enable(), staticDocs.groupName(), staticDocs.summary(), staticDocs.extraDocs());
+                    return new DocumentedGATKFeatureObject(docClass, staticDocs.enable(), staticDocs.groupName(), staticDocs.summary(), staticDocs.extraDocs(), staticDocs.gotoDev());
                 }
             }
             return null;
@@ -446,6 +447,7 @@ public class GATKDoclet {
         if (annotation.groupName().endsWith(" Tools")) supercatValue = "tools";
         else if (annotation.groupName().endsWith(" Utilities")) supercatValue = "utilities";
         else if (annotation.groupName().startsWith("Engine ")) supercatValue = "engine";
+        else if (annotation.groupName().endsWith(" (DevZone)")) supercatValue = "dev";
         else supercatValue = "other";
 
         root.put("supercat", supercatValue);
