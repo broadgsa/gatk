@@ -1045,8 +1045,9 @@ public class GATKVariantContextUtils {
      * @return new VariantContext representing the merge of all VCs or null if it not relevant
      */
     public static VariantContext referenceConfidenceMerge(final List<VariantContext> VCs, final GenomeLoc loc, final Byte refBase) {
-
-        if ( VCs == null || VCs.size() == 0 ) throw new IllegalArgumentException("VCs cannot be null or empty");
+        // this can happen if e.g. you are using a dbSNP file that spans a region with no gVCFs
+        if ( VCs == null || VCs.size() == 0 )
+            return null;
 
         // establish the baseline info (sometimes from the first VC)
         final VariantContext first = VCs.get(0);
@@ -1536,6 +1537,8 @@ public class GATKVariantContextUtils {
                                                     final List<Allele> remappedAlleles,
                                                     final List<Allele> targetAlleles) {
         for ( final Genotype g : VC.getGenotypes() ) {
+	    if ( !g.hasPL() )
+		throw new UserException("cannot merge genotypes from samples without PLs; sample " + g.getSampleName() + " does not have likelihoods at position " + VC.getChr() + ":" + VC.getStart());
 
             // only add if the name is new
             final String name = g.getSampleName();
