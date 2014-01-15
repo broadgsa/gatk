@@ -1,0 +1,2 @@
+/opt/intel/bin/icc pairhmm-template-main.cc -o pairhmm-template-main.o -O3 -W -Wall -lm -xAVX; ./pairhmm-template-main.o < mediumTest.in > med.out; head -n -5 med.out > medium.out; lua checkLikelihoods.lua medium.out ~/hmm/mediumTest.out 6e-5
+
