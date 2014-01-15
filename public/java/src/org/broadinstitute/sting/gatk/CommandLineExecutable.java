@@ -26,8 +26,10 @@
 package org.broadinstitute.sting.gatk;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
+import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
@@ -41,7 +43,9 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 
 import java.security.PublicKey;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * @author aaron
@@ -87,7 +91,11 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             engine.setArguments(getArgumentCollection());
 
             // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
-            engine.setSAMFileIDs(ListFileUtils.unpackBAMFileList(getArgumentCollection().samFiles,parser));
+            final Collection<SAMReaderID> bamFileList=ListFileUtils.unpackBAMFileList(getArgumentCollection().samFiles,parser);
+            engine.setSAMFileIDs(bamFileList);
+            if(getArgumentCollection().showFullBamList){
+                logger.info(String.format("Adding the following input SAM Files: %s",bamFileList.toString()));
+            }
 
             engine.setWalker(walker);
             walker.setToolkit(engine);
