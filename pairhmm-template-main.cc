@@ -16,7 +16,7 @@
 #define BATCH_SIZE  10000
 //#define RUN_HYBRID
 
-uint8_t ConvertChar::conversionTable[255] ;
+//uint8_t ConvertChar::conversionTable[255] ;
 int thread_level_parallelism_enabled = false ;
 
 double getCurrClk() {

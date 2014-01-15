@@ -157,8 +157,18 @@ template<class NUMBER> void GEN_INTRINSIC(initializeVectors, PRECISION)(int ROWS
                 *(ptr_p_GAPM+r-1) = ctx._(1.0) - ctx.ph2pr[_c];
                 *(ptr_p_MX+r-1) = ctx.ph2pr[_i];
                 *(ptr_p_XX+r-1) = ctx.ph2pr[_c];
-                *(ptr_p_MY+r-1) = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_d];
-                *(ptr_p_YY+r-1) = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_c];
+                *(ptr_p_MY+r-1) = ctx.ph2pr[_d];
+                *(ptr_p_YY+r-1) = ctx.ph2pr[_c];
+#ifdef DEBUG3
+		debug_dump("transitions_jni.txt",to_string(*(ptr_p_MM+r-1)  ),true);
+		debug_dump("transitions_jni.txt",to_string(*(ptr_p_GAPM+r-1)),true);
+		debug_dump("transitions_jni.txt",to_string(*(ptr_p_MX+r-1)  ),true);
+		debug_dump("transitions_jni.txt",to_string(*(ptr_p_XX+r-1)  ),true);
+		debug_dump("transitions_jni.txt",to_string(*(ptr_p_MY+r-1)  ),true);
+		debug_dump("transitions_jni.txt",to_string(*(ptr_p_YY+r-1)  ),true);
+#endif
+		//*(ptr_p_MY+r-1) = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_d];
+		//*(ptr_p_YY+r-1) = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_c];
         }
 
         NUMBER *ptr_distm1D = (NUMBER *)distm1D;
@@ -166,6 +176,9 @@ template<class NUMBER> void GEN_INTRINSIC(initializeVectors, PRECISION)(int ROWS
         {
                 int _q = tc->q[r-1] & 127;
                 ptr_distm1D[r-1] = ctx.ph2pr[_q];
+#ifdef DEBUG3
+		debug_dump("priors_jni.txt",to_string(ptr_distm1D[r-1]),true);
+#endif
         }
 }
 
@@ -187,13 +200,18 @@ template<class NUMBER> inline void GEN_INTRINSIC(stripINITIALIZATION, PRECISION)
 	NUMBER zero = ctx._(0.0);        
 	NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
 	UNION_TYPE packed1;  packed1.d = VEC_SET1_VAL(1.0);
+#define TRISTATE_CORRECTION_FACTOR 3.0
+	UNION_TYPE packed3;  packed3.d = VEC_SET1_VAL(TRISTATE_CORRECTION_FACTOR);
 	
         /* compare rs and N */                                           
         //rs = VEC_LDPOPCVT_CHAR((tc->irs+i*AVX_LENGTH));        
         //rsN.d = VEC_CMP_EQ(N_packed256, rs);                             
                                                                          
         distm = distm1D[i];                                    
-        _1_distm = VEC_SUB(packed1.d, distm);                  
+        _1_distm = VEC_SUB(packed1.d, distm);
+#ifndef DO_NOT_USE_TRISTATE_CORRECTION
+	distm = VEC_DIV(distm, packed3.d); 
+#endif
                                                                          
         /* initialize M_t_2, M_t_1, X_t_2, X_t_1, Y_t_2, Y_t_1 */        
         M_t_2.d = VEC_SET1_VAL(zero);                                    

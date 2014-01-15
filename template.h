@@ -13,6 +13,7 @@
 #include <immintrin.h>
 
 #include <ctype.h>
+#include <string>
 
 #define MROWS  500
 #define MCOLS  1000
@@ -131,6 +132,20 @@ typedef struct
         int *ihap;
         int *irs;
 } testcase;
+
+
+template<class T>
+std::string to_string(T obj)
+{
+  stringstream ss;
+  string ret_string;
+  ss.clear();
+  ss << std::scientific << obj;
+  ss >> ret_string;
+  ss.clear();
+  return ret_string;
+}
+void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
 
 int normalize(char c);
 

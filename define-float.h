@@ -23,6 +23,7 @@
 	#undef VEC_ADD(__v1, __v2)
         #undef VEC_SUB(__v1, __v2)
 	#undef VEC_MUL(__v1, __v2)
+	#undef VEC_DIV(__v1, __v2)
 	#undef VEC_BLEND(__v1, __v2, __mask)
 	#undef VEC_BLENDV(__v1, __v2, __maskV)
         #undef VEC_CAST_256_128(__v1)
@@ -82,6 +83,9 @@
 
 #define VEC_MUL(__v1, __v2)                     \
   _mm256_mul_ps(__v1, __v2)
+
+#define VEC_DIV(__v1, __v2)                     \
+  _mm256_div_ps(__v1, __v2)
 
 #define VEC_BLEND(__v1, __v2, __mask)           \
   _mm256_blend_ps(__v1, __v2, __mask)

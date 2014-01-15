@@ -438,7 +438,7 @@ void test_mask_computations (testcase& tc, int tcID, bool printDebug=false) {
   //cout << "Finished validating entry " << endl ;
 }
 
-
+#ifdef HMM_MASK_MAIN
 int main () {
 
   #define BATCH_SIZE 10000
@@ -482,3 +482,4 @@ int main () {
 
   return 0 ;
 }
+#endif

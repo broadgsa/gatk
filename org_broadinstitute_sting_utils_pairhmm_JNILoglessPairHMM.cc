@@ -15,6 +15,10 @@
 #include <immintrin.h>
 #include <emmintrin.h>
 #include <omp.h>
+using namespace std;
+//#define DEBUG3 1
+#define DEBUG 1
+
 
 #include "template.h"
 
@@ -22,7 +26,6 @@
 #include "shift_template.c"
 #include "pairhmm-template-kernel.cc"
 
-using namespace std;
 
 
 #define MM 0
@@ -32,22 +35,17 @@ using namespace std;
 #define MY 4
 #define YY 5
 
-//#define DEBUG3 1
-#define DEBUG 1
-
-template<class T>
-string to_string(T obj)
+class LoadTimeInitializer
 {
-  stringstream ss;
-  string ret_string;
-  ss.clear();
-  ss << std::scientific << obj;
-  ss >> ret_string;
-  ss.clear();
-  return ret_string;
-}
+  public:
+    LoadTimeInitializer()		//will be called when library is loaded
+    {
+      ConvertChar::init();
+    }
+};
+LoadTimeInitializer g_load_time_initializer;
 
-void debug_dump(string filename, string s, bool to_append, bool add_newline=true)
+void debug_dump(string filename, string s, bool to_append, bool add_newline)
 {
   ofstream fptr;
   fptr.open(filename.c_str(), to_append ? ofstream::app : ofstream::out);
