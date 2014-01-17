@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 
@@ -62,6 +61,10 @@ public class GATKArgumentCollection {
      */
     @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (SAM or BAM)", required = false)
     public List<String> samFiles = new ArrayList<String>();
+
+    @Hidden
+    @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list files).")
+    public Boolean showFullBamList = false;
 
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false, minValue = 0)
     public Integer readBufferSize = null;
