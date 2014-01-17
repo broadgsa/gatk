@@ -18,6 +18,8 @@
 #include <emmintrin.h>
 #include <omp.h>
 using namespace std;
+
+#define ENABLE_ASSERTIONS 1
 //#define DEBUG 1
 //#define DEBUG0_1 1
 //#define DEBUG3 1
@@ -189,7 +191,11 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   g_load_time_initializer.m_haplotypeBasesFID = fid;
 }
 
-
+//JNI function to invoke compute_full_prob_avx
+//readDataArray - array of JNIReadDataHolderClass objects which contain the readBases, readQuals etc
+//haplotypeDataArray - array of JNIHaplotypeDataHolderClass objects which contain the haplotypeBases
+//likelihoodArray - array of doubles to return results back to Java. Memory allocated by Java prior to JNI call
+//maxNumThreadsToUse - Max number of threads that OpenMP can use for the HMM computation
 JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniComputeLikelihoods
   (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
    jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
@@ -206,16 +212,16 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   {
     jobject haplotypeObject = env->GetObjectArrayElement(haplotypeDataArray, j);
     jbyteArray haplotypeBases = (jbyteArray)env->GetObjectField(haplotypeObject, g_load_time_initializer.m_haplotypeBasesFID);
-#ifdef DEBUG
+#ifdef ENABLE_ASSERTIONS
     assert(haplotypeBases && ("haplotypeBases is NULL at index : "+to_string(j)+"\n").c_str());
 #endif
     jbyte* haplotypeBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(haplotypeBases, &is_copy);
-#ifdef DEBUG
+#ifdef ENABLE_ASSERTIONS
     assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
     assert(env->GetArrayLength(haplotypeBases) < MCOLS);
+#endif
 #ifdef DEBUG0_1
     cout << "JNI haplotype length "<<env->GetArrayLength(haplotypeBases)<<"\n";
-#endif
 #endif
     haplotypeBasesArrayVector[j] = make_pair(haplotypeBases, haplotypeBasesArray);
 #ifdef DEBUG3
@@ -243,7 +249,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     jbyteArray overallGCP = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_overallGCPFID);
     jbyteArray readQuals = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_readQualsFID);
 
-#ifdef DEBUG
+#ifdef ENABLE_ASSERTIONS
     assert(readBases && ("readBases is NULL at index : "+to_string(i)+"\n").c_str());
     assert(insertionGOP && ("insertionGOP is NULL at index : "+to_string(i)+"\n").c_str());
     assert(deletionGOP && ("deletionGOP is NULL at index : "+to_string(i)+"\n").c_str());
@@ -257,7 +263,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     jbyte* insertionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(insertionGOP, &is_copy);
     jbyte* deletionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(deletionGOP, &is_copy);
     jbyte* overallGCPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(overallGCP, &is_copy);
-#ifdef DEBUG
+#ifdef ENABLE_ASSERTIONS
     assert(readBasesArray && "readBasesArray not initialized in JNI"); 
     assert(readQualsArray && "readQualsArray not initialized in JNI"); 
     assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
@@ -268,9 +274,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     assert(readLength == env->GetArrayLength(insertionGOP));
     assert(readLength == env->GetArrayLength(deletionGOP));
     assert(readLength == env->GetArrayLength(overallGCP));
+#endif
 #ifdef DEBUG0_1
     cout << "JNI read length "<<readLength<<"\n";
-#endif
 #endif
 #ifdef DEBUG3
     for(unsigned j=0;j<readLength;++j)
@@ -314,8 +320,10 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   }
 
   jdouble* likelihoodDoubleArray = (jdouble*)GET_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, &is_copy);
+#ifdef ENABLE_ASSERTIONS
   assert(likelihoodDoubleArray && "likelihoodArray is NULL");
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
+#endif
 #pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse) 
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
   {

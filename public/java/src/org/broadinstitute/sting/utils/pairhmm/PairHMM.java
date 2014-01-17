@@ -57,6 +57,8 @@ public abstract class PairHMM {
         ORIGINAL,
         /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
         LOGLESS_CACHING,
+        /* Optimized AVX implementation of LOGLESS_CACHING called through JNI */
+        JNI_LOGLESS_CACHING,
         /* Logless caching PairHMM that stores computations in 1D arrays instead of matrices, and which proceeds diagonally over the (read x haplotype) intersection matrix */
         ARRAY_LOGLESS
     }
@@ -69,6 +71,9 @@ public abstract class PairHMM {
     // only used for debugging purposes
     protected boolean doNotUseTristateCorrection = false;
     protected void doNotUseTristateCorrection() { doNotUseTristateCorrection = true; }
+
+    //debug array
+    protected double[] mLikelihoodArray;
 
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
@@ -132,6 +137,8 @@ public abstract class PairHMM {
         if (!initialized || readMaxLength > maxReadLength || haplotypeMaxLength > maxHaplotypeLength) { initialize(readMaxLength, haplotypeMaxLength); }
 
         final PerReadAlleleLikelihoodMap likelihoodMap = new PerReadAlleleLikelihoodMap();
+	mLikelihoodArray = new double[reads.size()*alleleHaplotypeMap.size()];
+	int idx = 0;
         for(GATKSAMRecord read : reads){
             final byte[] readBases = read.getReadBases();
             final byte[] readQuals = read.getBaseQualities();
@@ -144,12 +151,16 @@ public abstract class PairHMM {
             boolean isFirstHaplotype = true;
             Allele currentAllele = null;
             double log10l;
-            for (final Allele allele : alleleHaplotypeMap.keySet()){
-                final Haplotype haplotype = alleleHaplotypeMap.get(allele);
+	    //for (final Allele allele : alleleHaplotypeMap.keySet()){
+            for (Map.Entry<Allele,Haplotype> currEntry : alleleHaplotypeMap.entrySet()){
+	      //final Haplotype haplotype = alleleHaplotypeMap.get(allele);
+	        final Allele allele = currEntry.getKey();
+		final Haplotype haplotype = currEntry.getValue();
                 final byte[] nextHaplotypeBases = haplotype.getBases();
                 if (currentHaplotypeBases != null) {
                      log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
                             readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, nextHaplotypeBases);
+		    mLikelihoodArray[idx++] = log10l;
                     likelihoodMap.add(read, currentAllele, log10l);
                 }
                 // update the current haplotype
@@ -163,6 +174,7 @@ public abstract class PairHMM {
                 log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
                         readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, null);
                 likelihoodMap.add(read, currentAllele, log10l);
+		mLikelihoodArray[idx++] = log10l;
             }
         }
         return likelihoodMap;
