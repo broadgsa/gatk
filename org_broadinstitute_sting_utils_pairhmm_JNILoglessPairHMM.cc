@@ -316,7 +316,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   jdouble* likelihoodDoubleArray = (jdouble*)GET_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, &is_copy);
   assert(likelihoodDoubleArray && "likelihoodArray is NULL");
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
-#pragma omp parallel for schedule (guided,2) private(tc_idx) num_threads(maxNumThreadsToUse) 
+#pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse) 
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
   {
     double result_avxd = GEN_INTRINSIC(compute_full_prob_avx, d)<double>(&(tc_array[tc_idx]));
@@ -347,79 +347,3 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   tc_array.clear();
 }
 
-
-
-
-    /*
-    protected final double computeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
-	    final byte[] readBases,
-	    final byte[] readQuals,
-	    final byte[] insertionGOP,
-	    final byte[] deletionGOP,
-	    final byte[] overallGCP,
-	    final boolean recacheReadValues,
-	    final byte[] nextHaploytpeBases) {
-
-	paddedReadLength = readBases.length + 1;
-	paddedHaplotypeLength = haplotypeBases.length + 1;
-	double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, 0, true, 0);
-	if ( ! MathUtils.goodLog10Probability(result) )
-	    throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
-	// Warning: Careful if using the PairHMM in parallel! (this update has to be taken care of).
-	// Warning: This assumes no downstream modification of the haplotype bases (saves us from copying the array). It is okay for the haplotype caller and the Unified Genotyper.
-	// KG: seems pointless is not being used anywhere
-	previousHaplotypeBases = haplotypeBases;
-	return result;
-	return 0;
-    }*/
-
-//public PerReadAlleleLikelihoodMap computeLikelihoods(final List<GATKSAMRecord> reads, final Map<Allele, Haplotype> alleleHaplotypeMap, final Map<GATKSAMRecord, byte[]> GCPArrayMap)
-    //{
-	////PerReadAlleleLikelihoodMap retValue = super.computeLikelihoods(reads, alleleHaplotypeMap, GCPArrayMap);
-	//// (re)initialize the pairHMM only if necessary
-	//final int readMaxLength = findMaxReadLength(reads);
-	//final int haplotypeMaxLength = findMaxHaplotypeLength(alleleHaplotypeMap);
-	//if (!initialized || readMaxLength > maxReadLength || haplotypeMaxLength > maxHaplotypeLength)
-	//{ initialize(readMaxLength, haplotypeMaxLength); }
-
-	//if ( ! initialized )
-	    //throw new IllegalStateException("Must call initialize before calling jniComputeLikelihoods");
-	//final PerReadAlleleLikelihoodMap likelihoodMap = new PerReadAlleleLikelihoodMap();
-	//jniComputeLikelihoods(reads, alleleHaplotypeMap, GCPArrayMap, likelihoodMap);
-	//for(GATKSAMRecord read : reads){
-	    //final byte[] readBases = read.getReadBases();
-	    //final byte[] readQuals = read.getBaseQualities();
-	    //final byte[] readInsQuals = read.getBaseInsertionQualities();
-	    //final byte[] readDelQuals = read.getBaseDeletionQualities();
-	    //final byte[] overallGCP = GCPArrayMap.get(read);
-
-	    //// peak at the next haplotype in the list (necessary to get nextHaplotypeBases, which is required for caching in the array implementation)
-	    //byte[] currentHaplotypeBases = null;
-	    //boolean isFirstHaplotype = true;
-	    //Allele currentAllele = null;
-	    //double log10l;
-	    //for (final Allele allele : alleleHaplotypeMap.keySet()){
-		//final Haplotype haplotype = alleleHaplotypeMap.get(allele);
-		//final byte[] nextHaplotypeBases = haplotype.getBases();
-		//if (currentHaplotypeBases != null) {
-		    //log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
-			    //readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, nextHaplotypeBases);
-		    //likelihoodMap.add(read, currentAllele, log10l);
-		//}
-		//// update the current haplotype
-		//currentHaplotypeBases = nextHaplotypeBases;
-		//currentAllele = allele;
-	    //}
-	    //// process the final haplotype
-	    //if (currentHaplotypeBases != null) {
-
-		//// there is no next haplotype, so pass null for nextHaplotypeBases.
-		//log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
-			//readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, null);
-		//likelihoodMap.add(read, currentAllele, log10l);
-	    //}
-	//}
-	//if(debug)
-	    //debugClose();
-	//return likelihoodMap;
-    //}
