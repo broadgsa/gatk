@@ -6,3 +6,5 @@ tests
 hmm_Mohammad
 pairhmm-template-main
 *.swp
+checker
+reformat

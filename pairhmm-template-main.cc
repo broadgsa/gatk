@@ -25,9 +25,11 @@ double getCurrClk() {
   return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 }
 
+
 int main()
 {
-        testcase tc[BATCH_SIZE];
+        
+	testcase tc[BATCH_SIZE];
         float result[BATCH_SIZE], result_avxf;
         double result_avxd;
         //struct timeval start, end;
@@ -38,7 +40,7 @@ int main()
 
 	// Need to call it once to initialize the static array
 	ConvertChar::init() ;
-	
+
 
 	char* ompEnvVar = getenv("OMP_NUM_THREADS") ;
 	if (ompEnvVar != NULL && ompEnvVar != "" && ompEnvVar != "1" ) {
@@ -53,7 +55,7 @@ int main()
  
 		lastClk = getCurrClk() ;
                 for (int b=0;b<BATCH_SIZE;b++)
-                        if (read_testcase(&tc[b])==-1)
+                        if (read_testcase(&tc[b], NULL)==-1)
                         {
                                 read_count = b;
                                 noMoreData = true;

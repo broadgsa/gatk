@@ -30,9 +30,7 @@
 #include <set>
 #include <map>
 #include <memory.h>
-#include <string>
-#include <sstream>
-#include <fstream>
+#include "template.h"
 
 using namespace std ;
 
@@ -50,42 +48,13 @@ string getBinaryStr (T val, int numBitsToWrite) {
   return oss.str() ;
 }
 
-
-typedef struct 
-{
-	int rslen, haplen, *q, *i, *d, *c;
-	char *hap, *rs;
-} testcase;
-
 int normalize(char c)
 {
 	return ((int) (c - 33));
 }
 
-class ConvertChar {
-
-  static uint8_t conversionTable[255] ;
-
-
-public:
-
-  static void init() {
-    conversionTable['A'] = 0 ;
-    conversionTable['C'] = 1 ;
-    conversionTable['T'] = 2 ;
-    conversionTable['G'] = 3 ;
-    conversionTable['N'] = 4 ;
-  }
-
-  static inline uint8_t get(uint8_t input) {
-    return conversionTable[input] ;
-  }
-
-} ;
 
 uint8_t ConvertChar::conversionTable[255] ;
-
-
 
 int read_testcase(testcase *tc, FILE* ifp)
 {
@@ -94,7 +63,7 @@ int read_testcase(testcase *tc, FILE* ifp)
 	int x, size = 0;
 	ssize_t read;
 
-	read = getline(&line, (size_t *) &size, ifp);
+	read = getline(&line, (size_t *) &size, ifp == 0 ? stdin : ifp);
 	if (read == -1)
 		return -1;
 
@@ -111,20 +80,14 @@ int read_testcase(testcase *tc, FILE* ifp)
 
 	tc->haplen = strlen(tc->hap);
 	tc->rslen = strlen(tc->rs);
-	tc->q = (int *) malloc(sizeof(int) * tc->rslen);
-	tc->i = (int *) malloc(sizeof(int) * tc->rslen);
-	tc->d = (int *) malloc(sizeof(int) * tc->rslen);
-	tc->c = (int *) malloc(sizeof(int) * tc->rslen);
+	assert(tc->rslen < MROWS);
+	tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
+	tc->irs = (int *) malloc(tc->rslen*sizeof(int));
 
-	// Convert hap and rs to 3 bits
-	
-	/*
-	for (int ci=0; ci < tc->haplen; ++ci)
-	  tc->hap[ci] = ConvertChar::get(tc->hap[ci]) ;
-
-	for (int ci=0; ci < tc->rslen; ++ci)
-	  tc->rs[ci] = ConvertChar::get(tc->rs[ci]) ;
-	*/
+	//tc->q = (int *) malloc(sizeof(int) * tc->rslen);
+	//tc->i = (int *) malloc(sizeof(int) * tc->rslen);
+	//tc->d = (int *) malloc(sizeof(int) * tc->rslen);
+	//tc->c = (int *) malloc(sizeof(int) * tc->rslen);
 
 	for (x = 0; x < tc->rslen; x++)
 	{
@@ -136,8 +99,11 @@ int read_testcase(testcase *tc, FILE* ifp)
 		tc->i[x] = _i;
 		tc->d[x] = _d;
 		tc->c[x] = _c;
+		tc->irs[x] = tc->rs[x];
 	}
-	
+	for (x = 0; x < tc->haplen; x++)
+	  tc->ihap[x] = tc->hap[x];
+
 
 	free(q);
 	free(i);

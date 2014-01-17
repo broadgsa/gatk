@@ -16,11 +16,11 @@ CXX=icc
 LDFLAGS=-lm $(OMPLDFLAGS)
 
 #BIN:=pairhmm-1-base #pairhmm-2-omp pairhmm-3-hybrid-float-double pairhmm-4-hybrid-diagonal pairhmm-5-hybrid-diagonal-homogeneus pairhmm-6-onlythreediags pairhmm-7-presse pairhmm-8-sse #pairhmm-dev
-BIN:=libJNILoglessPairHMM.so pairhmm-template-main
+BIN:=libJNILoglessPairHMM.so pairhmm-template-main checker
 
 #SOURCES=pairhmm-1-base.cc input.cc 
-LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc hmm_mask.cc
-SOURCES=$(LIBSOURCES) pairhmm-template-main.cc
+LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc convert_char.cc
+SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
 LIBOBJECTS=$(LIBSOURCES:.cc=.o)
 DEPDIR=.deps
 DF=$(DEPDIR)/$(*).d
@@ -29,11 +29,14 @@ all: $(BIN)
 
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
-pairhmm-template-main:	pairhmm-template-main.o hmm_mask.o
-	$(CXX) -fopenmp -o $@ $^ $(LDFLAGS)
+checker: pairhmm-1-base.o convert_char.o
+	$(CXX) $(OMPCFLAGS) -o $@ $^ $(LDFLAGS)
+
+pairhmm-template-main:	pairhmm-template-main.o convert_char.o
+	$(CXX) $(OMPCFLAGS) -o $@ $^ $(LDFLAGS)
 
 libJNILoglessPairHMM.so: $(LIBOBJECTS) 
-	$(CXX) -shared -o $@ $(LIBOBJECTS) 
+	$(CXX) $(OMPCFLAGS) -shared -o $@ $(LIBOBJECTS) 
 
 %.o: %.cc
 	@mkdir -p $(DEPDIR)
@@ -41,4 +44,4 @@ libJNILoglessPairHMM.so: $(LIBOBJECTS)
 
 
 clean:
-	rm -f $(BIN) *.o
+	rm -rf $(BIN) *.o $(DEPDIR)

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.h"
+#include <vector>
 
 #include <cstdio>
 #include <string>
@@ -12,12 +13,14 @@
 #include <fstream>
 #include <sstream>
 
+
 #include <immintrin.h>
 #include <emmintrin.h>
 #include <omp.h>
 using namespace std;
+//#define DEBUG 1
+//#define DEBUG0_1 1
 //#define DEBUG3 1
-#define DEBUG 1
 
 
 #include "template.h"
@@ -42,6 +45,12 @@ class LoadTimeInitializer
     {
       ConvertChar::init();
     }
+    jfieldID m_readBasesFID;
+    jfieldID m_readQualsFID;
+    jfieldID m_insertionGOPFID;
+    jfieldID m_deletionGOPFID;
+    jfieldID m_overallGCPFID;
+    jfieldID m_haplotypeBasesFID;
 };
 LoadTimeInitializer g_load_time_initializer;
 
@@ -53,73 +62,6 @@ void debug_dump(string filename, string s, bool to_append, bool add_newline)
   if(add_newline)
     fptr << "\n";
   fptr.close();
-}
-
-#define INT_STORE_ARRAY_SIZE 2048
-int insertionGOPIntArray[INT_STORE_ARRAY_SIZE];
-int deletionGOPIntArray[INT_STORE_ARRAY_SIZE];
-int overallGCPIntArray[INT_STORE_ARRAY_SIZE];
-int readQualsIntArray[INT_STORE_ARRAY_SIZE];
-
-JNIEXPORT jdouble JNICALL 
-Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10( 
-    JNIEnv* env, jobject thisObject,
-    jint readLength, jint haplotypeLength,
-    jbyteArray readBases, jbyteArray haplotypeBases, jbyteArray readQuals,
-    jbyteArray insertionGOP, jbyteArray deletionGOP, jbyteArray overallGCP,
-    jint hapStartIndex
-    )
-{
-  jboolean is_copy = JNI_FALSE;
-  jbyte* readBasesArray = (env)->GetByteArrayElements(readBases, &is_copy);
-  jbyte* haplotypeBasesArray = (env)->GetByteArrayElements(haplotypeBases, &is_copy);
-  jbyte* readQualsArray = (env)->GetByteArrayElements(readQuals, &is_copy);
-  jbyte* insertionGOPArray = (env)->GetByteArrayElements(insertionGOP, &is_copy);
-  jbyte* deletionGOPArray = (env)->GetByteArrayElements(deletionGOP, &is_copy);
-  jbyte* overallGCPArray = (env)->GetByteArrayElements(overallGCP, &is_copy);
-#ifdef DEBUG
-  assert(readBasesArray && "readBasesArray not initialized in JNI"); 
-  assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
-  assert(readQualsArray && "readQualsArray not initialized in JNI"); 
-  assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
-  assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
-  assert(overallGCPArray && "OverallGCP array not initialized in JNI");
-  assert(readLength < INT_STORE_ARRAY_SIZE);
-#endif
-  for(unsigned i=0;i<readLength;++i)
-  {
-    insertionGOPIntArray[i] = (int)insertionGOPArray[i];
-    deletionGOPIntArray[i] = (int)deletionGOPArray[i];
-    overallGCPIntArray[i] = (int)overallGCPArray[i];
-    readQualsIntArray[i] = (int)readQualsArray[i];
-  }
-
-  testcase tc;
-  tc.rslen = readLength;
-  tc.haplen = haplotypeLength;
-
-  tc.rs = (char*)readBasesArray;
-  tc.hap = (char*)haplotypeBasesArray;
-  tc.q = (int*)readQualsIntArray;
-  tc.i = (int*)insertionGOPIntArray;
-  tc.d = (int*)deletionGOPIntArray;
-  tc.c = (int*)overallGCPIntArray;
-
-  double result_avxd = GEN_INTRINSIC(compute_full_prob_avx, d)<double>(&tc);
-  double result = log10(result_avxd) - log10(ldexp(1.0, 1020));
-#ifdef DEBUG
-  debug_dump("return_values_jni.txt",to_string(result),true);
-#endif
-
-
-  env->ReleaseByteArrayElements(overallGCP, overallGCPArray, JNI_ABORT);
-  env->ReleaseByteArrayElements(deletionGOP, deletionGOPArray, JNI_ABORT);
-  env->ReleaseByteArrayElements(insertionGOP, insertionGOPArray, JNI_ABORT);
-  env->ReleaseByteArrayElements(readQuals, readQualsArray, JNI_ABORT);
-  env->ReleaseByteArrayElements(haplotypeBases, haplotypeBasesArray, JNI_ABORT);
-  env->ReleaseByteArrayElements(readBases, readBasesArray, JNI_ABORT);
-
-  return 0.0;
 }
 
 JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializeProbabilities
@@ -142,3 +84,342 @@ Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializePrior
     )
 
 { return 0.0; }
+
+#define DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY 1
+
+#ifdef DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY
+//Gets direct access to Java arrays
+#define GET_BYTE_ARRAY_ELEMENTS env->GetPrimitiveArrayCritical
+#define RELEASE_BYTE_ARRAY_ELEMENTS env->ReleasePrimitiveArrayCritical
+#define JNI_RELEASE_MODE JNI_ABORT
+#define GET_DOUBLE_ARRAY_ELEMENTS env->GetPrimitiveArrayCritical
+#define RELEASE_DOUBLE_ARRAY_ELEMENTS env->ReleasePrimitiveArrayCritical
+
+#else
+//Likely makes copy of Java arrays to JNI C++ space
+#define GET_BYTE_ARRAY_ELEMENTS env->GetByteArrayElements
+#define RELEASE_BYTE_ARRAY_ELEMENTS env->ReleaseByteArrayElements
+#define JNI_RELEASE_MODE JNI_ABORT
+#define GET_DOUBLE_ARRAY_ELEMENTS env->GetDoubleArrayElements
+#define RELEASE_DOUBLE_ARRAY_ELEMENTS env->ReleaseDoubleArrayElements
+
+#endif		//ifdef DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY
+
+JNIEXPORT jdouble JNICALL 
+Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10( 
+    JNIEnv* env, jobject thisObject,
+    jint readLength, jint haplotypeLength,
+    jbyteArray readBases, jbyteArray haplotypeBases, jbyteArray readQuals,
+    jbyteArray insertionGOP, jbyteArray deletionGOP, jbyteArray overallGCP,
+    jint hapStartIndex
+    )
+{
+  jboolean is_copy = JNI_FALSE;
+  jbyte* readBasesArray =   (jbyte*)GET_BYTE_ARRAY_ELEMENTS(readBases, &is_copy);
+  jbyte* haplotypeBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(haplotypeBases, &is_copy);
+  jbyte* readQualsArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(readQuals, &is_copy);
+  jbyte* insertionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(insertionGOP, &is_copy);
+  jbyte* deletionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(deletionGOP, &is_copy);
+  jbyte* overallGCPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(overallGCP, &is_copy);
+#ifdef DEBUG
+  assert(readBasesArray && "readBasesArray not initialized in JNI"); 
+  assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
+  assert(readQualsArray && "readQualsArray not initialized in JNI"); 
+  assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
+  assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
+  assert(overallGCPArray && "OverallGCP array not initialized in JNI");
+  assert(readLength < MROWS);
+#endif
+  testcase tc;
+  tc.rslen = readLength;
+  tc.haplen = haplotypeLength;
+  tc.rs = (char*)readBasesArray;
+  tc.hap = (char*)haplotypeBasesArray;
+  for(unsigned i=0;i<readLength;++i)
+  {
+    tc.q[i] = (int)readQualsArray[i];
+    tc.i[i] = (int)insertionGOPArray[i];
+    tc.d[i] = (int)deletionGOPArray[i];
+    tc.c[i] = (int)overallGCPArray[i];
+  }
+
+  double result_avxd = GEN_INTRINSIC(compute_full_prob_avx, d)<double>(&tc);
+  double result = log10(result_avxd) - log10(ldexp(1.0, 1020));
+#ifdef DEBUG
+  debug_dump("return_values_jni.txt",to_string(result),true);
+#endif
+
+
+  RELEASE_BYTE_ARRAY_ELEMENTS(overallGCP, overallGCPArray, JNI_RELEASE_MODE);
+  RELEASE_BYTE_ARRAY_ELEMENTS(deletionGOP, deletionGOPArray, JNI_RELEASE_MODE);
+  RELEASE_BYTE_ARRAY_ELEMENTS(insertionGOP, insertionGOPArray, JNI_RELEASE_MODE);
+  RELEASE_BYTE_ARRAY_ELEMENTS(readQuals, readQualsArray, JNI_RELEASE_MODE);
+  RELEASE_BYTE_ARRAY_ELEMENTS(haplotypeBases, haplotypeBasesArray, JNI_RELEASE_MODE);
+  RELEASE_BYTE_ARRAY_ELEMENTS(readBases, readBasesArray, JNI_RELEASE_MODE);
+
+  return 0.0;
+}
+
+//Should be called only once for the whole Java process - initializes field ids for the classes JNIReadDataHolderClass
+//and JNIHaplotypeDataHolderClass
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniGlobalInit
+  (JNIEnv* env, jobject thisObject, jclass readDataHolderClass, jclass haplotypeDataHolderClass)
+{
+  assert(readDataHolderClass);
+  assert(haplotypeDataHolderClass);
+  jfieldID fid;
+  fid = env->GetFieldID(readDataHolderClass, "readBases", "[B");
+  assert(fid && "JNI pairHMM: Could not get FID for readBases");
+  g_load_time_initializer.m_readBasesFID = fid;
+  fid = env->GetFieldID(readDataHolderClass, "readQuals", "[B");
+  assert(fid && "JNI pairHMM: Could not get FID for readQuals");
+  g_load_time_initializer.m_readQualsFID = fid;
+  fid = env->GetFieldID(readDataHolderClass, "insertionGOP", "[B");
+  assert(fid && "JNI pairHMM: Could not get FID for insertionGOP");
+  g_load_time_initializer.m_insertionGOPFID = fid;
+  fid = env->GetFieldID(readDataHolderClass, "deletionGOP", "[B");
+  assert(fid && "JNI pairHMM: Could not get FID for deletionGOP");
+  g_load_time_initializer.m_deletionGOPFID = fid;
+  fid = env->GetFieldID(readDataHolderClass, "overallGCP", "[B");
+  assert(fid && "JNI pairHMM: Could not get FID for overallGCP");
+  g_load_time_initializer.m_overallGCPFID = fid;
+
+  fid = env->GetFieldID(haplotypeDataHolderClass, "haplotypeBases", "[B");
+  assert(fid && "JNI pairHMM: Could not get FID for haplotypeBases");
+  g_load_time_initializer.m_haplotypeBasesFID = fid;
+}
+
+
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniComputeLikelihoods
+  (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
+   jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
+{
+  jboolean is_copy = JNI_FALSE;
+  //To ensure, GET_BYTE_ARRAY_ELEMENTS is invoked only once for each haplotype, store bytearrays in a vector
+  vector<pair<jbyteArray, jbyte*> > haplotypeBasesArrayVector;
+  haplotypeBasesArrayVector.clear();
+  haplotypeBasesArrayVector.resize(numHaplotypes);
+#ifdef DEBUG0_1
+  cout << "JNI numReads "<<numReads<<" numHaplotypes "<<numHaplotypes<<"\n";
+#endif
+  for(unsigned j=0;j<numHaplotypes;++j)
+  {
+    jobject haplotypeObject = env->GetObjectArrayElement(haplotypeDataArray, j);
+    jbyteArray haplotypeBases = (jbyteArray)env->GetObjectField(haplotypeObject, g_load_time_initializer.m_haplotypeBasesFID);
+#ifdef DEBUG
+    assert(haplotypeBases && ("haplotypeBases is NULL at index : "+to_string(j)+"\n").c_str());
+#endif
+    jbyte* haplotypeBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(haplotypeBases, &is_copy);
+#ifdef DEBUG
+    assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
+    assert(env->GetArrayLength(haplotypeBases) < MCOLS);
+#ifdef DEBUG0_1
+    cout << "JNI haplotype length "<<env->GetArrayLength(haplotypeBases)<<"\n";
+#endif
+#endif
+    haplotypeBasesArrayVector[j] = make_pair(haplotypeBases, haplotypeBasesArray);
+#ifdef DEBUG3
+    for(unsigned k=0;k<env->GetArrayLength(haplotypeBases);++k)
+      debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
+#endif
+  }
+
+  unsigned numTestCases = numReads*numHaplotypes;
+  vector<testcase> tc_array;
+  tc_array.clear();
+  tc_array.resize(numTestCases);
+  unsigned tc_idx = 0;
+  //Store arrays for release later
+  vector<vector<pair<jbyteArray,jbyte*> > > readBasesArrayVector;
+  readBasesArrayVector.clear();
+  readBasesArrayVector.resize(numReads);
+  for(unsigned i=0;i<numReads;++i)
+  {
+    //Get bytearray fields from read
+    jobject readObject = env->GetObjectArrayElement(readDataArray, i);
+    jbyteArray readBases = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_readBasesFID);
+    jbyteArray insertionGOP = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_insertionGOPFID);
+    jbyteArray deletionGOP = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_deletionGOPFID);
+    jbyteArray overallGCP = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_overallGCPFID);
+    jbyteArray readQuals = (jbyteArray)env->GetObjectField(readObject, g_load_time_initializer.m_readQualsFID);
+
+#ifdef DEBUG
+    assert(readBases && ("readBases is NULL at index : "+to_string(i)+"\n").c_str());
+    assert(insertionGOP && ("insertionGOP is NULL at index : "+to_string(i)+"\n").c_str());
+    assert(deletionGOP && ("deletionGOP is NULL at index : "+to_string(i)+"\n").c_str());
+    assert(overallGCP && ("overallGCP is NULL at index : "+to_string(i)+"\n").c_str());
+    assert(readQuals && ("readQuals is NULL at index : "+to_string(i)+"\n").c_str());
+#endif
+    jsize readLength = env->GetArrayLength(readBases);
+
+    jbyte* readBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(readBases, &is_copy);	//order of GET-RELEASE is important
+    jbyte* readQualsArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(readQuals, &is_copy);
+    jbyte* insertionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(insertionGOP, &is_copy);
+    jbyte* deletionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(deletionGOP, &is_copy);
+    jbyte* overallGCPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(overallGCP, &is_copy);
+#ifdef DEBUG
+    assert(readBasesArray && "readBasesArray not initialized in JNI"); 
+    assert(readQualsArray && "readQualsArray not initialized in JNI"); 
+    assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
+    assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
+    assert(overallGCPArray && "overallGCP array not initialized in JNI");
+    assert(readLength < MROWS); 
+    assert(readLength == env->GetArrayLength(readQuals));
+    assert(readLength == env->GetArrayLength(insertionGOP));
+    assert(readLength == env->GetArrayLength(deletionGOP));
+    assert(readLength == env->GetArrayLength(overallGCP));
+#ifdef DEBUG0_1
+    cout << "JNI read length "<<readLength<<"\n";
+#endif
+#endif
+#ifdef DEBUG3
+    for(unsigned j=0;j<readLength;++j)
+    {
+      debug_dump("reads_jni.txt",to_string((int)readBasesArray[j]),true);
+      debug_dump("reads_jni.txt",to_string((int)readQualsArray[j]),true);
+      debug_dump("reads_jni.txt",to_string((int)insertionGOPArray[j]),true);
+      debug_dump("reads_jni.txt",to_string((int)deletionGOPArray[j]),true);
+      debug_dump("reads_jni.txt",to_string((int)overallGCPArray[j]),true);
+    }
+#endif
+
+    for(unsigned j=0;j<numHaplotypes;++j)
+    {
+      jsize haplotypeLength = env->GetArrayLength(haplotypeBasesArrayVector[j].first);
+      jbyte* haplotypeBasesArray = haplotypeBasesArrayVector[j].second;
+      tc_array[tc_idx].rslen = (int)readLength;
+      tc_array[tc_idx].haplen = (int)haplotypeLength;
+      tc_array[tc_idx].rs = (char*)readBasesArray;
+      tc_array[tc_idx].hap = (char*)haplotypeBasesArray;
+      //Can be avoided 
+      for(unsigned k=0;k<readLength;++k)
+      {
+	tc_array[tc_idx].q[k] = (int)readQualsArray[k];
+	tc_array[tc_idx].i[k] = (int)insertionGOPArray[k];
+	tc_array[tc_idx].d[k] = (int)deletionGOPArray[k];
+	tc_array[tc_idx].c[k] = (int)overallGCPArray[k];
+      }
+
+      ++tc_idx;  
+    }
+    RELEASE_BYTE_ARRAY_ELEMENTS(overallGCP, overallGCPArray, JNI_RELEASE_MODE);	//order of GET-RELEASE is important
+    RELEASE_BYTE_ARRAY_ELEMENTS(deletionGOP, deletionGOPArray, JNI_RELEASE_MODE);
+    RELEASE_BYTE_ARRAY_ELEMENTS(insertionGOP, insertionGOPArray, JNI_RELEASE_MODE);
+    RELEASE_BYTE_ARRAY_ELEMENTS(readQuals, readQualsArray, JNI_RELEASE_MODE);
+
+    //Release readBases at end because it is used by compute_full_prob
+    readBasesArrayVector[i].clear();
+    readBasesArrayVector[i].resize(1);
+    readBasesArrayVector[i][0] = make_pair(readBases, readBasesArray);
+  }
+
+  jdouble* likelihoodDoubleArray = (jdouble*)GET_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, &is_copy);
+  assert(likelihoodDoubleArray && "likelihoodArray is NULL");
+  assert(env->GetArrayLength(likelihoodArray) == numTestCases);
+#pragma omp parallel for schedule (guided,2) private(tc_idx) num_threads(maxNumThreadsToUse) 
+  for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
+  {
+    double result_avxd = GEN_INTRINSIC(compute_full_prob_avx, d)<double>(&(tc_array[tc_idx]));
+    double result = log10(result_avxd) - log10(ldexp(1.0, 1020));
+    likelihoodDoubleArray[tc_idx] = result;
+  }
+#ifdef DEBUG
+  for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
+  {
+    debug_dump("return_values_jni.txt",to_string(likelihoodDoubleArray[tc_idx]),true);
+  }
+#endif
+  RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0);
+
+  //Release read arrays first
+  for(int i=readBasesArrayVector.size()-1;i>=0;--i)//note the order - reverse of GET
+  {
+    for(int j=readBasesArrayVector.size()-1;j>=0;--j)
+      RELEASE_BYTE_ARRAY_ELEMENTS(readBasesArrayVector[i][j].first, readBasesArrayVector[i][j].second, JNI_RELEASE_MODE);
+    readBasesArrayVector[i].clear();
+  }
+  readBasesArrayVector.clear();
+
+  //Now release haplotype arrays
+  for(int j=numHaplotypes-1;j>=0;--j)	//note the order - reverse of GET
+    RELEASE_BYTE_ARRAY_ELEMENTS(haplotypeBasesArrayVector[j].first, haplotypeBasesArrayVector[j].second, JNI_RELEASE_MODE);
+  haplotypeBasesArrayVector.clear();
+  tc_array.clear();
+}
+
+
+
+
+    /*
+    protected final double computeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
+	    final byte[] readBases,
+	    final byte[] readQuals,
+	    final byte[] insertionGOP,
+	    final byte[] deletionGOP,
+	    final byte[] overallGCP,
+	    final boolean recacheReadValues,
+	    final byte[] nextHaploytpeBases) {
+
+	paddedReadLength = readBases.length + 1;
+	paddedHaplotypeLength = haplotypeBases.length + 1;
+	double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, 0, true, 0);
+	if ( ! MathUtils.goodLog10Probability(result) )
+	    throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
+	// Warning: Careful if using the PairHMM in parallel! (this update has to be taken care of).
+	// Warning: This assumes no downstream modification of the haplotype bases (saves us from copying the array). It is okay for the haplotype caller and the Unified Genotyper.
+	// KG: seems pointless is not being used anywhere
+	previousHaplotypeBases = haplotypeBases;
+	return result;
+	return 0;
+    }*/
+
+//public PerReadAlleleLikelihoodMap computeLikelihoods(final List<GATKSAMRecord> reads, final Map<Allele, Haplotype> alleleHaplotypeMap, final Map<GATKSAMRecord, byte[]> GCPArrayMap)
+    //{
+	////PerReadAlleleLikelihoodMap retValue = super.computeLikelihoods(reads, alleleHaplotypeMap, GCPArrayMap);
+	//// (re)initialize the pairHMM only if necessary
+	//final int readMaxLength = findMaxReadLength(reads);
+	//final int haplotypeMaxLength = findMaxHaplotypeLength(alleleHaplotypeMap);
+	//if (!initialized || readMaxLength > maxReadLength || haplotypeMaxLength > maxHaplotypeLength)
+	//{ initialize(readMaxLength, haplotypeMaxLength); }
+
+	//if ( ! initialized )
+	    //throw new IllegalStateException("Must call initialize before calling jniComputeLikelihoods");
+	//final PerReadAlleleLikelihoodMap likelihoodMap = new PerReadAlleleLikelihoodMap();
+	//jniComputeLikelihoods(reads, alleleHaplotypeMap, GCPArrayMap, likelihoodMap);
+	//for(GATKSAMRecord read : reads){
+	    //final byte[] readBases = read.getReadBases();
+	    //final byte[] readQuals = read.getBaseQualities();
+	    //final byte[] readInsQuals = read.getBaseInsertionQualities();
+	    //final byte[] readDelQuals = read.getBaseDeletionQualities();
+	    //final byte[] overallGCP = GCPArrayMap.get(read);
+
+	    //// peak at the next haplotype in the list (necessary to get nextHaplotypeBases, which is required for caching in the array implementation)
+	    //byte[] currentHaplotypeBases = null;
+	    //boolean isFirstHaplotype = true;
+	    //Allele currentAllele = null;
+	    //double log10l;
+	    //for (final Allele allele : alleleHaplotypeMap.keySet()){
+		//final Haplotype haplotype = alleleHaplotypeMap.get(allele);
+		//final byte[] nextHaplotypeBases = haplotype.getBases();
+		//if (currentHaplotypeBases != null) {
+		    //log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
+			    //readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, nextHaplotypeBases);
+		    //likelihoodMap.add(read, currentAllele, log10l);
+		//}
+		//// update the current haplotype
+		//currentHaplotypeBases = nextHaplotypeBases;
+		//currentAllele = allele;
+	    //}
+	    //// process the final haplotype
+	    //if (currentHaplotypeBases != null) {
+
+		//// there is no next haplotype, so pass null for nextHaplotypeBases.
+		//log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
+			//readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, null);
+		//likelihoodMap.add(read, currentAllele, log10l);
+	    //}
+	//}
+	//if(debug)
+	    //debugClose();
+	//return likelihoodMap;
+    //}

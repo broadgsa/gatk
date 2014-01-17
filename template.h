@@ -14,6 +14,11 @@
 
 #include <ctype.h>
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <vector>
+
 
 #define MROWS  500
 #define MCOLS  1000
@@ -127,18 +132,20 @@ struct Context<float>
 
 typedef struct
 {
-        int rslen, haplen, *q, *i, *d, *c;
+        int rslen, haplen;
+	/*int *q, *i, *d, *c;*/
+	int q[MROWS], i[MROWS], d[MROWS], c[MROWS];
         char *hap, *rs;
-        int *ihap;
-        int *irs;
+	int *ihap;
+	int *irs;
 } testcase;
 
 
 template<class T>
 std::string to_string(T obj)
 {
-  stringstream ss;
-  string ret_string;
+  std::stringstream ss;
+  std::string ret_string;
   ss.clear();
   ss << std::scientific << obj;
   ss >> ret_string;
@@ -148,66 +155,8 @@ std::string to_string(T obj)
 void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
 
 int normalize(char c);
-
-
-int read_testcase(testcase *tc)
-{
-        char *q, *i, *d, *c, *line = NULL;
-        int _q, _i, _d, _c;
-        int x, size = 0;
-        ssize_t read;
-
-        read = getline(&line, (size_t *) &size, stdin);
-        if (read == -1)
-                return -1;
-
-        tc->hap = (char *) malloc(size);
-        tc->rs = (char *) malloc(size);
-        q = (char *) malloc(size);
-        i = (char *) malloc(size);
-        d = (char *) malloc(size);
-        c = (char *) malloc(size);
-        tc->ihap = (int *) malloc(size*sizeof(int));
-        tc->irs = (int *) malloc(size*sizeof(int));
-
-
-        if (sscanf(line, "%s %s %s %s %s %s\n", tc->hap, tc->rs, q, i, d, c) != 6)
-                return -1;
-
-        tc->haplen = strlen(tc->hap);
-        tc->rslen = strlen(tc->rs);
-        tc->q = (int *) malloc(sizeof(int) * tc->rslen);
-        tc->i = (int *) malloc(sizeof(int) * tc->rslen);
-        tc->d = (int *) malloc(sizeof(int) * tc->rslen);
-        tc->c = (int *) malloc(sizeof(int) * tc->rslen);
-
-        tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
-        tc->irs = (int *) malloc(tc->rslen*sizeof(int));
-
-        for (x = 0; x < tc->rslen; x++)
-        {
-                _q = normalize(q[x]);
-                _i = normalize(i[x]);
-                _d = normalize(d[x]);
-                _c = normalize(c[x]);
-                tc->q[x] = (_q < 6) ? 6 : _q;
-                tc->i[x] = _i;
-                tc->d[x] = _d;
-                tc->c[x] = _c;
-                tc->irs[x] = tc->rs[x];
-        }
-
-        for (x = 0; x < tc->haplen; x++)
-                tc->ihap[x] = tc->hap[x];
-
-        free(q);
-        free(i);
-        free(d);
-        free(c);
-        free(line);
-
-        return 0;
-}
+int read_testcase(testcase *tc, FILE* ifp);
+int read_mod_testcase(std::ifstream& fptr, testcase* tc, bool reformat=false);
 
 #define NUM_DISTINCT_CHARS 5
 #define AMBIG_CHAR 4

@@ -54,6 +54,21 @@ JNIEXPORT jdouble JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILogless
 JNIEXPORT jdouble JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10
     (JNIEnv *, jobject, jint, jint, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jint);
 
+/*
+ * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
+ * Method:    jniGlobalInit
+ * Signature: (Ljava/lang/Class;Ljava/lang/Class;)V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniGlobalInit
+  (JNIEnv *, jobject, jclass, jclass);
+
+/*
+ * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
+ * Method:    jniComputeLikelihoods
+ * Signature: ([Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIReadDataHolderClass;[Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIHaplotypeDataHolderClass;[D)V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniComputeLikelihoods
+  (JNIEnv *, jobject, jint, jint, jobjectArray, jobjectArray, jdoubleArray, jint);
 
 #ifdef __cplusplus
 }
