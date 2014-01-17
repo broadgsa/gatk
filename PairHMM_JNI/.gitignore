@@ -1,0 +1,10 @@
+.svn
+*.o
+*.so
+tests
+.deps
+hmm_Mohammad
+pairhmm-template-main
+*.swp
+checker
+reformat
