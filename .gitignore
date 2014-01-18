@@ -24,3 +24,16 @@ dump/
 lib/
 out/
 /atlassian-ide-plugin.xml
+kg_tmp/
+maven-ant-tasks-2.1.3.jar
+null-sequenceGraph.25.0.0.raw_readthreading_graph.dot
+null-sequenceGraph.25.0.1.cleaned_readthreading_graph.dot
+null-sequenceGraph.25.0.1.initial_seqgraph.dot
+null-sequenceGraph.3.0.0.raw_readthreading_graph.dot
+null-sequenceGraph.3.0.1.cleaned_readthreading_graph.dot
+null-sequenceGraph.3.0.1.initial_seqgraph.dot
+org/
+package-list
+resources/
+velocity.log
+

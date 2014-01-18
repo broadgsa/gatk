@@ -7,40 +7,59 @@ OMPCFLAGS=-fopenmp
 JAVA_ROOT=/opt/jdk1.7.0_25/
 JNI_COMPILATION_FLAGS=-D_REENTRANT -fPIC -I${JAVA_ROOT}/include -I${JAVA_ROOT}/include/linux
 
-CFLAGS=-O3 -W -Wall -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas -xAVX
-
-CXXFLAGS=$(CFLAGS)
+COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -W -Wall -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
 CC=icc
 CXX=icc
 
 LDFLAGS=-lm $(OMPLDFLAGS)
 
-#BIN:=pairhmm-1-base #pairhmm-2-omp pairhmm-3-hybrid-float-double pairhmm-4-hybrid-diagonal pairhmm-5-hybrid-diagonal-homogeneus pairhmm-6-onlythreediags pairhmm-7-presse pairhmm-8-sse #pairhmm-dev
-BIN:=libJNILoglessPairHMM.so pairhmm-template-main checker
+BIN=libJNILoglessPairHMM.so pairhmm-template-main checker
+#BIN=checker
 
-#SOURCES=pairhmm-1-base.cc input.cc 
-LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc convert_char.cc
-SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
-LIBOBJECTS=$(LIBSOURCES:.cc=.o)
 DEPDIR=.deps
 DF=$(DEPDIR)/$(*).d
+
+#Common across libJNI and sandbox
+COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc
+#Part of libJNI
+LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc $(COMMON_SOURCES)
+SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
+LIBOBJECTS=$(LIBSOURCES:.cc=.o)
+COMMON_OBJECTS=$(COMMON_SOURCES:.cc=.o)
+
+
+#No vectorization for these files
+NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc
+#Use -xAVX for these files
+AVX_SOURCES=avx_function_instantiations.cc
+#Use -xSSE4.2 for these files
+SSE_SOURCES=
+
+NO_VECTOR_OBJECTS=$(NO_VECTOR_SOURCES:.cc=.o)
+AVX_OBJECTS=$(AVX_SOURCES:.cc=.o)
+SSE_OBJECTS=$(SSE_SOURCES:.cc=.o)
+$(NO_VECTOR_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS)
+$(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xAVX
+$(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xSSE4.2
+OBJECTS=$(NO_VECTOR_OBJECTS) $(AVX_OBJECTS) $(SSE_OBJECTS)
 
 all: $(BIN)
 
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
-checker: pairhmm-1-base.o convert_char.o
+checker: pairhmm-1-base.o $(COMMON_OBJECTS)
 	$(CXX) $(OMPCFLAGS) -o $@ $^ $(LDFLAGS)
 
-pairhmm-template-main:	pairhmm-template-main.o convert_char.o
+pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
 	$(CXX) $(OMPCFLAGS) -o $@ $^ $(LDFLAGS)
 
 libJNILoglessPairHMM.so: $(LIBOBJECTS) 
 	$(CXX) $(OMPCFLAGS) -shared -o $@ $(LIBOBJECTS) 
 
-%.o: %.cc
+
+$(OBJECTS): %.o: %.cc
 	@mkdir -p $(DEPDIR)
-	$(COMPILE.cpp) -MMD -MF $(DF) $(JNI_COMPILATION_FLAGS) $(CXXFLAGS) $(OUTPUT_OPTION) $<
+	$(CXX) -c -MMD -MF $(DF) $(CXXFLAGS) $(OUTPUT_OPTION) $<
 
 
 clean:

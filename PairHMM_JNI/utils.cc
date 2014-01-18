@@ -1,6 +1,35 @@
+#include "headers.h"
 #include "template.h"
+
 uint8_t ConvertChar::conversionTable[255];
+float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
+double (*g_compute_full_prob_double)(testcase *tc, double* before_last_log) = 0;
+
 using namespace std;
+
+bool is_avx_supported()
+{
+  int ecx = 0, edx = 0, ebx = 0;
+  __asm__("cpuid"
+      : "=b" (ebx),
+      "=c" (ecx),
+      "=d" (edx)
+      : "a" (1)
+      );
+  return ((ecx >> 28)&1) == 1;
+}
+
+bool is_sse42_supported()
+{
+  int ecx = 0, edx = 0, ebx = 0;
+  __asm__("cpuid"
+      : "=b" (ebx),
+      "=c" (ecx),
+      "=d" (edx)
+      : "a" (1)
+      );
+  return ((ecx >> 20)&1) == 1;
+}
 
 int normalize(char c)
 {
@@ -183,4 +212,14 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
 
 
   return tokens.size();
+}
+
+void debug_dump(string filename, string s, bool to_append, bool add_newline)
+{
+  ofstream fptr;
+  fptr.open(filename.c_str(), to_append ? ofstream::app : ofstream::out);
+  fptr << s;
+  if(add_newline)
+    fptr << "\n";
+  fptr.close();
 }

@@ -34,14 +34,14 @@ void GEN_INTRINSIC(precompute_masks_, PRECISION)(const testcase& tc, int COLS, i
     int mOffset = (col-1) % maskBitCnt ;
     MASK_TYPE bitMask = ((MASK_TYPE)0x1) << (maskBitCnt-1-mOffset) ;
 
-    char hapChar = tc.hap[col-1] ;
+    char hapChar = ConvertChar::get(tc.hap[col-1]);
 
     if (hapChar == AMBIG_CHAR) {
       for (int ci=0; ci < NUM_DISTINCT_CHARS; ++ci) 
 	maskArr[mIndex][ci] |= bitMask ;
     } 
 
-    maskArr[mIndex][ConvertChar::get(hapChar)] |= bitMask ;
+    maskArr[mIndex][hapChar] |= bitMask ;
     // bit corresponding to col 1 will be the MSB of the mask 0
     // bit corresponding to col 2 will be the MSB-1 of the mask 0
     // ...
@@ -75,11 +75,11 @@ void GEN_INTRINSIC(update_masks_for_cols_, PRECISION)(int maskIndex, MASK_VEC& c
 
   for (int ei=0; ei < AVX_LENGTH/2; ++ei) {
     SET_MASK_WORD(currMaskVecLow.masks[ei], maskArr[maskIndex][rsArr[ei]], 
-		  lastMaskShiftOut[ei], ei, maskBitCnt) ;
-    
+	lastMaskShiftOut[ei], ei, maskBitCnt) ;
+
     int ei2 = ei + AVX_LENGTH/2 ; // the second entry index
     SET_MASK_WORD(currMaskVecHigh.masks[ei], maskArr[maskIndex][rsArr[ei2]], 
-		  lastMaskShiftOut[ei2], ei2, maskBitCnt) ;
+	lastMaskShiftOut[ei2], ei2, maskBitCnt) ;
   }
 
 }

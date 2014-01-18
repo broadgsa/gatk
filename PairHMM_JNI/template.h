@@ -1,24 +1,14 @@
 #ifndef TEMPLATES_H_
 #define TEMPLATES_H_
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-#include <stdint.h>
-#include <assert.h>
+#include "headers.h"
 
-#include <sys/time.h>
-
-#include <immintrin.h>
-
-#include <ctype.h>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <vector>
-
+#define MM 0
+#define GapM 1
+#define MX 2
+#define XX 3
+#define MY 4
+#define YY 5
 
 #define MROWS  500
 #define MCOLS  1000
@@ -130,6 +120,7 @@ struct Context<float>
 };
 
 
+
 typedef struct
 {
         int rslen, haplen;
@@ -182,7 +173,8 @@ public:
     return conversionTable[input] ;
   }
 
-} ;
+};
+
 
 
 #endif

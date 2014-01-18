@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "headers.h"
 #include <immintrin.h>
 #include <emmintrin.h>
 #include <omp.h>
@@ -7,11 +8,11 @@
 
 #include "define-float.h"
 #include "shift_template.c"
-#include "pairhmm-template-kernel.cc"
+#include "avx_function_prototypes.h"
 
 #include "define-double.h"
 #include "shift_template.c"
-#include "pairhmm-template-kernel.cc"
+#include "avx_function_prototypes.h"
 
 #define BATCH_SIZE  10000
 //#define RUN_HYBRID
