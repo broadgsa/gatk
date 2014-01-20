@@ -35,8 +35,7 @@ bool is_sse42_supported()
 
 void initialize_function_pointers()
 {
-  //if(is_avx_supported())
-  if(false)
+  if(is_avx_supported())
   {
     cout << "Using AVX accelerated implementation of PairHMM\n";
     g_compute_full_prob_float = compute_full_prob_avxs<float>;

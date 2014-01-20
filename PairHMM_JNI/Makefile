@@ -1,4 +1,4 @@
-#OMPCFLAGS=-fopenmp
+OMPCFLAGS=-fopenmp
 #OMPLDFLAGS=-lgomp
 
 #CFLAGS=-O2 -std=c++11 -W -Wall -march=corei7-avx -Wa,-q            -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
