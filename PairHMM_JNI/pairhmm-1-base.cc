@@ -5,12 +5,6 @@
 #include "template.h"
 #include "utils.h"
 
-#include "define-float.h"
-#include "avx_function_prototypes.h"
-
-#include "define-double.h"
-#include "avx_function_prototypes.h"
-
 using namespace std;
 class LoadTimeInitializer
 {
@@ -36,16 +30,7 @@ int main(int argc, char** argv)
   if(argc >= 3 && string(argv[2]) == "1")
     use_old_read_testcase = true;
 
-  if(true)
-  {
-    g_compute_full_prob_double = GEN_INTRINSIC(compute_full_prob_avx, d)<double>;
-    g_compute_full_prob_float = GEN_INTRINSIC(compute_full_prob_avx, s)<float>;
-  }
-  else
-  {
-    g_compute_full_prob_double = compute_full_prob<double>;
-    g_compute_full_prob_float = compute_full_prob<float>;
-  }
+  initialize_function_pointers(); 
 
   std::ifstream ifptr;
   FILE* fptr = 0;
@@ -86,70 +71,5 @@ int main(int argc, char** argv)
   else
     ifptr.close();
   return 0;  
-
-#if 0
-  float result[BATCH_SIZE], result_avxf;
-  double result_avxd;
-  struct timeval start, end;
-  long long aggregateTimeRead = 0L;
-  long long aggregateTimeCompute = 0L;
-  long long aggregateTimeWrite = 0L;
-
-  bool noMoreData = false;
-  int count =0;
-  while (!noMoreData)
-  {
-    int read_count = BATCH_SIZE;
-    gettimeofday(&start, NULL);
-    for (int b=0;b<BATCH_SIZE;b++)
-      if (read_testcase(&tc[b], NULL)==-1)
-      {
-	read_count = b;
-	noMoreData = true;
-	break;
-      }
-    gettimeofday(&end, NULL);
-    aggregateTimeRead += ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
-
-    gettimeofday(&start, NULL);
-    for (int b=0;b<read_count;b++)
-    {
-      result_avxf = compute_full_prob<float>(&tc[b]);
-
-#ifdef RUN_HYBRID
-#define MIN_ACCEPTED 1e-28f
-      if (result_avxf < MIN_ACCEPTED) {
-	count++;
-	result_avxd = compute_full_prob<double>(&tc[b]);
-	result[b] = log10(result_avxd) - log10(ldexp(1.0, 1020.f));
-      }
-      else
-	result[b] = log10f(result_avxf) - log10f(ldexpf(1.f, 120.f));
-#endif
-
-#ifndef RUN_HYBRID
-      result[b] = log10f(result_avxf) - log10f(ldexpf(1.f, 120.f));
-#endif
-
-    }
-    gettimeofday(&end, NULL);
-    aggregateTimeCompute += ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
-
-    gettimeofday(&start, NULL);
-    for (int b=0;b<read_count;b++)
-      printf("%E\n", result[b]);
-    gettimeofday(&end, NULL);
-    aggregateTimeWrite += ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
-
-  }
-
-  printf("AVX Read Time: %ld\n", aggregateTimeRead);
-  printf("AVX Compute Time: %ld\n", aggregateTimeCompute);
-  printf("AVX Write Time: %ld\n", aggregateTimeWrite);
-  printf("AVX Total Time: %ld\n", aggregateTimeRead + aggregateTimeCompute + aggregateTimeWrite);
-  printf("# Double called: %d\n", count);
-
-  return 0;
-#endif
 }
 

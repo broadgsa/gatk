@@ -25,11 +25,24 @@ typedef union __attribute__((aligned(32))) {
         ALIGNED __m256i ALIGNED i;
 } ALIGNED mix_F ALIGNED;
 
+typedef union __attribute__((aligned(32))) {
+        ALIGNED __m128 ALIGNED d;
+        ALIGNED __m64 ALIGNED s[2];
+        ALIGNED float  ALIGNED f[4];
+        ALIGNED __m128i ALIGNED i;
+} ALIGNED mix_F128 ALIGNED;
+
 typedef union ALIGNED {
   __m128i vec ;
   __m128 vecf ;
   uint32_t masks[4] ;
 } MaskVec_F ;
+
+typedef union ALIGNED {
+  __m64 vec ;
+  __m64 vecf ;
+  uint32_t masks[2] ;
+} MaskVec_F128 ;
 
 typedef union ALIGNED
 {
@@ -50,11 +63,24 @@ typedef union __attribute__((aligned(32))) {
         ALIGNED __m256i ALIGNED i;
 } ALIGNED mix_D ALIGNED;
 
+typedef union __attribute__((aligned(32))) {
+        ALIGNED __m128d ALIGNED d;
+        ALIGNED __m64 ALIGNED s[2];
+        ALIGNED double  ALIGNED f[2];
+        ALIGNED __m128i ALIGNED i;
+} ALIGNED mix_D128 ALIGNED;
+
 typedef union ALIGNED {
   __m128i vec ;
   __m128d vecf ;
   uint64_t masks[2] ;
 } MaskVec_D ;
+
+typedef union ALIGNED {
+  __m64 vec ;
+  __m64 vecf ;
+  uint64_t masks[1] ;
+} MaskVec_D128 ;
 
 typedef union ALIGNED
 {
@@ -120,7 +146,6 @@ struct Context<float>
 };
 
 
-
 typedef struct
 {
         int rslen, haplen;
@@ -131,24 +156,11 @@ typedef struct
 	int *irs;
 } testcase;
 
-
-template<class T>
-std::string to_string(T obj)
-{
-  std::stringstream ss;
-  std::string ret_string;
-  ss.clear();
-  ss << std::scientific << obj;
-  ss >> ret_string;
-  ss.clear();
-  return ret_string;
-}
-void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
-
 int normalize(char c);
-int read_testcase(testcase *tc, FILE* ifp);
-int read_mod_testcase(std::ifstream& fptr, testcase* tc, bool reformat=false);
+int read_testcase(testcase *tc, FILE* ifp=0);
 
+
+#define MIN_ACCEPTED 1e-28f
 #define NUM_DISTINCT_CHARS 5
 #define AMBIG_CHAR 4
 
@@ -174,7 +186,6 @@ public:
   }
 
 };
-
 
 
 #endif

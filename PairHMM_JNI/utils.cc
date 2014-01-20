@@ -1,5 +1,7 @@
 #include "headers.h"
 #include "template.h"
+#include "utils.h"
+#include "vector_defs.h"
 
 uint8_t ConvertChar::conversionTable[255];
 float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
@@ -29,6 +31,30 @@ bool is_sse42_supported()
       : "a" (1)
       );
   return ((ecx >> 20)&1) == 1;
+}
+
+void initialize_function_pointers()
+{
+  //if(is_avx_supported())
+  if(false)
+  {
+    cout << "Using AVX accelerated implementation of PairHMM\n";
+    g_compute_full_prob_float = compute_full_prob_avxs<float>;
+    g_compute_full_prob_double = compute_full_prob_avxd<double>;
+  }
+  else
+    if(is_sse42_supported())
+    {
+      cout << "Using SSE4.2 accelerated implementation of PairHMM\n";
+      g_compute_full_prob_float = compute_full_prob_sses<float>;
+      g_compute_full_prob_double = compute_full_prob_ssed<double>;
+    }
+    else
+    {
+      cout << "Using un-vectorized C++ implementation of PairHMM\n";
+      g_compute_full_prob_float = compute_full_prob<float>;
+      g_compute_full_prob_double = compute_full_prob<double>;
+    }
 }
 
 int normalize(char c)
@@ -214,12 +240,3 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   return tokens.size();
 }
 
-void debug_dump(string filename, string s, bool to_append, bool add_newline)
-{
-  ofstream fptr;
-  fptr.open(filename.c_str(), to_append ? ofstream::app : ofstream::out);
-  fptr << s;
-  if(add_newline)
-    fptr << "\n";
-  fptr.close();
-}

@@ -70,6 +70,14 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniComputeLikelihoods
   (JNIEnv *, jobject, jint, jint, jobjectArray, jobjectArray, jdoubleArray, jint);
 
+/*
+ * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
+ * Method:    jniClose
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniClose
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif

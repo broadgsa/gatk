@@ -1,4 +1,4 @@
-OMPCFLAGS=-fopenmp
+#OMPCFLAGS=-fopenmp
 #OMPLDFLAGS=-lgomp
 
 #CFLAGS=-O2 -std=c++11 -W -Wall -march=corei7-avx -Wa,-q            -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
@@ -20,7 +20,7 @@ DEPDIR=.deps
 DF=$(DEPDIR)/$(*).d
 
 #Common across libJNI and sandbox
-COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc
+COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc
 #Part of libJNI
 LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc $(COMMON_SOURCES)
 SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
@@ -33,7 +33,7 @@ NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc pa
 #Use -xAVX for these files
 AVX_SOURCES=avx_function_instantiations.cc
 #Use -xSSE4.2 for these files
-SSE_SOURCES=
+SSE_SOURCES=sse_function_instantiations.cc
 
 NO_VECTOR_OBJECTS=$(NO_VECTOR_SOURCES:.cc=.o)
 AVX_OBJECTS=$(AVX_SOURCES:.cc=.o)

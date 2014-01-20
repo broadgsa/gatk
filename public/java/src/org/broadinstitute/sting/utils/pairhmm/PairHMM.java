@@ -280,4 +280,7 @@ public abstract class PairHMM {
 
         return Math.min(haplotype1.length, haplotype2.length);
     }
+
+    //Called at the end of all HC calls
+    public void close() { ; }
 }

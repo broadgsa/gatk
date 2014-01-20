@@ -5,19 +5,12 @@
 
 #define ENABLE_ASSERTIONS 1
 #define DO_PROFILING 1
-#define DEBUG 1
+//#define DEBUG 1
 //#define DEBUG0_1 1
 //#define DEBUG3 1
 
 #include "template.h"
 #include "utils.h"
-
-
-#include "define-float.h"
-#include "avx_function_prototypes.h"
-
-#include "define-double.h"
-#include "avx_function_prototypes.h"
 
 using namespace std;
 
@@ -33,32 +26,18 @@ class LoadTimeInitializer
       m_sumSquareNumHaplotypes = 0;
       m_sumNumTestcases = 0;
       m_sumSquareNumTestcases = 0;
+      m_maxNumTestcases = 0;
       m_num_invocations = 0;
+      m_filename_to_fptr.clear();
 
-      if(is_avx_supported())
-      {
-	cout << "Using AVX accelerated implementation of PairHMM\n";
-	g_compute_full_prob_float = compute_full_prob_avxs<float>;
-	g_compute_full_prob_double = compute_full_prob_avxd<double>;
-      }
-      else
-      {
-	cout << "Using un-vectorized C++ implementation of PairHMM\n";
-	g_compute_full_prob_float = compute_full_prob<float>;
-	g_compute_full_prob_double = compute_full_prob<double>;
-      }
+      initialize_function_pointers();
       cout.flush();
-      //if(is_sse42_supported())
-      //{
-      //g_compute_full_prob_float = compute_full_prob_avxs<float>;
-      //g_compute_full_prob_double = compute_full_prob_avxd<double>;
-      //}
     }
     void print_profiling()
     {
       double mean_val;
       cout <<"Invocations : "<<m_num_invocations<<"\n";
-      cout << "term\tsum\tsumSq\tmean\tvar\n";
+      cout << "term\tsum\tsumSq\tmean\tvar\tmax\n";
       mean_val = m_sumNumReads/m_num_invocations;
       cout << "reads\t"<<m_sumNumReads<<"\t"<<m_sumSquareNumReads<<"\t"<<mean_val<<"\t"<<
 	(m_sumSquareNumReads/m_num_invocations)-mean_val*mean_val<<"\n";
@@ -67,14 +46,39 @@ class LoadTimeInitializer
 	(m_sumSquareNumHaplotypes/m_num_invocations)-mean_val*mean_val<<"\n";
       mean_val = m_sumNumTestcases/m_num_invocations;
       cout << "numtestcases\t"<<m_sumNumTestcases<<"\t"<<m_sumSquareNumTestcases<<"\t"<<mean_val<<"\t"<<
-	(m_sumSquareNumTestcases/m_num_invocations)-mean_val*mean_val<<"\n";
+	(m_sumSquareNumTestcases/m_num_invocations)-mean_val*mean_val<<"\t"<<m_maxNumTestcases<<"\n";
       cout.flush();
     }
-    ~LoadTimeInitializer()
+
+    void debug_dump(string filename, string s, bool to_append, bool add_newline=true)
     {
-#ifdef DO_PROFILING
-      print_profiling();
-#endif
+      map<string, ofstream*>::iterator mI = m_filename_to_fptr.find(filename);
+      ofstream* fptr = 0;
+      if(mI == m_filename_to_fptr.end())
+      {
+	m_filename_to_fptr[filename] = new ofstream();
+	fptr = m_filename_to_fptr[filename];
+        fptr->open(filename.c_str(), to_append ? ios::app : ios::out);
+	assert(fptr->is_open());
+      }
+      else
+	fptr = (*mI).second;
+      //ofstream fptr;
+      //fptr.open(filename.c_str(), to_append ? ofstream::app : ofstream::out);
+      (*fptr) << s;
+      if(add_newline)
+	(*fptr) << "\n";
+      //fptr.close();
+    }
+    void debug_close()
+    {
+      for(map<string,ofstream*>::iterator mB = m_filename_to_fptr.begin(), mE = m_filename_to_fptr.end();
+	  mB != mE;mB++)
+      {
+	(*mB).second->close();
+	delete (*mB).second;
+      }
+      m_filename_to_fptr.clear();
     }
     jfieldID m_readBasesFID;
     jfieldID m_readQualsFID;
@@ -89,8 +93,10 @@ class LoadTimeInitializer
     double m_sumSquareNumHaplotypes;
     double m_sumNumTestcases;
     double m_sumSquareNumTestcases;
+    unsigned m_maxNumTestcases;
     unsigned m_num_invocations;
-
+  private:
+    map<string, ofstream*> m_filename_to_fptr;
 };
 LoadTimeInitializer g_load_time_initializer;
 
@@ -174,10 +180,10 @@ Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadL
     tc.c[i] = (int)overallGCPArray[i];
   }
 
-  double result_avxd = GEN_INTRINSIC(compute_full_prob_avx, d)<double>(&tc);
+  double result_avxd = g_compute_full_prob_double(&tc, 0);
   double result = log10(result_avxd) - log10(ldexp(1.0, 1020));
 #ifdef DEBUG
-  debug_dump("return_values_jni.txt",to_string(result),true);
+  g_load_time_initializer.debug_dump("return_values_jni.txt",to_string(result),true);
 #endif
 
 
@@ -255,7 +261,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     haplotypeBasesArrayVector[j] = make_pair(haplotypeBases, haplotypeBasesArray);
 #ifdef DEBUG3
     for(unsigned k=0;k<env->GetArrayLength(haplotypeBases);++k)
-      debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
+      g_load_time_initializer.debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
 #endif
   }
 
@@ -310,11 +316,11 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 #ifdef DEBUG3
     for(unsigned j=0;j<readLength;++j)
     {
-      debug_dump("reads_jni.txt",to_string((int)readBasesArray[j]),true);
-      debug_dump("reads_jni.txt",to_string((int)readQualsArray[j]),true);
-      debug_dump("reads_jni.txt",to_string((int)insertionGOPArray[j]),true);
-      debug_dump("reads_jni.txt",to_string((int)deletionGOPArray[j]),true);
-      debug_dump("reads_jni.txt",to_string((int)overallGCPArray[j]),true);
+      g_load_time_initializer.debug_dump("reads_jni.txt",to_string((int)readBasesArray[j]),true);
+      g_load_time_initializer.debug_dump("reads_jni.txt",to_string((int)readQualsArray[j]),true);
+      g_load_time_initializer.debug_dump("reads_jni.txt",to_string((int)insertionGOPArray[j]),true);
+      g_load_time_initializer.debug_dump("reads_jni.txt",to_string((int)deletionGOPArray[j]),true);
+      g_load_time_initializer.debug_dump("reads_jni.txt",to_string((int)overallGCPArray[j]),true);
     }
 #endif
 
@@ -370,7 +376,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 #ifdef DEBUG
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
   {
-    debug_dump("return_values_jni.txt",to_string(likelihoodDoubleArray[tc_idx]),true);
+    g_load_time_initializer.debug_dump("return_values_jni.txt",to_string(likelihoodDoubleArray[tc_idx]),true);
   }
 #endif
   RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0);
@@ -396,7 +402,23 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   g_load_time_initializer.m_sumSquareNumHaplotypes += numHaplotypes*numHaplotypes;
   g_load_time_initializer.m_sumNumTestcases += numTestCases;
   g_load_time_initializer.m_sumSquareNumTestcases += numTestCases*numTestCases;
+  g_load_time_initializer.m_maxNumTestcases = numTestCases > g_load_time_initializer.m_maxNumTestcases ? numTestCases
+    : g_load_time_initializer.m_maxNumTestcases;
   ++(g_load_time_initializer.m_num_invocations);
+#endif
+#ifdef DEBUG
+  g_load_time_initializer.debug_close();
+#endif
+}
+
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniClose
+  (JNIEnv* env, jobject thisObject)
+{
+#ifdef DO_PROFILING
+  g_load_time_initializer.print_profiling();
+#endif
+#ifdef DEBUG
+  g_load_time_initializer.debug_close();
 #endif
 }
 

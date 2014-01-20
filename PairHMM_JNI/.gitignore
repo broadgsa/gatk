@@ -8,3 +8,6 @@ pairhmm-template-main
 *.swp
 checker
 reformat
+subdir_checkout.sh
+avx/
+sse/

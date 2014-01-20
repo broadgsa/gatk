@@ -84,7 +84,7 @@
 #define VEC_MUL(__v1, __v2)                     \
   _mm256_mul_ps(__v1, __v2)
 
-#define VEC_DIV(__v1, __v2)                     \
+#define VEC_DIV(__v1, __v2)			\
   _mm256_div_ps(__v1, __v2)
 
 #define VEC_BLEND(__v1, __v2, __mask)           \
@@ -133,7 +133,7 @@
   _mm256_set_ps(zero, zero, zero, zero, zero, zero, zero, __val);
 
 #define SHIFT_HAP(__v1, __val)			\
-  _vector_shift_lasts(__v1, __val.f);
+  _vector_shift_lastavxs(__v1, __val.f);
 
 #define print256b(__v1)                         \
   print256bFP(__v1)
