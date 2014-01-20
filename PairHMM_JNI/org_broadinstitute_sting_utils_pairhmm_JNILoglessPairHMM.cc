@@ -128,7 +128,7 @@ Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializePrior
 //Gets direct access to Java arrays
 #define GET_BYTE_ARRAY_ELEMENTS env->GetPrimitiveArrayCritical
 #define RELEASE_BYTE_ARRAY_ELEMENTS env->ReleasePrimitiveArrayCritical
-#define JNI_RELEASE_MODE JNI_ABORT
+#define JNI_RELEASE_MODE 0
 #define GET_DOUBLE_ARRAY_ELEMENTS env->GetPrimitiveArrayCritical
 #define RELEASE_DOUBLE_ARRAY_ELEMENTS env->ReleasePrimitiveArrayCritical
 
@@ -384,7 +384,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   //Release read arrays first
   for(int i=readBasesArrayVector.size()-1;i>=0;--i)//note the order - reverse of GET
   {
-    for(int j=readBasesArrayVector.size()-1;j>=0;--j)
+    for(int j=readBasesArrayVector[i].size()-1;j>=0;--j)
       RELEASE_BYTE_ARRAY_ELEMENTS(readBasesArrayVector[i][j].first, readBasesArrayVector[i][j].second, JNI_RELEASE_MODE);
     readBasesArrayVector[i].clear();
   }
