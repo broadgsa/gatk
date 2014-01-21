@@ -112,8 +112,10 @@ inline void GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (
 
   VEC_SHIFT_LEFT_1BIT(currMaskVecLow.vec) ;
   VEC_SHIFT_LEFT_1BIT(currMaskVecHigh.vec) ;
-  
+ 
+#ifdef SIMD_TYPE_SSE
   _mm_empty();
+#endif
 }								     
 
 

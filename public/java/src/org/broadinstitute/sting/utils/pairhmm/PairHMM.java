@@ -100,6 +100,18 @@ public abstract class PairHMM {
         initialized = true;
     }
 
+    /**
+     * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
+     * This function is used by the JNI implementations to transfer all data once to the native code
+     * @param haplotypes the list of haplotypes
+     * @param perSampleReadList map from sample name to list of reads
+     * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
+     * @param readMaxLength the max length of reads we want to use with this PairHMM
+     */
+    public void initialize( final List<Haplotype> haplotypes, final Map<String, List<GATKSAMRecord>> perSampleReadList, final int readMaxLength, final int haplotypeMaxLength ) {
+	initialize(readMaxLength, haplotypeMaxLength); 
+    }
+
     protected int findMaxReadLength(final List<GATKSAMRecord> reads) {
         int listMaxReadLength = 0;
         for(GATKSAMRecord read : reads){

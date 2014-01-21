@@ -23,4 +23,7 @@
 #include "define-sse-double.h"
 #include "vector_function_prototypes.h"
 
+#undef SIMD_TYPE
+#undef SIMD_TYPE_AVX
+#undef SIMD_TYPE_SSE
 

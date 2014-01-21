@@ -35,6 +35,7 @@ bool is_sse42_supported()
 
 void initialize_function_pointers()
 {
+  //if(false)
   if(is_avx_supported())
   {
     cout << "Using AVX accelerated implementation of PairHMM\n";

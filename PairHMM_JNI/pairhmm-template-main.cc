@@ -3,8 +3,11 @@
 #include "template.h"
 #include "vector_defs.h"
 
+#define SIMD_TYPE avx
+#define SIMD_TYPE_AVX
 
-#define BATCH_SIZE  10
+
+#define BATCH_SIZE  10000
 #define RUN_HYBRID
 
 int thread_level_parallelism_enabled = false ;
@@ -53,7 +56,7 @@ int main()
 	exit(0);
 */
 
-        testcase tc[BATCH_SIZE];
+        testcase* tc = new testcase[BATCH_SIZE];
         float result[BATCH_SIZE], result_avxf;
         double result_avxd;
         //struct timeval start, end;
@@ -120,14 +123,15 @@ int main()
 
                 //gettimeofday(&start, NULL);
 		lastClk = getCurrClk() ;
-                for (int b=0;b<read_count;b++)
-                        printf("%E\n", result[b]);
+		//for (int b=0;b<read_count;b++)
+		//printf("%E\n", result[b]);
                 //gettimeofday(&end, NULL);
                 aggregateTimeWrite += (getCurrClk() - lastClk) ;
 		//((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
 
         }
 
+	delete tc;
         printf("AVX Read Time: %.2f\n", aggregateTimeRead);
         printf("AVX Compute Time: %.2f\n", aggregateTimeCompute);
         printf("AVX Write Time: %.2f\n", aggregateTimeWrite);
