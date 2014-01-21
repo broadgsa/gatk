@@ -1,6 +1,6 @@
 .svn
 *.o
-#*.so
+*.so
 tests
 .deps
 hmm_Mohammad
