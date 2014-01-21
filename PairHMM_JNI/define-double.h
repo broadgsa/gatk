@@ -47,6 +47,7 @@
         #undef MASK_ALL_ONES
         #undef COMPARE_VECS(__v1, __v2)
         #undef _256_INT_TYPE
+        #undef BITMASK_VEC
 #endif
 
 #define PRECISION d
@@ -156,3 +157,32 @@
       }									\
     }									\
   }
+
+class BitMaskVec_double {
+
+  MASK_VEC low_, high_ ;
+  _256_TYPE combined_ ;
+
+public:
+  
+  inline MASK_TYPE& getLowEntry(int index) {
+    return low_.masks[index] ;
+  }
+  inline MASK_TYPE& getHighEntry(int index) {
+    return high_.masks[index] ;
+  }
+  
+  inline const _256_TYPE& getCombinedMask() {
+    VEC_SSE_TO_AVX(low_.vecf, high_.vecf, combined_) ;
+
+    return combined_ ;
+  }
+  
+  inline void shift_left_1bit() {
+    VEC_SHIFT_LEFT_1BIT(low_.vec) ;
+    VEC_SHIFT_LEFT_1BIT(high_.vec) ;
+  }
+
+} ;
+
+#define BITMASK_VEC BitMaskVec_double

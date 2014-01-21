@@ -47,7 +47,7 @@
         #undef MASK_ALL_ONES
         #undef COMPARE_VECS(__v1, __v2)
         #undef _256_INT_TYPE
-
+        #undef BITMASK_VEC
 #endif
 
 #define SSE
@@ -69,7 +69,7 @@
 #define HAP_TYPE __m128i
 #define MASK_TYPE uint64_t
 #define MASK_ALL_ONES 0xFFFFFFFFFFFFFFFFL
-#define MASK_VEC MaskVec_D128
+#define MASK_VEC MaskVec_D
 
 #define VEC_EXTRACT_UNIT(__v1, __im)            \
   _mm_extract_epi64(__v1, __im)
@@ -123,6 +123,31 @@
    __vdst = _mm_castsi128_pd(_mm_set_epi64(__vsHigh, __vsLow))
 
 #define VEC_SHIFT_LEFT_1BIT(__vs)               \
-  __vs = _mm_slli_si64(__vs, 1)
+  __vs = _mm_slli_epi64(__vs, 1)
 
+
+class BitMaskVec_sse_double {
+
+  MASK_VEC combined_ ;
+
+public:
+  
+  inline MASK_TYPE& getLowEntry(int index) {
+    return combined_.masks[index] ;
+  }
+  inline MASK_TYPE& getHighEntry(int index) {
+    return combined_.masks[AVX_LENGTH/2+index] ;
+  }
+  
+  inline const _256_TYPE& getCombinedMask() {
+    return combined_.vecf ;
+  }
+  
+  inline void shift_left_1bit() {
+    VEC_SHIFT_LEFT_1BIT(combined_.vec) ;
+  }
+
+} ;
+
+#define BITMASK_VEC BitMaskVec_sse_double
 

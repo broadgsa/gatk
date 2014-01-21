@@ -4,7 +4,7 @@ export GSA_ROOT_DIR=/home/karthikg/broad/gsa-unstable
 #-Djava.library.path is needed if you are using JNI_LOGLESS_CACHING, else not needed
 java  -Djava.library.path=${GSA_ROOT_DIR}/PairHMM_JNI -jar $GSA_ROOT_DIR/dist/GenomeAnalysisTK.jar   -T HaplotypeCaller \
 -R /opt/Genomics/ohsu/dnapipeline/humanrefgenome/human_g1k_v37.fasta \
--I /data/broad/samples/joint_variant_calling/NA12878_high_coverage_alignment/NA12878.mapped.ILLUMINA.bwa.CEU.high_coverage_pcr_free.20130906.bam \
+-I /data/simulated/sim1M_pairs_final.bam \
 --dbsnp /data/broad/samples/joint_variant_calling/dbSNP/00-All.vcf \
 -stand_call_conf 50.0 \
 -stand_emit_conf 10.0 \
@@ -20,5 +20,6 @@ java  -Djava.library.path=${GSA_ROOT_DIR}/PairHMM_JNI -jar $GSA_ROOT_DIR/dist/Ge
 #-R /data/broad/samples/joint_variant_calling/broad_reference/Homo_sapiens_assembly19.fasta \
 #-R /data/broad/samples/joint_variant_calling/broad_reference/ucsc.hg19.fasta \
 #-R /opt/Genomics/ohsu/dnapipeline/humanrefgenome/human_g1k_v37.fasta \
+#-R /data/broad/samples/joint_variant_calling/broad_reference/human_g1k_v37_decoy.fasta \
 #--dbsnp /data/broad/samples/joint_variant_calling/dbSNP/00-All.vcf \
 #--dbsnp /data/broad/samples/joint_variant_calling/dbSNP/dbsnp_138.hg19.vcf \

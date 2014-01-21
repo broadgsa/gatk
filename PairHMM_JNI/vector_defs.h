@@ -17,6 +17,7 @@
 #define SIMD_TYPE sse
 #define SIMD_TYPE_SSE
 
+
 #include "define-sse-float.h"
 #include "vector_function_prototypes.h"
 

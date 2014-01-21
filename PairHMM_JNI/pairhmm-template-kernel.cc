@@ -23,6 +23,7 @@ string getBinaryStr (T val, int numBitsToWrite) {
 */
 #ifdef MUSTAFA
 
+
 void GEN_INTRINSIC(GEN_INTRINSIC(precompute_masks_,SIMD_TYPE), PRECISION)(const testcase& tc, int COLS, int numMaskVecs, MASK_TYPE (*maskArr)[NUM_DISTINCT_CHARS]) {
   
   const int maskBitCnt = MAIN_TYPE_SIZE ;
@@ -77,27 +78,24 @@ void GEN_INTRINSIC(GEN_INTRINSIC(init_masks_for_row_,SIMD_TYPE), PRECISION)(cons
 }
 
 
-void GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_, SIMD_TYPE), PRECISION)(int maskIndex, MASK_VEC& currMaskVecLow, MASK_VEC& currMaskVecHigh, MASK_TYPE (*maskArr) [NUM_DISTINCT_CHARS], char* rsArr, MASK_TYPE* lastMaskShiftOut, MASK_TYPE maskBitCnt) {
+void GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_, SIMD_TYPE), PRECISION)(int maskIndex, BITMASK_VEC& bitMaskVec, MASK_TYPE (*maskArr) [NUM_DISTINCT_CHARS], char* rsArr, MASK_TYPE* lastMaskShiftOut, int maskBitCnt) {
 
   for (int ei=0; ei < AVX_LENGTH/2; ++ei) {
-    SET_MASK_WORD(currMaskVecLow.masks[ei], maskArr[maskIndex][rsArr[ei]], 
+    SET_MASK_WORD(bitMaskVec.getLowEntry(ei), maskArr[maskIndex][rsArr[ei]], 
 		  lastMaskShiftOut[ei], ei, maskBitCnt) ;
     
     int ei2 = ei + AVX_LENGTH/2 ; // the second entry index
-    SET_MASK_WORD(currMaskVecHigh.masks[ei], maskArr[maskIndex][rsArr[ei2]], 
+    SET_MASK_WORD(bitMaskVec.getHighEntry(ei), maskArr[maskIndex][rsArr[ei2]], 
 		  lastMaskShiftOut[ei2], ei2, maskBitCnt) ;
   }
 
 }
 
 
-//void GEN_INTRINSIC(computeDistVec, PRECISION) (MASK_VEC& currMaskVecLow, MASK_VEC& currMaskVecHigh, _256_TYPE& distm, _256_TYPE& _1_distm, _256_TYPE& distmChosen, const _256_TYPE& distmSel, int firstRowIndex, int lastRowIndex) {
+//void GEN_INTRINSIC(computeDistVec, PRECISION) (BITMASK_VEC& bitMaskVec, _256_TYPE& distm, _256_TYPE& _1_distm, _256_TYPE& distmChosen, const _256_TYPE& distmSel, int firstRowIndex, int lastRowIndex) {
 
-inline void GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (MASK_VEC& currMaskVecLow, MASK_VEC& currMaskVecHigh, _256_TYPE& distm, _256_TYPE& _1_distm, _256_TYPE& distmChosen) {
+inline void GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (BITMASK_VEC& bitMaskVec, _256_TYPE& distm, _256_TYPE& _1_distm, _256_TYPE& distmChosen) {
   //#define computeDistVec() {					      
-
-  _256_TYPE maskV ;
-  VEC_SSE_TO_AVX(currMaskVecLow.vecf, currMaskVecHigh.vecf, maskV) ;
 
 #ifdef DEBUGG
         long long *temp1 = (long long *)(&maskV);
@@ -106,16 +104,11 @@ inline void GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (
         printf("***\n%lx\n%lx\n%f\n%f\n%f\n%f\n***\n", temp1[0], temp1[1], temp2[0], temp2[1], temp3[0], temp3[1]);
 #endif
 
-  distmChosen = VEC_BLENDV(distm, _1_distm, maskV) ;
+  distmChosen = VEC_BLENDV(distm, _1_distm, bitMaskVec.getCombinedMask()) ;
 
   /*COMPARE_VECS(distmChosen, distmSel, firstRowIndex, lastRowIndex) ;*/
 
-  VEC_SHIFT_LEFT_1BIT(currMaskVecLow.vec) ;
-  VEC_SHIFT_LEFT_1BIT(currMaskVecHigh.vec) ;
- 
-#ifdef SIMD_TYPE_SSE
-  _mm_empty();
-#endif
+  bitMaskVec.shift_left_1bit() ;
 }								     
 
 
@@ -349,35 +342,41 @@ template<class NUMBER> NUMBER GEN_INTRINSIC(GEN_INTRINSIC(compute_full_prob_,SIM
 		GEN_INTRINSIC(GEN_INTRINSIC(init_masks_for_row_,SIMD_TYPE), PRECISION)(*tc, rsArr, lastMaskShiftOut, i*AVX_LENGTH+1, AVX_LENGTH) ;
 #endif
 		// Since there are no shift intrinsics in AVX, keep the masks in 2 SSE vectors
-		MASK_VEC currMaskVecLow ; // corresponding to lower half
-		MASK_VEC currMaskVecHigh ; // corresponding to upper half
 
-                for (int d=1;d<COLS+AVX_LENGTH;d++)
+		BITMASK_VEC bitMaskVec ;
+
+                for (int begin_d=1;begin_d<COLS+AVX_LENGTH;begin_d+=MAIN_TYPE_SIZE)
                 {
+		  int numMaskBitsToProcess = std::min(MAIN_TYPE_SIZE, COLS+AVX_LENGTH-begin_d) ;
 #ifdef MUSTAFA
-		        if (d % MAIN_TYPE_SIZE == 1)
-			  GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_,SIMD_TYPE), PRECISION)((d-1)/MAIN_TYPE_SIZE, currMaskVecLow, currMaskVecHigh, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;
-			GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec,SIMD_TYPE), PRECISION) (currMaskVecLow, currMaskVecHigh, distm, _1_distm, distmChosen) ;
-#else
-			distmChosen = GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM,SIMD_TYPE), PRECISION)(d, COLS, tc, hap, rs.d, rsN, N_packed256, distm, _1_distm);
+		  GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_,SIMD_TYPE), PRECISION)((begin_d-1)/MAIN_TYPE_SIZE, bitMaskVec, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;		  
 #endif
-			int ShiftIdx = d+AVX_LENGTH;
 
-			GEN_INTRINSIC(GEN_INTRINSIC(computeMXY,SIMD_TYPE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1, 
+		  //		        if (d % MAIN_TYPE_SIZE == 1)
+		  
+		  for (int mbi=0; mbi < numMaskBitsToProcess; ++mbi) {
+#ifdef MUSTAFA
+		    GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec,SIMD_TYPE), PRECISION) (bitMaskVec, distm, _1_distm, distmChosen) ;
+#else
+		    distmChosen = GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM,SIMD_TYPE), PRECISION)(begin_d+mbi, COLS, tc, hap, rs.d, rsN, N_packed256, distm, _1_distm);
+#endif
+		    int ShiftIdx = begin_d + mbi + AVX_LENGTH;
+
+		    GEN_INTRINSIC(GEN_INTRINSIC(computeMXY,SIMD_TYPE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1, 
 								pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
 
-                        GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(M_t, shiftOutM[ShiftIdx], shiftOutM[d]);
+		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(M_t, shiftOutM[ShiftIdx], shiftOutM[begin_d+mbi]);
+		    
+		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(X_t, shiftOutX[ShiftIdx], shiftOutX[begin_d+mbi]);
 
-                        GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(X_t, shiftOutX[ShiftIdx], shiftOutX[d]);
+		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx], shiftOutY[begin_d+mbi]);
 
-                        GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx], shiftOutY[d]);
-
-                        M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
-                        Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
-
+		    M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
+		    Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
+		  }
 		}
 	}
-
+	
         int i = strip_cnt-1;
         {
 		//STRIP_INITIALIZATION
@@ -393,35 +392,41 @@ template<class NUMBER> NUMBER GEN_INTRINSIC(GEN_INTRINSIC(compute_full_prob_,SIM
                 sumX = VEC_SET1_VAL(zero);
 
 		// Since there are no shift intrinsics in AVX, keep the masks in 2 SSE vectors
-		MASK_VEC currMaskVecLow ; // corresponding to lower half
-		MASK_VEC currMaskVecHigh ; // corresponding to upper half
+		BITMASK_VEC bitMaskVec ;
 
-                for (int d=1;d<COLS+remainingRows-1;d++)
+                for (int begin_d=1;begin_d<COLS+remainingRows-1;begin_d+=MAIN_TYPE_SIZE)
                 {
+
+		  int numMaskBitsToProcess = std::min(MAIN_TYPE_SIZE, COLS+remainingRows-1-begin_d) ;
 #ifdef MUSTAFA
-  	 	        if (d % MAIN_TYPE_SIZE == 1)
-			  GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_, SIMD_TYPE),PRECISION)((d-1)/MAIN_TYPE_SIZE, currMaskVecLow, currMaskVecHigh, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;
-			GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (currMaskVecLow, currMaskVecHigh, distm, _1_distm, distmChosen) ;
-#else
-			distmChosen = GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM,SIMD_TYPE), PRECISION)(d, COLS, tc, hap, rs.d, rsN, N_packed256, distm, _1_distm);
+		  GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_, SIMD_TYPE),PRECISION)((begin_d-1)/MAIN_TYPE_SIZE, bitMaskVec, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;
 #endif
-			int ShiftIdx = d+AVX_LENGTH;
 
-			GEN_INTRINSIC(GEN_INTRINSIC(computeMXY, SIMD_TYPE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1,
-					                        pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
+		  for (int mbi=0; mbi < numMaskBitsToProcess; ++mbi) {
 
-                        sumM  = VEC_ADD(sumM, M_t.d);
-                        GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(M_t, shiftOutM[ShiftIdx]);
+#ifdef MUSTAFA
+		    GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (bitMaskVec, distm, _1_distm, distmChosen) ;
+#else
+		    distmChosen = GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM,SIMD_TYPE), PRECISION)(begin_d+mbi, COLS, tc, hap, rs.d, rsN, N_packed256, distm, _1_distm);
+#endif
+		    int ShiftIdx = begin_d + mbi +AVX_LENGTH;
 
-                        sumX  = VEC_ADD(sumX, X_t.d);
-                        GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(X_t, shiftOutX[ShiftIdx]);
+		    GEN_INTRINSIC(GEN_INTRINSIC(computeMXY, SIMD_TYPE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1,
+										   pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
 
-                        GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx]);
+		    sumM  = VEC_ADD(sumM, M_t.d);
+		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(M_t, shiftOutM[ShiftIdx]);
 
-                        M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
-                        Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
+		    sumX  = VEC_ADD(sumX, X_t.d);
+		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(X_t, shiftOutX[ShiftIdx]);
 
-                }
+		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx]);
+
+		    M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
+		    Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
+
+		  }
+		}
                 UNION_TYPE sumMX;
                 sumMX.d = VEC_ADD(sumM, sumX);
                 result_avx2 = sumMX.f[remainingRows-1];		
