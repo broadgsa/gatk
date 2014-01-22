@@ -101,6 +101,14 @@ public abstract class PairHMM {
     }
 
     /**
+     * Called at the end of PairHMM for a region - mostly used by the JNI implementations
+     */
+    public void finalizeRegion()
+    {
+	;
+    }
+
+    /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
      * This function is used by the JNI implementations to transfer all data once to the native code
      * @param haplotypes the list of haplotypes

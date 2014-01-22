@@ -1,4 +1,5 @@
-#OMPCFLAGS=-fopenmp
+OMPCFLAGS=-fopenmp
+OMPLFLAGS=-fopenmp #-openmp-link static
 
 #CFLAGS=-O2 -std=c++11 -W -Wall -march=corei7-avx -Wa,-q            -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
 #CFLAGS=-O2             -W -Wall -march=corei7 -mfpmath=sse -msse4.2 -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
@@ -19,7 +20,7 @@ DEPDIR=.deps
 DF=$(DEPDIR)/$(*).d
 
 #Common across libJNI and sandbox
-COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc
+COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc LoadTimeInitializer.cc
 #Part of libJNI
 LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc $(COMMON_SOURCES)
 SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
@@ -28,7 +29,7 @@ COMMON_OBJECTS=$(COMMON_SOURCES:.cc=.o)
 
 
 #No vectorization for these files
-NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc
+NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc
 #Use -xAVX for these files
 AVX_SOURCES=avx_function_instantiations.cc
 #Use -xSSE4.2 for these files
@@ -47,13 +48,13 @@ all: $(BIN)
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
 checker: pairhmm-1-base.o $(COMMON_OBJECTS)
-	$(CXX) $(OMPCFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
-	$(CXX) $(OMPCFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 libJNILoglessPairHMM.so: $(LIBOBJECTS) 
-	$(CXX) $(OMPCFLAGS) -shared -o $@ $(LIBOBJECTS) 
+	$(CXX) $(OMPLFLAGS) -shared -o $@ $(LIBOBJECTS) 
 
 
 $(OBJECTS): %.o: %.cc

@@ -1,6 +1,7 @@
 #ifndef PAIRHMM_UTIL_H
 #define PAIRHMM_UTIL_H
 
+#include "template.h"
 
 template<class T>
 std::string to_string(T obj)
@@ -25,4 +26,5 @@ void debug_dump(std::string filename, std::string s, bool to_append, bool add_ne
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log=0);
 void initialize_function_pointers();
+double getCurrClk();
 #endif

@@ -4,26 +4,15 @@
 #include "headers.h"
 #include "template.h"
 #include "utils.h"
+#include "LoadTimeInitializer.h"
 
 using namespace std;
-class LoadTimeInitializer
-{
-  public:
-    LoadTimeInitializer()		//will be called when library is loaded
-    {
-      ConvertChar::init();
-    }
-};
-LoadTimeInitializer g_load_time_initializer;
+
 
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
 
-double getCurrClk() {
-  struct timeval tv ;
-  gettimeofday(&tv, NULL);
-  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
-}
+
 
 int main(int argc, char** argv)
 {
@@ -38,9 +27,6 @@ int main(int argc, char** argv)
   unsigned chunk_size = 100;
   if(argc >= 4)
     chunk_size = strtol(argv[3],0,10);
-
-
-  initialize_function_pointers(); 
 
   std::ifstream ifptr;
   FILE* fptr = 0;

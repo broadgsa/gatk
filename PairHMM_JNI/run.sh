@@ -1,6 +1,6 @@
 #!/bin/bash
-rm -f *.txt
-export GSA_ROOT_DIR=/home/karthikg/broad/gsa-unstable
+rm -f *.txt *.log
+GSA_ROOT_DIR=/home/karthikg/broad/gsa-unstable
 #-Djava.library.path is needed if you are using JNI_LOGLESS_CACHING, else not needed
 java  -Djava.library.path=${GSA_ROOT_DIR}/PairHMM_JNI -jar $GSA_ROOT_DIR/dist/GenomeAnalysisTK.jar   -T HaplotypeCaller \
 -R /opt/Genomics/ohsu/dnapipeline/humanrefgenome/human_g1k_v37.fasta \

@@ -10,13 +10,8 @@
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
 
+double getCurrClk();
 int thread_level_parallelism_enabled = false ;
-
-double getCurrClk() {
-  struct timeval tv ;
-  gettimeofday(&tv, NULL);
-  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
-}
 
 void print128b_F(__m128 x)
 {	

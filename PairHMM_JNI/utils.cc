@@ -240,3 +240,8 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   return tokens.size();
 }
 
+double getCurrClk() {
+  struct timeval tv ;
+  gettimeofday(&tv, NULL);
+  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+}
