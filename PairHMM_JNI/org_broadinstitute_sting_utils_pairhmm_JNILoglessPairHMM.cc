@@ -208,7 +208,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   readBasesArrayVector.clear();
   readBasesArrayVector.resize(numReads);
 #ifdef DO_PROFILING
-  start_time = getCurrClk();
+  start_time = get_time();
 #endif
   for(unsigned i=0;i<numReads;++i)
   {
@@ -266,30 +266,26 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
       jbyte* haplotypeBasesArray = haplotypeBasesArrayVector[j].second;
       tc_array[tc_idx].rslen = (int)readLength;
       tc_array[tc_idx].haplen = (int)haplotypeLength;
-      tc_array[tc_idx].rs = (char*)readBasesArray;
       tc_array[tc_idx].hap = (char*)haplotypeBasesArray;
-      //Can be avoided 
-      for(unsigned k=0;k<readLength;++k)
-      {
-	tc_array[tc_idx].q[k] = (int)readQualsArray[k];
-	tc_array[tc_idx].i[k] = (int)insertionGOPArray[k];
-	tc_array[tc_idx].d[k] = (int)deletionGOPArray[k];
-	tc_array[tc_idx].c[k] = (int)overallGCPArray[k];
-      }
+      tc_array[tc_idx].rs = (char*)readBasesArray;
+      tc_array[tc_idx].q = (char*)readQualsArray;
+      tc_array[tc_idx].i = (char*)insertionGOPArray;
+      tc_array[tc_idx].d = (char*)deletionGOPArray;
+      tc_array[tc_idx].c = (char*)overallGCPArray;
       ++tc_idx;  
     }
-    RELEASE_BYTE_ARRAY_ELEMENTS(overallGCP, overallGCPArray, JNI_RO_RELEASE_MODE);	//order of GET-RELEASE is important
-    RELEASE_BYTE_ARRAY_ELEMENTS(deletionGOP, deletionGOPArray, JNI_RO_RELEASE_MODE);
-    RELEASE_BYTE_ARRAY_ELEMENTS(insertionGOP, insertionGOPArray, JNI_RO_RELEASE_MODE);
-    RELEASE_BYTE_ARRAY_ELEMENTS(readQuals, readQualsArray, JNI_RO_RELEASE_MODE);
-
-    //Release readBases at end because it is used by compute_full_prob
+    //Release read arrays at end because they are used by compute_full_prob
+    //Maintain order in which GET_BYTE_ARRAY_ELEMENTS called
     readBasesArrayVector[i].clear();
-    readBasesArrayVector[i].resize(1);
+    readBasesArrayVector[i].resize(5);
     readBasesArrayVector[i][0] = make_pair(readBases, readBasesArray);
+    readBasesArrayVector[i][1] = make_pair(readQuals, readQualsArray);
+    readBasesArrayVector[i][2] = make_pair(insertionGOP, insertionGOPArray);
+    readBasesArrayVector[i][3] = make_pair(deletionGOP, deletionGOPArray);
+    readBasesArrayVector[i][4] = make_pair(overallGCP, overallGCPArray);
   }
 #ifdef DO_PROFILING
-  g_load_time_initializer.m_data_transfer_time += (getCurrClk()-start_time);
+  g_load_time_initializer.m_data_transfer_time += get_time();
 #endif
 
   jdouble* likelihoodDoubleArray = (jdouble*)GET_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, &is_copy);
@@ -298,7 +294,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
 #endif
 #ifdef DO_PROFILING
-  start_time = getCurrClk();
+  start_time = get_time();
 #endif
 #pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse) 
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
@@ -315,7 +311,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     likelihoodDoubleArray[tc_idx] = result;
   }
 #ifdef DO_PROFILING
-  g_load_time_initializer.m_compute_time += (getCurrClk()-start_time);
+  g_load_time_initializer.m_compute_time += get_time();
 #endif
 #ifdef DEBUG
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
@@ -324,7 +320,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   }
 #endif
 #ifdef DO_PROFILING
-  start_time = getCurrClk();
+  start_time = get_time();
 #endif
   RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0); //release mode 0, copy back results to Java memory
   
@@ -337,7 +333,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
   }
   readBasesArrayVector.clear();
 #ifdef DO_PROFILING
-  g_load_time_initializer.m_data_transfer_time += (getCurrClk()-start_time);
+  g_load_time_initializer.m_data_transfer_time += get_time();
 #endif
   tc_array.clear();
 #ifdef DO_PROFILING

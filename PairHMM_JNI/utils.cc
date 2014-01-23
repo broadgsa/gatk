@@ -90,10 +90,10 @@ int read_testcase(testcase *tc, FILE* ifp)
 	tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
 	tc->irs = (int *) malloc(tc->rslen*sizeof(int));
 
-	//tc->q = (int *) malloc(sizeof(int) * tc->rslen);
-	//tc->i = (int *) malloc(sizeof(int) * tc->rslen);
-	//tc->d = (int *) malloc(sizeof(int) * tc->rslen);
-	//tc->c = (int *) malloc(sizeof(int) * tc->rslen);
+	tc->q = (char *) malloc(sizeof(char) * tc->rslen);
+	tc->i = (char *) malloc(sizeof(char) * tc->rslen);
+	tc->d = (char *) malloc(sizeof(char) * tc->rslen);
+	tc->c = (char *) malloc(sizeof(char) * tc->rslen);
 
 	for (x = 0; x < tc->rslen; x++)
 	{
@@ -199,18 +199,22 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   memcpy(tc->hap, tokens[0].c_str(), tokens[0].size());
   tc->rs = new char[tokens[1].size()+2];
   tc->rslen = tokens[1].size();
+  tc->q = new char[tc->rslen];
+  tc->i = new char[tc->rslen];
+  tc->d = new char[tc->rslen];
+  tc->c = new char[tc->rslen];
   //cout << "Lengths "<<tc->haplen <<" "<<tc->rslen<<"\n";
   memcpy(tc->rs, tokens[1].c_str(),tokens[1].size());
   assert(tokens.size() == 2 + 4*(tc->rslen));
   assert(tc->rslen < MROWS);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->q[j] = convToInt(tokens[2+0*tc->rslen+j]);
+    tc->q[j] = (char)convToInt(tokens[2+0*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->i[j] = convToInt(tokens[2+1*tc->rslen+j]);
+    tc->i[j] = (char)convToInt(tokens[2+1*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->d[j] = convToInt(tokens[2+2*tc->rslen+j]);
+    tc->d[j] = (char)convToInt(tokens[2+2*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->c[j] = convToInt(tokens[2+3*tc->rslen+j]);
+    tc->c[j] = (char)convToInt(tokens[2+3*tc->rslen+j]);
  
   if(reformat)
   {
@@ -244,4 +248,15 @@ double getCurrClk() {
   struct timeval tv ;
   gettimeofday(&tv, NULL);
   return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+}
+
+uint64_t get_time(struct timespec* store_struct)
+{
+  static struct timespec start_time;
+  struct timespec curr_time;
+  struct timespec* ptr = (store_struct == 0) ? &curr_time : store_struct;
+  clock_gettime(CLOCK_REALTIME, ptr);
+  uint64_t diff_time = (ptr->tv_sec-start_time.tv_sec)*1000000000+(ptr->tv_nsec-start_time.tv_nsec);
+  start_time = *ptr;
+  return diff_time;
 }

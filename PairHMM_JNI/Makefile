@@ -1,5 +1,5 @@
-OMPCFLAGS=-fopenmp
-OMPLFLAGS=-fopenmp #-openmp-link static
+#OMPCFLAGS=-fopenmp
+#OMPLFLAGS=-fopenmp #-openmp-link static
 
 #CFLAGS=-O2 -std=c++11 -W -Wall -march=corei7-avx -Wa,-q            -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
 #CFLAGS=-O2             -W -Wall -march=corei7 -mfpmath=sse -msse4.2 -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
@@ -11,7 +11,7 @@ COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -W -Wall -pedantic $(OMPCF
 CC=icc
 CXX=icc
 
-LDFLAGS=-lm $(OMPLDFLAGS)
+LDFLAGS=-lm -lrt $(OMPLDFLAGS)
 
 BIN=libJNILoglessPairHMM.so pairhmm-template-main checker
 #BIN=checker
@@ -54,7 +54,7 @@ pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
 	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 libJNILoglessPairHMM.so: $(LIBOBJECTS) 
-	$(CXX) $(OMPLFLAGS) -shared -o $@ $(LIBOBJECTS) 
+	$(CXX) $(OMPLFLAGS) -shared -o $@ $(LIBOBJECTS) ${LDFLAGS}
 
 
 $(OBJECTS): %.o: %.cc

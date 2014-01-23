@@ -27,8 +27,8 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
 void LoadTimeInitializer::print_profiling()
 {
   double mean_val;
-  cout << "Compute time "<<m_compute_time<<"\n";
-  cout << "Data initialization time "<<m_data_transfer_time<<"\n";
+  cout << "Compute time "<<m_compute_time*1e-9<<"\n";
+  cout << "Data initialization time "<<m_data_transfer_time*1e-9<<"\n";
   cout <<"Invocations : "<<m_num_invocations<<"\n";
   cout << "term\tsum\tsumSq\tmean\tvar\tmax\n";
   mean_val = m_sumNumReads/m_num_invocations;

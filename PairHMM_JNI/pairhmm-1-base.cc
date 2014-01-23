@@ -44,7 +44,7 @@ int main(int argc, char** argv)
   vector<testcase> tc_vector;
   tc_vector.clear();
   testcase tc;
-  double total_time = 0;
+  uint64_t total_time = 0;
   while(1)
   {
     int break_value = use_old_read_testcase ? read_testcase(&tc, fptr) : read_mod_testcase(ifptr,&tc,true);
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
       vector<double> results_vec;
       results_vec.clear();
       results_vec.resize(tc_vector.size());
-      double start_time = getCurrClk();
+      get_time();
 #pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
       for(unsigned i=0;i<tc_vector.size();++i)
       {
@@ -71,7 +71,8 @@ int main(int argc, char** argv)
 
 	results_vec[i] = result;
       }
-      total_time +=  (getCurrClk()-start_time);
+      total_time +=  get_time();
+#pragma omp parallel for schedule(dynamic,chunk_size)
       for(unsigned i=0;i<tc_vector.size();++i)
       {
 	testcase& tc = tc_vector[i];
@@ -83,6 +84,10 @@ int main(int argc, char** argv)
 	  cout << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
 	delete tc_vector[i].rs;
 	delete tc_vector[i].hap;
+	delete tc_vector[i].q;
+	delete tc_vector[i].i;
+	delete tc_vector[i].d;
+	delete tc_vector[i].c;
       }
       results_vec.clear();
       tc_vector.clear();
@@ -90,7 +95,7 @@ int main(int argc, char** argv)
     if(break_value < 0)
       break;
   }
-  cout << "Total time "<< total_time << "\n";
+  cout << "Total time "<< ((double)total_time)/1e9 << "\n";
   if(use_old_read_testcase)
     fclose(fptr);
   else

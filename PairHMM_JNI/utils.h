@@ -27,4 +27,5 @@ template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log=0);
 void initialize_function_pointers();
 double getCurrClk();
+uint64_t get_time(struct timespec* x=0);
 #endif

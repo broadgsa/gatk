@@ -150,7 +150,8 @@ typedef struct
 {
         int rslen, haplen;
 	/*int *q, *i, *d, *c;*/
-	int q[MROWS], i[MROWS], d[MROWS], c[MROWS];
+	/*int q[MROWS], i[MROWS], d[MROWS], c[MROWS];*/
+	char *q, *i, *d, *c;
         char *hap, *rs;
 	int *ihap;
 	int *irs;

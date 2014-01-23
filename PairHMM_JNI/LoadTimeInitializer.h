@@ -26,8 +26,8 @@ class LoadTimeInitializer
     unsigned m_maxNumTestcases;
     unsigned m_num_invocations;
     //timing
-    double m_compute_time;
-    double m_data_transfer_time;
+    uint64_t m_compute_time;
+    uint64_t m_data_transfer_time;
   private:
     std::map<std::string, std::ofstream*> m_filename_to_fptr;
 };
