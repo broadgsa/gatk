@@ -21,6 +21,34 @@ extern "C" {
 #define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_matchToDeletion 4L
 #undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_deletionToDeletion
 #define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_deletionToDeletion 5L
+#undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug
+#define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug 0L
+#undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_verify
+#define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_verify 0L
+#undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug0_1
+#define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug0_1 0L
+#undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug1
+#define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug1 0L
+#undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug2
+#define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug2 0L
+#undef org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug3
+#define org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_debug3 0L
+/*
+ * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
+ * Method:    jniGlobalInit
+ * Signature: (Ljava/lang/Class;Ljava/lang/Class;)V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniGlobalInit
+  (JNIEnv *, jobject, jclass, jclass);
+
+/*
+ * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
+ * Method:    jniClose
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniClose
+  (JNIEnv *, jobject);
+
 /*
  * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
  * Method:    jniInitialize
@@ -45,27 +73,34 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 JNIEXPORT jdouble JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializePriorsAndUpdateCells
   (JNIEnv *, jobject, jboolean, jint, jint, jbyteArray, jbyteArray, jbyteArray, jint);
 
-
 /*
  * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
  * Method:    jniSubComputeReadLikelihoodGivenHaplotypeLog10
  * Signature: (II[B[B[B[B[B[BI)D
  */
 JNIEXPORT jdouble JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10
-    (JNIEnv *, jobject, jint, jint, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jint);
+  (JNIEnv *, jobject, jint, jint, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jbyteArray, jint);
 
 /*
  * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
- * Method:    jniGlobalInit
- * Signature: (Ljava/lang/Class;Ljava/lang/Class;)V
+ * Method:    jniInitializeHaplotypes
+ * Signature: (I[Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIHaplotypeDataHolderClass;)V
  */
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniGlobalInit
-  (JNIEnv *, jobject, jclass, jclass);
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializeHaplotypes
+  (JNIEnv *, jobject, jint, jobjectArray);
+
+/*
+ * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
+ * Method:    jniFinalizeRegion
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniFinalizeRegion
+  (JNIEnv *, jobject);
 
 /*
  * Class:     org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM
  * Method:    jniComputeLikelihoods
- * Signature: ([Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIReadDataHolderClass;[Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIHaplotypeDataHolderClass;[D)V
+ * Signature: (II[Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIReadDataHolderClass;[Lorg/broadinstitute/sting/utils/pairhmm/JNILoglessPairHMM/JNIHaplotypeDataHolderClass;[DI)V
  */
 JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniComputeLikelihoods
   (JNIEnv *, jobject, jint, jint, jobjectArray, jobjectArray, jdoubleArray, jint);

@@ -18,35 +18,36 @@
         #undef MASK_TYPE
         #undef MASK_ALL_ONES
 
-        #undef SET_VEC_ZERO
-        #undef VEC_OR
-        #undef VEC_ADD
-	#undef VEC_SUB
-        #undef VEC_MUL
-        #undef VEC_DIV
-        #undef VEC_BLEND
-        #undef VEC_BLENDV
-	#undef VEC_CAST_256_128
-	#undef VEC_EXTRACT_128
-	#undef VEC_EXTRACT_UNIT
-	#undef VEC_SET1_VAL128
-	#undef VEC_MOVE
-	#undef VEC_CAST_128_256
-	#undef VEC_INSERT_VAL
-	#undef VEC_CVT_128_256
-	#undef VEC_SET1_VAL
-	#undef VEC_POPCVT_CHAR
-	#undef VEC_LDPOPCVT_CHAR
-	#undef VEC_CMP_EQ
-	#undef VEC_SET_LSE
-	#undef SHIFT_HAP
-	#undef print256b
+        #undef SET_VEC_ZERO(__vec)
+        #undef VEC_OR(__v1, __v2)
+        #undef VEC_ADD(__v1, __v2)
+        #undef VEC_SUB(__v1, __v2)
+        #undef VEC_MUL(__v1, __v2)
+        #undef VEC_DIV(__v1, __v2)
+        #undef VEC_BLEND(__v1, __v2, __mask)
+        #undef VEC_BLENDV(__v1, __v2, __maskV)
+        #undef VEC_CAST_256_128(__v1)
+        #undef VEC_EXTRACT_128(__v1, __im)
+        #undef VEC_EXTRACT_UNIT(__v1, __im)
+        #undef VEC_SET1_VAL128(__val)
+        #undef VEC_MOVE(__v1, __val)
+        #undef VEC_CAST_128_256(__v1)
+        #undef VEC_INSERT_VAL(__v1, __val, __pos)
+        #undef VEC_CVT_128_256(__v1)
+        #undef VEC_SET1_VAL(__val)
+        #undef VEC_POPCVT_CHAR(__ch)
+        #undef VEC_LDPOPCVT_CHAR(__addr)
+        #undef VEC_CMP_EQ(__v1, __v2)
+        #undef VEC_SET_LSE(__val)
+        #undef SHIFT_HAP(__v1, __val)
+        #undef print256b(__v1)
         #undef MASK_VEC
-        #undef VEC_SSE_TO_AVX
-        #undef VEC_SHIFT_LEFT_1BIT
+        #undef VEC_SSE_TO_AVX(__vsLow, __vsHigh, __vdst)
+        #undef VEC_SHIFT_LEFT_1BIT(__vs)
         #undef MASK_ALL_ONES
-        #undef COMPARE_VECS
+        #undef COMPARE_VECS(__v1, __v2)
         #undef _256_INT_TYPE
+        #undef BITMASK_VEC
 #endif
 
 #define PRECISION d
@@ -83,7 +84,7 @@
 #define VEC_MUL(__v1, __v2)                     \
   _mm256_mul_pd(__v1, __v2)
 
-#define VEC_DIV(__v1, __v2)                     \
+#define VEC_DIV(__v1, __v2)			\
   _mm256_div_pd(__v1, __v2)
 
 #define VEC_BLEND(__v1, __v2, __mask)           \
@@ -156,3 +157,32 @@
       }									\
     }									\
   }
+
+class BitMaskVec_double {
+
+  MASK_VEC low_, high_ ;
+  _256_TYPE combined_ ;
+
+public:
+  
+  inline MASK_TYPE& getLowEntry(int index) {
+    return low_.masks[index] ;
+  }
+  inline MASK_TYPE& getHighEntry(int index) {
+    return high_.masks[index] ;
+  }
+  
+  inline const _256_TYPE& getCombinedMask() {
+    VEC_SSE_TO_AVX(low_.vecf, high_.vecf, combined_) ;
+
+    return combined_ ;
+  }
+  
+  inline void shift_left_1bit() {
+    VEC_SHIFT_LEFT_1BIT(low_.vec) ;
+    VEC_SHIFT_LEFT_1BIT(high_.vec) ;
+  }
+
+} ;
+
+#define BITMASK_VEC BitMaskVec_double

@@ -1,6 +1,61 @@
+#include "headers.h"
 #include "template.h"
+#include "utils.h"
+#include "vector_defs.h"
+
 uint8_t ConvertChar::conversionTable[255];
+float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
+double (*g_compute_full_prob_double)(testcase *tc, double* before_last_log) = 0;
+
 using namespace std;
+
+bool is_avx_supported()
+{
+  int ecx = 0, edx = 0, ebx = 0;
+  __asm__("cpuid"
+      : "=b" (ebx),
+      "=c" (ecx),
+      "=d" (edx)
+      : "a" (1)
+      );
+  return ((ecx >> 28)&1) == 1;
+}
+
+bool is_sse42_supported()
+{
+  int ecx = 0, edx = 0, ebx = 0;
+  __asm__("cpuid"
+      : "=b" (ebx),
+      "=c" (ecx),
+      "=d" (edx)
+      : "a" (1)
+      );
+  return ((ecx >> 20)&1) == 1;
+}
+
+void initialize_function_pointers()
+{
+  //if(false)
+  if(is_avx_supported())
+  {
+    cout << "Using AVX accelerated implementation of PairHMM\n";
+    g_compute_full_prob_float = compute_full_prob_avxs<float>;
+    g_compute_full_prob_double = compute_full_prob_avxd<double>;
+  }
+  else
+    if(is_sse42_supported())
+    {
+      cout << "Using SSE4.2 accelerated implementation of PairHMM\n";
+      g_compute_full_prob_float = compute_full_prob_sses<float>;
+      g_compute_full_prob_double = compute_full_prob_ssed<double>;
+    }
+    else
+    {
+      cout << "Using un-vectorized C++ implementation of PairHMM\n";
+      g_compute_full_prob_float = compute_full_prob<float>;
+      g_compute_full_prob_double = compute_full_prob<double>;
+    }
+}
 
 int normalize(char c)
 {
@@ -35,10 +90,10 @@ int read_testcase(testcase *tc, FILE* ifp)
 	tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
 	tc->irs = (int *) malloc(tc->rslen*sizeof(int));
 
-	//tc->q = (int *) malloc(sizeof(int) * tc->rslen);
-	//tc->i = (int *) malloc(sizeof(int) * tc->rslen);
-	//tc->d = (int *) malloc(sizeof(int) * tc->rslen);
-	//tc->c = (int *) malloc(sizeof(int) * tc->rslen);
+	tc->q = (char *) malloc(sizeof(char) * tc->rslen);
+	tc->i = (char *) malloc(sizeof(char) * tc->rslen);
+	tc->d = (char *) malloc(sizeof(char) * tc->rslen);
+	tc->c = (char *) malloc(sizeof(char) * tc->rslen);
 
 	for (x = 0; x < tc->rslen; x++)
 	{
@@ -144,18 +199,22 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   memcpy(tc->hap, tokens[0].c_str(), tokens[0].size());
   tc->rs = new char[tokens[1].size()+2];
   tc->rslen = tokens[1].size();
+  tc->q = new char[tc->rslen];
+  tc->i = new char[tc->rslen];
+  tc->d = new char[tc->rslen];
+  tc->c = new char[tc->rslen];
   //cout << "Lengths "<<tc->haplen <<" "<<tc->rslen<<"\n";
   memcpy(tc->rs, tokens[1].c_str(),tokens[1].size());
   assert(tokens.size() == 2 + 4*(tc->rslen));
   assert(tc->rslen < MROWS);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->q[j] = convToInt(tokens[2+0*tc->rslen+j]);
+    tc->q[j] = (char)convToInt(tokens[2+0*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->i[j] = convToInt(tokens[2+1*tc->rslen+j]);
+    tc->i[j] = (char)convToInt(tokens[2+1*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->d[j] = convToInt(tokens[2+2*tc->rslen+j]);
+    tc->d[j] = (char)convToInt(tokens[2+2*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)
-    tc->c[j] = convToInt(tokens[2+3*tc->rslen+j]);
+    tc->c[j] = (char)convToInt(tokens[2+3*tc->rslen+j]);
  
   if(reformat)
   {
@@ -183,4 +242,21 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
 
 
   return tokens.size();
+}
+
+double getCurrClk() {
+  struct timeval tv ;
+  gettimeofday(&tv, NULL);
+  return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+}
+
+uint64_t get_time(struct timespec* store_struct)
+{
+  static struct timespec start_time;
+  struct timespec curr_time;
+  struct timespec* ptr = (store_struct == 0) ? &curr_time : store_struct;
+  clock_gettime(CLOCK_REALTIME, ptr);
+  uint64_t diff_time = (ptr->tv_sec-start_time.tv_sec)*1000000000+(ptr->tv_nsec-start_time.tv_nsec);
+  start_time = *ptr;
+  return diff_time;
 }

@@ -47,6 +47,7 @@
         #undef MASK_ALL_ONES
         #undef COMPARE_VECS(__v1, __v2)
         #undef _256_INT_TYPE
+        #undef BITMASK_VEC
 #endif
 
 #define PRECISION s
@@ -84,7 +85,7 @@
 #define VEC_MUL(__v1, __v2)                     \
   _mm256_mul_ps(__v1, __v2)
 
-#define VEC_DIV(__v1, __v2)                     \
+#define VEC_DIV(__v1, __v2)			\
   _mm256_div_ps(__v1, __v2)
 
 #define VEC_BLEND(__v1, __v2, __mask)           \
@@ -133,7 +134,7 @@
   _mm256_set_ps(zero, zero, zero, zero, zero, zero, zero, __val);
 
 #define SHIFT_HAP(__v1, __val)			\
-  _vector_shift_lasts(__v1, __val.f);
+  _vector_shift_lastavxs(__v1, __val.f);
 
 #define print256b(__v1)                         \
   print256bFP(__v1)
@@ -157,3 +158,31 @@
     }									\
   }
 
+class BitMaskVec_float {
+
+  MASK_VEC low_, high_ ;
+  _256_TYPE combined_ ;
+
+public:
+  
+  inline MASK_TYPE& getLowEntry(int index) {
+    return low_.masks[index] ;
+  }
+  inline MASK_TYPE& getHighEntry(int index) {
+    return high_.masks[index] ;
+  }
+  
+  inline const _256_TYPE& getCombinedMask() {
+    VEC_SSE_TO_AVX(low_.vecf, high_.vecf, combined_) ;
+
+    return combined_ ;
+  }
+  
+  inline void shift_left_1bit() {
+    VEC_SHIFT_LEFT_1BIT(low_.vec) ;
+    VEC_SHIFT_LEFT_1BIT(high_.vec) ;
+  }
+
+} ;
+
+#define BITMASK_VEC BitMaskVec_float

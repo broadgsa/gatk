@@ -1,9 +1,8 @@
 #ifdef PRECISION 
 
-#include "template.h"
+#ifdef SIMD_TYPE_AVX
 
-
-inline void GEN_INTRINSIC(_vector_shift, PRECISION) (UNION_TYPE &x, MAIN_TYPE shiftIn, MAIN_TYPE &shiftOut)
+inline void GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift,SIMD_TYPE), PRECISION) (UNION_TYPE &x, MAIN_TYPE shiftIn, MAIN_TYPE &shiftOut)
 {
 
         IF_128 xlow , xhigh;
@@ -33,7 +32,8 @@ inline void GEN_INTRINSIC(_vector_shift, PRECISION) (UNION_TYPE &x, MAIN_TYPE sh
         x.d = VEC_INSERT_VAL(x.d, xhigh.f, 1);
 }
 
-inline void GEN_INTRINSIC(_vector_shift_last, PRECISION) (UNION_TYPE &x, MAIN_TYPE shiftIn)
+
+inline void GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION) (UNION_TYPE &x, MAIN_TYPE shiftIn)
 {
 
         IF_128 xlow , xhigh;
@@ -44,10 +44,6 @@ inline void GEN_INTRINSIC(_vector_shift_last, PRECISION) (UNION_TYPE &x, MAIN_TY
         /* extract xlow[3] */
         IF_128 shiftOutL128;
         shiftOutL128.i = _mm_srli_si128(xlow.i, SHIFT_CONST1);
-        /* extract xhigh[3] */
-//        IF_MAIN_TYPE shiftOutH;
-//        shiftOutH.i = VEC_EXTRACT_UNIT(xhigh.i, SHIFT_CONST2);
-//        shiftOut = shiftOutH.f;
         /* shift xlow */
         xlow.i = _mm_slli_si128 (xlow.i, SHIFT_CONST3);
         /* shift xhigh */
@@ -63,6 +59,32 @@ inline void GEN_INTRINSIC(_vector_shift_last, PRECISION) (UNION_TYPE &x, MAIN_TY
         x.d = VEC_INSERT_VAL(x.d, xhigh.f, 1);
 }
 
+#endif
+
+#ifdef SIMD_TYPE_SSE
+
+inline void GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION) (UNION_TYPE &x, MAIN_TYPE shiftIn, MAIN_TYPE &shiftOut)
+{
+	IF_MAIN_TYPE tempIn, tempOut; 
+	tempIn.f = shiftIn;
+        /* extratc H */
+        tempOut.i = VEC_EXTRACT_UNIT(x.i, SHIFT_CONST1);
+	shiftOut = tempOut.f;
+        /* shift     */
+        x.i = _mm_slli_si128(x.i, SHIFT_CONST2);
+        /* insert  L */
+        x.i = VEC_INSERT_UNIT(x.i , tempIn.i, SHIFT_CONST3);
+}
+
+inline void GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION) (UNION_TYPE &x, MAIN_TYPE shiftIn)
+{
+	IF_MAIN_TYPE temp; temp.f = shiftIn;
+        /* shift     */
+        x.i = _mm_slli_si128(x.i, SHIFT_CONST2);
+        /* insert  L */
+        x.i = VEC_INSERT_UNIT(x.i , temp.i, SHIFT_CONST3);
+}
 
 #endif
 
+#endif

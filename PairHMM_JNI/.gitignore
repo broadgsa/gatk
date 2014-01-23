@@ -1,6 +1,6 @@
 .svn
 *.o
-#*.so
+*.so
 tests
 .deps
 hmm_Mohammad
@@ -8,3 +8,6 @@ pairhmm-template-main
 *.swp
 checker
 reformat
+subdir_checkout.sh
+avx/
+sse/
