@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import java.util.Arrays;
 
 import static java.lang.Math.log10;
+import static org.broadinstitute.sting.utils.pairhmm.PairHMMModel.*;
 
 /**
  * Util class for performing the pair HMM for local alignment. Figure 4.3 in Durbin 1998 book.
@@ -46,12 +47,6 @@ public class Log10PairHMM extends N2MemoryPairHMM {
      */
     private final boolean doExactLog10;
 
-    protected static final int matchToMatch = 0;
-    protected static final int indelToMatch = 1;
-    protected static final int matchToInsertion = 2;
-    protected static final int insertionToInsertion = 3;
-    protected static final int matchToDeletion = 4;
-    protected static final int deletionToDeletion = 5;
 
     // we divide e by 3 because the observed base could have come from any of the non-observed alleles
     protected final static double log10_3 = log10(3.0);
@@ -120,9 +115,7 @@ public class Log10PairHMM extends N2MemoryPairHMM {
         // final probability is the log10 sum of the last element in the Match and Insertion state arrays
         // this way we ignore all paths that ended in deletions! (huge)
         // but we have to sum all the paths ending in the M and I matrices, because they're no longer extended.
-        double finalSumProbabilities = finalLikelihoodCalculation();
-
-        return finalSumProbabilities;
+        return finalLikelihoodCalculation();
     }
 
     protected void initializeMatrixValues(final byte[] haplotypeBases) {
@@ -180,16 +173,7 @@ public class Log10PairHMM extends N2MemoryPairHMM {
     })
     @Ensures("constantsAreInitialized")
     protected void initializeProbabilities(final byte[] insertionGOP, final byte[] deletionGOP, final byte[] overallGCP) {
-        for (int i = 0; i < insertionGOP.length; i++) {
-            final int qualIndexGOP = Math.min(insertionGOP[i] + deletionGOP[i], Byte.MAX_VALUE);
-            transition[i+1][matchToMatch] = QualityUtils.qualToProbLog10((byte) qualIndexGOP);
-            transition[i+1][indelToMatch] = QualityUtils.qualToProbLog10(overallGCP[i]);
-            transition[i+1][matchToInsertion] = QualityUtils.qualToErrorProbLog10(insertionGOP[i]);
-            transition[i+1][insertionToInsertion] = QualityUtils.qualToErrorProbLog10(overallGCP[i]);
-            transition[i+1][matchToDeletion] = QualityUtils.qualToErrorProbLog10(deletionGOP[i]);
-            transition[i+1][deletionToDeletion] = QualityUtils.qualToErrorProbLog10(overallGCP[i]);
-        }
-
+        PairHMMModel.qualToTransProbsLog10(transition,insertionGOP,deletionGOP,overallGCP);
         // note that we initialized the constants
         constantsAreInitialized = true;
     }

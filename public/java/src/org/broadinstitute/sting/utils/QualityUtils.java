@@ -58,14 +58,19 @@ public class QualityUtils {
     public final static int MAPPING_QUALITY_UNAVAILABLE = 255;
 
     /**
+     * Maximum sense quality value.
+     */
+    public static final int MAX_QUAL = 254;
+
+    /**
      * Cached values for qual as byte calculations so they are very fast
      */
-    private static double qualToErrorProbCache[] = new double[256];
-    private static double qualToProbLog10Cache[] = new double[256];
+    private static double qualToErrorProbCache[] = new double[MAX_QUAL + 1];
+    private static double qualToProbLog10Cache[] = new double[MAX_QUAL + 1];
 
 
     static {
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i <= MAX_QUAL; i++) {
             qualToErrorProbCache[i] = qualToErrorProb((double) i);
             qualToProbLog10Cache[i] = Math.log10(1.0 - qualToErrorProbCache[i]);
         }
@@ -386,4 +391,7 @@ public class QualityUtils {
     public static byte boundQual(final int qual, final byte maxQual) {
         return (byte) (Math.max(Math.min(qual, maxQual & 0xFF), 1) & 0xFF);
     }
-}
+
+    }
+
+

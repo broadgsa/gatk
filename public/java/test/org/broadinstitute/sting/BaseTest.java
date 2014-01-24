@@ -109,16 +109,14 @@ public abstract class BaseTest {
 
     public static final String hapmapDataLocation = comparisonDataLocation + "Validated/HapMap/3.3/";
     public static final String b37hapmapGenotypes = hapmapDataLocation + "genotypes_r27_nr.b37_fwd.vcf";
-    public static final String b37hapmapSites = hapmapDataLocation + "sites_r27_nr.b37_fwd.vcf";
 
-    public static final String intervalsLocation = GATKDataLocation;
+    public static final String intervalsLocation = "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/";
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
-    public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
+    public static final String hg19Chr20Intervals = GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
     public static final boolean REQUIRE_NETWORK_CONNECTION = false;
     private static final String networkTempDirRoot = "/broad/hptmp/";
     private static final boolean networkTempDirRootExists = new File(networkTempDirRoot).exists();
-    private static final String networkTempDir;
     private static final File networkTempDirFile;
 
     private static final String privateTestDirRelative = "private/testdata/";
@@ -157,9 +155,7 @@ public abstract class BaseTest {
         if (networkTempDirRootExists) {
             networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File(networkTempDirRoot + System.getProperty("user.name")));
             networkTempDirFile.deleteOnExit();
-            networkTempDir = networkTempDirFile.getAbsolutePath() + "/";
         } else {
-            networkTempDir = null;
             networkTempDirFile = null;
         }
 
@@ -190,26 +186,27 @@ public abstract class BaseTest {
      * 2: Create instances of your subclass.  Return from it the call to getTests, providing
      * the class type of your test
      *
-     * @DataProvider(name = "summaries"
+     * <code>
+     * {@literal @}DataProvider(name = "summaries")
      * public Object[][] createSummaries() {
      *   new SummarizeDifferenceTest().addDiff("A", "A").addSummary("A:2");
      *   new SummarizeDifferenceTest().addDiff("A", "B").addSummary("A:1", "B:1");
      *   return SummarizeDifferenceTest.getTests(SummarizeDifferenceTest.class);
      * }
+     * </code>
      *
      * This class magically tracks created objects of this
      */
     public static class TestDataProvider {
-        private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
+        private static final Map<Class, List<Object>> tests = new HashMap<>();
         protected String name;
 
         /**
          * Create a new TestDataProvider instance bound to the class variable C
-         * @param c
          */
         public TestDataProvider(Class c, String name) {
             if ( ! tests.containsKey(c) )
-                tests.put(c, new ArrayList<Object>());
+                tests.put(c, new ArrayList<>());
             tests.get(c).add(this);
             this.name = name;
         }
@@ -509,5 +506,22 @@ public abstract class BaseTest {
             return true;
         } else
             return false;
+    }
+
+    /**
+     * Checks whether two double array contain the same values or not.
+     * @param actual actual produced array.
+     * @param expected expected array.
+     * @param tolerance maximum difference between double value to be consider equivalent.
+     */
+    protected static void assertEqualsDoubleArray(final double[] actual, final double[] expected, final double tolerance) {
+        if (expected == null)
+            Assert.assertNull(actual);
+        else {
+            Assert.assertNotNull(actual);
+            Assert.assertEquals(actual.length,expected.length,"array length");
+        }
+        for (int i = 0; i < actual.length; i++)
+            Assert.assertEquals(actual[i],expected[i],tolerance,"array position " + i);
     }
 }
