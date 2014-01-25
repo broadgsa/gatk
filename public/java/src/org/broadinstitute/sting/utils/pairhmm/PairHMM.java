@@ -58,7 +58,9 @@ public abstract class PairHMM {
         /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
         LOGLESS_CACHING,
         /* Optimized AVX implementation of LOGLESS_CACHING called through JNI */
-        JNI_LOGLESS_CACHING,
+        VECTOR_LOGLESS_CACHING,
+        /* Debugging for any JNI implementation of LOGLESS_CACHING */
+        DEBUG_JNI_LOGLESS_CACHING,
         /* Logless caching PairHMM that stores computations in 1D arrays instead of matrices, and which proceeds diagonally over the (read x haplotype) intersection matrix */
         ARRAY_LOGLESS
     }
@@ -301,6 +303,7 @@ public abstract class PairHMM {
         return Math.min(haplotype1.length, haplotype2.length);
     }
 
+    public double[] getLikelihoodArray() { return mLikelihoodArray; }
     //Called at the end of all HC calls
     public void close() { ; }
 }

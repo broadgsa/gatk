@@ -23,6 +23,10 @@ class LoadTimeInitializer
     double m_sumSquareNumHaplotypes;
     double m_sumNumTestcases;
     double m_sumSquareNumTestcases;
+    double m_sumReadLengths;
+    double m_sumHaplotypeLengths;
+    double m_sumProductReadLengthHaplotypeLength;
+    double m_sumSquareProductReadLengthHaplotypeLength;
     unsigned m_maxNumTestcases;
     unsigned m_num_invocations;
     //timing

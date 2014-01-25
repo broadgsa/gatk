@@ -25,7 +25,14 @@ extern double (*g_compute_full_prob_double)(testcase *tc, double* before_last_lo
 void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline);
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log=0);
-void initialize_function_pointers();
+void initialize_function_pointers(uint64_t mask=0xFFFFFFFFFFFFFFFFull);
 double getCurrClk();
 uint64_t get_time(struct timespec* x=0);
+
+enum ProcessorCapabilitiesEnum
+{
+  SSE42_CUSTOM_IDX=0,
+  AVX_CUSTOM_IDX
+};
+uint64_t get_machine_capabilities();
 #endif

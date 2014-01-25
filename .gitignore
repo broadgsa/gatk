@@ -36,4 +36,5 @@ org/
 package-list
 resources/
 velocity.log
-
+perf
+verify

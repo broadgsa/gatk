@@ -177,6 +177,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     for(unsigned k=0;k<env->GetArrayLength(haplotypeBases);++k)
       g_load_time_initializer.debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
 #endif
+#ifdef DO_PROFILING
+    g_load_time_initializer.m_sumHaplotypeLengths += env->GetArrayLength(haplotypeBasesGlobalRef);
+#endif
   }
 }
 
@@ -272,6 +275,10 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
       tc_array[tc_idx].i = (char*)insertionGOPArray;
       tc_array[tc_idx].d = (char*)deletionGOPArray;
       tc_array[tc_idx].c = (char*)overallGCPArray;
+#ifdef DO_PROFILING
+      g_load_time_initializer.m_sumProductReadLengthHaplotypeLength += (readLength*haplotypeLength);
+      g_load_time_initializer.m_sumSquareProductReadLengthHaplotypeLength += ((readLength*haplotypeLength)*(readLength*haplotypeLength));
+#endif
       ++tc_idx;  
     }
     //Release read arrays at end because they are used by compute_full_prob
@@ -283,6 +290,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     readBasesArrayVector[i][2] = make_pair(insertionGOP, insertionGOPArray);
     readBasesArrayVector[i][3] = make_pair(deletionGOP, deletionGOPArray);
     readBasesArrayVector[i][4] = make_pair(overallGCP, overallGCPArray);
+#ifdef DO_PROFILING
+    g_load_time_initializer.m_sumReadLengths += readLength;
+#endif
   }
 #ifdef DO_PROFILING
   g_load_time_initializer.m_data_transfer_time += get_time();

@@ -33,17 +33,27 @@ bool is_sse42_supported()
   return ((ecx >> 20)&1) == 1;
 }
 
-void initialize_function_pointers()
+uint64_t get_machine_capabilities()
+{
+  uint64_t machine_mask = 0ull;
+  if(is_avx_supported())
+    machine_mask |= (1 << AVX_CUSTOM_IDX);
+  if(is_sse42_supported())
+    machine_mask |= (1 << SSE42_CUSTOM_IDX);
+  return machine_mask;
+}
+
+void initialize_function_pointers(uint64_t mask)
 {
   //if(false)
-  if(is_avx_supported())
+  if(is_avx_supported() && (mask & (1<< AVX_CUSTOM_IDX)))
   {
     cout << "Using AVX accelerated implementation of PairHMM\n";
     g_compute_full_prob_float = compute_full_prob_avxs<float>;
     g_compute_full_prob_double = compute_full_prob_avxd<double>;
   }
   else
-    if(is_sse42_supported())
+    if(is_sse42_supported() && (mask & (1<< SSE42_CUSTOM_IDX)))
     {
       cout << "Using SSE4.2 accelerated implementation of PairHMM\n";
       g_compute_full_prob_float = compute_full_prob_sses<float>;
