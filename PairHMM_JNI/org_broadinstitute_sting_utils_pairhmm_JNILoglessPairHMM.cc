@@ -79,7 +79,7 @@ Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadL
   assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
   assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
   assert(overallGCPArray && "OverallGCP array not initialized in JNI");
-  assert(readLength < MROWS);
+  //assert(readLength < MROWS);
 #endif
   testcase tc;
   tc.rslen = readLength;
@@ -167,7 +167,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     jbyte* haplotypeBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(haplotypeBasesGlobalRef, &is_copy);
 #ifdef ENABLE_ASSERTIONS
     assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
-    assert(env->GetArrayLength(haplotypeBasesGlobalRef) < MCOLS);
+    //assert(env->GetArrayLength(haplotypeBasesGlobalRef) < MCOLS);
 #endif
 #ifdef DEBUG0_1
     cout << "JNI haplotype length "<<env->GetArrayLength(haplotypeBasesGlobalRef)<<"\n";
@@ -240,7 +240,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
     assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
     assert(overallGCPArray && "overallGCP array not initialized in JNI");
-    assert(readLength < MROWS); 
+    //assert(readLength < MROWS); 
     assert(readLength == env->GetArrayLength(readQuals));
     assert(readLength == env->GetArrayLength(insertionGOP));
     assert(readLength == env->GetArrayLength(deletionGOP));

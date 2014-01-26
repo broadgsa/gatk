@@ -10,10 +10,10 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log = NULL)
 
 	Context<NUMBER> ctx;
 
-	NUMBER M[MROWS][MCOLS];
-	NUMBER X[MROWS][MCOLS];
-	NUMBER Y[MROWS][MCOLS];
-	NUMBER p[MROWS][6];
+	NUMBER M[ROWS][COLS];
+	NUMBER X[ROWS][COLS];
+	NUMBER Y[ROWS][COLS];
+	NUMBER p[ROWS][6];
 
 	p[0][MM] = ctx._(0.0);
 	p[0][GapM] = ctx._(0.0);

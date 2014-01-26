@@ -1,9 +1,9 @@
-#undef SIMD_TYPE
-#undef SIMD_TYPE_AVX
-#undef SIMD_TYPE_SSE
+#undef SIMD_ENGINE
+#undef SIMD_ENGINE_AVX
+#undef SIMD_ENGINE_SSE
 
-#define SIMD_TYPE avx
-#define SIMD_TYPE_AVX
+#define SIMD_ENGINE avx
+#define SIMD_ENGINE_AVX
 
 #include "define-float.h"
 #include "vector_function_prototypes.h"
@@ -11,11 +11,11 @@
 #include "define-double.h"
 #include "vector_function_prototypes.h"
 
-#undef  SIMD_TYPE
-#undef  SIMD_TYPE_AVX
+#undef  SIMD_ENGINE
+#undef  SIMD_ENGINE_AVX
 
-#define SIMD_TYPE sse
-#define SIMD_TYPE_SSE
+#define SIMD_ENGINE sse
+#define SIMD_ENGINE_SSE
 
 
 #include "define-sse-float.h"
@@ -24,7 +24,7 @@
 #include "define-sse-double.h"
 #include "vector_function_prototypes.h"
 
-#undef SIMD_TYPE
-#undef SIMD_TYPE_AVX
-#undef SIMD_TYPE_SSE
+#undef SIMD_ENGINE
+#undef SIMD_ENGINE_AVX
+#undef SIMD_ENGINE_SSE
 
