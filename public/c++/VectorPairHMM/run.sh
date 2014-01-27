@@ -8,7 +8,7 @@ then
 fi
 
 #-Djava.library.path is needed if you are using JNI_LOGLESS_CACHING, else not needed
-java  -Djava.library.path=${GSA_ROOT_DIR}/PairHMM_JNI/ -jar $GSA_ROOT_DIR/dist/GenomeAnalysisTK.jar   -T HaplotypeCaller \
+java  -Djava.library.path=${GSA_ROOT_DIR}/public/c++/VectorPairHMM -jar $GSA_ROOT_DIR/dist/GenomeAnalysisTK.jar   -T HaplotypeCaller \
 --dbsnp /data/broad/samples/joint_variant_calling/dbSNP/00-All.vcf \
 -R /opt/Genomics/ohsu/dnapipeline/humanrefgenome/human_g1k_v37.fasta \
 -I /data/simulated/sim1M_pairs_final.bam \
