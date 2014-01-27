@@ -141,8 +141,6 @@ public class PairHMMModel {
         dest[matchToDeletion] = QualityUtils.qualToErrorProb(delQual);
         dest[indelToMatch] = QualityUtils.qualToProb(gcp);
         dest[insertionToInsertion] = dest[deletionToDeletion] = QualityUtils.qualToErrorProb(gcp);
-
-        if (dest[matchToInsertion] + dest[matchToDeletion] > 1) throw new IllegalStateException("insError and delError cannot be such that the add to more than 1, insQual: " + insQual + " delQual: " + delQual);
     }
 
     /**
