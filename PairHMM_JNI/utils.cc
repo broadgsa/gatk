@@ -96,7 +96,7 @@ int read_testcase(testcase *tc, FILE* ifp)
 
 	tc->haplen = strlen(tc->hap);
 	tc->rslen = strlen(tc->rs);
-	assert(tc->rslen < MROWS);
+	//assert(tc->rslen < MROWS);
 	tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
 	tc->irs = (int *) malloc(tc->rslen*sizeof(int));
 
@@ -216,7 +216,7 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   //cout << "Lengths "<<tc->haplen <<" "<<tc->rslen<<"\n";
   memcpy(tc->rs, tokens[1].c_str(),tokens[1].size());
   assert(tokens.size() == 2 + 4*(tc->rslen));
-  assert(tc->rslen < MROWS);
+  //assert(tc->rslen < MROWS);
   for(unsigned j=0;j<tc->rslen;++j)
     tc->q[j] = (char)convToInt(tokens[2+0*tc->rslen+j]);
   for(unsigned j=0;j<tc->rslen;++j)

@@ -10,11 +10,11 @@
 #define MY 4
 #define YY 5
 
-#define MROWS  500
-#define MCOLS  1000
+//#define MROWS  500
+//#define MCOLS  1000
 
 #define CAT(X,Y) X####Y
-#define GEN_INTRINSIC(X,Y) CAT(X,Y)
+#define CONCAT(X,Y) CAT(X,Y)
 
 #define ALIGNED __attribute__((aligned(32)))
 

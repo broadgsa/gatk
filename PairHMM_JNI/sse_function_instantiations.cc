@@ -1,10 +1,10 @@
 #include "template.h"
 
-#undef SIMD_TYPE
-#undef SIMD_TYPE_AVX
+#undef SIMD_ENGINE
+#undef SIMD_ENGINE_AVX
 
-#define SIMD_TYPE sse
-#define SIMD_TYPE_SSE
+#define SIMD_ENGINE sse
+#define SIMD_ENGINE_SSE
 
 #include "define-sse-float.h"
 #include "shift_template.c"

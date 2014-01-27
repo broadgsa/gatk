@@ -4,435 +4,338 @@
 #include <assert.h>
 #include <stdlib.h>
 
-//#define DEBUG
-#define MUSTAFA
-#define KARTHIK
 
-/*
-template <class T>
-string getBinaryStr (T val, int numBitsToWrite) {
-  
-  ostringstream oss ;
-  uint64_t mask = ((T) 0x1) << (numBitsToWrite-1) ;
-  for (int i=numBitsToWrite-1; i >= 0; --i) {
-    oss << ((val & mask) >> i) ;
-    mask >>= 1 ;
-  }
-  return oss.str() ;
-}
-*/
-#ifdef MUSTAFA
+void CONCAT(CONCAT(precompute_masks_,SIMD_ENGINE), PRECISION)(const testcase& tc, int COLS, int numMaskVecs, MASK_TYPE (*maskArr)[NUM_DISTINCT_CHARS]) {
 
+    const int maskBitCnt = MAIN_TYPE_SIZE ;
 
-void GEN_INTRINSIC(GEN_INTRINSIC(precompute_masks_,SIMD_TYPE), PRECISION)(const testcase& tc, int COLS, int numMaskVecs, MASK_TYPE (*maskArr)[NUM_DISTINCT_CHARS]) {
-  
-  const int maskBitCnt = MAIN_TYPE_SIZE ;
-
-  for (int vi=0; vi < numMaskVecs; ++vi) {
-    for (int rs=0; rs < NUM_DISTINCT_CHARS; ++rs) {
-      maskArr[vi][rs] = 0 ;
+    for (int vi=0; vi < numMaskVecs; ++vi) {
+        for (int rs=0; rs < NUM_DISTINCT_CHARS; ++rs) {
+            maskArr[vi][rs] = 0 ;
+        }
+        maskArr[vi][AMBIG_CHAR] = MASK_ALL_ONES ;
     }
-    maskArr[vi][AMBIG_CHAR] = MASK_ALL_ONES ;
-  }
- 
-  for (int col=1; col < COLS; ++col) {
-    int mIndex = (col-1) / maskBitCnt ;
-    int mOffset = (col-1) % maskBitCnt ;
-    MASK_TYPE bitMask = ((MASK_TYPE)0x1) << (maskBitCnt-1-mOffset) ;
 
-    char hapChar = ConvertChar::get(tc.hap[col-1]);
+    for (int col=1; col < COLS; ++col) {
+        int mIndex = (col-1) / maskBitCnt ;
+        int mOffset = (col-1) % maskBitCnt ;
+        MASK_TYPE bitMask = ((MASK_TYPE)0x1) << (maskBitCnt-1-mOffset) ;
 
-    if (hapChar == AMBIG_CHAR) {
-      for (int ci=0; ci < NUM_DISTINCT_CHARS; ++ci) 
-	maskArr[mIndex][ci] |= bitMask ;
-    } 
+        char hapChar = ConvertChar::get(tc.hap[col-1]);
 
-    maskArr[mIndex][hapChar] |= bitMask ;
-    // bit corresponding to col 1 will be the MSB of the mask 0
-    // bit corresponding to col 2 will be the MSB-1 of the mask 0
-    // ...
-    // bit corresponding to col 32 will be the LSB of the mask 0
-    // bit corresponding to col 33 will be the MSB of the mask 1
-    // ...
-  }
+        if (hapChar == AMBIG_CHAR) {
+            for (int ci=0; ci < NUM_DISTINCT_CHARS; ++ci)
+                maskArr[mIndex][ci] |= bitMask ;
+        }
+
+        maskArr[mIndex][hapChar] |= bitMask ;
+        // bit corresponding to col 1 will be the MSB of the mask 0
+        // bit corresponding to col 2 will be the MSB-1 of the mask 0
+        // ...
+        // bit corresponding to col 32 will be the LSB of the mask 0
+        // bit corresponding to col 33 will be the MSB of the mask 1
+        // ...
+    }
 
 }
 
-void GEN_INTRINSIC(GEN_INTRINSIC(init_masks_for_row_,SIMD_TYPE), PRECISION)(const testcase& tc, char* rsArr, MASK_TYPE* lastMaskShiftOut, int beginRowIndex, int numRowsToProcess) {
+void CONCAT(CONCAT(init_masks_for_row_,SIMD_ENGINE), PRECISION)(const testcase& tc, char* rsArr, MASK_TYPE* lastMaskShiftOut, int beginRowIndex, int numRowsToProcess) {
 
-  for (int ri=0; ri < numRowsToProcess; ++ri) {
-    rsArr[ri] = ConvertChar::get(tc.rs[ri+beginRowIndex-1]) ;
-  }
+    for (int ri=0; ri < numRowsToProcess; ++ri) {
+        rsArr[ri] = ConvertChar::get(tc.rs[ri+beginRowIndex-1]) ;
+    }
 
-  for (int ei=0; ei < AVX_LENGTH; ++ei) {
-    lastMaskShiftOut[ei] = 0 ;
-  }
+    for (int ei=0; ei < AVX_LENGTH; ++ei) {
+        lastMaskShiftOut[ei] = 0 ;
+    }
 }
-
 
 #define SET_MASK_WORD(__dstMask, __srcMask, __lastShiftOut, __shiftBy, __maskBitCnt){ \
-  MASK_TYPE __bitMask = (((MASK_TYPE)0x1) << __shiftBy) - 1 ;			\
-  MASK_TYPE __nextShiftOut = (__srcMask & __bitMask) << (__maskBitCnt - __shiftBy) ; \
-  __dstMask = (__srcMask >> __shiftBy) | __lastShiftOut ;		\
-  __lastShiftOut = __nextShiftOut ;					\
+    MASK_TYPE __bitMask = (((MASK_TYPE)0x1) << __shiftBy) - 1 ;            \
+    MASK_TYPE __nextShiftOut = (__srcMask & __bitMask) << (__maskBitCnt - __shiftBy) ; \
+    __dstMask = (__srcMask >> __shiftBy) | __lastShiftOut ;        \
+    __lastShiftOut = __nextShiftOut ;                    \
 }
 
 
-void GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_, SIMD_TYPE), PRECISION)(int maskIndex, BITMASK_VEC& bitMaskVec, MASK_TYPE (*maskArr) [NUM_DISTINCT_CHARS], char* rsArr, MASK_TYPE* lastMaskShiftOut, int maskBitCnt) {
+void CONCAT(CONCAT(update_masks_for_cols_,SIMD_ENGINE), PRECISION)(int maskIndex, BITMASK_VEC& bitMaskVec, MASK_TYPE (*maskArr) [NUM_DISTINCT_CHARS], char* rsArr, MASK_TYPE* lastMaskShiftOut, int maskBitCnt) {
 
-  for (int ei=0; ei < AVX_LENGTH/2; ++ei) {
-    SET_MASK_WORD(bitMaskVec.getLowEntry(ei), maskArr[maskIndex][rsArr[ei]], 
-		  lastMaskShiftOut[ei], ei, maskBitCnt) ;
-    
-    int ei2 = ei + AVX_LENGTH/2 ; // the second entry index
-    SET_MASK_WORD(bitMaskVec.getHighEntry(ei), maskArr[maskIndex][rsArr[ei2]], 
-		  lastMaskShiftOut[ei2], ei2, maskBitCnt) ;
-  }
+    for (int ei=0; ei < AVX_LENGTH/2; ++ei) {
+        SET_MASK_WORD(bitMaskVec.getLowEntry(ei), maskArr[maskIndex][rsArr[ei]],
+                lastMaskShiftOut[ei], ei, maskBitCnt) ;
+
+        int ei2 = ei + AVX_LENGTH/2 ; // the second entry index
+        SET_MASK_WORD(bitMaskVec.getHighEntry(ei), maskArr[maskIndex][rsArr[ei2]],
+                lastMaskShiftOut[ei2], ei2, maskBitCnt) ;
+    }
 
 }
 
 
-//void GEN_INTRINSIC(computeDistVec, PRECISION) (BITMASK_VEC& bitMaskVec, _256_TYPE& distm, _256_TYPE& _1_distm, _256_TYPE& distmChosen, const _256_TYPE& distmSel, int firstRowIndex, int lastRowIndex) {
+inline void CONCAT(CONCAT(computeDistVec,SIMD_ENGINE), PRECISION) (BITMASK_VEC& bitMaskVec, SIMD_TYPE& distm, SIMD_TYPE& _1_distm, SIMD_TYPE& distmChosen) {
 
-inline void GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (BITMASK_VEC& bitMaskVec, _256_TYPE& distm, _256_TYPE& _1_distm, _256_TYPE& distmChosen) {
-  //#define computeDistVec() {					      
+    distmChosen = VEC_BLENDV(distm, _1_distm, bitMaskVec.getCombinedMask()) ;
 
-#ifdef DEBUGG
-        long long *temp1 = (long long *)(&maskV);
-        double *temp2 = (double *)(&distm);
-        double *temp3 = (double *)(&_1_distm);
-        printf("***\n%lx\n%lx\n%f\n%f\n%f\n%f\n***\n", temp1[0], temp1[1], temp2[0], temp2[1], temp3[0], temp3[1]);
-#endif
+    bitMaskVec.shift_left_1bit() ;
+}
 
-  distmChosen = VEC_BLENDV(distm, _1_distm, bitMaskVec.getCombinedMask()) ;
-
-  /*COMPARE_VECS(distmChosen, distmSel, firstRowIndex, lastRowIndex) ;*/
-
-  bitMaskVec.shift_left_1bit() ;
-}								     
-
-
-/*
-template<class NUMBER>
-struct HmmData {
-  int ROWS ;
-  int COLS ;
-  
-  NUMBER shiftOutM[MROWS+MCOLS+AVX_LENGTH], shiftOutX[MROWS+MCOLS+AVX_LENGTH], shiftOutY[MROWS+MCOLS+AVX_LENGTH] ;
-  Context<NUMBER> ctx ;
-  testcase* tc ;
-  _256_TYPE p_MM[MAVX_COUNT], p_GAPM[MAVX_COUNT], p_MX[MAVX_COUNT], p_XX[MAVX_COUNT], p_MY[MAVX_COUNT], p_YY[MAVX_COUNT], distm1D[MAVX_COUNT] ;
-  _256_TYPE pGAPM, pMM, pMX, pXX, pMY, pYY ;
-
-  UNION_TYPE M_t, M_t_1, M_t_2, X_t, X_t_1, X_t_2, Y_t, Y_t_1, Y_t_2, M_t_y, M_t_1_y ;
-  UNION_TYPE rs , rsN ;
-  _256_TYPE distmSel;
-  _256_TYPE distm, _1_distm;
-
-} ;
-*/
-#endif // MUSTAFA
-
-template<class NUMBER> void GEN_INTRINSIC(GEN_INTRINSIC(initializeVectors, SIMD_TYPE), PRECISION)(int ROWS, int COLS, NUMBER* shiftOutM, NUMBER *shiftOutX, NUMBER *shiftOutY, Context<NUMBER> ctx, testcase *tc,  _256_TYPE *p_MM, _256_TYPE *p_GAPM, _256_TYPE *p_MX, _256_TYPE *p_XX, _256_TYPE *p_MY, _256_TYPE *p_YY, _256_TYPE *distm1D)
+template<class NUMBER> void CONCAT(CONCAT(initializeVectors,SIMD_ENGINE), PRECISION)(int ROWS, int COLS, NUMBER* shiftOutM, NUMBER *shiftOutX, NUMBER *shiftOutY, Context<NUMBER> ctx, testcase *tc,  SIMD_TYPE *p_MM, SIMD_TYPE *p_GAPM, SIMD_TYPE *p_MX, SIMD_TYPE *p_XX, SIMD_TYPE *p_MY, SIMD_TYPE *p_YY, SIMD_TYPE *distm1D)
 {
-	NUMBER zero = ctx._(0.0);
-        NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
-        for (int s=0;s<ROWS+COLS+AVX_LENGTH;s++)
+    NUMBER zero = ctx._(0.0);
+    NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
+    for (int s=0;s<ROWS+COLS+AVX_LENGTH;s++)
+    {
+        shiftOutM[s] = zero;
+        shiftOutX[s] = zero;
+        shiftOutY[s] = init_Y;
+    }
+
+    NUMBER *ptr_p_MM = (NUMBER *)p_MM;
+    NUMBER *ptr_p_XX = (NUMBER *)p_XX;
+    NUMBER *ptr_p_YY = (NUMBER *)p_YY;
+    NUMBER *ptr_p_MX = (NUMBER *)p_MX;
+    NUMBER *ptr_p_MY = (NUMBER *)p_MY;
+    NUMBER *ptr_p_GAPM = (NUMBER *)p_GAPM;
+
+    *ptr_p_MM = ctx._(0.0);
+    *ptr_p_XX = ctx._(0.0);
+    *ptr_p_YY = ctx._(0.0);
+    *ptr_p_MX = ctx._(0.0);
+    *ptr_p_MY = ctx._(0.0);
+    *ptr_p_GAPM = ctx._(0.0);
+
+    for (int r = 1; r < ROWS; r++)
+    {
+        int _i = tc->i[r-1] & 127;
+        int _d = tc->d[r-1] & 127;
+        int _c = tc->c[r-1] & 127;
+
+        *(ptr_p_MM+r-1) = ctx._(1.0) - ctx.ph2pr[(_i + _d) & 127];
+        *(ptr_p_GAPM+r-1) = ctx._(1.0) - ctx.ph2pr[_c];
+        *(ptr_p_MX+r-1) = ctx.ph2pr[_i];
+        *(ptr_p_XX+r-1) = ctx.ph2pr[_c];
+        *(ptr_p_MY+r-1) = ctx.ph2pr[_d];
+        *(ptr_p_YY+r-1) = ctx.ph2pr[_c];
+    }
+
+    NUMBER *ptr_distm1D = (NUMBER *)distm1D;
+    for (int r = 1; r < ROWS; r++)
+    {
+        int _q = tc->q[r-1] & 127;
+        ptr_distm1D[r-1] = ctx.ph2pr[_q];
+    }
+}
+
+
+template<class NUMBER> inline void CONCAT(CONCAT(stripeINITIALIZATION,SIMD_ENGINE), PRECISION)(
+        int stripeIdx, Context<NUMBER> ctx, testcase *tc, SIMD_TYPE &pGAPM, SIMD_TYPE &pMM, SIMD_TYPE &pMX, SIMD_TYPE &pXX, SIMD_TYPE &pMY, SIMD_TYPE &pYY,
+        SIMD_TYPE &rs, UNION_TYPE &rsN, SIMD_TYPE &distm, SIMD_TYPE &_1_distm,  SIMD_TYPE *distm1D, SIMD_TYPE N_packed256, SIMD_TYPE *p_MM , SIMD_TYPE *p_GAPM ,
+        SIMD_TYPE *p_MX, SIMD_TYPE *p_XX , SIMD_TYPE *p_MY, SIMD_TYPE *p_YY, UNION_TYPE &M_t_2, UNION_TYPE &X_t_2, UNION_TYPE &M_t_1, UNION_TYPE &X_t_1,
+        UNION_TYPE &Y_t_2, UNION_TYPE &Y_t_1, UNION_TYPE &M_t_1_y, NUMBER* shiftOutX, NUMBER* shiftOutM)
+{
+    int i = stripeIdx;
+    pGAPM = p_GAPM[i];
+    pMM   = p_MM[i];
+    pMX   = p_MX[i];
+    pXX   = p_XX[i];
+    pMY   = p_MY[i];
+    pYY   = p_YY[i];
+
+    NUMBER zero = ctx._(0.0);
+    NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
+    UNION_TYPE packed1;  packed1.d = VEC_SET1_VAL(1.0);
+    UNION_TYPE packed3;  packed3.d = VEC_SET1_VAL(3.0);
+
+    distm = distm1D[i];
+    _1_distm = VEC_SUB(packed1.d, distm);
+
+    distm = VEC_DIV(distm, packed3.d);
+
+    /* initialize M_t_2, M_t_1, X_t_2, X_t_1, Y_t_2, Y_t_1 */
+    M_t_2.d = VEC_SET1_VAL(zero);
+    X_t_2.d = VEC_SET1_VAL(zero);
+
+    if (i==0) {
+        M_t_1.d = VEC_SET1_VAL(zero);
+        X_t_1.d = VEC_SET1_VAL(zero);
+        Y_t_2.d = VEC_SET_LSE(init_Y);
+        Y_t_1.d = VEC_SET1_VAL(zero);
+    }
+    else {
+        X_t_1.d = VEC_SET_LSE(shiftOutX[AVX_LENGTH]);
+        M_t_1.d = VEC_SET_LSE(shiftOutM[AVX_LENGTH]);
+        Y_t_2.d = VEC_SET1_VAL(zero);
+        Y_t_1.d = VEC_SET1_VAL(zero);
+    }
+    M_t_1_y = M_t_1;
+}
+
+inline SIMD_TYPE CONCAT(CONCAT(computeDISTM,SIMD_ENGINE), PRECISION)(int d, int COLS, testcase * tc, HAP_TYPE &hap, SIMD_TYPE rs, UNION_TYPE rsN, SIMD_TYPE N_packed256,
+        SIMD_TYPE distm, SIMD_TYPE _1_distm)
+{
+    UNION_TYPE hapN, rshap;
+    SIMD_TYPE  cond;
+    IF_32 shiftInHap;
+
+    int *hap_ptr = tc->ihap;
+
+    shiftInHap.i = (d<COLS) ? hap_ptr[d-1] : hap_ptr[COLS-1];
+
+    /* shift hap */
+    SHIFT_HAP(hap, shiftInHap);
+    SIMD_TYPE hapF = VEC_CVT_128_256(hap);
+
+    rshap.d = VEC_CMP_EQ(rs, hapF);
+    hapN.d  = VEC_CMP_EQ(N_packed256, hapF);
+
+    /* OR rsN, rshap, hapN */
+    cond =  VEC_OR(rsN.d, rshap.d);
+    cond =  VEC_OR(cond, hapN.d);
+
+    /* distm1D = (cond) ? 1-distm1D : distm1D;  */
+    SIMD_TYPE distmSel = VEC_BLENDV(distm, _1_distm, cond);
+
+    return distmSel;
+}
+
+
+inline void CONCAT(CONCAT(computeMXY,SIMD_ENGINE), PRECISION)(UNION_TYPE &M_t, UNION_TYPE &X_t, UNION_TYPE &Y_t, UNION_TYPE &M_t_y,
+        UNION_TYPE M_t_2, UNION_TYPE X_t_2, UNION_TYPE Y_t_2, UNION_TYPE M_t_1, UNION_TYPE X_t_1, UNION_TYPE M_t_1_y, UNION_TYPE Y_t_1,
+        SIMD_TYPE pMM, SIMD_TYPE pGAPM, SIMD_TYPE pMX, SIMD_TYPE pXX, SIMD_TYPE pMY, SIMD_TYPE pYY, SIMD_TYPE distmSel)
+{
+    /* Compute M_t <= distm * (p_MM*M_t_2 + p_GAPM*X_t_2 + p_GAPM*Y_t_2) */
+    M_t.d = VEC_MUL(VEC_ADD(VEC_ADD(VEC_MUL(M_t_2.d, pMM), VEC_MUL(X_t_2.d, pGAPM)), VEC_MUL(Y_t_2.d, pGAPM)), distmSel);
+
+    M_t_y = M_t;
+
+    /* Compute X_t */
+    X_t.d = VEC_ADD(VEC_MUL(M_t_1.d, pMX) , VEC_MUL(X_t_1.d, pXX));
+
+    /* Compute Y_t */
+    Y_t.d = VEC_ADD(VEC_MUL(M_t_1_y.d, pMY) , VEC_MUL(Y_t_1.d, pYY));
+}
+
+template<class NUMBER> NUMBER CONCAT(CONCAT(compute_full_prob_,SIMD_ENGINE), PRECISION) (testcase *tc, NUMBER *before_last_log = NULL)
+{
+    int ROWS = tc->rslen + 1;
+    int COLS = tc->haplen + 1;
+    int MAVX_COUNT = (ROWS+AVX_LENGTH-1)/AVX_LENGTH;
+
+    SIMD_TYPE p_MM   [MAVX_COUNT], p_GAPM [MAVX_COUNT], p_MX   [MAVX_COUNT];
+    SIMD_TYPE p_XX   [MAVX_COUNT], p_MY   [MAVX_COUNT], p_YY   [MAVX_COUNT];
+    SIMD_TYPE distm1D[MAVX_COUNT];
+    NUMBER shiftOutM[ROWS+COLS+AVX_LENGTH], shiftOutX[ROWS+COLS+AVX_LENGTH], shiftOutY[ROWS+COLS+AVX_LENGTH];
+    UNION_TYPE  M_t, M_t_1, M_t_2, X_t, X_t_1, X_t_2, Y_t, Y_t_1, Y_t_2, M_t_y, M_t_1_y;
+    SIMD_TYPE pGAPM, pMM, pMX, pXX, pMY, pYY;
+
+    struct timeval start, end;
+    NUMBER result_avx2;
+    Context<NUMBER> ctx;
+    UNION_TYPE rs , rsN;
+    HAP_TYPE hap;
+    SIMD_TYPE distmSel, distmChosen ;
+    SIMD_TYPE distm, _1_distm;
+
+    int r, c;
+    NUMBER zero = ctx._(0.0);
+    UNION_TYPE packed1;  packed1.d = VEC_SET1_VAL(1.0);
+    SIMD_TYPE N_packed256 = VEC_POPCVT_CHAR('N');
+    NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
+    int remainingRows = (ROWS-1) % AVX_LENGTH;
+    int stripe_cnt = ((ROWS-1) / AVX_LENGTH) + (remainingRows!=0);
+
+    const int maskBitCnt = MAIN_TYPE_SIZE ;
+    const int numMaskVecs = (COLS+ROWS+maskBitCnt-1)/maskBitCnt ; // ceil function
+
+    MASK_TYPE maskArr[numMaskVecs][NUM_DISTINCT_CHARS] ;
+    CONCAT(CONCAT(precompute_masks_,SIMD_ENGINE), PRECISION)(*tc, COLS, numMaskVecs, maskArr) ;
+
+    char rsArr[AVX_LENGTH] ;
+    MASK_TYPE lastMaskShiftOut[AVX_LENGTH] ;
+    CONCAT(CONCAT(initializeVectors,SIMD_ENGINE), PRECISION)<NUMBER>(ROWS, COLS, shiftOutM, shiftOutX, shiftOutY,
+            ctx, tc, p_MM, p_GAPM, p_MX, p_XX, p_MY, p_YY, distm1D);
+
+    for (int i=0;i<stripe_cnt-1;i++)
+    {
+        //STRIPE_INITIALIZATION
+        CONCAT(CONCAT(stripeINITIALIZATION,SIMD_ENGINE), PRECISION)(i, ctx, tc, pGAPM, pMM, pMX, pXX, pMY, pYY, rs.d, rsN, distm, _1_distm, distm1D, N_packed256, p_MM , p_GAPM ,
+                p_MX, p_XX , p_MY, p_YY, M_t_2, X_t_2, M_t_1, X_t_1, Y_t_2, Y_t_1, M_t_1_y, shiftOutX, shiftOutM);
+        CONCAT(CONCAT(init_masks_for_row_,SIMD_ENGINE), PRECISION)(*tc, rsArr, lastMaskShiftOut, i*AVX_LENGTH+1, AVX_LENGTH) ;
+        // Since there are no shift intrinsics in AVX, keep the masks in 2 SSE vectors
+
+        BITMASK_VEC bitMaskVec ;
+
+        for (int begin_d=1;begin_d<COLS+AVX_LENGTH;begin_d+=MAIN_TYPE_SIZE)
         {
-                shiftOutM[s] = zero;
-                shiftOutX[s] = zero;
-                shiftOutY[s] = init_Y;
+            int numMaskBitsToProcess = std::min(MAIN_TYPE_SIZE, COLS+AVX_LENGTH-begin_d) ;
+            CONCAT(CONCAT(update_masks_for_cols_,SIMD_ENGINE), PRECISION)((begin_d-1)/MAIN_TYPE_SIZE, bitMaskVec, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;
+
+            for (int mbi=0; mbi < numMaskBitsToProcess; ++mbi) {
+                CONCAT(CONCAT(computeDistVec,SIMD_ENGINE), PRECISION) (bitMaskVec, distm, _1_distm, distmChosen) ;
+                int ShiftIdx = begin_d + mbi + AVX_LENGTH;
+
+                CONCAT(CONCAT(computeMXY,SIMD_ENGINE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1,
+                        pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
+
+                CONCAT(CONCAT(_vector_shift,SIMD_ENGINE), PRECISION)(M_t, shiftOutM[ShiftIdx], shiftOutM[begin_d+mbi]);
+
+                CONCAT(CONCAT(_vector_shift,SIMD_ENGINE), PRECISION)(X_t, shiftOutX[ShiftIdx], shiftOutX[begin_d+mbi]);
+
+                CONCAT(CONCAT(_vector_shift,SIMD_ENGINE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx], shiftOutY[begin_d+mbi]);
+
+                M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
+                Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
+            }
         }
+    }
 
-        NUMBER *ptr_p_MM = (NUMBER *)p_MM;
-        NUMBER *ptr_p_XX = (NUMBER *)p_XX;
-        NUMBER *ptr_p_YY = (NUMBER *)p_YY;
-        NUMBER *ptr_p_MX = (NUMBER *)p_MX;
-        NUMBER *ptr_p_MY = (NUMBER *)p_MY;
-        NUMBER *ptr_p_GAPM = (NUMBER *)p_GAPM;
+    int i = stripe_cnt-1;
+    {
+        //STRIPE_INITIALIZATION
+        CONCAT(CONCAT(stripeINITIALIZATION,SIMD_ENGINE), PRECISION)(i, ctx, tc, pGAPM, pMM, pMX, pXX, pMY, pYY, rs.d, rsN, distm, _1_distm, distm1D, N_packed256, p_MM , p_GAPM ,
+                p_MX, p_XX , p_MY, p_YY, M_t_2, X_t_2, M_t_1, X_t_1, Y_t_2, Y_t_1, M_t_1_y, shiftOutX, shiftOutM);
 
-        *ptr_p_MM = ctx._(0.0);
-        *ptr_p_XX = ctx._(0.0);
-        *ptr_p_YY = ctx._(0.0);
-        *ptr_p_MX = ctx._(0.0);
-        *ptr_p_MY = ctx._(0.0);
-        *ptr_p_GAPM = ctx._(0.0);
+        if (remainingRows==0) remainingRows=AVX_LENGTH;
+        CONCAT(CONCAT(init_masks_for_row_,SIMD_ENGINE), PRECISION)(*tc, rsArr, lastMaskShiftOut, i*AVX_LENGTH+1, remainingRows) ;
 
+        SIMD_TYPE sumM, sumX;
+        sumM = VEC_SET1_VAL(zero);
+        sumX = VEC_SET1_VAL(zero);
 
-        for (int r = 1; r < ROWS; r++)
+        // Since there are no shift intrinsics in AVX, keep the masks in 2 SSE vectors
+        BITMASK_VEC bitMaskVec ;
+
+        for (int begin_d=1;begin_d<COLS+remainingRows-1;begin_d+=MAIN_TYPE_SIZE)
         {
-                int _i = tc->i[r-1] & 127;
-                int _d = tc->d[r-1] & 127;
-                int _c = tc->c[r-1] & 127;
+            int numMaskBitsToProcess = std::min(MAIN_TYPE_SIZE, COLS+remainingRows-1-begin_d) ;
+            CONCAT(CONCAT(update_masks_for_cols_,SIMD_ENGINE),PRECISION)((begin_d-1)/MAIN_TYPE_SIZE, bitMaskVec, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;
 
-                *(ptr_p_MM+r-1) = ctx._(1.0) - ctx.ph2pr[(_i + _d) & 127];
-                *(ptr_p_GAPM+r-1) = ctx._(1.0) - ctx.ph2pr[_c];
-                *(ptr_p_MX+r-1) = ctx.ph2pr[_i];
-                *(ptr_p_XX+r-1) = ctx.ph2pr[_c];
-		#ifdef KARTHIK
-	                *(ptr_p_MY+r-1) = ctx.ph2pr[_d];
-        	        *(ptr_p_YY+r-1) = ctx.ph2pr[_c];			
-		#else
- 	               *(ptr_p_MY+r-1) = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_d];
-        	       *(ptr_p_YY+r-1) = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_c];
-		#endif
-	
+            for (int mbi=0; mbi < numMaskBitsToProcess; ++mbi) {
+
+                CONCAT(CONCAT(computeDistVec,SIMD_ENGINE), PRECISION) (bitMaskVec, distm, _1_distm, distmChosen) ;
+                int ShiftIdx = begin_d + mbi +AVX_LENGTH;
+
+                CONCAT(CONCAT(computeMXY,SIMD_ENGINE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1,
+                        pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
+
+                sumM  = VEC_ADD(sumM, M_t.d);
+                CONCAT(CONCAT(_vector_shift_last,SIMD_ENGINE), PRECISION)(M_t, shiftOutM[ShiftIdx]);
+
+                sumX  = VEC_ADD(sumX, X_t.d);
+                CONCAT(CONCAT(_vector_shift_last,SIMD_ENGINE), PRECISION)(X_t, shiftOutX[ShiftIdx]);
+
+                CONCAT(CONCAT(_vector_shift_last,SIMD_ENGINE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx]);
+
+                M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
+                Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
+
+            }
         }
-
-        NUMBER *ptr_distm1D = (NUMBER *)distm1D;
-        for (int r = 1; r < ROWS; r++)
-        {
-                int _q = tc->q[r-1] & 127;
-                ptr_distm1D[r-1] = ctx.ph2pr[_q];
-        }
-}
-
-
-template<class NUMBER> inline void GEN_INTRINSIC(GEN_INTRINSIC(stripINITIALIZATION, SIMD_TYPE), PRECISION)(
-			int stripIdx, Context<NUMBER> ctx, testcase *tc, _256_TYPE &pGAPM, _256_TYPE &pMM, _256_TYPE &pMX, _256_TYPE &pXX, _256_TYPE &pMY, _256_TYPE &pYY,
-			_256_TYPE &rs, UNION_TYPE &rsN, _256_TYPE &distm, _256_TYPE &_1_distm,  _256_TYPE *distm1D, _256_TYPE N_packed256, _256_TYPE *p_MM , _256_TYPE *p_GAPM , 
-			_256_TYPE *p_MX, _256_TYPE *p_XX , _256_TYPE *p_MY, _256_TYPE *p_YY, UNION_TYPE &M_t_2, UNION_TYPE &X_t_2, UNION_TYPE &M_t_1, UNION_TYPE &X_t_1, 
-			UNION_TYPE &Y_t_2, UNION_TYPE &Y_t_1, UNION_TYPE &M_t_1_y, NUMBER* shiftOutX, NUMBER* shiftOutM)	 
-{
-	int i = stripIdx;
-        pGAPM = p_GAPM[i];                                               
-        pMM   = p_MM[i];                                                 
-        pMX   = p_MX[i];                                                 
-        pXX   = p_XX[i];                                                 
-        pMY   = p_MY[i];                                                 
-        pYY   = p_YY[i];               
-
-	NUMBER zero = ctx._(0.0);        
-	NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
-	UNION_TYPE packed1;  packed1.d = VEC_SET1_VAL(1.0);
-	UNION_TYPE packed3;  packed3.d = VEC_SET1_VAL(3.0);	
-        /* compare rs and N */                                           
-#ifndef MUSTAFA
-        rs = VEC_LDPOPCVT_CHAR((tc->irs+i*AVX_LENGTH));        
-        rsN.d = VEC_CMP_EQ(N_packed256, rs);                             
-#endif                                                                         
-        distm = distm1D[i];                                    
-        _1_distm = VEC_SUB(packed1.d, distm);                  
-
-	#ifdef KARTHIK
-		distm = VEC_DIV(distm, packed3.d);
-	#endif                                                                         
-        /* initialize M_t_2, M_t_1, X_t_2, X_t_1, Y_t_2, Y_t_1 */        
-        M_t_2.d = VEC_SET1_VAL(zero);                                    
-        X_t_2.d = VEC_SET1_VAL(zero);                                    
-                                                                         
-        if (i==0) {                                                      
-                M_t_1.d = VEC_SET1_VAL(zero);                            
-                X_t_1.d = VEC_SET1_VAL(zero);                            
-                Y_t_2.d = VEC_SET_LSE(init_Y);                           
-                Y_t_1.d = VEC_SET1_VAL(zero);                            
-        }                                                                
-        else {                                                           
-                X_t_1.d = VEC_SET_LSE(shiftOutX[AVX_LENGTH]);            
-                M_t_1.d = VEC_SET_LSE(shiftOutM[AVX_LENGTH]);            
-                Y_t_2.d = VEC_SET1_VAL(zero);                            
-                Y_t_1.d = VEC_SET1_VAL(zero);                            
-        }                                                                
-        M_t_1_y = M_t_1;
-}        
-
-
-
-inline _256_TYPE GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM, SIMD_TYPE), PRECISION)(int d, int COLS, testcase * tc, HAP_TYPE &hap, _256_TYPE rs, UNION_TYPE rsN, _256_TYPE N_packed256, 
-						_256_TYPE distm, _256_TYPE _1_distm)
-{
-        UNION_TYPE hapN, rshap;
-        _256_TYPE  cond;
-	IF_32 shiftInHap;
-
-	int *hap_ptr = tc->ihap;
-
-        shiftInHap.i = (d<COLS) ? hap_ptr[d-1] : hap_ptr[COLS-1];              
-
-        /* shift hap */                                                        
-        SHIFT_HAP(hap, shiftInHap);                                            
-        _256_TYPE hapF = VEC_CVT_128_256(hap);                                 
-
-        rshap.d = VEC_CMP_EQ(rs, hapF);                                        
-        hapN.d  = VEC_CMP_EQ(N_packed256, hapF);                               
-
-        /* OR rsN, rshap, hapN */                                              
-        cond =  VEC_OR(rsN.d, rshap.d);                                        
-        cond =  VEC_OR(cond, hapN.d);                                          
-        
-        /* distm1D = (cond) ? 1-distm1D : distm1D;  */                         
-        _256_TYPE distmSel = VEC_BLENDV(distm, _1_distm, cond);
-        
-        return distmSel;
-}        
-
-
-inline void GEN_INTRINSIC(GEN_INTRINSIC(computeMXY, SIMD_TYPE), PRECISION)(UNION_TYPE &M_t, UNION_TYPE &X_t, UNION_TYPE &Y_t, UNION_TYPE &M_t_y, 
-			UNION_TYPE M_t_2, UNION_TYPE X_t_2, UNION_TYPE Y_t_2, UNION_TYPE M_t_1, UNION_TYPE X_t_1, UNION_TYPE M_t_1_y, UNION_TYPE Y_t_1, 
-			_256_TYPE pMM, _256_TYPE pGAPM, _256_TYPE pMX, _256_TYPE pXX, _256_TYPE pMY, _256_TYPE pYY, _256_TYPE distmSel)
-{
-	/* Compute M_t <= distm * (p_MM*M_t_2 + p_GAPM*X_t_2 + p_GAPM*Y_t_2) */
-	M_t.d = VEC_MUL(VEC_ADD(VEC_ADD(VEC_MUL(M_t_2.d, pMM), VEC_MUL(X_t_2.d, pGAPM)), VEC_MUL(Y_t_2.d, pGAPM)), distmSel);
-
-#ifdef DEBUG
-	double *temp1 = (double *)(&pGAPM);
-	double *temp2 = (double *)(&pMM);
-	double *temp3 = (double *)(&distmSel);
-	printf("%f\n%f\n%f\n%f\n%f\n%f\n", temp1[0], temp1[1], temp2[0], temp2[1], temp3[0], temp3[1]);
-	//printf("%f\n%f\n%f\n%f\n", X_t_2.f[0], X_t_2.f[1], Y_t_2.f[0], Y_t_2.f[1]);
-	printf("%f\n%f\n----------------------------------------------------------------------------\n", M_t.f[0], M_t.f[1]);
-#endif
-	M_t_y = M_t;
-
-	/* Compute X_t */
-	X_t.d = VEC_ADD(VEC_MUL(M_t_1.d, pMX) , VEC_MUL(X_t_1.d, pXX));
-
-	/* Compute Y_t */
-	Y_t.d = VEC_ADD(VEC_MUL(M_t_1_y.d, pMY) , VEC_MUL(Y_t_1.d, pYY));
-}
-
-template<class NUMBER> NUMBER GEN_INTRINSIC(GEN_INTRINSIC(compute_full_prob_,SIMD_TYPE), PRECISION) (testcase *tc, NUMBER *before_last_log = NULL)
-{
-        _256_TYPE p_MM   [MAVX_COUNT], p_GAPM [MAVX_COUNT], p_MX   [MAVX_COUNT];
-	_256_TYPE p_XX   [MAVX_COUNT], p_MY   [MAVX_COUNT], p_YY   [MAVX_COUNT];
-	_256_TYPE distm1D[MAVX_COUNT];
-	NUMBER shiftOutM[MROWS+MCOLS+AVX_LENGTH], shiftOutX[MROWS+MCOLS+AVX_LENGTH], shiftOutY[MROWS+MCOLS+AVX_LENGTH];
-	UNION_TYPE  M_t, M_t_1, M_t_2, X_t, X_t_1, X_t_2, Y_t, Y_t_1, Y_t_2, M_t_y, M_t_1_y;
-	_256_TYPE pGAPM, pMM, pMX, pXX, pMY, pYY;
-
-        struct timeval start, end;
-        NUMBER result_avx2;
-        Context<NUMBER> ctx;
-        UNION_TYPE rs , rsN;
-        HAP_TYPE hap;
-        _256_TYPE distmSel, distmChosen ;
-	_256_TYPE distm, _1_distm;
-
-        int r, c;
-        int ROWS = tc->rslen + 1;
-        int COLS = tc->haplen + 1;
-        int AVX_COUNT = (ROWS+7)/8;
-        NUMBER zero = ctx._(0.0);
-        UNION_TYPE packed1;  packed1.d = VEC_SET1_VAL(1.0);
-	_256_TYPE N_packed256 = VEC_POPCVT_CHAR('N');
-        NUMBER init_Y = ctx.INITIAL_CONSTANT / (tc->haplen);
-        int remainingRows = (ROWS-1) % AVX_LENGTH;
-        int strip_cnt = ((ROWS-1) / AVX_LENGTH) + (remainingRows!=0);
-
-#ifdef MUSTAFA
-	const int maskBitCnt = MAIN_TYPE_SIZE ;
-	const int numMaskVecs = (COLS+ROWS+maskBitCnt-1)/maskBitCnt ; // ceil function
-
-	MASK_TYPE maskArr[numMaskVecs][NUM_DISTINCT_CHARS] ;
-	GEN_INTRINSIC(GEN_INTRINSIC(precompute_masks_,SIMD_TYPE), PRECISION)(*tc, COLS, numMaskVecs, maskArr) ;
-
-	char rsArr[AVX_LENGTH] ;
-	MASK_TYPE lastMaskShiftOut[AVX_LENGTH] ;
-#endif
-	GEN_INTRINSIC(GEN_INTRINSIC(initializeVectors,SIMD_TYPE), PRECISION)<NUMBER>(ROWS, COLS, shiftOutM, shiftOutX, shiftOutY, 
-							    ctx, tc, p_MM, p_GAPM, p_MX, p_XX, p_MY, p_YY, distm1D);
-
-	//for (int __ii=0; __ii < 10; ++__ii)
-        for (int i=0;i<strip_cnt-1;i++)
-        {
-		//STRIP_INITIALIZATION
-		GEN_INTRINSIC(GEN_INTRINSIC(stripINITIALIZATION,SIMD_TYPE), PRECISION)(i, ctx, tc, pGAPM, pMM, pMX, pXX, pMY, pYY, rs.d, rsN, distm, _1_distm, distm1D, N_packed256, p_MM , p_GAPM ,
-							      p_MX, p_XX , p_MY, p_YY, M_t_2, X_t_2, M_t_1, X_t_1, Y_t_2, Y_t_1, M_t_1_y, shiftOutX, shiftOutM);
-#ifdef MUSTAFA
-		GEN_INTRINSIC(GEN_INTRINSIC(init_masks_for_row_,SIMD_TYPE), PRECISION)(*tc, rsArr, lastMaskShiftOut, i*AVX_LENGTH+1, AVX_LENGTH) ;
-#endif
-		// Since there are no shift intrinsics in AVX, keep the masks in 2 SSE vectors
-
-		BITMASK_VEC bitMaskVec ;
-
-                for (int begin_d=1;begin_d<COLS+AVX_LENGTH;begin_d+=MAIN_TYPE_SIZE)
-                {
-		  int numMaskBitsToProcess = std::min(MAIN_TYPE_SIZE, COLS+AVX_LENGTH-begin_d) ;
-#ifdef MUSTAFA
-		  GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_,SIMD_TYPE), PRECISION)((begin_d-1)/MAIN_TYPE_SIZE, bitMaskVec, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;		  
-#endif
-
-		  //		        if (d % MAIN_TYPE_SIZE == 1)
-		  
-		  for (int mbi=0; mbi < numMaskBitsToProcess; ++mbi) {
-#ifdef MUSTAFA
-		    GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec,SIMD_TYPE), PRECISION) (bitMaskVec, distm, _1_distm, distmChosen) ;
-#else
-		    distmChosen = GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM,SIMD_TYPE), PRECISION)(begin_d+mbi, COLS, tc, hap, rs.d, rsN, N_packed256, distm, _1_distm);
-#endif
-		    int ShiftIdx = begin_d + mbi + AVX_LENGTH;
-
-		    GEN_INTRINSIC(GEN_INTRINSIC(computeMXY,SIMD_TYPE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1, 
-								pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
-
-		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(M_t, shiftOutM[ShiftIdx], shiftOutM[begin_d+mbi]);
-		    
-		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(X_t, shiftOutX[ShiftIdx], shiftOutX[begin_d+mbi]);
-
-		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift, SIMD_TYPE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx], shiftOutY[begin_d+mbi]);
-
-		    M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
-		    Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
-		  }
-		}
-	}
-	
-        int i = strip_cnt-1;
-        {
-		//STRIP_INITIALIZATION
-		GEN_INTRINSIC(GEN_INTRINSIC(stripINITIALIZATION,SIMD_TYPE), PRECISION)(i, ctx, tc, pGAPM, pMM, pMX, pXX, pMY, pYY, rs.d, rsN, distm, _1_distm, distm1D, N_packed256, p_MM , p_GAPM ,
-                        p_MX, p_XX , p_MY, p_YY, M_t_2, X_t_2, M_t_1, X_t_1, Y_t_2, Y_t_1, M_t_1_y, shiftOutX, shiftOutM);
-
-                if (remainingRows==0) remainingRows=AVX_LENGTH;
-#ifdef MUSTAFA
-		GEN_INTRINSIC(GEN_INTRINSIC(init_masks_for_row_,SIMD_TYPE), PRECISION)(*tc, rsArr, lastMaskShiftOut, i*AVX_LENGTH+1, remainingRows) ;
-#endif
-                _256_TYPE sumM, sumX;
-                sumM = VEC_SET1_VAL(zero);
-                sumX = VEC_SET1_VAL(zero);
-
-		// Since there are no shift intrinsics in AVX, keep the masks in 2 SSE vectors
-		BITMASK_VEC bitMaskVec ;
-
-                for (int begin_d=1;begin_d<COLS+remainingRows-1;begin_d+=MAIN_TYPE_SIZE)
-                {
-
-		  int numMaskBitsToProcess = std::min(MAIN_TYPE_SIZE, COLS+remainingRows-1-begin_d) ;
-#ifdef MUSTAFA
-		  GEN_INTRINSIC(GEN_INTRINSIC(update_masks_for_cols_, SIMD_TYPE),PRECISION)((begin_d-1)/MAIN_TYPE_SIZE, bitMaskVec, maskArr, rsArr, lastMaskShiftOut, maskBitCnt) ;
-#endif
-
-		  for (int mbi=0; mbi < numMaskBitsToProcess; ++mbi) {
-
-#ifdef MUSTAFA
-		    GEN_INTRINSIC(GEN_INTRINSIC(computeDistVec, SIMD_TYPE), PRECISION) (bitMaskVec, distm, _1_distm, distmChosen) ;
-#else
-		    distmChosen = GEN_INTRINSIC(GEN_INTRINSIC(computeDISTM,SIMD_TYPE), PRECISION)(begin_d+mbi, COLS, tc, hap, rs.d, rsN, N_packed256, distm, _1_distm);
-#endif
-		    int ShiftIdx = begin_d + mbi +AVX_LENGTH;
-
-		    GEN_INTRINSIC(GEN_INTRINSIC(computeMXY, SIMD_TYPE), PRECISION)(M_t, X_t, Y_t, M_t_y, M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, M_t_1_y, Y_t_1,
-										   pMM, pGAPM, pMX, pXX, pMY, pYY, distmChosen);
-
-		    sumM  = VEC_ADD(sumM, M_t.d);
-		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(M_t, shiftOutM[ShiftIdx]);
-
-		    sumX  = VEC_ADD(sumX, X_t.d);
-		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(X_t, shiftOutX[ShiftIdx]);
-
-		    GEN_INTRINSIC(GEN_INTRINSIC(_vector_shift_last, SIMD_TYPE), PRECISION)(Y_t_1, shiftOutY[ShiftIdx]);
-
-		    M_t_2 = M_t_1; M_t_1 = M_t; X_t_2 = X_t_1; X_t_1 = X_t;
-		    Y_t_2 = Y_t_1; Y_t_1 = Y_t; M_t_1_y = M_t_y;
-
-		  }
-		}
-                UNION_TYPE sumMX;
-                sumMX.d = VEC_ADD(sumM, sumX);
-                result_avx2 = sumMX.f[remainingRows-1];		
-	}
-	//printf("result_avx2: %f\n", result_avx2);
-	return result_avx2;
+        UNION_TYPE sumMX;
+        sumMX.d = VEC_ADD(sumM, sumX);
+        result_avx2 = sumMX.f[remainingRows-1];
+    }
+    return result_avx2;
 }
 
 #endif
