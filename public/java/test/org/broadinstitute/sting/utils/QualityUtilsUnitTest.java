@@ -37,7 +37,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Basic unit test for QualityUtils class
@@ -51,7 +52,7 @@ public class QualityUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "QualTest")
     public Object[][] makeMyDataProvider() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        final List<Object[]> tests = new ArrayList<>();
 
         for ( int qual = 0; qual < 255; qual++ ) {
             tests.add(new Object[]{(byte)(qual & 0xFF), Math.pow(10.0, ((double)qual)/-10.0)});
@@ -151,7 +152,7 @@ public class QualityUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "PhredScaleDoubleOps")
     public Object[][] makePhredDoubleTest() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        final List<Object[]> tests = new ArrayList<>();
 
         tests.add(new Object[]{0.0, -10 * Math.log10(Double.MIN_VALUE)});
         tests.add(new Object[]{1.0, 0.0});

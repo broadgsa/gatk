@@ -62,7 +62,7 @@ abstract class N2MemoryPairHMM extends PairHMM {
         insertionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
         deletionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
 
-        transition = new double[paddedMaxReadLength][6];
+        transition = PairHMMModel.createTransitionMatrix(maxReadLength);
         prior = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
     }
 

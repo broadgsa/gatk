@@ -218,8 +218,10 @@ public abstract class PairHMM {
 
         double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues, nextHapStartIndex);
 
-        if ( ! MathUtils.goodLog10Probability(result) )
-            throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
+        if ( result > 0.0)
+            throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f, PairHMM: %s", new String(haplotypeBases), new String(readBases), result, this.getClass().getSimpleName()));
+        else if (!MathUtils.goodLog10Probability(result))
+            throw new IllegalStateException("Invalid Log Probability: " + result);
 
         // Warning: Careful if using the PairHMM in parallel! (this update has to be taken care of).
         // Warning: This assumes no downstream modification of the haplotype bases (saves us from copying the array). It is okay for the haplotype caller and the Unified Genotyper.
