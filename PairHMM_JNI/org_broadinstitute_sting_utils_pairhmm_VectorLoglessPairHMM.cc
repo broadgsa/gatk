@@ -1,120 +1,16 @@
 #include "headers.h"
-#include <jni.h>
-#include "org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.h"
-
-
-#define ENABLE_ASSERTIONS 1
-#define DO_PROFILING 1
-//#define DEBUG 1
-//#define DEBUG0_1 1
-//#define DEBUG3 1
-
+#include "jni_common.h"
+#include "org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.h"
 #include "template.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
 
 using namespace std;
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializeProbabilities
-(JNIEnv* env, jclass thisObject,
- jobjectArray transition, jbyteArray insertionGOP, jbyteArray deletionGOP, jbyteArray overallGCP
- )
-{}
-
-  JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitialize
-(JNIEnv* env, jobject thisObject,
- jint readMaxLength, jint haplotypeMaxLength)
-{}
-
-JNIEXPORT jdouble JNICALL 
-Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializePriorsAndUpdateCells( 
-    JNIEnv* env, jobject thisObject,
-    jboolean doInitialization, jint paddedReadLength, jint paddedHaplotypeLength,
-    jbyteArray readBases, jbyteArray haplotypeBases, jbyteArray readQuals,
-    jint hapStartIndex
-    )
-
-{ return 0.0; }
-
-#define DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY 1
-
-#ifdef DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY
-//Gets direct access to Java arrays
-#define GET_BYTE_ARRAY_ELEMENTS env->GetPrimitiveArrayCritical
-#define RELEASE_BYTE_ARRAY_ELEMENTS env->ReleasePrimitiveArrayCritical
-#define JNI_RO_RELEASE_MODE JNI_ABORT
-#define GET_DOUBLE_ARRAY_ELEMENTS env->GetPrimitiveArrayCritical
-#define RELEASE_DOUBLE_ARRAY_ELEMENTS env->ReleasePrimitiveArrayCritical
-
-#else
-//Likely makes copy of Java arrays to JNI C++ space
-#define GET_BYTE_ARRAY_ELEMENTS env->GetByteArrayElements
-#define RELEASE_BYTE_ARRAY_ELEMENTS env->ReleaseByteArrayElements
-#define JNI_RO_RELEASE_MODE JNI_ABORT
-#define GET_DOUBLE_ARRAY_ELEMENTS env->GetDoubleArrayElements
-#define RELEASE_DOUBLE_ARRAY_ELEMENTS env->ReleaseDoubleArrayElements
-
-#endif		//ifdef DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY
-
-JNIEXPORT jdouble JNICALL 
-Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10( 
-    JNIEnv* env, jobject thisObject,
-    jint readLength, jint haplotypeLength,
-    jbyteArray readBases, jbyteArray haplotypeBases, jbyteArray readQuals,
-    jbyteArray insertionGOP, jbyteArray deletionGOP, jbyteArray overallGCP,
-    jint hapStartIndex
-    )
-{
-  jboolean is_copy = JNI_FALSE;
-  jbyte* readBasesArray =   (jbyte*)GET_BYTE_ARRAY_ELEMENTS(readBases, &is_copy);
-  jbyte* haplotypeBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(haplotypeBases, &is_copy);
-  jbyte* readQualsArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(readQuals, &is_copy);
-  jbyte* insertionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(insertionGOP, &is_copy);
-  jbyte* deletionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(deletionGOP, &is_copy);
-  jbyte* overallGCPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(overallGCP, &is_copy);
-#ifdef DEBUG
-  assert(readBasesArray && "readBasesArray not initialized in JNI"); 
-  assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
-  assert(readQualsArray && "readQualsArray not initialized in JNI"); 
-  assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
-  assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
-  assert(overallGCPArray && "OverallGCP array not initialized in JNI");
-  assert(readLength < MROWS);
-#endif
-  testcase tc;
-  tc.rslen = readLength;
-  tc.haplen = haplotypeLength;
-  tc.rs = (char*)readBasesArray;
-  tc.hap = (char*)haplotypeBasesArray;
-  for(unsigned i=0;i<readLength;++i)
-  {
-    tc.q[i] = (int)readQualsArray[i];
-    tc.i[i] = (int)insertionGOPArray[i];
-    tc.d[i] = (int)deletionGOPArray[i];
-    tc.c[i] = (int)overallGCPArray[i];
-  }
-
-  double result_avxd = g_compute_full_prob_double(&tc, 0);
-  double result = log10(result_avxd) - log10(ldexp(1.0, 1020));
-#ifdef DEBUG
-  g_load_time_initializer.debug_dump("return_values_jni.txt",to_string(result),true);
-#endif
-
-
-  RELEASE_BYTE_ARRAY_ELEMENTS(overallGCP, overallGCPArray, JNI_RO_RELEASE_MODE);
-  RELEASE_BYTE_ARRAY_ELEMENTS(deletionGOP, deletionGOPArray, JNI_RO_RELEASE_MODE);
-  RELEASE_BYTE_ARRAY_ELEMENTS(insertionGOP, insertionGOPArray, JNI_RO_RELEASE_MODE);
-  RELEASE_BYTE_ARRAY_ELEMENTS(readQuals, readQualsArray, JNI_RO_RELEASE_MODE);
-  RELEASE_BYTE_ARRAY_ELEMENTS(haplotypeBases, haplotypeBasesArray, JNI_RO_RELEASE_MODE);
-  RELEASE_BYTE_ARRAY_ELEMENTS(readBases, readBasesArray, JNI_RO_RELEASE_MODE);
-
-  return 0.0;
-}
-
 //Should be called only once for the whole Java process - initializes field ids for the classes JNIReadDataHolderClass
 //and JNIHaplotypeDataHolderClass
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniGlobalInit
-  (JNIEnv* env, jobject thisObject, jclass readDataHolderClass, jclass haplotypeDataHolderClass)
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniGlobalInit
+  (JNIEnv* env, jobject thisObject, jclass readDataHolderClass, jclass haplotypeDataHolderClass, jlong mask)
 {
   assert(readDataHolderClass);
   assert(haplotypeDataHolderClass);
@@ -143,14 +39,18 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 //Since the list of haplotypes against which the reads are evaluated in PairHMM is the same for a region,
 //transfer the list only once
 vector<pair<jbyteArray, jbyte*> > g_haplotypeBasesArrayVector;
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniInitializeHaplotypes
+vector<unsigned> g_haplotypeBasesLengths;
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes
   (JNIEnv * env, jobject thisObject, jint numHaplotypes, jobjectArray haplotypeDataArray)
 {
   jboolean is_copy = JNI_FALSE;
   //To ensure, GET_BYTE_ARRAY_ELEMENTS is invoked only once for each haplotype, store bytearrays in a vector
   vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
   haplotypeBasesArrayVector.clear();
+  g_haplotypeBasesLengths.clear();
   haplotypeBasesArrayVector.resize(numHaplotypes);
+  g_haplotypeBasesLengths.resize(numHaplotypes);
+  jsize haplotypeBasesLength = 0;
   for(unsigned j=0;j<numHaplotypes;++j)
   {
     jobject haplotypeObject = env->GetObjectArrayElement(haplotypeDataArray, j);
@@ -165,20 +65,22 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 #endif
     env->DeleteLocalRef(haplotypeBases);	//free the local reference
     jbyte* haplotypeBasesArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(haplotypeBasesGlobalRef, &is_copy);
+    haplotypeBasesLength = env->GetArrayLength(haplotypeBasesGlobalRef);
 #ifdef ENABLE_ASSERTIONS
     assert(haplotypeBasesArray && "haplotypeBasesArray not initialized in JNI"); 
-    assert(env->GetArrayLength(haplotypeBasesGlobalRef) < MCOLS);
+    assert(haplotypeBasesLength < MCOLS);
 #endif
 #ifdef DEBUG0_1
-    cout << "JNI haplotype length "<<env->GetArrayLength(haplotypeBasesGlobalRef)<<"\n";
+    cout << "JNI haplotype length "<<haplotypeBasesLength<<"\n";
 #endif
     haplotypeBasesArrayVector[j] = make_pair(haplotypeBasesGlobalRef, haplotypeBasesArray);
+    g_haplotypeBasesLengths[j] = haplotypeBasesLength;
 #ifdef DEBUG3
-    for(unsigned k=0;k<env->GetArrayLength(haplotypeBases);++k)
+    for(unsigned k=0;k<haplotypeBasesLength;++k)
       g_load_time_initializer.debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
 #endif
 #ifdef DO_PROFILING
-    g_load_time_initializer.m_sumHaplotypeLengths += env->GetArrayLength(haplotypeBasesGlobalRef);
+    g_load_time_initializer.m_sumHaplotypeLengths += haplotypeBasesLength;
 #endif
   }
 }
@@ -188,7 +90,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 //haplotypeDataArray - array of JNIHaplotypeDataHolderClass objects which contain the haplotypeBases
 //likelihoodArray - array of doubles to return results back to Java. Memory allocated by Java prior to JNI call
 //maxNumThreadsToUse - Max number of threads that OpenMP can use for the HMM computation
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniComputeLikelihoods
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods
   (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
    jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
 {
@@ -265,7 +167,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 
     for(unsigned j=0;j<numHaplotypes;++j)
     {
-      jsize haplotypeLength = env->GetArrayLength(haplotypeBasesArrayVector[j].first);
+      jsize haplotypeLength = (jsize)g_haplotypeBasesLengths[j];
       jbyte* haplotypeBasesArray = haplotypeBasesArrayVector[j].second;
       tc_array[tc_idx].rslen = (int)readLength;
       tc_array[tc_idx].haplen = (int)haplotypeLength;
@@ -363,7 +265,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
 }
 
 //Release haplotypes at the end of a region
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniFinalizeRegion
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniFinalizeRegion
   (JNIEnv * env, jobject thisObject)
 {
   vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
@@ -373,11 +275,12 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPai
     RELEASE_BYTE_ARRAY_ELEMENTS(haplotypeBasesArrayVector[j].first, haplotypeBasesArrayVector[j].second, JNI_RO_RELEASE_MODE);
     env->DeleteGlobalRef(haplotypeBasesArrayVector[j].first);	//free the global reference
   }
-  haplotypeBasesArrayVector.clear(); 
+  haplotypeBasesArrayVector.clear();
+  g_haplotypeBasesLengths.clear(); 
 }
 
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM_jniClose
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniClose
   (JNIEnv* env, jobject thisObject)
 {
 #ifdef DO_PROFILING

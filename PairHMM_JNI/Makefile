@@ -13,7 +13,7 @@ CXX=icc
 
 LDFLAGS=-lm -lrt $(OMPLDFLAGS)
 
-BIN=libJNILoglessPairHMM.so pairhmm-template-main checker
+BIN=libVectorLoglessPairHMM.so pairhmm-template-main checker
 #BIN=checker
 
 DEPDIR=.deps
@@ -22,14 +22,14 @@ DF=$(DEPDIR)/$(*).d
 #Common across libJNI and sandbox
 COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc LoadTimeInitializer.cc
 #Part of libJNI
-LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc $(COMMON_SOURCES)
+LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc $(COMMON_SOURCES)
 SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
 LIBOBJECTS=$(LIBSOURCES:.cc=.o)
 COMMON_OBJECTS=$(COMMON_SOURCES:.cc=.o)
 
 
 #No vectorization for these files
-NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_JNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc
+NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc
 #Use -xAVX for these files
 AVX_SOURCES=avx_function_instantiations.cc
 #Use -xSSE4.2 for these files
@@ -53,7 +53,7 @@ checker: pairhmm-1-base.o $(COMMON_OBJECTS)
 pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
 	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
-libJNILoglessPairHMM.so: $(LIBOBJECTS) 
+libVectorLoglessPairHMM.so: $(LIBOBJECTS) 
 	$(CXX) $(OMPLFLAGS) -shared -o $@ $(LIBOBJECTS) ${LDFLAGS}
 
 
