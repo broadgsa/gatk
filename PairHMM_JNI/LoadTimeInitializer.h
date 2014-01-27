@@ -23,15 +23,18 @@ class LoadTimeInitializer
     double m_sumSquareNumHaplotypes;
     double m_sumNumTestcases;
     double m_sumSquareNumTestcases;
+    uint64_t m_sumNumDoubleTestcases;
     double m_sumReadLengths;
     double m_sumHaplotypeLengths;
     double m_sumProductReadLengthHaplotypeLength;
     double m_sumSquareProductReadLengthHaplotypeLength;
     unsigned m_maxNumTestcases;
     unsigned m_num_invocations;
-    //timing
+    //timing in nanoseconds
     uint64_t m_compute_time;
     uint64_t m_data_transfer_time;
+    //bytes copied
+    uint64_t m_bytes_copied;
   private:
     std::map<std::string, std::ofstream*> m_filename_to_fptr;
 };

@@ -7,9 +7,15 @@
 
 using namespace std;
 
+JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniGetMachineType
+  (JNIEnv* env, jobject thisObject)
+{
+  return (jlong)get_machine_capabilities(); 
+}
+
 //Should be called only once for the whole Java process - initializes field ids for the classes JNIReadDataHolderClass
 //and JNIHaplotypeDataHolderClass
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniGlobalInit
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeClassFieldsAndMachineMask
   (JNIEnv* env, jobject thisObject, jclass readDataHolderClass, jclass haplotypeDataHolderClass, jlong mask)
 {
   assert(readDataHolderClass);
@@ -34,6 +40,12 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   fid = env->GetFieldID(haplotypeDataHolderClass, "haplotypeBases", "[B");
   assert(fid && "JNI pairHMM: Could not get FID for haplotypeBases");
   g_load_time_initializer.m_haplotypeBasesFID = fid;
+  if(mask != ENABLE_ALL_HARDWARE_FEATURES)
+  {
+    cout << "Using user supplied hardware mask to re-initialize function pointers for PairHMM\n";
+    initialize_function_pointers((uint64_t)mask);
+    cout.flush();
+  }
 }
 
 //Since the list of haplotypes against which the reads are evaluated in PairHMM is the same for a region,
@@ -81,6 +93,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #endif
 #ifdef DO_PROFILING
     g_load_time_initializer.m_sumHaplotypeLengths += haplotypeBasesLength;
+    g_load_time_initializer.m_bytes_copied += (is_copy ? haplotypeBasesLength : 0);
 #endif
   }
 }
@@ -139,6 +152,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     jbyte* insertionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(insertionGOP, &is_copy);
     jbyte* deletionGOPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(deletionGOP, &is_copy);
     jbyte* overallGCPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(overallGCP, &is_copy);
+#ifdef DO_PROFILING
+    g_load_time_initializer.m_bytes_copied += (is_copy ? readLength*5 : 0);
+#endif
 #ifdef ENABLE_ASSERTIONS
     assert(readBasesArray && "readBasesArray not initialized in JNI"); 
     assert(readQualsArray && "readQualsArray not initialized in JNI"); 
@@ -206,6 +222,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
 #endif
 #ifdef DO_PROFILING
+  g_load_time_initializer.m_bytes_copied += (is_copy ? numTestCases*sizeof(double) : 0);
   start_time = get_time();
 #endif
 #pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse) 
@@ -216,6 +233,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     if (result_avxf < MIN_ACCEPTED) {
       double result_avxd = g_compute_full_prob_double(&(tc_array[tc_idx]), 0);
       result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+#ifdef DO_PROFILING
+      ++(g_load_time_initializer.m_sumNumDoubleTestcases);
+#endif
     }
     else
       result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));

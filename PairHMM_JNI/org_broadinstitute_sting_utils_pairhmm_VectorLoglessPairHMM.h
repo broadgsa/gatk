@@ -43,10 +43,10 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 
 /*
  * Class:     org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM
- * Method:    jniGlobalInit
+ * Method:    jniInitializeClassFieldsAndMachineMask
  * Signature: (Ljava/lang/Class;Ljava/lang/Class;J)V
  */
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniGlobalInit
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeClassFieldsAndMachineMask
   (JNIEnv *, jobject, jclass, jclass, jlong);
 
 /*

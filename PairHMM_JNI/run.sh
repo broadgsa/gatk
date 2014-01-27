@@ -10,8 +10,8 @@ fi
 #-Djava.library.path is needed if you are using JNI_LOGLESS_CACHING, else not needed
 java  -Djava.library.path=${GSA_ROOT_DIR}/PairHMM_JNI/ -jar $GSA_ROOT_DIR/dist/GenomeAnalysisTK.jar   -T HaplotypeCaller \
 --dbsnp /data/broad/samples/joint_variant_calling/dbSNP/00-All.vcf \
--R /data/broad/samples/joint_variant_calling/broad_reference/human_g1k_v37_decoy.fasta \
--I /data/broad/samples/joint_variant_calling/NA12878_low_coverage_alignment/NA12878.chrom11.ILLUMINA.bwa.CEU.low_coverage.20121211.bam \
+-R /opt/Genomics/ohsu/dnapipeline/humanrefgenome/human_g1k_v37.fasta \
+-I /data/simulated/sim1M_pairs_final.bam \
 -stand_call_conf 50.0 \
 -stand_emit_conf 10.0 \
 --pair_hmm_implementation $pair_hmm_implementation \

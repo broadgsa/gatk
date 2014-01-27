@@ -117,7 +117,7 @@ Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM_jniSubCompute
   assert(insertionGOPArray && "insertionGOP array not initialized in JNI");
   assert(deletionGOPArray && "deletionGOP array not initialized in JNI");
   assert(overallGCPArray && "OverallGCP array not initialized in JNI");
-  assert(readLength < MROWS);
+  //assert(readLength < MROWS);
 #endif
   testcase tc;
   tc.rslen = readLength;

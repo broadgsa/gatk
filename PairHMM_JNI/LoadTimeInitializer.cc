@@ -12,6 +12,7 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   m_sumNumHaplotypes = 0;
   m_sumSquareNumHaplotypes = 0;
   m_sumNumTestcases = 0;
+  m_sumNumDoubleTestcases = 0;
   m_sumSquareNumTestcases = 0;
   m_sumReadLengths = 0;
   m_sumHaplotypeLengths = 0;
@@ -19,8 +20,10 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   m_sumSquareProductReadLengthHaplotypeLength = 0;
   m_maxNumTestcases = 0;
   m_num_invocations = 0;
+
   m_compute_time = 0;
   m_data_transfer_time = 0;
+  m_bytes_copied = 0;
 
   m_filename_to_fptr.clear();
 
@@ -47,6 +50,8 @@ void LoadTimeInitializer::print_profiling()
   mean_val = m_sumProductReadLengthHaplotypeLength/m_sumNumTestcases;
   cout <<"productReadLengthHaplotypeLength\t"<<m_sumProductReadLengthHaplotypeLength<<"\t"<<m_sumSquareProductReadLengthHaplotypeLength<<"\t"
     <<mean_val<<"\t"<<(m_sumSquareProductReadLengthHaplotypeLength/m_sumNumTestcases)-mean_val*mean_val<<"\n";
+  cout <<"numDoubleTestcases\t"<<m_sumNumDoubleTestcases<<"\n";
+  cout <<"numBytesCopied\t"<<m_bytes_copied<<"\n";
   cout.flush();
 }
 

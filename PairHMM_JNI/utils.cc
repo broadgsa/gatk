@@ -45,7 +45,7 @@ uint64_t get_machine_capabilities()
 
 void initialize_function_pointers(uint64_t mask)
 {
-  //if(false)
+  //mask = 0;
   if(is_avx_supported() && (mask & (1<< AVX_CUSTOM_IDX)))
   {
     cout << "Using AVX accelerated implementation of PairHMM\n";

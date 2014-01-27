@@ -312,11 +312,16 @@ public abstract class PairHMM {
         return Math.min(haplotype1.length, haplotype2.length);
     }
 
+    /**
+     * Return the results of the computeLikelihoods function
+     */
     public double[] getLikelihoodArray() { return mLikelihoodArray; }
-    //Called at the end of all HC calls
+    /**
+     * Called at the end of the program to close files, print profiling information etc 
+     */
     public void close()
     {
         if(doProfiling)
-            System.out.println("Total compute time in PairHMM computeLikelihoods() : "+computeTime);
+            System.out.println("Total compute time in PairHMM computeLikelihoods() : "+(computeTime*1e-9));
     }
 }
