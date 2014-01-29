@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.broadinstitute.sting</groupId>
+        <artifactId>sting-root</artifactId>
+        <version>2.6-SNAPSHOT</version>
+        <relativePath>sting-root</relativePath>
+    </parent>
+
+    <artifactId>sting-public</artifactId>
+    <packaging>pom</packaging>
+    <name>Sting Public</name>
+
+    <modules>
+        <module>sting-root</module>
+        <module>gsalib</module>
+        <module>sting-utils</module>
+        <module>gatk-framework</module>
+        <module>gatk-package</module>
+        <!-- queue optionally enabled as profiles -->
+    </modules>
+
+    <properties>
+        <sting.basedir>${project.basedir}/..</sting.basedir>
+    </properties>
+
+    <profiles>
+        <!-- Allow queue to be disabled. -->
+        <profile>
+            <id>queue</id>
+            <activation>
+                <property>
+                    <name>!disable.queue</name>
+                </property>
+            </activation>
+            <modules>
+                <module>gatk-queue-extgen</module>
+                <module>queue-framework</module>
+                <module>queue-package</module>
+            </modules>
+        </profile>
+    </profiles>
+
+</project>

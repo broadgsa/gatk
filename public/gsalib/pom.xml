@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.broadinstitute.sting</groupId>
+        <artifactId>sting-aggregator</artifactId>
+        <version>2.6-SNAPSHOT</version>
+        <relativePath>../..</relativePath>
+    </parent>
+
+    <artifactId>gsalib</artifactId>
+    <packaging>pom</packaging>
+    <name>Sting GSALib</name>
+
+    <properties>
+        <sting.basedir>${project.basedir}/../..</sting.basedir>
+        <gsalib.packagedir>org/broadinstitute/sting/utils/R</gsalib.packagedir>
+        <gsalib.filename>gsalib.tar.gz</gsalib.filename>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>gsalib-assembly</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/assembly/gsalib.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
