@@ -5,6 +5,16 @@
 #include "utils.h"
 #include "LoadTimeInitializer.h"
 
+char* all_ptrs[] = {
+  "TCAAACCGAAATAAAGGCCAGTATATCCATATCCTTCCCATAAATGTTGATGGAAGAATTATTTGGAAGCCATATAGAATGAAATGACTCTATACACAAATTAAAACACAAAAACGTACTCAAAATAGTCCAGAGACTACAACTTCAAATGCAAAACTATAAATAATCTAAAAGAAAACCTAAGAGACATTC",
+  "GTCCAGAGACTACAACTTCAAATGCAAAACTATAAATAATCTAACAGAAAACCTAAGAGACATTC",
+  ">D?@BAEEEEDEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE@EEEEEEEEEEDEEEEEE?",
+  "IIIIIIIIIIIIIIIIIIIIIIIIHHHHIIIIIIIIIIIIIIIIIIHHHHIIIIIIIIIIIIIIN",
+  "IIIIIIIIIIIIIIIIIIIIIIIIHHHHIIIIIIIIIIIIIIIIIIHHHHIIIIIIIIIIIIIIN",
+  "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+};
+char all_arrays[6][16384];
+
 using namespace std;
 
 JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniGetMachineType
@@ -46,6 +56,17 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     initialize_function_pointers((uint64_t)mask);
     cout.flush();
   }
+#if 0 
+  for(unsigned i=0;i<6;++i)
+  {
+    unsigned length = strlen(all_ptrs[i]);
+    for(unsigned j=0;j<16384;++j)
+      all_arrays[i][j] = all_ptrs[i][j%length];
+  }
+  for(unsigned i=2;i<6;++i)
+    for(unsigned j=0;j<16384;++j)
+      all_arrays[i][j] = all_arrays[i][j]-33;
+#endif
 }
 
 //Since the list of haplotypes against which the reads are evaluated in PairHMM is the same for a region,
@@ -128,6 +149,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #ifdef DO_PROFILING
   start_time = get_time();
 #endif
+#ifdef DUMP_TO_SANDBOX
+  g_load_time_initializer.open_sandbox();
+#endif
   for(unsigned i=0;i<numReads;++i)
   {
     //Get bytearray fields from read
@@ -193,6 +217,18 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
       tc_array[tc_idx].i = (char*)insertionGOPArray;
       tc_array[tc_idx].d = (char*)deletionGOPArray;
       tc_array[tc_idx].c = (char*)overallGCPArray;
+#if 0 
+      tc_array[tc_idx].hap = (char*)all_arrays[0];
+      tc_array[tc_idx].rs = (char*)all_arrays[1];
+      tc_array[tc_idx].q = (char*)all_arrays[2];
+      tc_array[tc_idx].i = (char*)all_arrays[3];
+      tc_array[tc_idx].d = (char*)all_arrays[4];
+      tc_array[tc_idx].c = (char*)all_arrays[5];
+#endif
+
+#ifdef DUMP_TO_SANDBOX
+      g_load_time_initializer.dump_sandbox(haplotypeLength, readLength, (char*)haplotypeBasesArray, tc_array[tc_idx]);
+#endif
 #ifdef DO_PROFILING
       g_load_time_initializer.m_sumProductReadLengthHaplotypeLength += (readLength*haplotypeLength);
       g_load_time_initializer.m_sumSquareProductReadLengthHaplotypeLength += ((readLength*haplotypeLength)*(readLength*haplotypeLength));
@@ -212,6 +248,9 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     g_load_time_initializer.m_sumReadLengths += readLength;
 #endif
   }
+#ifdef DUMP_TO_SANDBOX
+  g_load_time_initializer.close_sandbox();
+#endif
 #ifdef DO_PROFILING
   g_load_time_initializer.m_data_transfer_time += get_time();
 #endif
@@ -225,7 +264,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   g_load_time_initializer.m_bytes_copied += (is_copy ? numTestCases*sizeof(double) : 0);
   start_time = get_time();
 #endif
-#pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse) 
+#pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse)
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
   {
     float result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
@@ -239,7 +278,16 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     }
     else
       result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-
+#if 0
+    double result = 0;
+    testcase& tc = tc_array[tc_idx];
+    for(unsigned k=0;k<tc.rslen;++k)
+      result += tc.rs[k] + tc.q[k] + tc.i[k] + tc.d[k] + tc.c[k];
+    result /= tc.rslen;
+    for(unsigned k=0;k<tc.haplen;++k)
+      result += tc.hap[k];
+    result = -fabs(result) - 1;
+#endif
     likelihoodDoubleArray[tc_idx] = result;
   }
 #ifdef DO_PROFILING

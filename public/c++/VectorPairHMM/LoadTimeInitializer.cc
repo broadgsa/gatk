@@ -86,3 +86,25 @@ void LoadTimeInitializer::debug_close()
   m_filename_to_fptr.clear();
 }
 
+void LoadTimeInitializer::dump_sandbox(unsigned haplotypeLength, unsigned readLength, char* haplotypeBasesArray, testcase& tc)
+{
+  ofstream& dumpFptr = m_sandbox_fptr;
+  for(unsigned k=0;k<haplotypeLength;++k)
+    dumpFptr<<(char)(haplotypeBasesArray[k]);
+  dumpFptr<<" ";
+  for(unsigned k=0;k<readLength;++k)
+    dumpFptr<<(char)(tc.rs[k]);
+  dumpFptr<<" ";
+  for(unsigned k=0;k<readLength;++k)
+    dumpFptr<<(char)(tc.q[k]+33);
+  dumpFptr<<" ";
+  for(unsigned k=0;k<readLength;++k)
+    dumpFptr<<(char)(tc.i[k]+33);
+  dumpFptr<<" ";
+  for(unsigned k=0;k<readLength;++k)
+    dumpFptr<<(char)(tc.d[k]+33);
+  dumpFptr<<" ";
+  for(unsigned k=0;k<readLength;++k)
+    dumpFptr<<(char)(tc.c[k]+33);
+  dumpFptr<<"\n";
+}

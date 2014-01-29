@@ -7,6 +7,7 @@
 //#define DEBUG 1
 //#define DEBUG0_1 1
 //#define DEBUG3 1
+/*#define DUMP_TO_SANDBOX 1*/
 
 
 #define DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY 1

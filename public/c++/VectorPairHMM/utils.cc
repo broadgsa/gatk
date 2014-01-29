@@ -94,8 +94,13 @@ int read_testcase(testcase *tc, FILE* ifp)
 	if (sscanf(line, "%s %s %s %s %s %s\n", tc->hap, tc->rs, q, i, d, c) != 6)
 		return -1;
 
+
 	tc->haplen = strlen(tc->hap);
 	tc->rslen = strlen(tc->rs);
+        assert(strlen(q) == tc->rslen);
+        assert(strlen(i) == tc->rslen);
+        assert(strlen(d) == tc->rslen);
+        assert(strlen(c) == tc->rslen);
 	//assert(tc->rslen < MROWS);
 	tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
 	tc->irs = (int *) malloc(tc->rslen*sizeof(int));
@@ -111,7 +116,8 @@ int read_testcase(testcase *tc, FILE* ifp)
 		_i = normalize(i[x]);
 		_d = normalize(d[x]);
 		_c = normalize(c[x]);
-		tc->q[x] = (_q < 6) ? 6 : _q;
+                tc->q[x] = (_q < 6) ? 6 : _q;
+                //tc->q[x] = _q;
 		tc->i[x] = _i;
 		tc->d[x] = _d;
 		tc->c[x] = _c;
@@ -120,12 +126,14 @@ int read_testcase(testcase *tc, FILE* ifp)
 	for (x = 0; x < tc->haplen; x++)
 	  tc->ihap[x] = tc->hap[x];
 
-
+        
 	free(q);
 	free(i);
 	free(d);
 	free(c);
 	free(line);
+
+
 
 	return 0;
 }

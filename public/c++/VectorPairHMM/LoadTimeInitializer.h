@@ -2,6 +2,7 @@
 #define LOAD_TIME_INITIALIZER_H
 #include "headers.h"
 #include <jni.h>
+#include "template.h"
 class LoadTimeInitializer
 {
   public:
@@ -9,6 +10,10 @@ class LoadTimeInitializer
     void print_profiling();
     void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
     void debug_close();
+    
+    void dump_sandbox(unsigned haplotypeLength, unsigned readLength, char* haplotypeBasesArray, testcase& tc);
+    void open_sandbox() { m_sandbox_fptr.open("sandbox.txt", std::ios::app); }
+    void close_sandbox() { m_sandbox_fptr.close(); }
     
     jfieldID m_readBasesFID;
     jfieldID m_readQualsFID;
@@ -37,6 +42,7 @@ class LoadTimeInitializer
     uint64_t m_bytes_copied;
   private:
     std::map<std::string, std::ofstream*> m_filename_to_fptr;
+    std::ofstream m_sandbox_fptr;
 };
 extern LoadTimeInitializer g_load_time_initializer;
 
