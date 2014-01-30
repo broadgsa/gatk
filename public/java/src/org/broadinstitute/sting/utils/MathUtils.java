@@ -492,13 +492,62 @@ public class MathUtils {
         return result;
     }
 
+    private static final double LOG1MEXP_THRESHOLD = Math.log(0.5);
+
+    private static final double LN_10 = Math.log(10);
+
+    /**
+     * Calculates {@code log(1-exp(a))} without loosing precision.
+     *
+     * <p>
+     *     This is based on the approach described in:
+     *
+     * </p>
+     * <p>
+     *     Maechler M, Accurately Computing log(1-exp(-|a|)) Assessed by the Rmpfr package, 2012 <br/>
+     *     <a ref="http://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf">Online document</a>.
+     *
+     * </p>
+     *
+     * @param a the input exponent.
+     * @return {@link Double#NaN NaN} if {@code a > 0}, otherwise the corresponding value.
+     */
+    public static double log1mexp(final double a) {
+        if (a > 0) return Double.NaN;
+        if (a == 0) return Double.NEGATIVE_INFINITY;
+
+        return (a < LOG1MEXP_THRESHOLD) ? Math.log1p(-Math.exp(a)) : Math.log(-Math.expm1(a));
+    }
+
+    /**
+     * Calculates {@code log10(1-10^a)} without loosing precision.
+     *
+     * <p>
+     *     This is based on the approach described in:
+     *
+     * </p>
+     * <p>
+     *     Maechler M, Accurately Computing log(1-exp(-|a|)) Assessed by the Rmpfr package, 2012 <br/>
+     *     <a ref="http://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf">Online document</a>.
+     * </p>
+     *
+     * @param a the input exponent.
+     * @return {@link Double#NaN NaN} if {@code a > 0}, otherwise the corresponding value.
+     */
+    public static double log10OneMinusPow10(final double a) {
+        if (a > 0) return Double.NaN;
+        if (a == 0) return Double.NEGATIVE_INFINITY;
+        final double b = a * LN_10;
+        return log1mexp(b) / LN_10;
+    }
+
     /**
      * Calculates the log10 of the multinomial coefficient. Designed to prevent
      * overflows even with very large numbers.
      *
      * @param n total number of trials
      * @param k array of any size with the number of successes for each grouping (k1, k2, k3, ..., km)
-     * @return
+     * @return {@link Double#NaN NaN} if {@code a > 0}, otherwise the corresponding value.
      */
     public static double log10MultinomialCoefficient(final int n, final int[] k) {
         if ( n < 0 )
