@@ -87,7 +87,7 @@ for arg in "${@}" ; do
         # TODO: This runs *all* commit tests, including the few on Queue.
         elif [ "${arg}" = "gatkfull.binary.release.tests" ] ; then
             local_repo="sitetemprepo"
-            mvn_args="install -Dmaven.repo.local=${local_repo} && verify"
+            mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
             mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo} -Dmaven.javadoc.skip=true"
             mvn_args="${mvn_args} -Dsting.generate-gatk-extensions.skipped=true"
             mvn_args="${mvn_args} -Dsting.jar.phase=none -Dsting.unpack.phase=none -Dsting.shade.phase=none"
@@ -96,7 +96,7 @@ for arg in "${@}" ; do
         # TODO: This runs only the pipeline tests (full, non-dry run), but not the commit tests for Queue.
         elif [ "${arg}" = "queuefull.binary.release.tests" ] ; then
             local_repo="sitetemprepo"
-            mvn_args="install -Dmaven.repo.local=${local_repo} && verify"
+            mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
             mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo} -Dmaven.javadoc.skip=true"
             mvn_args="${mvn_args} -Dsting.generate-gatk-extensions.skipped=true"
             mvn_args="${mvn_args} -Dsting.jar.phase=none -Dsting.unpack.phase=none -Dsting.shade.phase=none"
@@ -153,6 +153,6 @@ if [ "${unknown_args}" != "" ]; then
 else
     echo "Equivalent maven command"
     echo "${mvn_cmd}${mvn_properties}${post_script}"
-    sh -c "${mvn_cmd}${mvn_properties}${post_script}"
+#    sh -c "${mvn_cmd}${mvn_properties}${post_script}"
 
 fi

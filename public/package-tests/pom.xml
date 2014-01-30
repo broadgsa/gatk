@@ -2,6 +2,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!--
+    Run during package testing by the maven invoker plugin in the sting-aggregator /pom.xml
+    -->
+
     <parent>
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-root</artifactId>
@@ -15,6 +19,10 @@
 
     <properties>
         <sting.basedir>${project.basedir}/../..</sting.basedir>
+        <sting.packageunittests.skipped>true</sting.packageunittests.skipped>
+        <sting.packageintegrationtests.skipped>true</sting.packageintegrationtests.skipped>
+        <sting.packagepipelinetests.skipped>true</sting.packagepipelinetests.skipped>
+        <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -40,14 +48,6 @@
         </dependency>
 
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-framework</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <scope>test</scope>
@@ -65,8 +65,36 @@
     </build>
 
     <profiles>
+        <!--
+        TODO: see description of disable.gatk-framework.test.dependency in gatk-framework/pom.xml
+        -->
+        <profile>
+            <id>include-gatk-framework-tests</id>
+            <activation>
+                <property>
+                    <name>disable.gatk-framework.test.dependency</name>
+                    <value>false</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>gatk-framework</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>unittests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>unittests.profile.enabled</name>
+                    <value>true</value>
+                </property>
+            </activation>
             <build>
                 <!-- Plugin configuration -->
                 <plugins>
@@ -101,6 +129,13 @@
 
         <profile>
             <id>integrationtests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>integrationtests.profile.enabled</name>
+                    <value>true</value>
+                </property>
+            </activation>
             <build>
                 <!-- Plugin configuration -->
                 <plugins>

@@ -389,13 +389,8 @@
                                 <!-- TODO: Re-enable unit tests by default? -->
                                 <skip>${sting.unittests.skipped}</skip>
                                 <includes>
-                                    <include>**/*Test.class</include>
+                                    <include>**/*UnitTest.class</include>
                                 </includes>
-                                <excludes>
-                                    <exclude>**/*IntegrationTest.class</exclude>
-                                    <exclude>**/*PipelineTest.class</exclude>
-                                    <exclude>**/*LargeScaleTest.class</exclude>
-                                </excludes>
                             </configuration>
                         </execution>
                     </executions>

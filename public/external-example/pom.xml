@@ -211,11 +211,8 @@
                         <configuration>
                             <skip>false</skip>
                             <includes>
-                                <include>**/*Test.class</include>
+                                <include>**/*UnitTest.class</include>
                             </includes>
-                            <excludes>
-                                <exclude>**/*IntegrationTest.class</exclude>
-                            </excludes>
                         </configuration>
                     </execution>
                 </executions>

@@ -508,6 +508,9 @@
                         </properties>
                     </configuration>
                     <executions>
+                        <!--
+                        TODO: see description of disable.gatk-framework.test.dependency in gatk-framework/pom.xml
+                        -->
                         <execution>
                             <id>package-unittests</id>
                             <goals>
@@ -517,11 +520,10 @@
                                 <goals>
                                     <goal>test</goal>
                                 </goals>
-                                <profiles>
-                                    <profile>unittests</profile>
-                                </profiles>
                                 <skipInvocation>${sting.packageunittests.skipped}</skipInvocation>
                                 <properties>
+                                    <unittests.profile.enabled>true</unittests.profile.enabled>
+                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packageunittests.skipped>${sting.packageunittests.skipped}</sting.packageunittests.skipped>
                                 </properties>
                             </configuration>
@@ -536,11 +538,10 @@
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
-                                <profiles>
-                                    <profile>integrationtests</profile>
-                                </profiles>
                                 <skipInvocation>${sting.packageintegrationtests.skipped}</skipInvocation>
                                 <properties>
+                                    <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
+                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packageintegrationtests.skipped>${sting.packageintegrationtests.skipped}</sting.packageintegrationtests.skipped>
                                 </properties>
                             </configuration>
@@ -555,11 +556,10 @@
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
-                                <profiles>
-                                    <profile>integrationtests</profile>
-                                </profiles>
                                 <skipInvocation>${sting.packagepipelinetests.skipped}</skipInvocation>
                                 <properties>
+                                    <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
+                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packagepipelinetests.skipped>${sting.packagepipelinetests.skipped}</sting.packagepipelinetests.skipped>
                                 </properties>
                             </configuration>
@@ -574,11 +574,10 @@
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
-                                <profiles>
-                                    <profile>integrationtests</profile>
-                                </profiles>
                                 <skipInvocation>${sting.packagelargescaletests.skipped}</skipInvocation>
                                 <properties>
+                                    <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
+                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packagelargescaletests.skipped>${sting.packagelargescaletests.skipped}</sting.packagelargescaletests.skipped>
                                 </properties>
                             </configuration>

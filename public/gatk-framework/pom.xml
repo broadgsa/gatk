@@ -88,21 +88,55 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--
+            TODO: disable.gatk-framework.test.dependency is required because the the same test classes
+            TODO: cannot be in both the gatk-framework test artifact AND the test classes directory.
+
+            TODO: Otherwise maven throws an [ERROR] java.lang.RuntimeException: Duplicate test set
+
+            TODO: This is due to AbstractSurefireMojo.scanForTestClasses() adding both scanDirectories() and scanDependencies().
+            TODO: Pain to debug as exception is three maven invoker levels deep, outer maven, maven-inovker-plugin, then forked tests!
+
+            TODO: Move BaseTest and other non UnitTests into the sting-utils test jar/artifact.
+
+            TODO: Then that dependency won't have test classes that will also run from the gatk-framework
+            TODO: test classes directory during the invoked package test.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-invoker-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>package-unittests</id>
+                        <configuration>
+                            <properties>
+                                <disable.gatk-framework.test.dependency>true</disable.gatk-framework.test.dependency>
+                            </properties>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>package-integrationtests</id>
+                        <configuration>
+                            <properties>
+                                <disable.gatk-framework.test.dependency>true</disable.gatk-framework.test.dependency>
+                            </properties>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>package-largescaletests</id>
+                        <configuration>
+                            <properties>
+                                <disable.gatk-framework.test.dependency>true</disable.gatk-framework.test.dependency>
+                            </properties>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>package-pipelinetests</id>
+                        <configuration>
+                            <properties>
+                                <disable.gatk-framework.test.dependency>true</disable.gatk-framework.test.dependency>
+                            </properties>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
