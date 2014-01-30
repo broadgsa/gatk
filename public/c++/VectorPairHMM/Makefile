@@ -54,7 +54,7 @@ pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
 	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 libVectorLoglessPairHMM.so: $(LIBOBJECTS) 
-	$(CXX) $(OMPLFLAGS) -shared -o $@ $(LIBOBJECTS) ${LDFLAGS} -Wl,-Bstatic -limf -lsvml -lirng -Wl,-Bdynamic #-lintlc
+	$(CXX) $(OMPLFLAGS) -shared -static-intel -o $@ $(LIBOBJECTS) ${LDFLAGS}
 
 
 $(OBJECTS): %.o: %.cc

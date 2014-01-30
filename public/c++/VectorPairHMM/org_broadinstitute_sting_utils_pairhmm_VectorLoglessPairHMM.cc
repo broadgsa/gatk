@@ -211,12 +211,29 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
       jbyte* haplotypeBasesArray = haplotypeBasesArrayVector[j].second;
       tc_array[tc_idx].rslen = (int)readLength;
       tc_array[tc_idx].haplen = (int)haplotypeLength;
+#if 0
       tc_array[tc_idx].hap = (char*)haplotypeBasesArray;
       tc_array[tc_idx].rs = (char*)readBasesArray;
       tc_array[tc_idx].q = (char*)readQualsArray;
       tc_array[tc_idx].i = (char*)insertionGOPArray;
       tc_array[tc_idx].d = (char*)deletionGOPArray;
       tc_array[tc_idx].c = (char*)overallGCPArray;
+#endif
+      //#define MEMCPY_HACK
+#ifdef MEMCPY_HACK
+      tc_array[tc_idx].hap = new char[haplotypeLength];
+      tc_array[tc_idx].rs = new char[readLength];
+      tc_array[tc_idx].q = new char[readLength];
+      tc_array[tc_idx].i = new char[readLength];
+      tc_array[tc_idx].d = new char[readLength];
+      tc_array[tc_idx].c = new char[readLength];
+      memcpy(tc_array[tc_idx].hap, haplotypeBasesArray, haplotypeLength);
+      memcpy(tc_array[tc_idx].rs, readBasesArray, readLength);
+      memcpy(tc_array[tc_idx].q,  readQualsArray, readLength);
+      memcpy(tc_array[tc_idx].i,  insertionGOPArray, readLength);
+      memcpy(tc_array[tc_idx].d,  deletionGOPArray, readLength);
+      memcpy(tc_array[tc_idx].c,  overallGCPArray, readLength);
+#endif
 #if 0 
       tc_array[tc_idx].hap = (char*)all_arrays[0];
       tc_array[tc_idx].rs = (char*)all_arrays[1];
@@ -227,7 +244,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #endif
 
 #ifdef DUMP_TO_SANDBOX
-      g_load_time_initializer.dump_sandbox(haplotypeLength, readLength, (char*)haplotypeBasesArray, tc_array[tc_idx]);
+      g_load_time_initializer.dump_sandbox(tc_array[tc_idx]);
 #endif
 #ifdef DO_PROFILING
       g_load_time_initializer.m_sumProductReadLengthHaplotypeLength += (readLength*haplotypeLength);
@@ -262,7 +279,8 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #endif
 #ifdef DO_PROFILING
   g_load_time_initializer.m_bytes_copied += (is_copy ? numTestCases*sizeof(double) : 0);
-  start_time = get_time();
+  struct timespec prev_time;
+  clock_gettime(CLOCK_REALTIME, &prev_time);
 #endif
 #pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse)
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
@@ -291,7 +309,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     likelihoodDoubleArray[tc_idx] = result;
   }
 #ifdef DO_PROFILING
-  g_load_time_initializer.m_compute_time += get_time();
+  g_load_time_initializer.m_compute_time += diff_time(prev_time);
 #endif
 #ifdef DEBUG
   for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
@@ -303,7 +321,19 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   start_time = get_time();
 #endif
   RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0); //release mode 0, copy back results to Java memory
-  
+
+#ifdef MEMCPY_HACK
+  for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
+  {
+    delete tc_array[tc_idx].hap;
+    delete tc_array[tc_idx].rs;
+    delete tc_array[tc_idx].q;
+    delete tc_array[tc_idx].i;
+    delete tc_array[tc_idx].d;
+    delete tc_array[tc_idx].c;
+  }
+#endif
+
   //Release read arrays first
   for(int i=readBasesArrayVector.size()-1;i>=0;--i)//note the order - reverse of GET
   {

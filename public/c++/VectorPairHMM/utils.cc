@@ -278,3 +278,12 @@ uint64_t get_time(struct timespec* store_struct)
   start_time = *ptr;
   return diff_time;
 }
+
+uint64_t diff_time(struct timespec& prev_time)
+{
+  struct timespec curr_time;
+  clock_gettime(CLOCK_REALTIME, &curr_time);
+  return (uint64_t)((curr_time.tv_sec-prev_time.tv_sec)*1000000000+(curr_time.tv_nsec-prev_time.tv_nsec));
+}
+
+

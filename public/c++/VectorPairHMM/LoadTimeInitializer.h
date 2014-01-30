@@ -11,7 +11,7 @@ class LoadTimeInitializer
     void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
     void debug_close();
     
-    void dump_sandbox(unsigned haplotypeLength, unsigned readLength, char* haplotypeBasesArray, testcase& tc);
+    void dump_sandbox(testcase& tc);
     void open_sandbox() { m_sandbox_fptr.open("sandbox.txt", std::ios::app); }
     void close_sandbox() { m_sandbox_fptr.close(); }
     

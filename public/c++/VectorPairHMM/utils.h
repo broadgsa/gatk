@@ -27,6 +27,7 @@ template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log=0);
 double getCurrClk();
 uint64_t get_time(struct timespec* x=0);
+uint64_t diff_time(struct timespec& prev_time);
 
 //bit 0 is sse4.2, bit 1 is AVX
 enum ProcessorCapabilitiesEnum
