@@ -31,6 +31,7 @@
             <artifactId>sting-utils</artifactId>
             <version>${project.version}</version>
             <classifier>test-utils</classifier>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
 
