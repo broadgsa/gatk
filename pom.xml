@@ -563,8 +563,7 @@
                         <execution>
                             <id>package-integrationtests</id>
                             <goals>
-                                <goal>integration-test</goal>
-                                <goal>verify</goal>
+                                <goal>run</goal>
                             </goals>
                             <configuration>
                                 <goals>
@@ -580,8 +579,7 @@
                         <execution>
                             <id>package-pipelinetests</id>
                             <goals>
-                                <goal>integration-test</goal>
-                                <goal>verify</goal>
+                                <goal>run</goal>
                             </goals>
                             <configuration>
                                 <goals>
@@ -597,8 +595,7 @@
                         <execution>
                             <id>package-largescaletests</id>
                             <goals>
-                                <goal>integration-test</goal>
-                                <goal>verify</goal>
+                                <goal>run</goal>
                             </goals>
                             <configuration>
                                 <goals>
