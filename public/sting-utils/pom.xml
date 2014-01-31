@@ -17,6 +17,7 @@
         <sting.basedir>${project.basedir}/../..</sting.basedir>
         <gsalib.packagedir>org/broadinstitute/sting/utils/R</gsalib.packagedir>
         <gsalib.filename>gsalib.tar.gz</gsalib.filename>
+        <sting.test-utils-jar.phase>${sting.jar.phase}</sting.test-utils-jar.phase>
     </properties>
 
     <dependencies>
@@ -151,17 +152,6 @@
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

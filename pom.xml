@@ -33,6 +33,7 @@
         <!-- TODO: Need a better a way to say "don't include hidden" by default -->
         <gatkdocs.include.hidden>-build-timestamp "${maven.build.timestamp}"</gatkdocs.include.hidden>
         <sting.jar.phase>package</sting.jar.phase>
+        <sting.test-utils.jar.phase>none</sting.test-utils.jar.phase>
         <sting.packagecommittests.skipped>true</sting.packagecommittests.skipped>
         <sting.packageunittests.skipped>${sting.packagecommittests.skipped}</sting.packageunittests.skipped>
         <sting.packageintegrationtests.skipped>${sting.packagecommittests.skipped}</sting.packageintegrationtests.skipped>
@@ -275,6 +276,41 @@
                             <id>default-jar</id>
                             <phase>${sting.jar.phase}</phase>
                         </execution>
+                        <execution>
+                            <id>test-utils</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                            <phase>${sting.test-utils-jar.phase}</phase>
+                            <configuration>
+                                <classesDirectory>${project.build.testOutputDirectory}</classesDirectory>
+                                <classifier>test-utils</classifier>
+                                <!--
+                                TODO: Excluding actual tests from tests-utils jar is required because the same test classes
+                                TODO: cannot be in both the test artifact AND the test classes directory.
+
+                                TODO: Otherwise maven throws an [ERROR] java.lang.RuntimeException: Duplicate test set
+
+                                TODO: This is due to AbstractSurefireMojo.scanForTestClasses() adding both scanDirectories() and scanDependencies().
+                                TODO: Pain to debug as exception is three maven invoker levels deep, outer maven, maven-inovker-plugin, then forked tests!
+
+                                TODO: See also: http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
+
+                                TODO: Then that dependency won't have test classes that will also run from the
+                                TODO: test classes directory during the invoked package test.
+                                -->
+                                <excludes>
+                                    <exclude>**/*UnitTest.class</exclude>
+                                    <exclude>**/*UnitTest$*.class</exclude>
+                                    <exclude>**/*IntegrationTest.class</exclude>
+                                    <exclude>**/*IntegrationTest$*.class</exclude>
+                                    <exclude>**/*PipelineTest.class</exclude>
+                                    <exclude>**/*PipelineTest$*.class</exclude>
+                                    <exclude>**/*LargeScaleTest.class</exclude>
+                                    <exclude>**/*LargeScaleTest.class</exclude>
+                                </excludes>
+                            </configuration>
+                        </execution>
                     </executions>
                 </plugin>
 
@@ -508,9 +544,6 @@
                         </properties>
                     </configuration>
                     <executions>
-                        <!--
-                        TODO: see description of disable.gatk-framework.test.dependency in gatk-framework/pom.xml
-                        -->
                         <execution>
                             <id>package-unittests</id>
                             <goals>
@@ -523,7 +556,6 @@
                                 <skipInvocation>${sting.packageunittests.skipped}</skipInvocation>
                                 <properties>
                                     <unittests.profile.enabled>true</unittests.profile.enabled>
-                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packageunittests.skipped>${sting.packageunittests.skipped}</sting.packageunittests.skipped>
                                 </properties>
                             </configuration>
@@ -541,7 +573,6 @@
                                 <skipInvocation>${sting.packageintegrationtests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packageintegrationtests.skipped>${sting.packageintegrationtests.skipped}</sting.packageintegrationtests.skipped>
                                 </properties>
                             </configuration>
@@ -559,7 +590,6 @@
                                 <skipInvocation>${sting.packagepipelinetests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packagepipelinetests.skipped>${sting.packagepipelinetests.skipped}</sting.packagepipelinetests.skipped>
                                 </properties>
                             </configuration>
@@ -577,7 +607,6 @@
                                 <skipInvocation>${sting.packagelargescaletests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <disable.gatk-framework.test.dependency>false</disable.gatk-framework.test.dependency>
                                     <sting.packagelargescaletests.skipped>${sting.packagelargescaletests.skipped}</sting.packagelargescaletests.skipped>
                                 </properties>
                             </configuration>

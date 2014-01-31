@@ -41,12 +41,15 @@
         <!--
         Test dependencies are not transitive,
         so must include each explicit test artifact.
+
+        TODO: switch from test-utils classifier to a tests-utils artifact
+        TODO: see also http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
         -->
         <dependency>
             <groupId>org.broadinstitute.sting</groupId>
             <artifactId>sting-utils</artifactId>
             <version>${sting.version}</version>
-            <type>test-jar</type>
+            <classifier>test-utils</classifier>
             <scope>test</scope>
         </dependency>
 
@@ -54,7 +57,7 @@
             <groupId>org.broadinstitute.sting</groupId>
             <artifactId>gatk-framework</artifactId>
             <version>${sting.version}</version>
-            <type>test-jar</type>
+            <classifier>test-utils</classifier>
             <scope>test</scope>
         </dependency>
 

@@ -153,6 +153,6 @@ if [ "${unknown_args}" != "" ]; then
 else
     echo "Equivalent maven command"
     echo "${mvn_cmd}${mvn_properties}${post_script}"
-#    sh -c "${mvn_cmd}${mvn_properties}${post_script}"
+    sh -c "${mvn_cmd}${mvn_properties}${post_script}"
 
 fi
