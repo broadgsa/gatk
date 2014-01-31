@@ -1,6 +1,6 @@
 #!/bin/sh
 
-mvn_args="test-compile"
+mvn_args="verify"
 mvn_properties=
 mvn_clean=
 unknown_args=
@@ -39,11 +39,14 @@ for arg in "${@}" ; do
         fi
 
     else
-        if [ "${arg}" != "dist" -a "${mvn_args}" != "test-compile" ]; then
+        if [ "${arg}" != "dist" -a "${mvn_args}" != "" ]; then
             echo "Sorry, this script does not currently support mixing targets." >&2
             exit 1
 
         elif [ "${arg}" = "dist" ] ; then
+            mvn_args="verify"
+
+        elif [ "${arg}" = "test.compile" ] ; then
             mvn_args="test-compile"
 
         elif [ "${arg}" = "gatkdocs" ] ; then
