@@ -542,6 +542,14 @@
                             <maven.surefire.debug>${maven.surefire.debug}</maven.surefire.debug>
                             <maven.failsafe.debug>${maven.failsafe.debug}</maven.failsafe.debug>
                         </properties>
+                        <!--
+                        To allow using separated integration-test and verify, each execution must use a separate reportsDirectory.
+
+                        Otherwise, when an empty "pipeline test" later runs on an IntegrationTest class,
+                        it overwrites the results of the previous invocation always with a zero exit status.
+
+                        Mixing in the test name into the reportsDirectory also avoids collisions, when different maven jobs run tests in parallel.
+                        -->
                     </configuration>
                     <executions>
                         <execution>
@@ -553,6 +561,7 @@
                                 <goals>
                                     <goal>test</goal>
                                 </goals>
+                                <reportsDirectory>${project.build.directory}/invoker-reports/unit/${test}</reportsDirectory>
                                 <skipInvocation>${sting.packageunittests.skipped}</skipInvocation>
                                 <properties>
                                     <unittests.profile.enabled>true</unittests.profile.enabled>
@@ -563,12 +572,14 @@
                         <execution>
                             <id>package-integrationtests</id>
                             <goals>
-                                <goal>run</goal>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
                             </goals>
                             <configuration>
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
+                                <reportsDirectory>${project.build.directory}/invoker-reports/integration/${it.test}</reportsDirectory>
                                 <skipInvocation>${sting.packageintegrationtests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
@@ -579,12 +590,14 @@
                         <execution>
                             <id>package-pipelinetests</id>
                             <goals>
-                                <goal>run</goal>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
                             </goals>
                             <configuration>
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
+                                <reportsDirectory>${project.build.directory}/invoker-reports/pipeline/${it.test}</reportsDirectory>
                                 <skipInvocation>${sting.packagepipelinetests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
@@ -595,12 +608,14 @@
                         <execution>
                             <id>package-largescaletests</id>
                             <goals>
-                                <goal>run</goal>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
                             </goals>
                             <configuration>
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
+                                <reportsDirectory>${project.build.directory}/invoker-reports/largescale/${it.test}</reportsDirectory>
                                 <skipInvocation>${sting.packagelargescaletests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
