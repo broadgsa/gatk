@@ -549,6 +549,8 @@
                         it overwrites the results of the previous invocation always with a zero exit status.
 
                         Mixing in the test name into the reportsDirectory also avoids collisions, when different maven jobs run tests in parallel.
+
+                        Similarly generating unique failsafe summary reports to avoid collisions.
                         -->
                     </configuration>
                     <executions>
@@ -584,6 +586,7 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packageintegrationtests.skipped>${sting.packageintegrationtests.skipped}</sting.packageintegrationtests.skipped>
+                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/integration/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>
@@ -602,6 +605,7 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packagepipelinetests.skipped>${sting.packagepipelinetests.skipped}</sting.packagepipelinetests.skipped>
+                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/pipeline/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>
@@ -620,6 +624,7 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packagelargescaletests.skipped>${sting.packagelargescaletests.skipped}</sting.packagelargescaletests.skipped>
+                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/largescale/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>

@@ -23,6 +23,7 @@
         <sting.packageintegrationtests.skipped>true</sting.packageintegrationtests.skipped>
         <sting.packagepipelinetests.skipped>true</sting.packagepipelinetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
+        <failsafe.summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary.xml</failsafe.summaryFile>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -135,6 +136,7 @@
                             <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
                             <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
+                            <summaryFile>${failsafe.summaryFile}</summaryFile>
                             <dependenciesToScan>
                                 <scan>org.broadinstitute.sting:.*</scan>
                             </dependenciesToScan>
