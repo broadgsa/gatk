@@ -50,6 +50,9 @@ for arg in "${@}" ; do
         elif [[ "${arg}" == "dist" ]] ; then
             mvn_args="verify"
 
+        elif [[ "${arg}" == "gatk" ]] ; then
+            mvn_args="verify '-P!queue'"
+
         elif [[ "${arg}" == "test.compile" ]] ; then
             mvn_args="test-compile"
 
@@ -69,13 +72,13 @@ for arg in "${@}" ; do
         elif [[ "${arg}" == "package.queue.all" ]] ; then
             mvn_args="package"
 
-        elif [[ "${arg}" == "release.gatk.full" ]] ; then
-            mvn_args="package '-P!private,!queue'"
-            post_script=" && private/src/main/scripts/shell/copy_release.sh public/gatk-package/target/GenomeAnalysisTK-*.tar.bz2"
+#        elif [[ "${arg}" == "release.gatk.full" ]] ; then
+#            mvn_args="package '-P!private,!queue'"
+#            post_script=" && private/src/main/scripts/shell/copy_release.sh public/gatk-package/target/GenomeAnalysisTK-*.tar.bz2"
 
-        elif [[ "${arg}" == "release.queue.full" ]] ; then
-            mvn_args="package '-P!private'"
-            post_script=" && private/src/main/scripts/shell/copy_release.sh public/queue-package/target/Queue-*.tar.bz2"
+#        elif [[ "${arg}" == "release.queue.full" ]] ; then
+#            mvn_args="package '-P!private'"
+#            post_script=" && private/src/main/scripts/shell/copy_release.sh public/queue-package/target/Queue-*.tar.bz2"
 
         elif [[ "${arg}" == "build-picard-private" ]] ; then
             mvn_args="mvn install -f private/picard-maven/pom.xml"
