@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.broadinstitute.sting</groupId>
+        <artifactId>sting-aggregator</artifactId>
+        <version>2.8-SNAPSHOT</version>
+        <relativePath>../..</relativePath>
+    </parent>
+
+    <artifactId>queue-package</artifactId>
+    <packaging>jar</packaging>
+    <name>Queue Package</name>
+
+    <properties>
+        <sting.basedir>${project.basedir}/../..</sting.basedir>
+        <sting.unpack.phase>prepare-package</sting.unpack.phase>
+        <sting.shade.phase>package</sting.shade.phase>
+        <sting.binary-dist.name>Queue</sting.binary-dist.name>
+        <app.main.class>org.broadinstitute.sting.queue.QCommandLine</app.main.class>
+    </properties>
+
+    <dependencies>
+        <!-- Queue -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>queue-framework</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-package</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Scala -->
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
+        </dependency>
+        <!-- Picard -->
+        <dependency>
+            <groupId>net.sf</groupId>
+            <artifactId>picard</artifactId>
+        </dependency>
+        <!-- JavaMail -->
+        <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+        </dependency>
+        <!-- JNA, including embedded native libraries -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+        </dependency>
+        <!-- Contracts for Java -->
+        <dependency>
+            <groupId>com.google.code.cofoja</groupId>
+            <artifactId>cofoja</artifactId>
+        </dependency>
+        <!-- snpEff -->
+        <dependency>
+            <groupId>net.sf.snpeff</groupId>
+            <artifactId>snpeff</artifactId>
+        </dependency>
+        <!-- Required for binary-dist assembly, excluded by shade -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-framework</artifactId>
+            <version>${project.version}</version>
+            <classifier>example-resources</classifier>
+            <type>tar.bz2</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>queue-framework</artifactId>
+            <version>${project.version}</version>
+            <classifier>example-resources</classifier>
+            <type>tar.bz2</type>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack-direct-dependencies</id>
+                        <phase>${sting.unpack.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>sting-executable</id>
+                        <phase>${sting.shade.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>binary-dist</id>
+                        <phase>${sting.shade.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.pyx4j</groupId>
+                <artifactId>maven-junction-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>link-git-release</id>
+                        <phase>${sting.shade.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-install</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>install-package</id>
+                        <phase>install</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>private</id>
+            <activation>
+                <file>
+                    <exists>${basedir}/../../private/queue-private/pom.xml</exists>
+                </file>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>queue-private</artifactId>
+                    <version>${project.version}</version>
+                    <optional>true</optional>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+</project>
