@@ -43,7 +43,7 @@ public class MWUnitTest extends BaseTest {
     @BeforeClass
     public void init() { }
 
-    @Test
+    @Test(enabled = false)
     private void testMWU() {
         logger.warn("Testing MWU");
         MannWhitneyU mwu = new MannWhitneyU();
