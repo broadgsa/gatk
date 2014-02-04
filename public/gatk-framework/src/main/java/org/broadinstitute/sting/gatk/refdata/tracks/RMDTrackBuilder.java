@@ -34,6 +34,7 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.util.LittleEndianOutputStream;
+import org.broad.tribble.util.TabixUtils;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -171,7 +172,9 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         // we might not know the index type, try loading with the default reader constructor
         logger.debug("Attempting to load " + inputFile + " as a tabix indexed file without validating it");
         try {
-            return new Pair<AbstractFeatureReader, SAMSequenceDictionary>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name)),null);
+            final File indexFile = new File(inputFile.getAbsoluteFile() + TabixUtils.STANDARD_INDEX_EXTENSION);
+            final SAMSequenceDictionary dict = TabixUtils.getSequenceDictionary(indexFile);
+            return new Pair<>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name)), dict);
         } catch (TribbleException e) {
             throw new UserException(e.getMessage(), e);
         }
