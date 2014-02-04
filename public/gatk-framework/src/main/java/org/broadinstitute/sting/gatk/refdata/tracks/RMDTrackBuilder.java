@@ -169,7 +169,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      */
     private Pair<AbstractFeatureReader, SAMSequenceDictionary> createTabixIndexedFeatureSource(FeatureManager.FeatureDescriptor descriptor, String name, File inputFile) {
         // we might not know the index type, try loading with the default reader constructor
-        logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
+        logger.debug("Attempting to load " + inputFile + " as a tabix indexed file without validating it");
         try {
             return new Pair<AbstractFeatureReader, SAMSequenceDictionary>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name)),null);
         } catch (TribbleException e) {
@@ -318,7 +318,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @return an Index, or null if we're unable to load
      */
     protected Index loadFromDisk( final File inputFile, final File indexFile ) {
-        logger.info("Loading Tribble index from disk for file " + inputFile);
+        logger.debug("Loading Tribble index from disk for file " + inputFile);
         Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
         // check if the file is up-to date (filestamp and version check)
@@ -384,7 +384,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      */
     protected Index createIndexInMemory(File inputFile, FeatureCodec codec) {
         // this can take a while, let them know what we're doing
-        logger.info("Creating Tribble index in memory for file " + inputFile);
+        logger.debug("Creating Tribble index in memory for file " + inputFile);
         Index idx = IndexFactory.createDynamicIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
         validateAndUpdateIndexSequenceDictionary(inputFile, idx, dict);
         return idx;
