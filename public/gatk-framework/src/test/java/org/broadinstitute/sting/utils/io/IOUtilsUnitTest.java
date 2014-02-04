@@ -160,7 +160,7 @@ public class IOUtilsUnitTest extends BaseTest {
     public void testWriteSystemFile() throws IOException {
         File temp = createTempFile("temp.", ".properties");
         try {
-            IOUtils.writeResource(new Resource("StingText.properties", null), temp);
+            IOUtils.writeResource(new Resource("testProperties.properties", null), temp);
         } finally {
             FileUtils.deleteQuietly(temp);
         }
@@ -168,9 +168,9 @@ public class IOUtilsUnitTest extends BaseTest {
 
     @Test
     public void testWriteSystemTempFile() throws IOException {
-        File temp = IOUtils.writeTempResource(new Resource("StingText.properties", null));
+        File temp = IOUtils.writeTempResource(new Resource("testProperties.properties", null));
         try {
-            Assert.assertTrue(temp.getName().startsWith("StingText"), "File does not start with 'StingText.': " + temp);
+            Assert.assertTrue(temp.getName().startsWith("testProperties"), "File does not start with 'testProperties.': " + temp);
             Assert.assertTrue(temp.getName().endsWith(".properties"), "File does not end with '.properties': " + temp);
         } finally {
             FileUtils.deleteQuietly(temp);
@@ -191,7 +191,7 @@ public class IOUtilsUnitTest extends BaseTest {
     public void testWriteRelativeFile() throws IOException {
         File temp = createTempFile("temp.", ".properties");
         try {
-            IOUtils.writeResource(new Resource("/StingText.properties", IOUtils.class), temp);
+            IOUtils.writeResource(new Resource("/testProperties.properties", IOUtils.class), temp);
         } finally {
             FileUtils.deleteQuietly(temp);
         }
@@ -199,9 +199,9 @@ public class IOUtilsUnitTest extends BaseTest {
 
     @Test
     public void testWriteRelativeTempFile() throws IOException {
-        File temp = IOUtils.writeTempResource(new Resource("/StingText.properties", IOUtils.class));
+        File temp = IOUtils.writeTempResource(new Resource("/testProperties.properties", IOUtils.class));
         try {
-            Assert.assertTrue(temp.getName().startsWith("StingText"), "File does not start with 'StingText.': " + temp);
+            Assert.assertTrue(temp.getName().startsWith("testProperties"), "File does not start with 'testProperties.': " + temp);
             Assert.assertTrue(temp.getName().endsWith(".properties"), "File does not end with '.properties': " + temp);
         } finally {
             FileUtils.deleteQuietly(temp);
