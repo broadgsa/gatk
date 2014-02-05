@@ -96,7 +96,7 @@ public class IndexDictionaryUtils {
                                                        final ValidationExclusion.TYPE validationExclusionType ) {
         // if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation
         if (trackDict == null || trackDict.size() == 0)
-            logger.info("Track " + trackName + " doesn't have a sequence dictionary built in, skipping dictionary validation");
+            logger.warn("Track " + trackName + " doesn't have a sequence dictionary built in, skipping dictionary validation");
         else {
             Set<String> trackSequences = new TreeSet<String>();
             for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())

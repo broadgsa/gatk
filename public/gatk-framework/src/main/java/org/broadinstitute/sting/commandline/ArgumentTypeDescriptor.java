@@ -374,7 +374,7 @@ public abstract class ArgumentTypeDescriptor {
                         FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
                         if ( featureDescriptor != null ) {
                             tribbleType = featureDescriptor.getName();
-                            logger.info("Dynamically determined type of " + file + " to be " + tribbleType);
+                            logger.debug("Dynamically determined type of " + file + " to be " + tribbleType);
                         }
                     }
 
