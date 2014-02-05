@@ -1,28 +1,28 @@
 #include "headers.h"
 #include "template.h"
-
+extern uint64_t exceptions_array[128];
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log = NULL)
 {
-	int r, c;
-	int ROWS = tc->rslen + 1;
-	int COLS = tc->haplen + 1;
+  	int r, c;
+  	int ROWS = tc->rslen + 1;
+  	int COLS = tc->haplen + 1;
 
-	Context<NUMBER> ctx;
+  	Context<NUMBER> ctx;
 
-	NUMBER M[ROWS][COLS];
-	NUMBER X[ROWS][COLS];
-	NUMBER Y[ROWS][COLS];
-	NUMBER p[ROWS][6];
+  	NUMBER M[ROWS][COLS];
+  	NUMBER X[ROWS][COLS];
+  	NUMBER Y[ROWS][COLS];
+  	NUMBER p[ROWS][6];
 
-	p[0][MM] = ctx._(0.0);
-	p[0][GapM] = ctx._(0.0);
-	p[0][MX] = ctx._(0.0);
-	p[0][XX] = ctx._(0.0);
-	p[0][MY] = ctx._(0.0);
-	p[0][YY] = ctx._(0.0);
-	for (r = 1; r < ROWS; r++)
-	{
+  	p[0][MM] = ctx._(0.0);
+  	p[0][GapM] = ctx._(0.0);
+  	p[0][MX] = ctx._(0.0);
+  	p[0][XX] = ctx._(0.0);
+  	p[0][MY] = ctx._(0.0);
+  	p[0][YY] = ctx._(0.0);
+  	for (r = 1; r < ROWS; r++)
+  	{
 		int _i = tc->i[r-1] & 127;
 		int _d = tc->d[r-1] & 127;
 		int _c = tc->c[r-1] & 127;
@@ -34,50 +34,62 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log = NULL)
 		p[r][YY] = ctx.ph2pr[_c];
 		//p[r][MY] = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_d];
 		//p[r][YY] = (r == ROWS - 1) ? ctx._(1.0) : ctx.ph2pr[_c];
-	}
+  	}
 
-	for (c = 0; c < COLS; c++)
-	{
+  	for (c = 0; c < COLS; c++)
+  	{
 		M[0][c] = ctx._(0.0);
 		X[0][c] = ctx._(0.0);
 		Y[0][c] = ctx.INITIAL_CONSTANT / (tc->haplen);
-	}
+  	}
 
-	for (r = 1; r < ROWS; r++)
-	{
+  	for (r = 1; r < ROWS; r++)
+  	{
 		M[r][0] = ctx._(0.0);
 		X[r][0] = X[r-1][0] * p[r][XX];
 		Y[r][0] = ctx._(0.0);
-	}
+  	}
 
-	 NUMBER result = ctx._(0.0);
+  	NUMBER result = ctx._(0.0);
 
-	for (r = 1; r < ROWS; r++)
+  	for (r = 1; r < ROWS; r++)
 		for (c = 1; c < COLS; c++)
 		{
-			char _rs = tc->rs[r-1];
-			char _hap = tc->hap[c-1];
-			int _q = tc->q[r-1] & 127;
-			NUMBER distm = ctx.ph2pr[_q];
-			if (_rs == _hap || _rs == 'N' || _hap == 'N')
+	  		fexcept_t flagp;
+	  		char _rs = tc->rs[r-1];
+	  		char _hap = tc->hap[c-1];
+	  		int _q = tc->q[r-1] & 127;
+	  		NUMBER distm = ctx.ph2pr[_q];
+	  		if (_rs == _hap || _rs == 'N' || _hap == 'N')
 				distm = ctx._(1.0) - distm;
-			else
-			  distm = distm/3;
-			M[r][c] = distm * (M[r-1][c-1] * p[r][MM] + X[r-1][c-1] * p[r][GapM] + Y[r-1][c-1] * p[r][GapM]);
-			X[r][c] = M[r-1][c] * p[r][MX] + X[r-1][c] * p[r][XX];
-			Y[r][c] = M[r][c-1] * p[r][MY] + Y[r][c-1] * p[r][YY];
+	  		else
+				distm = distm/3;
+
+
+	  		//feclearexcept(FE_ALL_EXCEPT);
+	  		M[r][c] = distm * (M[r-1][c-1] * p[r][MM] + X[r-1][c-1] * p[r][GapM] + Y[r-1][c-1] * p[r][GapM]);
+	  		//M[r][c] = (M[r-1][c-1] * p[r][MM] + X[r-1][c-1] * p[r][GapM] + Y[r-1][c-1] * p[r][GapM]);
+	  		//STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+
+	  		//feclearexcept(FE_ALL_EXCEPT);
+	  		X[r][c] = M[r-1][c] * p[r][MX] + X[r-1][c] * p[r][XX];
+	  		//STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+
+	  		//feclearexcept(FE_ALL_EXCEPT);
+	  		Y[r][c] = M[r][c-1] * p[r][MY] + Y[r][c-1] * p[r][YY];
+	  		//STORE_FP_EXCEPTIONS(flagp, exceptions_array);
 		}
 
-	for (c = 0; c < COLS; c++)
-	{
+  	for (c = 0; c < COLS; c++)
+  	{
 		result += M[ROWS-1][c] + X[ROWS-1][c];
-	}
+  	}
 
-	if (before_last_log != NULL)
+  	if (before_last_log != NULL)
 		*before_last_log = result;
 
-	return result;
-	//return ctx.LOG10(result) - ctx.LOG10_INITIAL_CONSTANT;
+  	return result;
+  	//return ctx.LOG10(result) - ctx.LOG10_INITIAL_CONSTANT;
 }
 
 template double compute_full_prob<double>(testcase* tc, double* nextbuf);

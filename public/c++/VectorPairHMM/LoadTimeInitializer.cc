@@ -86,7 +86,7 @@ void LoadTimeInitializer::debug_close()
   m_filename_to_fptr.clear();
 }
 
-void LoadTimeInitializer::dump_sandbox(testcase& tc)
+void LoadTimeInitializer::dump_sandbox(testcase& tc, unsigned tc_idx, unsigned numReads, unsigned numHaplotypes)
 {
   unsigned haplotypeLength = tc.haplen;
   unsigned readLength = tc.rslen;
@@ -108,5 +108,7 @@ void LoadTimeInitializer::dump_sandbox(testcase& tc)
   dumpFptr<<" ";
   for(unsigned k=0;k<readLength;++k)
     dumpFptr<<(char)(tc.c[k]+33);
+  if(tc_idx == 0)       //new region
+    dumpFptr << " "<< numReads << " "<<numHaplotypes; 
   dumpFptr<<"\n";
 }

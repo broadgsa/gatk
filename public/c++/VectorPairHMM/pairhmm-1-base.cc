@@ -2,16 +2,11 @@
 //#define DEBUG0_1 1
 //#define DEBUG3 1
 #include "headers.h"
-#include "template.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
-
 using namespace std;
-
 #define RUN_HYBRID
 
-vector<double> results_vec;
-vector<testcase> tc_vector;
 int main(int argc, char** argv)
 {
 #define BATCH_SIZE 5
@@ -20,6 +15,8 @@ int main(int argc, char** argv)
     cerr << "Needs path to input file as argument\n";
     exit(0);
   }
+  do_compute(argv[1]);
+#if 0
   bool use_old_read_testcase = false;
   if(argc >= 3 && string(argv[2]) == "1")
     use_old_read_testcase = true;
@@ -39,7 +36,8 @@ int main(int argc, char** argv)
     ifptr.open(argv[1]);
     assert(ifptr.is_open());
   }
-
+  vector<double> results_vec;
+  vector<testcase> tc_vector;
   tc_vector.clear();
   tc_vector.resize(BATCH_SIZE+4);
   results_vec.clear();
@@ -58,6 +56,7 @@ int main(int argc, char** argv)
   testcase tc_in;
   int break_value = 0;
   tc_vector.clear();
+  g_load_time_initializer.open_sandbox();
   while(1)
   {
     break_value = use_old_read_testcase ? read_testcase(&tc_in, fptr) : 
@@ -137,7 +136,7 @@ int main(int argc, char** argv)
   tc_vector.clear();
   if(all_ok)
     cout << "All outputs acceptable\n";
-  cout << "Total  vector time "<< ((double)total_time)/1e9 << " baseline time "<<baseline_time*1e-9<<"\n";
+  cout << "Total  vector time "<< (total_time*1e-9) << " baseline time "<<baseline_time*1e-9<<"\n";
   cout << "Product "<<product<<"\n";
   cout.flush();
   fflush(stdout);
@@ -145,6 +144,8 @@ int main(int argc, char** argv)
     fclose(fptr);
   else
     ifptr.close();
+  g_load_time_initializer.close_sandbox();
+#endif
   return 0;  
 }
 

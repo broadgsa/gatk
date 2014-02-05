@@ -6,6 +6,7 @@ tests
 hmm_Mohammad
 pairhmm-template-main
 *.swp
+*.class
 checker
 reformat
 subdir_checkout.sh

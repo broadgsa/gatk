@@ -13,6 +13,15 @@ CXX=icc
 
 LDFLAGS=-lm -lrt $(OMPLDFLAGS)
 
+#USE_PAPI=1
+PAPI_DIR=/home/karthikg/softwares/papi-5.3.0
+ifdef USE_PAPI
+  ifeq ($(USE_PAPI),1)
+    COMMON_COMPILATION_FLAGS+=-I$(PAPI_DIR)/include
+    LDFLAGS+=-L$(PAPI_DIR)/lib -lpapi
+  endif
+endif
+
 BIN=libVectorLoglessPairHMM.so pairhmm-template-main checker
 #BIN=checker
 
@@ -22,14 +31,14 @@ DF=$(DEPDIR)/$(*).d
 #Common across libJNI and sandbox
 COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc LoadTimeInitializer.cc
 #Part of libJNI
-LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc $(COMMON_SOURCES)
+LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc Sandbox.cc $(COMMON_SOURCES)
 SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
 LIBOBJECTS=$(LIBSOURCES:.cc=.o)
 COMMON_OBJECTS=$(COMMON_SOURCES:.cc=.o)
 
 
 #No vectorization for these files
-NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc
+NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc Sandbox.cc
 #Use -xAVX for these files
 AVX_SOURCES=avx_function_instantiations.cc
 #Use -xSSE4.2 for these files
@@ -43,7 +52,7 @@ $(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xAVX
 $(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xSSE4.2
 OBJECTS=$(NO_VECTOR_OBJECTS) $(AVX_OBJECTS) $(SSE_OBJECTS)
 
-all: $(BIN)
+all: $(BIN) Sandbox.class
 
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
@@ -61,6 +70,8 @@ $(OBJECTS): %.o: %.cc
 	@mkdir -p $(DEPDIR)
 	$(CXX) -c -MMD -MF $(DF) $(CXXFLAGS) $(OUTPUT_OPTION) $<
 
+Sandbox.class: Sandbox.java
+	javac Sandbox.java
 
 clean:
-	rm -rf $(BIN) *.o $(DEPDIR)
+	rm -rf $(BIN) *.o $(DEPDIR) *.class
