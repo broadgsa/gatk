@@ -33,6 +33,7 @@ for arg in "${@}" ; do
 
         elif [[ "${property_name}" == "test.debug.port" ]] ; then
             mvn_properties="${mvn_properties} -Dmaven.surefire.debug=\"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${property_value}\""
+            mvn_properties="${mvn_properties} -Dmaven.failsafe.debug=\"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=${property_value}\""
 
         elif [[ "${property_name}" == "test.default.maxmemory" ]] ; then
             mvn_properties="${mvn_properties} -Dtest.maxmemory=${property_value}"
@@ -98,18 +99,16 @@ for arg in "${@}" ; do
         elif [[ "${arg}" == "gatkfull.binary.release.tests" ]] ; then
             local_repo="sitetemprepo"
             mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
-            mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo} -Dmaven.javadoc.skip=true"
-            mvn_args="${mvn_args} -Dsting.generate-gatk-extensions.skipped=true"
-            mvn_args="${mvn_args} -Dsting.jar.phase=none -Dsting.unpack.phase=none -Dsting.shade.phase=none"
+            mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo}"
+            mvn_args="${mvn_args} -Dsting.packagetests.enabled=true"
             mvn_args="${mvn_args} -Dsting.packagecommittests.skipped=false"
 
         # TODO: This runs only the pipeline tests (full, non-dry run), but not the commit tests for Queue.
         elif [[ "${arg}" == "queuefull.binary.release.tests" ]] ; then
             local_repo="sitetemprepo"
             mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
-            mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo} -Dmaven.javadoc.skip=true"
-            mvn_args="${mvn_args} -Dsting.generate-gatk-extensions.skipped=true"
-            mvn_args="${mvn_args} -Dsting.jar.phase=none -Dsting.unpack.phase=none -Dsting.shade.phase=none"
+            mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo}"
+            mvn_args="${mvn_args} -Dsting.packagetests.enabled=true"
             mvn_args="${mvn_args} -Dsting.packagepipelinetests.skipped=false"
             mvn_args="${mvn_args} -Dsting.pipelinetests.run=true"
 

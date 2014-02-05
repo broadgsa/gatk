@@ -51,10 +51,79 @@
             <classifier>example-resources</classifier>
             <type>tar.bz2</type>
         </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-framework</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.caliper</groupId>
+            <artifactId>caliper</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unit-tests</id>
+                        <configuration>
+                            <skip>${sting.serialunittests.skipped}</skip>
+                            <dependenciesToScan>
+                                <scan>org.broadinstitute.sting:.*</scan>
+                            </dependenciesToScan>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <configuration>
+                            <skip>${sting.serialintegrationtests.skipped}</skip>
+                            <dependenciesToScan>
+                                <scan>org.broadinstitute.sting:.*</scan>
+                            </dependenciesToScan>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>pipeline-tests</id>
+                        <configuration>
+                            <skip>${sting.serialpipelinetests.skipped}</skip>
+                            <dependenciesToScan>
+                                <scan>org.broadinstitute.sting:.*</scan>
+                            </dependenciesToScan>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>large-scale-tests</id>
+                        <configuration>
+                            <skip>${sting.seriallargescaletests.skipped}</skip>
+                            <dependenciesToScan>
+                                <scan>org.broadinstitute.sting:.*</scan>
+                            </dependenciesToScan>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -132,6 +201,14 @@
                     <version>${project.version}</version>
                     <optional>true</optional>
                 </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>gatk-protected</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <optional>true</optional>
+                </dependency>
             </dependencies>
         </profile>
         <profile>
@@ -148,7 +225,28 @@
                     <version>${project.version}</version>
                     <optional>true</optional>
                 </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>gatk-private</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                    <optional>true</optional>
+                </dependency>
             </dependencies>
+        </profile>
+        <profile>
+            <id>packagetests-enabled</id>
+            <activation>
+                <property>
+                    <name>sting.packagetests.enabled</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <sting.unpack.phase>none</sting.unpack.phase>
+                <sting.shade.phase>none</sting.shade.phase>
+            </properties>
         </profile>
     </profiles>
 

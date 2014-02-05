@@ -16,7 +16,6 @@
     <properties>
         <sting.basedir>${project.basedir}/../..</sting.basedir>
         <sting.packagetests.artifactId>gatk-package</sting.packagetests.artifactId>
-        <sting.test-utils-jar.phase>${sting.jar.phase}</sting.test-utils-jar.phase>
     </properties>
 
     <dependencies>
@@ -24,15 +23,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>sting-utils</artifactId>
             <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>sting-utils</artifactId>
-            <version>${project.version}</version>
-            <classifier>test-utils</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -55,7 +45,7 @@
                 <executions>
                     <execution>
                         <id>example-resources</id>
-                        <phase>generate-resources</phase>
+                        <phase>${sting.generate-resources.phase}</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -79,14 +69,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                </executions>
-            </plugin>
--->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-invoker-plugin</artifactId>

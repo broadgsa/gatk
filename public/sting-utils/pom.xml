@@ -17,7 +17,6 @@
         <sting.basedir>${project.basedir}/../..</sting.basedir>
         <gsalib.packagedir>org/broadinstitute/sting/utils/R</gsalib.packagedir>
         <gsalib.filename>gsalib.tar.gz</gsalib.filename>
-        <sting.test-utils-jar.phase>${sting.jar.phase}</sting.test-utils-jar.phase>
     </properties>
 
     <dependencies>

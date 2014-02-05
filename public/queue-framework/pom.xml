@@ -18,7 +18,6 @@
         <gatk.extensions.sources>${project.build.directory}/generated-sources/gatk-extensions</gatk.extensions.sources>
         <sting.generate-gatk-extensions.skipped>false</sting.generate-gatk-extensions.skipped>
         <sting.packagetests.artifactId>queue-package</sting.packagetests.artifactId>
-        <sting.test-utils-jar.phase>${sting.jar.phase}</sting.test-utils-jar.phase>
     </properties>
 
     <dependencies>
@@ -66,7 +65,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>gatk-framework</artifactId>
             <version>${project.version}</version>
-            <classifier>test-utils</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -130,7 +128,7 @@
                 <executions>
                     <execution>
                         <id>example-resources</id>
-                        <phase>generate-resources</phase>
+                        <phase>${sting.generate-resources.phase}</phase>
                     </execution>
                 </executions>
             </plugin>
