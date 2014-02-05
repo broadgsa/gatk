@@ -873,7 +873,6 @@ public class GATKVariantContextUtils {
         int depth = 0;
         int maxAC = -1;
         final Map<String, Object> attributesWithMaxAC = new LinkedHashMap<>();
-        final Map<String, List<Comparable>> annotationMap = new LinkedHashMap<>();
         double log10PError = CommonInfo.NO_LOG10_PERROR;
         boolean anyVCHadFiltersApplied = false;
         VariantContext vcWithMaxAC = null;
@@ -1063,7 +1062,6 @@ public class GATKVariantContextUtils {
         final List<Allele> alleles = getAllelesListFromMapper(refAllele, alleleMapper);
 
         final Map<String, Object> attributes = new LinkedHashMap<>();
-        final Set<String> inconsistentAttributes = new HashSet<>();
         final Set<String> rsIDs = new LinkedHashSet<>(1); // most of the time there's one id
 
         int depth = 0;
@@ -1089,7 +1087,7 @@ public class GATKVariantContextUtils {
             if ( vc.hasID() ) rsIDs.add(vc.getID());
 
             // add attributes
-            addReferenceConfidenceAttributes(vc.getAttributes(), attributes, inconsistentAttributes, annotationMap);
+            addReferenceConfidenceAttributes(vc.getAttributes(), annotationMap);
         }
 
         // when combining annotations use the median value from all input VCs which had annotations provided
@@ -1161,18 +1159,13 @@ public class GATKVariantContextUtils {
      * Adds attributes to the global map from the new context in a sophisticated manner
      *
      * @param myAttributes               attributes to add from
-     * @param globalAttributes           global set of attributes to add to
-     * @param inconsistentAttributes     set of attributes that are inconsistent among samples
      * @param annotationMap              map of annotations for combining later
      */
     private static void addReferenceConfidenceAttributes(final Map<String, Object> myAttributes,
-                                                         final Map<String, Object> globalAttributes,
-                                                         final Set<String> inconsistentAttributes,
                                                          final Map<String, List<Comparable>> annotationMap) {
         for ( final Map.Entry<String, Object> p : myAttributes.entrySet() ) {
             final String key = p.getKey();
             final Object value = p.getValue();
-            boolean badAnnotation = false;
 
             // add the annotation values to a list for combining later
             List<Comparable> values = annotationMap.get(key);
@@ -1188,38 +1181,8 @@ public class GATKVariantContextUtils {
                 else
                     values.add(Integer.parseInt(stringValue));
             } catch (final NumberFormatException e) {
-                badAnnotation = true;
+                // nothing to do
             }
-
-            // only output annotations that have the same value in every input VC
-            if ( badAnnotation && ! inconsistentAttributes.contains(key) ) {
-                checkForConsistency(key, value, globalAttributes, inconsistentAttributes);
-            }
-        }
-    }
-
-    /**
-     * Check attributes for consistency to others in the merge
-     *
-     * @param key                        the attribute key
-     * @param value                      the attribute value
-     * @param globalAttributes           the global list of attributes being merged
-     * @param inconsistentAttributes     the list of inconsistent attributes in the merge
-     */
-    private static void checkForConsistency(final String key,
-                                            final Object value,
-                                            final Map<String, Object> globalAttributes,
-                                            final Set<String> inconsistentAttributes) {
-        final boolean alreadyFound = globalAttributes.containsKey(key);
-        final Object boundValue = globalAttributes.get(key);
-        final boolean boundIsMissingValue = alreadyFound && boundValue.equals(VCFConstants.MISSING_VALUE_v4);
-
-        if ( alreadyFound && ! boundValue.equals(value) && ! boundIsMissingValue ) {
-            // we found the value but we're inconsistent, put it in the exclude list
-            inconsistentAttributes.add(key);
-            globalAttributes.remove(key);
-        } else if ( ! alreadyFound || boundIsMissingValue )  { // no value
-            globalAttributes.put(key, value);
         }
     }
 
