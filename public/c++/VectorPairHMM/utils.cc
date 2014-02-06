@@ -97,8 +97,8 @@ int read_testcase(testcase *tc, FILE* ifp)
 	tc->haplen = strlen(tc->hap);
 	tc->rslen = strlen(tc->rs);
 	//assert(tc->rslen < MROWS);
-	tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
-	tc->irs = (int *) malloc(tc->rslen*sizeof(int));
+        //tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
+        //tc->irs = (int *) malloc(tc->rslen*sizeof(int));
 
 	tc->q = (char *) malloc(sizeof(char) * tc->rslen);
 	tc->i = (char *) malloc(sizeof(char) * tc->rslen);
@@ -115,10 +115,10 @@ int read_testcase(testcase *tc, FILE* ifp)
 		tc->i[x] = _i;
 		tc->d[x] = _d;
 		tc->c[x] = _c;
-		tc->irs[x] = tc->rs[x];
+                //tc->irs[x] = tc->rs[x];
 	}
-	for (x = 0; x < tc->haplen; x++)
-	  tc->ihap[x] = tc->hap[x];
+        //for (x = 0; x < tc->haplen; x++)
+        //tc->ihap[x] = tc->hap[x];
 
 
 	free(q);
@@ -269,4 +269,111 @@ uint64_t get_time(struct timespec* store_struct)
   uint64_t diff_time = (ptr->tv_sec-start_time.tv_sec)*1000000000+(ptr->tv_nsec-start_time.tv_nsec);
   start_time = *ptr;
   return diff_time;
+}
+
+//#define CHECK_VALUES 1
+#define BATCH_SIZE  10000
+#define RUN_HYBRID
+void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
+{
+  FILE* fptr = 0;
+  ifstream ifptr;
+  if(use_old_read_testcase)
+  {
+    fptr = fopen(filename,"r");
+    assert(fptr);
+  }
+  else
+  {
+    ifptr.open(filename);
+    assert(ifptr.is_open());
+  }
+  vector<testcase> tc_vector;
+  tc_vector.clear();
+  testcase tc;
+  uint64_t vector_compute_time = 0;
+  uint64_t baseline_compute_time = 0;
+  uint64_t num_double_calls = 0;
+  bool all_ok = true;
+#ifndef CHECK_VALUES
+  all_ok = false;
+#endif
+  while(1)
+  {
+    int break_value = use_old_read_testcase ? read_testcase(&tc, fptr) : read_mod_testcase(ifptr,&tc,true);
+    if(break_value >= 0)
+      tc_vector.push_back(tc);
+    if(tc_vector.size() == BATCH_SIZE || (break_value < 0 && tc_vector.size() > 0))
+    {
+      vector<double> results_vec;
+      vector<double> baseline_results_vec;
+      results_vec.clear();
+      baseline_results_vec.clear();
+      results_vec.resize(tc_vector.size());
+      baseline_results_vec.resize(tc_vector.size());
+      get_time();
+#pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
+      for(unsigned i=0;i<tc_vector.size();++i)
+      {
+	testcase& tc = tc_vector[i];
+	float result_avxf = g_compute_full_prob_float(&tc, 0);
+	double result = 0;
+	if (result_avxf < MIN_ACCEPTED) {
+	  double result_avxd = g_compute_full_prob_double(&tc, 0);
+	  result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+          ++num_double_calls;
+	}
+	else
+	  result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+	results_vec[i] = result;
+      }
+      vector_compute_time +=  get_time();
+#ifdef CHECK_VALUES
+#pragma omp parallel for schedule(dynamic,chunk_size)
+      for(unsigned i=0;i<tc_vector.size();++i)
+      {
+	testcase& tc = tc_vector[i];
+	double baseline_result = compute_full_prob<double>(&tc);
+	baseline_result = log10(baseline_result) - log10(ldexp(1.0, 1020.0));
+        baseline_results_vec[i] = baseline_result;
+      }
+      baseline_compute_time += get_time();
+      for(unsigned i=0;i<tc_vector.size();++i)
+      {
+        double baseline_result = baseline_results_vec[i];
+	double abs_error = fabs(baseline_result-results_vec[i]);
+	double rel_error = (baseline_result != 0) ? fabs(abs_error/baseline_result) : 0;
+	if(abs_error > 1e-5 && rel_error > 1e-5)
+        {
+	  cout << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
+          all_ok = false;
+        }
+      }
+#endif
+      for(unsigned i=0;i<tc_vector.size();++i)
+      {
+	delete tc_vector[i].rs;
+	delete tc_vector[i].hap;
+	delete tc_vector[i].q;
+	delete tc_vector[i].i;
+	delete tc_vector[i].d;
+	delete tc_vector[i].c;
+      }
+      results_vec.clear();
+      tc_vector.clear();
+    }
+    if(break_value < 0)
+      break;
+  }
+  if(all_ok)
+  {
+    cout << "All output values within acceptable error\n";
+    cout << "Baseline compute time "<<baseline_compute_time*1e-9<<"\n";
+  }
+  cout << "Num double invocations "<<num_double_calls<<"\n";
+  cout << "Vector compute time "<< vector_compute_time*1e-9 << "\n";
+  if(use_old_read_testcase)
+    fclose(fptr);
+  else
+    ifptr.close();
 }

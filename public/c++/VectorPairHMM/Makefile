@@ -12,6 +12,9 @@ CC=icc
 CXX=icc
 
 LDFLAGS=-lm -lrt $(OMPLDFLAGS)
+ifdef DISABLE_FTZ
+  COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ -no-ftz
+endif
 
 BIN=libVectorLoglessPairHMM.so pairhmm-template-main checker
 #BIN=checker
@@ -22,14 +25,14 @@ DF=$(DEPDIR)/$(*).d
 #Common across libJNI and sandbox
 COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc LoadTimeInitializer.cc
 #Part of libJNI
-LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc $(COMMON_SOURCES)
+LIBSOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc Sandbox.cc $(COMMON_SOURCES)
 SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
 LIBOBJECTS=$(LIBSOURCES:.cc=.o)
 COMMON_OBJECTS=$(COMMON_SOURCES:.cc=.o)
 
 
 #No vectorization for these files
-NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc
+NO_VECTOR_SOURCES=org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.cc pairhmm-template-main.cc pairhmm-1-base.cc utils.cc baseline.cc LoadTimeInitializer.cc Sandbox.cc
 #Use -xAVX for these files
 AVX_SOURCES=avx_function_instantiations.cc
 #Use -xSSE4.2 for these files
@@ -43,7 +46,7 @@ $(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xAVX
 $(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xSSE4.2
 OBJECTS=$(NO_VECTOR_OBJECTS) $(AVX_OBJECTS) $(SSE_OBJECTS)
 
-all: $(BIN)
+all: $(BIN) Sandbox.class
 
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
@@ -54,13 +57,15 @@ pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
 	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 libVectorLoglessPairHMM.so: $(LIBOBJECTS) 
-	$(CXX) $(OMPLFLAGS) -shared -o $@ $(LIBOBJECTS) ${LDFLAGS} -Wl,-Bstatic -limf -lsvml -lirng -Wl,-Bdynamic #-lintlc
+	$(CXX) $(OMPLFLAGS) -shared -static-intel -o $@ $(LIBOBJECTS) ${LDFLAGS}
 
 
 $(OBJECTS): %.o: %.cc
 	@mkdir -p $(DEPDIR)
 	$(CXX) -c -MMD -MF $(DF) $(CXXFLAGS) $(OUTPUT_OPTION) $<
 
+Sandbox.class: Sandbox.java
+	javac Sandbox.java
 
 clean:
-	rm -rf $(BIN) *.o $(DEPDIR)
+	rm -rf $(BIN) *.o $(DEPDIR) *.class
