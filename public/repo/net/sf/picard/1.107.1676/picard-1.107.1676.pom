@@ -37,8 +37,8 @@
             <groupId>com.sun</groupId>
             <artifactId>tools.jar</artifactId>
             <version>1.5</version>
-            <classifier>system</classifier>
-            <systemPath>${java.home}../lib/tools.jar</systemPath>
+            <scope>system</scope>
+            <systemPath>${java.home}/../lib/tools.jar</systemPath>
         </dependency>
     </dependencies>
 </project>

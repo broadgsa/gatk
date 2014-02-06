@@ -48,13 +48,29 @@
             <artifactId>cofoja</artifactId>
         </dependency>
 
+        <!--
+        gatk-framework test-jar added for BaseTest
+        TODO: Uncomment below to use the explicitly bad "exclude *" to really test correct packaging,
+        TODO: until we can separate BaseTest and other utilities into their own sting-test-utils artifact.
+        TODO: We only want the classes in the packaged jars tested, not the classes within the dependency jars too.
+        See also:
+          http://stackoverflow.com/questions/547805/how-to-exclude-all-transitive-dependencies-of-a-maven-dependency
+          http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>gatk-framework</artifactId>
             <version>${project.version}</version>
-            <classifier>test-utils</classifier>
             <type>test-jar</type>
             <scope>test</scope>
+            <!--
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+            -->
         </dependency>
 
         <dependency>
@@ -95,13 +111,9 @@
                             <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
                             <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
-                            <dependenciesToScan>
-                                <scan>org.broadinstitute.sting:.*</scan>
-                            </dependenciesToScan>
                         </configuration>
                         <executions>
                             <execution>
-                                <!-- run all non integration tests -->
                                 <id>unit-tests</id>
                                 <goals>
                                     <goal>test</goal>
@@ -137,9 +149,6 @@
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
                             <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
                             <summaryFile>${failsafe.summaryFile}</summaryFile>
-                            <dependenciesToScan>
-                                <scan>org.broadinstitute.sting:.*</scan>
-                            </dependenciesToScan>
                         </configuration>
                         <executions>
                             <execution>

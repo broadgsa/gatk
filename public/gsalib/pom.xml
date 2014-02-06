@@ -30,7 +30,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <phase>${sting.generate-resources.phase}</phase>
                         <configuration>
                             <appendAssemblyId>false</appendAssemblyId>
                             <descriptors>

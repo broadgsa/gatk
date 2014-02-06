@@ -32,13 +32,37 @@
         <resource.bundle.skip>false</resource.bundle.skip>
         <!-- TODO: Need a better a way to say "don't include hidden" by default -->
         <gatkdocs.include.hidden>-build-timestamp "${maven.build.timestamp}"</gatkdocs.include.hidden>
+
+        <!--
+        Phases of the build that may be disabled to speed up compilation.
+        -->
         <sting.jar.phase>package</sting.jar.phase>
-        <sting.test-utils.jar.phase>none</sting.test-utils.jar.phase>
+        <sting.generate-resources.phase>generate-resources</sting.generate-resources.phase>
+        <sting.process-resources.phase>process-resources</sting.process-resources.phase>
+        <sting.process-test-resources.phase>process-test-resources</sting.process-test-resources.phase>
+
+        <!--
+        Package tests ensure the consistency of the packaged / shaded jars.
+        It runs the tests where the monolithic jar is the only dependency on the classpath.
+        -->
         <sting.packagecommittests.skipped>true</sting.packagecommittests.skipped>
         <sting.packageunittests.skipped>${sting.packagecommittests.skipped}</sting.packageunittests.skipped>
         <sting.packageintegrationtests.skipped>${sting.packagecommittests.skipped}</sting.packageintegrationtests.skipped>
         <sting.packagepipelinetests.skipped>${sting.packagecommittests.skipped}</sting.packagepipelinetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
+
+        <!--
+        Serial tests use the test jars to run tests, such that all tests are run from a single TestNG invocation.
+        This is different that the invoker, that runs the test classes from the filesystem, but pointing at the packaged JAR files.
+        TODO: Currently, all tests run within each package, since packages already collect dependencies for shading an uber jar.
+        TODO: Should there be another level up of tests, possibly running "all tests" via this aggregator level?
+        TODO: If that require the aggregator to be dependent on the child dependencies, perhaps a better approach might be another monolithic test project.
+        -->
+        <sting.serialcommittests.skipped>true</sting.serialcommittests.skipped>
+        <sting.serialunittests.skipped>${sting.serialcommittests.skipped}</sting.serialunittests.skipped>
+        <sting.serialintegrationtests.skipped>${sting.serialcommittests.skipped}</sting.serialintegrationtests.skipped>
+        <sting.serialpipelinetests.skipped>${sting.serialcommittests.skipped}</sting.serialpipelinetests.skipped>
+        <sting.seriallargescaletests.skipped>true</sting.seriallargescaletests.skipped>
     </properties>
 
     <dependencies>
@@ -109,6 +133,20 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
                     <executions>
+                        <execution>
+                            <id>default-resources</id>
+                            <goals>
+                                <goal>resources</goal>
+                            </goals>
+                            <phase>${sting.process-resources.phase}</phase>
+                        </execution>
+                        <execution>
+                            <id>default-testResources</id>
+                            <goals>
+                                <goal>testResources</goal>
+                            </goals>
+                            <phase>${sting.process-test-resources.phase}</phase>
+                        </execution>
                         <execution>
                             <id>copy-resource-bundle-log4j</id>
                             <goals>
@@ -277,38 +315,13 @@
                             <phase>${sting.jar.phase}</phase>
                         </execution>
                         <execution>
-                            <id>test-utils</id>
+                            <id>test-jar</id>
                             <goals>
-                                <goal>jar</goal>
+                                <goal>test-jar</goal>
                             </goals>
-                            <phase>${sting.test-utils-jar.phase}</phase>
+                            <phase>${sting.jar.phase}</phase>
                             <configuration>
-                                <classesDirectory>${project.build.testOutputDirectory}</classesDirectory>
-                                <classifier>test-utils</classifier>
-                                <!--
-                                TODO: Excluding actual tests from tests-utils jar is required because the same test classes
-                                TODO: cannot be in both the test artifact AND the test classes directory.
-
-                                TODO: Otherwise maven throws an [ERROR] java.lang.RuntimeException: Duplicate test set
-
-                                TODO: This is due to AbstractSurefireMojo.scanForTestClasses() adding both scanDirectories() and scanDependencies().
-                                TODO: Pain to debug as exception is three maven invoker levels deep, outer maven, maven-inovker-plugin, then forked tests!
-
-                                TODO: See also: http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
-
-                                TODO: Then that dependency won't have test classes that will also run from the
-                                TODO: test classes directory during the invoked package test.
-                                -->
-                                <excludes>
-                                    <exclude>**/*UnitTest.class</exclude>
-                                    <exclude>**/*UnitTest$*.class</exclude>
-                                    <exclude>**/*IntegrationTest.class</exclude>
-                                    <exclude>**/*IntegrationTest$*.class</exclude>
-                                    <exclude>**/*PipelineTest.class</exclude>
-                                    <exclude>**/*PipelineTest$*.class</exclude>
-                                    <exclude>**/*LargeScaleTest.class</exclude>
-                                    <exclude>**/*LargeScaleTest.class</exclude>
-                                </excludes>
+                                <skipIfEmpty>true</skipIfEmpty>
                             </configuration>
                         </execution>
                     </executions>
@@ -772,6 +785,25 @@
             <modules>
                 <module>private</module>
             </modules>
+        </profile>
+
+        <!-- Collection of properties for use during package testing -->
+        <profile>
+            <id>packagetests-enabled</id>
+            <activation>
+                <property>
+                    <name>sting.packagetests.enabled</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <sting.generate-gatk-extensions.skipped>true</sting.generate-gatk-extensions.skipped>
+                <sting.jar.phase>none</sting.jar.phase>
+                <sting.generate-resources.phase>none</sting.generate-resources.phase>
+                <sting.process-resources.phase>none</sting.process-resources.phase>
+                <sting.process-test-resources.phase>none</sting.process-test-resources.phase>
+            </properties>
         </profile>
     </profiles>
 
