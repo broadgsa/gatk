@@ -7,6 +7,10 @@ LoadTimeInitializer g_load_time_initializer;
 LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loaded
 {
   ConvertChar::init();
+#ifndef DISABLE_FTZ
+  //Very important to get good performance - enable FTZ, converts denormals to 0
+  _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+#endif
   m_sumNumReads = 0;
   m_sumSquareNumReads = 0;
   m_sumNumHaplotypes = 0;

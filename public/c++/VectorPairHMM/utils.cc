@@ -45,7 +45,7 @@ uint64_t get_machine_capabilities()
 
 void initialize_function_pointers(uint64_t mask)
 {
-  //mask = 0;
+  //mask = 0ull;
   if(is_avx_supported() && (mask & (1<< AVX_CUSTOM_IDX)))
   {
     cout << "Using AVX accelerated implementation of PairHMM\n";
@@ -287,16 +287,23 @@ uint64_t diff_time(struct timespec& prev_time)
 }
 
 //#define USE_PAPI
+//#define COUNT_EXCEPTIONS
+//#define CHECK_RESULTS
+#define CHECK_UNDERFLOW 1
 #ifdef USE_PAPI
 #include "papi.h"
 #define NUM_PAPI_COUNTERS 4
 #endif
 
+IF_32 g_converter;
+FILE* g_debug_fptr = 0;
 uint64_t exceptions_array[128];
 void do_compute(char* filename)
 {
-  memset(exceptions_array, 0, 128*sizeof(uint64_t));
-  _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+  //g_debug_fptr = fopen("/mnt/app_hdd/scratch/karthikg/dump.log","w");
+  //assert(g_debug_fptr);
+  for(unsigned i=0;i<128;++i)
+    exceptions_array[i] = 0ull;
   //assert(feenableexcept(FE_DIVBYZERO | FE_INVALID) >= 0);
 #ifdef USE_PAPI
   PAPI_num_counters();
@@ -310,11 +317,11 @@ void do_compute(char* filename)
   int events[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
     //assert(PAPI_event_name_to_code("ICACHE:IFETCH_STALL",&(events[2])) == PAPI_OK);
   //assert(PAPI_event_name_to_code("MACHINE_CLEARS:e",&(events[3])) == PAPI_OK);
-  char* eventnames[NUM_PAPI_COUNTERS]=  { "instructions", "cycles", "ifetch_stall", "store_misses" };
+  char* eventnames[NUM_PAPI_COUNTERS]=  { "instructions", "cycles", "fp_assists", "idq_ms_cycles" };
   assert(PAPI_event_name_to_code("ix86arch::INSTRUCTION_RETIRED",&(events[0])) == PAPI_OK);
   assert(PAPI_event_name_to_code("UNHALTED_REFERENCE_CYCLES",&(events[1])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("ICACHE:IFETCH_STALL",   &(events[2])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("perf::L1-DCACHE-STORE-MISSES",   &(events[3])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("FP_ASSIST:ANY",   &(events[2])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("IDQ:MS_UOPS_CYCLES",   &(events[3])) == PAPI_OK);
   long long values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
   long long accum_values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
 
@@ -353,6 +360,9 @@ void do_compute(char* filename)
 
   testcase tc_in;
   int break_value = 0;
+  uint64_t fp_single_exceptions_reexecute = 0;
+  uint64_t fp_single_exceptions_continue = 0;
+  uint64_t num_double_executions = 0;
   while(1)
   {
     break_value = use_old_read_testcase ? read_testcase(&tc_in, fptr) : 
@@ -373,13 +383,38 @@ void do_compute(char* filename)
       for(unsigned i=0;i<num_testcases;++i)
       {
         double result = 0;
+#ifdef COUNT_EXCEPTIONS
+        fexcept_t flagp = 0;
+        feclearexcept(FE_ALL_EXCEPT | __FE_DENORM);                 
+#endif
         float result_avxf = g_compute_full_prob_float(&(tc_vector[i]), 0);
-        if (result_avxf < MIN_ACCEPTED) {
+        //CONVERT_AND_PRINT(result_avxf);
+#ifdef COUNT_EXCEPTIONS
+        STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+        bool fp_exception =  ((flagp & (FE_UNDERFLOW|FE_OVERFLOW|FE_INVALID)) != 0);
+#endif
+#ifdef CHECK_UNDERFLOW
+        if (result_avxf < MIN_ACCEPTED)
+#else
+        if(false)
+#endif
+        {
+#ifdef COUNT_EXCEPTIONS
+          if(fp_exception)
+            ++fp_single_exceptions_reexecute;
+#endif
           double result_avxd = g_compute_full_prob_double(&(tc_vector[i]), 0);
           result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+          ++num_double_executions;
         }
         else
+        {
+#ifdef COUNT_EXCEPTIONS
+          if(fp_exception)
+            ++fp_single_exceptions_continue;
+#endif
           result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+        }
         results_vec[i] = result;
       }
 #ifdef USE_PAPI
@@ -392,7 +427,7 @@ void do_compute(char* filename)
         accum_values[k] += values[k];
 #endif
 
-#if 0
+#ifdef CHECK_RESULTS
 #pragma omp parallel for schedule(dynamic,chunk_size)
       for(unsigned i=0;i<num_testcases;++i)
       {
@@ -419,6 +454,8 @@ void do_compute(char* filename)
           all_ok = false;
         }
       }
+#else
+      all_ok = false;
 #endif
       for(unsigned i=0;i<num_testcases;++i)
       {
@@ -457,11 +494,16 @@ void do_compute(char* filename)
     fclose(fptr);
   else
     ifptr.close();
-  //cout << "Exceptions "<<exceptions_array[FE_INVALID]<< " "
-    //<<exceptions_array[__FE_DENORM]<< " "
-    //<<exceptions_array[FE_DIVBYZERO]<< " "
-    //<<exceptions_array[FE_OVERFLOW]<< " "
-    //<<exceptions_array[FE_UNDERFLOW]<< " "
-    //<<exceptions_array[FE_INEXACT]<< "\n";
+#ifdef COUNT_EXCEPTIONS
+  cout << "Exceptions "
+    <<"invalid : "<<exceptions_array[FE_INVALID]<< " "
+    <<"denormal : "<<exceptions_array[__FE_DENORM]<< " "
+    <<"div_by_0 : "<<exceptions_array[FE_DIVBYZERO]<< " "
+    <<"overflow : "<<exceptions_array[FE_OVERFLOW]<< " "
+    <<"underflow : "<<exceptions_array[FE_UNDERFLOW]<< "\n";
+  cout << "Single precision FP exceptions continuations "<<fp_single_exceptions_continue<<" re-executions "<<fp_single_exceptions_reexecute<<"\n";
+#endif
+  cout << "Num double executions "<<num_double_executions<<"\n";
 
+  //fclose(g_debug_fptr);
 }

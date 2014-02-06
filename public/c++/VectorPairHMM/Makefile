@@ -13,13 +13,16 @@ CXX=icc
 
 LDFLAGS=-lm -lrt $(OMPLDFLAGS)
 
-#USE_PAPI=1
 PAPI_DIR=/home/karthikg/softwares/papi-5.3.0
 ifdef USE_PAPI
   ifeq ($(USE_PAPI),1)
-    COMMON_COMPILATION_FLAGS+=-I$(PAPI_DIR)/include
+    COMMON_COMPILATION_FLAGS+=-I$(PAPI_DIR)/include -DUSE_PAPI
     LDFLAGS+=-L$(PAPI_DIR)/lib -lpapi
   endif
+endif
+
+ifdef DISABLE_FTZ
+  COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ -no-ftz
 endif
 
 BIN=libVectorLoglessPairHMM.so pairhmm-template-main checker

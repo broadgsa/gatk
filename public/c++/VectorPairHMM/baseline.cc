@@ -1,6 +1,7 @@
 #include "headers.h"
 #include "template.h"
-extern uint64_t exceptions_array[128];
+#include "utils.h"
+
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log = NULL)
 {
@@ -66,18 +67,22 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log = NULL)
 				distm = distm/3;
 
 
-	  		//feclearexcept(FE_ALL_EXCEPT);
+                        //feclearexcept(FE_ALL_EXCEPT);
 	  		M[r][c] = distm * (M[r-1][c-1] * p[r][MM] + X[r-1][c-1] * p[r][GapM] + Y[r-1][c-1] * p[r][GapM]);
-	  		//M[r][c] = (M[r-1][c-1] * p[r][MM] + X[r-1][c-1] * p[r][GapM] + Y[r-1][c-1] * p[r][GapM]);
-	  		//STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+                        //STORE_FP_EXCEPTIONS(flagp, exceptions_array);
 
-	  		//feclearexcept(FE_ALL_EXCEPT);
+                        //feclearexcept(FE_ALL_EXCEPT);
 	  		X[r][c] = M[r-1][c] * p[r][MX] + X[r-1][c] * p[r][XX];
-	  		//STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+                        //STORE_FP_EXCEPTIONS(flagp, exceptions_array);
 
-	  		//feclearexcept(FE_ALL_EXCEPT);
+                        //feclearexcept(FE_ALL_EXCEPT);
 	  		Y[r][c] = M[r][c-1] * p[r][MY] + Y[r][c-1] * p[r][YY];
-	  		//STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+                        //STORE_FP_EXCEPTIONS(flagp, exceptions_array);
+
+                        //CONVERT_AND_PRINT(M[r][c]);
+                        //CONVERT_AND_PRINT(X[r][c]);
+                        //CONVERT_AND_PRINT(Y[r][c]);
+
 		}
 
   	for (c = 0; c < COLS; c++)

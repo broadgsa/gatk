@@ -27,14 +27,19 @@
 #include <cmath>
 #include <fenv.h>
 
-#define STORE_FP_EXCEPTIONS(flagp, exceptions_array)                                                  \
-  fegetexceptflag(&flagp, FE_OVERFLOW | FE_UNDERFLOW | FE_DIVBYZERO | FE_INVALID | __FE_DENORM);      \
+extern uint64_t exceptions_array[128];
+extern FILE* g_debug_fptr;
+#define STORE_FP_EXCEPTIONS(flagp, exceptions_array)                                    \
+  fegetexceptflag(&flagp, FE_ALL_EXCEPT | __FE_DENORM);                                 \
   exceptions_array[FE_INVALID] += ((flagp & FE_INVALID));                               \
   exceptions_array[__FE_DENORM] += ((flagp & __FE_DENORM) >> 1);                        \
   exceptions_array[FE_DIVBYZERO] += ((flagp & FE_DIVBYZERO) >> 2);                      \
   exceptions_array[FE_OVERFLOW] += ((flagp & FE_OVERFLOW) >> 3);                        \
   exceptions_array[FE_UNDERFLOW] += ((flagp & FE_UNDERFLOW) >> 4);                      \
-  feclearexcept(FE_ALL_EXCEPT);                 
+  feclearexcept(FE_ALL_EXCEPT | __FE_DENORM);                 
 
+#define CONVERT_AND_PRINT(X)                    \
+  g_converter.f = (X);                          \
+  fwrite(&(g_converter.i),4,1,g_debug_fptr);    \
 
 #endif
