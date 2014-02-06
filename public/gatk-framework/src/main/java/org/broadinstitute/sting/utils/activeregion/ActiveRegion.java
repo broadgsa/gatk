@@ -32,7 +32,9 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -407,30 +409,42 @@ public class ActiveRegion implements HasGenomeLocation {
     }
 
     /**
-     * Trim this active to just the newExtent, producing a new active region without any reads that has only
+     * Trim this active to just the span, producing a new active region without any reads that has only
      * the extent of newExtend intersected with the current extent
-     * @param newExtent the new extend of the active region we want
-     * @param newExtension the extension size we want for the newly trimmed active region
+     * @param span the new extend of the active region we want
+     * @param extension the extension size we want for the newly trimmed active region
      * @return a non-null, empty active region
      */
-    public ActiveRegion trim(final GenomeLoc newExtent, final int newExtension) {
-        if ( newExtent == null ) throw new IllegalArgumentException("Active region extent cannot be null");
+    public ActiveRegion trim(final GenomeLoc span, final int extension) {
+        if ( span == null ) throw new IllegalArgumentException("Active region extent cannot be null");
+        if ( extension < 0) throw new IllegalArgumentException("the extension size must be 0 or greater");
+        final int extendStart = Math.max(1,span.getStart() - extension);
+        final int maxStop = genomeLocParser.getContigs().getSequence(span.getContigIndex()).getSequenceLength();
+        final int extendStop = Math.min(span.getStop() + extension, maxStop);
+        final GenomeLoc extendedSpan = genomeLocParser.createGenomeLoc(span.getContig(), extendStart, extendStop);
+        return trim(span, extendedSpan);
 
-        final GenomeLoc subLoc = getLocation().intersect(newExtent);
-        final int subStart = subLoc.getStart() - getLocation().getStart();
-        final int subEnd = subStart + subLoc.size();
-        final List<ActivityProfileState> subStates = supportingStates.isEmpty() ? supportingStates : supportingStates.subList(subStart, subEnd);
-        return new ActiveRegion( subLoc, subStates, isActive, genomeLocParser, newExtension );
+//TODO - Inconsiste support of substates trimming. Check lack of consistency!!!!
+//        final GenomeLoc subLoc = getLocation().intersect(span);
+//        final int subStart = subLoc.getStart() - getLocation().getStart();
+//        final int subEnd = subStart + subLoc.size();
+//        final List<ActivityProfileState> subStates = supportingStates.isEmpty() ? supportingStates : supportingStates.subList(subStart, subEnd);
+//        return new ActiveRegion( subLoc, subStates, isActive, genomeLocParser, extension );
+
+    }
+
+    public ActiveRegion trim(final GenomeLoc span) {
+        return trim(span,span);
     }
 
     /**
-     * Trim this active to no more than the newExtent, producing a new active region without any reads that
-     * attempts to provide the best possible representation of this active region covering the newExtent.
+     * Trim this active to no more than the span, producing a new active region with properly trimmed reads that
+     * attempts to provide the best possible representation of this active region covering the span.
      *
-     * The challenge here is that newExtent may (1) be larger than can be represented by this active region
+     * The challenge here is that span may (1) be larger than can be represented by this active region
      * + its original extension and (2) the extension must be symmetric on both sides.  This algorithm
-     * therefore determines how best to represent newExtent as a subset of the span of this
-     * region with a padding value that captures as much of the newExtent as possible.
+     * therefore determines how best to represent span as a subset of the span of this
+     * region with a padding value that captures as much of the span as possible.
      *
      * For example, suppose this active region is
      *
@@ -442,18 +456,37 @@ public class ActiveRegion implements HasGenomeLocation {
      * The overall constraint is that the active region can never exceed the original active region, and
      * the extension is chosen to maximize overlap with the desired region
      *
-     * @param newExtent the new extend of the active region we want
+     * @param span the new extend of the active region we want
      * @return a non-null, empty active region
      */
-    public ActiveRegion trim(final GenomeLoc newExtent) {
-        if ( newExtent == null ) throw new IllegalArgumentException("Active region extent cannot be null");
+    public ActiveRegion trim(final GenomeLoc span, final GenomeLoc extendedSpan) {
+        if ( span == null ) throw new IllegalArgumentException("Active region extent cannot be null");
+        if ( extendedSpan == null ) throw new IllegalArgumentException("Active region extended span cannot be null");
+        if ( ! extendedSpan.containsP(span))
+            throw new IllegalArgumentException("The requested extended must fully contain the requested span");
 
-        final GenomeLoc subActive = getLocation().intersect(newExtent);
-        final int requiredOnRight = Math.max(newExtent.getStop() - subActive.getStop(), 0);
-        final int requiredOnLeft = Math.max(subActive.getStart() - newExtent.getStart(), 0);
+        final GenomeLoc subActive = getLocation().intersect(span);
+        final int requiredOnRight = Math.max(extendedSpan.getStop() - subActive.getStop(), 0);
+        final int requiredOnLeft = Math.max(subActive.getStart() - extendedSpan.getStart(), 0);
         final int requiredExtension = Math.min(Math.max(requiredOnLeft, requiredOnRight), getExtension());
 
-        return new ActiveRegion( subActive, Collections.<ActivityProfileState>emptyList(), isActive, genomeLocParser, requiredExtension );
+        final ActiveRegion result = new ActiveRegion( subActive, Collections.<ActivityProfileState>emptyList(), isActive, genomeLocParser, requiredExtension );
+
+        final List<GATKSAMRecord> myReads = getReads();
+        final GenomeLoc resultExtendedLoc = result.getExtendedLoc();
+        final int resultExtendedLocStart = resultExtendedLoc.getStart();
+        final int resultExtendedLocStop = resultExtendedLoc.getStop();
+
+        final List<GATKSAMRecord> trimmedReads = new ArrayList<>(myReads.size());
+        for( final GATKSAMRecord read : myReads ) {
+            final GATKSAMRecord clippedRead = ReadClipper.hardClipToRegion(read,
+                    resultExtendedLocStart, resultExtendedLocStop);
+            if( result.readOverlapsRegion(clippedRead) && clippedRead.getReadLength() > 0 )
+                trimmedReads.add(clippedRead);
+        }
+        result.clearReads();
+        result.addAll(ReadUtils.sortReadsByCoordinate(trimmedReads));
+        return result;
     }
 
     public void setFinalized(final boolean value) {
@@ -463,4 +496,5 @@ public class ActiveRegion implements HasGenomeLocation {
     public boolean isFinalized() {
         return hasBeenFinalized;
     }
+
 }
