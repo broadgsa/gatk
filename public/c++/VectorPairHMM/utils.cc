@@ -2,6 +2,7 @@
 #include "template.h"
 #include "utils.h"
 #include "vector_defs.h"
+#include "LoadTimeInitializer.h"
 
 uint8_t ConvertChar::conversionTable[255];
 float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
@@ -271,15 +272,9 @@ double getCurrClk() {
   return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 }
 
-uint64_t get_time(struct timespec* store_struct)
+void get_time(struct timespec* store_struct)
 {
-  static struct timespec start_time;
-  struct timespec curr_time;
-  struct timespec* ptr = (store_struct == 0) ? &curr_time : store_struct;
-  clock_gettime(CLOCK_REALTIME, ptr);
-  uint64_t diff_time = (ptr->tv_sec-start_time.tv_sec)*1000000000+(ptr->tv_nsec-start_time.tv_nsec);
-  start_time = *ptr;
-  return diff_time;
+  clock_gettime(CLOCK_REALTIME, store_struct);
 }
 
 uint64_t diff_time(struct timespec& prev_time)
@@ -289,6 +284,7 @@ uint64_t diff_time(struct timespec& prev_time)
   return (uint64_t)((curr_time.tv_sec-prev_time.tv_sec)*1000000000+(curr_time.tv_nsec-prev_time.tv_nsec));
 }
 
+//#define DUMP_COMPUTE_VALUES 1
 #define CHECK_VALUES 1
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
@@ -329,7 +325,8 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
       baseline_results_vec.clear();
       results_vec.resize(tc_vector.size());
       baseline_results_vec.resize(tc_vector.size());
-      get_time();
+      struct timespec start_time;
+      get_time(&start_time);
 #pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
       for(unsigned i=0;i<tc_vector.size();++i)
       {
@@ -343,10 +340,14 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
 	}
 	else
 	  result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+#ifdef DUMP_COMPUTE_VALUES
+        g_load_time_initializer.debug_dump("return_values_vector.txt",to_string(result),true);
+#endif
 	results_vec[i] = result;
       }
-      vector_compute_time +=  get_time();
+      vector_compute_time +=  diff_time(start_time);
 #ifdef CHECK_VALUES
+      get_time(&start_time);
 #pragma omp parallel for schedule(dynamic,chunk_size)
       for(unsigned i=0;i<tc_vector.size();++i)
       {
@@ -355,7 +356,7 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
 	baseline_result = log10(baseline_result) - log10(ldexp(1.0, 1020.0));
         baseline_results_vec[i] = baseline_result;
       }
-      baseline_compute_time += get_time();
+      baseline_compute_time += diff_time(start_time);
       for(unsigned i=0;i<tc_vector.size();++i)
       {
         double baseline_result = baseline_results_vec[i];
@@ -383,6 +384,9 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
     if(break_value < 0)
       break;
   }
+#ifdef DUMP_COMPUTE_VALUES
+  g_load_time_initializer.debug_close();
+#endif
   if(all_ok)
   {
     cout << "All output values within acceptable error\n";

@@ -14,8 +14,6 @@ int main(int argc, char** argv)
     cerr << "Needs path to input file as argument\n";
     exit(0);
   }
-  do_compute(argv[1]);
-  return 0;
   bool use_old_read_testcase = false;
   if(argc >= 3 && string(argv[2]) == "1")
     use_old_read_testcase = true;

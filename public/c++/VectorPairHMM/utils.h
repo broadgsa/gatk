@@ -26,7 +26,7 @@ void debug_dump(std::string filename, std::string s, bool to_append, bool add_ne
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log=0);
 double getCurrClk();
-uint64_t get_time(struct timespec* x=0);
+void get_time(struct timespec* x);
 uint64_t diff_time(struct timespec& prev_time);
 
 //bit 0 is sse4.2, bit 1 is AVX

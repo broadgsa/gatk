@@ -5,8 +5,8 @@
 /*#define ENABLE_ASSERTIONS 1*/
 #define DO_PROFILING 1
 /*#define DEBUG 1*/
-//#define DEBUG0_1 1
-//#define DEBUG3 1
+/*#define DEBUG0_1 1*/
+/*#define DEBUG3 1*/
 /*#define DUMP_TO_SANDBOX 1*/
 
 

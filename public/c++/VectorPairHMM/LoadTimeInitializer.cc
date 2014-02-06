@@ -1,6 +1,19 @@
 #include "LoadTimeInitializer.h"
 #include "utils.h"
 using namespace std;
+char* LoadTimeInitializerStatsNames[] = 
+{
+  "num_regions",
+  "num_reads",
+  "num_haplotypes",
+  "num_testcases",
+  "num_double_invocations",
+  "haplotype_length",
+  "readlength",
+  "product_read_length_haplotype_length",
+  "dummy"
+};
+
 
 LoadTimeInitializer g_load_time_initializer;
 
@@ -16,25 +29,23 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
 #else
   cout << "FTZ is not set - may slow down performance if denormal numbers encountered\n";
 #endif
-  m_sumNumReads = 0;
-  m_sumSquareNumReads = 0;
-  m_sumNumHaplotypes = 0;
-  m_sumSquareNumHaplotypes = 0;
-  m_sumNumTestcases = 0;
-  m_sumNumDoubleTestcases = 0;
-  m_sumSquareNumTestcases = 0;
-  m_sumReadLengths = 0;
-  m_sumHaplotypeLengths = 0;
-  m_sumProductReadLengthHaplotypeLength = 0;
-  m_sumSquareProductReadLengthHaplotypeLength = 0;
-  m_maxNumTestcases = 0;
-  m_num_invocations = 0;
-
+  //Profiling: times for compute and transfer (either bytes copied or pointers copied)
   m_compute_time = 0;
   m_data_transfer_time = 0;
   m_bytes_copied = 0;
 
+  //Initialize profiling counters
+  for(unsigned i=0;i<TOTAL_NUMBER_STATS;++i)
+  {
+    m_sum_stats[i] = 0;
+    m_sum_square_stats[i] = 0;
+    m_max_stats[i] = 0;
+    m_min_stats[i] = 0xFFFFFFFFFFFFFFFFull;
+  }
+
+  //for debug dump
   m_filename_to_fptr.clear();
+  m_written_files_set.clear();
 
   initialize_function_pointers();
   cout.flush();
@@ -42,25 +53,44 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
 
 void LoadTimeInitializer::print_profiling()
 {
-  double mean_val;
-  cout << "Compute time "<<m_compute_time*1e-9<<"\n";
-  cout << "Data initialization time "<<m_data_transfer_time*1e-9<<"\n";
-  cout <<"Invocations : "<<m_num_invocations<<"\n";
-  cout << "term\tsum\tsumSq\tmean\tvar\tmax\n";
-  mean_val = m_sumNumReads/m_num_invocations;
-  cout << "reads\t"<<m_sumNumReads<<"\t"<<m_sumSquareNumReads<<"\t"<<mean_val<<"\t"<<
-    (m_sumSquareNumReads/m_num_invocations)-mean_val*mean_val<<"\n";
-  mean_val = m_sumNumHaplotypes/m_num_invocations;
-  cout << "haplotypes\t"<<m_sumNumHaplotypes<<"\t"<<m_sumSquareNumHaplotypes<<"\t"<<mean_val<<"\t"<<
-    (m_sumSquareNumHaplotypes/m_num_invocations)-mean_val*mean_val<<"\n";
-  mean_val = m_sumNumTestcases/m_num_invocations;
-  cout << "numtestcases\t"<<m_sumNumTestcases<<"\t"<<m_sumSquareNumTestcases<<"\t"<<mean_val<<"\t"<<
-    (m_sumSquareNumTestcases/m_num_invocations)-mean_val*mean_val<<"\t"<<m_maxNumTestcases<<"\n";
-  mean_val = m_sumProductReadLengthHaplotypeLength/m_sumNumTestcases;
-  cout <<"productReadLengthHaplotypeLength\t"<<m_sumProductReadLengthHaplotypeLength<<"\t"<<m_sumSquareProductReadLengthHaplotypeLength<<"\t"
-    <<mean_val<<"\t"<<(m_sumSquareProductReadLengthHaplotypeLength/m_sumNumTestcases)-mean_val*mean_val<<"\n";
-  cout <<"numDoubleTestcases\t"<<m_sumNumDoubleTestcases<<"\n";
-  cout <<"numBytesCopied\t"<<m_bytes_copied<<"\n";
+  double mean = 0;
+  double variance = 0;
+  uint64_t denominator = 1;
+  cout << "Time spent in compute_testcases "<<m_compute_time*1e-9<<"\n";
+  cout << "Time spent in data transfer (Java <--> C++) "<<m_data_transfer_time*1e-9<<"\n";
+
+  cout << "\nHC input stats\nstat_name,sum,sum_square,mean,variance,min,max\n";
+  for(unsigned i=0;i<TOTAL_NUMBER_STATS;++i)
+  {
+    cout << LoadTimeInitializerStatsNames[i];
+    cout << "," << m_sum_stats[i];
+    cout << "," << std::scientific << m_sum_square_stats[i];
+    denominator = 1;
+    switch(i)
+    {
+      case NUM_READS_IDX:
+      case NUM_HAPLOTYPES_IDX:
+      case NUM_TESTCASES_IDX:
+        denominator = m_sum_stats[NUM_REGIONS_IDX];
+        break;
+      case HAPLOTYPE_LENGTH_IDX:
+      case READ_LENGTH_IDX:
+      case PRODUCT_READ_LENGTH_HAPLOTYPE_LENGTH_IDX:
+        denominator = m_sum_stats[NUM_TESTCASES_IDX];
+        break;
+      default:
+        denominator = 1;
+        break;
+    }
+    mean = ((double)m_sum_stats[i])/denominator;
+    cout << "," << std::scientific << mean;
+    variance = (m_sum_square_stats[i]/denominator) - (mean*mean);       //E(X^2)-(E(X))^2
+    cout << "," << std::scientific << variance;
+    cout << "," << m_min_stats[i];
+    cout << "," << m_max_stats[i];
+    cout << "\n";
+  }
+  cout << "\n";
   cout.flush();
 }
 
@@ -72,6 +102,12 @@ void LoadTimeInitializer::debug_dump(string filename, string s, bool to_append, 
   {
     m_filename_to_fptr[filename] = new ofstream();
     fptr = m_filename_to_fptr[filename];
+    //File never seen before
+    if(m_written_files_set.find(filename) == m_written_files_set.end())
+    {
+      to_append = false;
+      m_written_files_set.insert(filename);
+    }
     fptr->open(filename.c_str(), to_append ? ios::app : ios::out);
     assert(fptr->is_open());
   }
@@ -120,4 +156,13 @@ void LoadTimeInitializer::dump_sandbox(testcase& tc, unsigned tc_idx, unsigned n
   if(tc_idx == 0)       //new region
     dumpFptr << " "<< numReads << " "<<numHaplotypes; 
   dumpFptr<<"\n";
+}
+
+void LoadTimeInitializer::update_stat(LoadTimeInitializerStatsEnum stat_idx, uint64_t value)
+{
+  m_sum_stats[stat_idx] += value;
+  double v = value;
+  m_sum_square_stats[stat_idx] += (v*v);
+  m_max_stats[stat_idx] = std::max(m_max_stats[stat_idx], value);
+  m_min_stats[stat_idx] = std::min(m_min_stats[stat_idx], value);
 }

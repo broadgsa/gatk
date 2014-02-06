@@ -3,7 +3,7 @@
 #include "utils.h"
 
 template<class NUMBER>
-NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log = NULL)
+NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log)
 {
   	int r, c;
   	int ROWS = tc->rslen + 1;

@@ -3,6 +3,21 @@
 #include "headers.h"
 #include <jni.h>
 #include "template.h"
+
+enum LoadTimeInitializerStatsEnum
+{
+  NUM_REGIONS_IDX=0,
+  NUM_READS_IDX,
+  NUM_HAPLOTYPES_IDX,
+  NUM_TESTCASES_IDX,
+  NUM_DOUBLE_INVOCATIONS_IDX,
+  HAPLOTYPE_LENGTH_IDX,
+  READ_LENGTH_IDX,
+  PRODUCT_READ_LENGTH_HAPLOTYPE_LENGTH_IDX,
+  TOTAL_NUMBER_STATS
+};
+extern char* LoadTimeInitializerStatsNames[];
+
 class LoadTimeInitializer
 {
   public:
@@ -21,20 +36,8 @@ class LoadTimeInitializer
     jfieldID m_deletionGOPFID;
     jfieldID m_overallGCPFID;
     jfieldID m_haplotypeBasesFID;
-    //used to compute avg, variance of #testcases
-    double m_sumNumReads;
-    double m_sumSquareNumReads;
-    double m_sumNumHaplotypes;
-    double m_sumSquareNumHaplotypes;
-    double m_sumNumTestcases;
-    double m_sumSquareNumTestcases;
-    uint64_t m_sumNumDoubleTestcases;
-    uint64_t m_sumReadLengths;
-    uint64_t m_sumHaplotypeLengths;
-    uint64_t m_sumProductReadLengthHaplotypeLength;
-    double m_sumSquareProductReadLengthHaplotypeLength;
-    unsigned m_maxNumTestcases;
-    unsigned m_num_invocations;
+    //profiling - update stats
+    void update_stat(LoadTimeInitializerStatsEnum stat_idx, uint64_t value);
     //timing in nanoseconds
     uint64_t m_compute_time;
     uint64_t m_data_transfer_time;
@@ -42,7 +45,13 @@ class LoadTimeInitializer
     uint64_t m_bytes_copied;
   private:
     std::map<std::string, std::ofstream*> m_filename_to_fptr;
+    std::set<std::string> m_written_files_set;
     std::ofstream m_sandbox_fptr;
+    //used to compute various stats
+    uint64_t m_sum_stats[TOTAL_NUMBER_STATS];
+    double m_sum_square_stats[TOTAL_NUMBER_STATS];
+    uint64_t m_min_stats[TOTAL_NUMBER_STATS];
+    uint64_t m_max_stats[TOTAL_NUMBER_STATS];
 };
 extern LoadTimeInitializer g_load_time_initializer;
 

@@ -92,45 +92,20 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
       g_load_time_initializer.debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
 #endif
 #ifdef DO_PROFILING
-    g_load_time_initializer.m_sumHaplotypeLengths += haplotypeBasesLength;
+    g_load_time_initializer.update_stat(HAPLOTYPE_LENGTH_IDX, haplotypeBasesLength);
     g_load_time_initializer.m_bytes_copied += (is_copy ? haplotypeBasesLength : 0);
 #endif
   }
 }
 
-//JNI function to invoke compute_full_prob_avx
-//readDataArray - array of JNIReadDataHolderClass objects which contain the readBases, readQuals etc
-//haplotypeDataArray - array of JNIHaplotypeDataHolderClass objects which contain the haplotypeBases
-//likelihoodArray - array of doubles to return results back to Java. Memory allocated by Java prior to JNI call
-//maxNumThreadsToUse - Max number of threads that OpenMP can use for the HMM computation
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods
-  (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
-   jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
+inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector
+  (JNIEnv* env, jint numReads, jint numHaplotypes, jobjectArray& readDataArray,
+   vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector, vector<testcase>& tc_array)
 {
-#ifdef DEBUG0_1
-  cout << "JNI numReads "<<numReads<<" numHaplotypes "<<numHaplotypes<<"\n";
-#endif
-  double start_time = 0;
+  jboolean is_copy = JNI_FALSE;
   //haplotype vector from earlier store - note the reference to vector, not copying
   vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
-  jboolean is_copy = JNI_FALSE;
-
-  unsigned numTestCases = numReads*numHaplotypes;
-  //vector to store results
-  vector<testcase> tc_array;
-  tc_array.clear();
-  tc_array.resize(numTestCases);
   unsigned tc_idx = 0;
-  //Store arrays for release later
-  vector<vector<pair<jbyteArray,jbyte*> > > readBasesArrayVector;
-  readBasesArrayVector.clear();
-  readBasesArrayVector.resize(numReads);
-#ifdef DO_PROFILING
-  start_time = get_time();
-#endif
-#ifdef DUMP_TO_SANDBOX
-  g_load_time_initializer.open_sandbox();
-#endif
   for(unsigned i=0;i<numReads;++i)
   {
     //Get bytearray fields from read
@@ -157,6 +132,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     jbyte* overallGCPArray = (jbyte*)GET_BYTE_ARRAY_ELEMENTS(overallGCP, &is_copy);
 #ifdef DO_PROFILING
     g_load_time_initializer.m_bytes_copied += (is_copy ? readLength*5 : 0);
+    g_load_time_initializer.update_stat(READ_LENGTH_IDX, readLength);
 #endif
 #ifdef ENABLE_ASSERTIONS
     assert(readBasesArray && "readBasesArray not initialized in JNI"); 
@@ -183,7 +159,6 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
       g_load_time_initializer.debug_dump("reads_jni.txt",to_string((int)overallGCPArray[j]),true);
     }
 #endif
-
     for(unsigned j=0;j<numHaplotypes;++j)
     {
       jsize haplotypeLength = (jsize)g_haplotypeBasesLengths[j];
@@ -197,15 +172,14 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
       tc_array[tc_idx].d = (char*)deletionGOPArray;
       tc_array[tc_idx].c = (char*)overallGCPArray;
 #ifdef DO_PROFILING
-      g_load_time_initializer.m_sumProductReadLengthHaplotypeLength += (readLength*haplotypeLength);
-      g_load_time_initializer.m_sumSquareProductReadLengthHaplotypeLength += ((readLength*haplotypeLength)*(readLength*haplotypeLength));
+      g_load_time_initializer.update_stat(PRODUCT_READ_LENGTH_HAPLOTYPE_LENGTH_IDX, ((uint64_t)readLength)*((uint64_t)haplotypeLength));
 #endif
 #ifdef DUMP_TO_SANDBOX
       g_load_time_initializer.dump_sandbox(tc_array[tc_idx], tc_idx, numReads, numHaplotypes);
 #endif
       ++tc_idx;  
     }
-    //Release read arrays at end because they are used by compute_full_prob
+    //Store the read array references and release them at the end because they are used by compute_full_prob
     //Maintain order in which GET_BYTE_ARRAY_ELEMENTS called
     readBasesArrayVector[i].clear();
     readBasesArrayVector[i].resize(5);
@@ -214,13 +188,79 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     readBasesArrayVector[i][2] = make_pair(insertionGOP, insertionGOPArray);
     readBasesArrayVector[i][3] = make_pair(deletionGOP, deletionGOPArray);
     readBasesArrayVector[i][4] = make_pair(overallGCP, overallGCPArray);
-#ifdef DO_PROFILING
-    g_load_time_initializer.m_sumReadLengths += readLength;
-#endif
   }
+}
 
+//Do compute over vector of testcase structs
+inline void compute_testcases(vector<testcase>& tc_array, unsigned numTestCases, double* likelihoodDoubleArray,
+    unsigned maxNumThreadsToUse)
+{
+#pragma omp parallel for schedule (dynamic,10000) num_threads(maxNumThreadsToUse)
+  for(unsigned tc_idx=0;tc_idx<numTestCases;++tc_idx)
+  {
+    float result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
+    double result = 0;
+    if (result_avxf < MIN_ACCEPTED) {
+      double result_avxd = g_compute_full_prob_double(&(tc_array[tc_idx]), 0);
+      result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
 #ifdef DO_PROFILING
-  g_load_time_initializer.m_data_transfer_time += get_time();
+      g_load_time_initializer.update_stat(NUM_DOUBLE_INVOCATIONS_IDX, 1);
+#endif
+    }
+    else
+      result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+    likelihoodDoubleArray[tc_idx] = result;
+  }
+}
+
+//Inform the Java VM that we no longer need access to the read arrays (and free memory)
+inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays
+  (JNIEnv* env, vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector)
+{
+  //Release read arrays first
+  for(int i=readBasesArrayVector.size()-1;i>=0;--i)//note the order - reverse of GET
+  {
+    for(int j=readBasesArrayVector[i].size()-1;j>=0;--j)
+      RELEASE_BYTE_ARRAY_ELEMENTS(readBasesArrayVector[i][j].first, readBasesArrayVector[i][j].second, JNI_RO_RELEASE_MODE);
+    readBasesArrayVector[i].clear();
+  }
+  readBasesArrayVector.clear();
+}
+
+//JNI function to invoke compute_full_prob_avx
+//readDataArray - array of JNIReadDataHolderClass objects which contain the readBases, readQuals etc
+//haplotypeDataArray - array of JNIHaplotypeDataHolderClass objects which contain the haplotypeBases
+//likelihoodArray - array of doubles to return results back to Java. Memory allocated by Java prior to JNI call
+//maxNumThreadsToUse - Max number of threads that OpenMP can use for the HMM computation
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods
+  (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
+   jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
+{
+#ifdef DEBUG0_1
+  cout << "JNI numReads "<<numReads<<" numHaplotypes "<<numHaplotypes<<"\n";
+#endif
+  jboolean is_copy = JNI_FALSE;
+  struct timespec start_time;
+  unsigned numTestCases = numReads*numHaplotypes;
+  //vector to store testcases
+  vector<testcase> tc_array;
+  tc_array.clear();
+  tc_array.resize(numTestCases);
+  //Store read arrays for release later
+  vector<vector<pair<jbyteArray,jbyte*> > > readBasesArrayVector;
+  readBasesArrayVector.clear();
+  readBasesArrayVector.resize(numReads);
+#ifdef DUMP_TO_SANDBOX
+  g_load_time_initializer.open_sandbox();
+#endif
+#ifdef DO_PROFILING
+  get_time(&start_time);
+#endif
+  //Copy byte array references from Java memory into vector of testcase structs
+  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector(env,
+      numReads, numHaplotypes, readDataArray, readBasesArrayVector, tc_array);
+#ifdef DO_PROFILING
+  g_load_time_initializer.m_data_transfer_time += diff_time(start_time);
 #endif
 
   jdouble* likelihoodDoubleArray = (jdouble*)GET_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, &is_copy);
@@ -230,65 +270,29 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #endif
 #ifdef DO_PROFILING
   g_load_time_initializer.m_bytes_copied += (is_copy ? numTestCases*sizeof(double) : 0);
-  struct timespec prev_time;
-  clock_gettime(CLOCK_REALTIME, &prev_time);
+  get_time(&start_time);
 #endif
-#pragma omp parallel for schedule (dynamic,10) private(tc_idx) num_threads(maxNumThreadsToUse)
-  for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
-  {
-    float result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
-    double result = 0;
-    if (result_avxf < MIN_ACCEPTED) {
-      double result_avxd = g_compute_full_prob_double(&(tc_array[tc_idx]), 0);
-      result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+  compute_testcases(tc_array, numTestCases, likelihoodDoubleArray, maxNumThreadsToUse);
 #ifdef DO_PROFILING
-      ++(g_load_time_initializer.m_sumNumDoubleTestcases);
-#endif
-    }
-    else
-      result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-    likelihoodDoubleArray[tc_idx] = result;
-  }
-#ifdef DO_PROFILING
-  g_load_time_initializer.m_compute_time += diff_time(prev_time);
+  g_load_time_initializer.m_compute_time += diff_time(start_time);
 #endif
 #ifdef DEBUG
-  for(tc_idx=0;tc_idx<numTestCases;++tc_idx)
-  {
+  for(unsigned tc_idx=0;tc_idx<numTestCases;++tc_idx)
     g_load_time_initializer.debug_dump("return_values_jni.txt",to_string(likelihoodDoubleArray[tc_idx]),true);
-  }
 #endif
 #ifdef DO_PROFILING
-  start_time = get_time();
+  get_time(&start_time);
 #endif
-  RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0); //release mode 0, copy back results to Java memory
-
-  //Release read arrays first
-  for(int i=readBasesArrayVector.size()-1;i>=0;--i)//note the order - reverse of GET
-  {
-    for(int j=readBasesArrayVector[i].size()-1;j>=0;--j)
-      RELEASE_BYTE_ARRAY_ELEMENTS(readBasesArrayVector[i][j].first, readBasesArrayVector[i][j].second, JNI_RO_RELEASE_MODE);
-    readBasesArrayVector[i].clear();
-  }
-  readBasesArrayVector.clear();
+  RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0); //release mode 0, copy back results to Java memory (if copy made)
+  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays(env, readBasesArrayVector);
 #ifdef DO_PROFILING
-  g_load_time_initializer.m_data_transfer_time += get_time();
+  g_load_time_initializer.m_data_transfer_time += diff_time(start_time);
+  g_load_time_initializer.update_stat(NUM_REGIONS_IDX, 1);
+  g_load_time_initializer.update_stat(NUM_READS_IDX, numReads);
+  g_load_time_initializer.update_stat(NUM_HAPLOTYPES_IDX, numHaplotypes);
+  g_load_time_initializer.update_stat(NUM_TESTCASES_IDX, numTestCases);
 #endif
   tc_array.clear();
-#ifdef DO_PROFILING
-  g_load_time_initializer.m_sumNumReads += numReads;
-  g_load_time_initializer.m_sumSquareNumReads += numReads*numReads;
-  g_load_time_initializer.m_sumNumHaplotypes += numHaplotypes;
-  g_load_time_initializer.m_sumSquareNumHaplotypes += numHaplotypes*numHaplotypes;
-  g_load_time_initializer.m_sumNumTestcases += numTestCases;
-  g_load_time_initializer.m_sumSquareNumTestcases += numTestCases*numTestCases;
-  g_load_time_initializer.m_maxNumTestcases = numTestCases > g_load_time_initializer.m_maxNumTestcases ? numTestCases
-    : g_load_time_initializer.m_maxNumTestcases;
-  ++(g_load_time_initializer.m_num_invocations);
-#endif
-#ifdef DEBUG
-  g_load_time_initializer.debug_close();
-#endif
 #ifdef DUMP_TO_SANDBOX
   g_load_time_initializer.close_sandbox();
 #endif
