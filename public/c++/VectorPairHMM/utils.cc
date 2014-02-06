@@ -129,7 +129,6 @@ int read_testcase(testcase *tc, FILE* ifp)
 	}
         //for (x = 0; x < tc->haplen; x++)
         //tc->ihap[x] = tc->hap[x];
-
         
 	free(q);
 	free(i);
@@ -290,56 +289,16 @@ uint64_t diff_time(struct timespec& prev_time)
   return (uint64_t)((curr_time.tv_sec-prev_time.tv_sec)*1000000000+(curr_time.tv_nsec-prev_time.tv_nsec));
 }
 
-//#define USE_PAPI
-//#define COUNT_EXCEPTIONS
-//#define CHECK_RESULTS
-#define CHECK_UNDERFLOW 1
-#ifdef USE_PAPI
-#include "papi.h"
-#define NUM_PAPI_COUNTERS 4
-#endif
-
-IF_32 g_converter;
-FILE* g_debug_fptr = 0;
-uint64_t exceptions_array[128];
-void do_compute(char* filename)
+#define CHECK_VALUES 1
+#define BATCH_SIZE  10000
+#define RUN_HYBRID
+void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
 {
-  //g_debug_fptr = fopen("/mnt/app_hdd/scratch/karthikg/dump.log","w");
-  //assert(g_debug_fptr);
-  for(unsigned i=0;i<128;++i)
-    exceptions_array[i] = 0ull;
-  //assert(feenableexcept(FE_DIVBYZERO | FE_INVALID) >= 0);
-#ifdef USE_PAPI
-  PAPI_num_counters();
-  //int events[NUM_PAPI_COUNTERS] = { PAPI_TOT_INS, PAPI_TOT_CYC, PAPI_L1_DCM, PAPI_L1_ICM, PAPI_L3_TCM, PAPI_TLB_DM, PAPI_TLB_IM };
-  //char* eventnames[NUM_PAPI_COUNTERS]=  { "instructions", "cycles", "l1d_misses", "l1i_misses", "l3_misses", "dtlb_misses", "itlb_misses" };
-  //long long values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0, 0, 0, 0 };
-  //long long accum_values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0, 0, 0, 0 };
-  //int events[NUM_PAPI_COUNTERS] = { PAPI_TOT_INS, PAPI_TOT_CYC, PAPI_L1_ICM };
-  //char* eventnames[NUM_PAPI_COUNTERS]=  { "instructions", "cycles", "l1i_misses"};
-  //assert(PAPI_event_name_to_code("PERF_COUNT_HW_STALLED_CYCLES_FRONTEND",&(events[2])) == PAPI_OK);
-  int events[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
-    //assert(PAPI_event_name_to_code("ICACHE:IFETCH_STALL",&(events[2])) == PAPI_OK);
-  //assert(PAPI_event_name_to_code("MACHINE_CLEARS:e",&(events[3])) == PAPI_OK);
-  char* eventnames[NUM_PAPI_COUNTERS]=  { "instructions", "cycles", "fp_assists", "idq_ms_cycles" };
-  assert(PAPI_event_name_to_code("ix86arch::INSTRUCTION_RETIRED",&(events[0])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("UNHALTED_REFERENCE_CYCLES",&(events[1])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("FP_ASSIST:ANY",   &(events[2])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("IDQ:MS_UOPS_CYCLES",   &(events[3])) == PAPI_OK);
-  long long values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
-  long long accum_values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
-
-#endif
-#define BATCH_SIZE 10000
-  bool use_old_read_testcase = true;
-  unsigned chunk_size = 100;
-  std::ifstream ifptr;
   FILE* fptr = 0;
+  ifstream ifptr;
   if(use_old_read_testcase)
   {
     fptr = fopen(filename,"r");
-    if(fptr == 0)
-      cerr << "Could not open file "<<filename<<"\n";
     assert(fptr);
   }
   else
@@ -349,165 +308,90 @@ void do_compute(char* filename)
   }
   vector<testcase> tc_vector;
   tc_vector.clear();
-  vector<double> results_vec;
-  results_vec.clear();
-  vector<double> baseline_results;
-  baseline_results.clear();
-
+  testcase tc;
+  uint64_t vector_compute_time = 0;
+  uint64_t baseline_compute_time = 0;
+  uint64_t num_double_calls = 0;
   bool all_ok = true;
-  uint64_t total_time = 0;
-  uint64_t baseline_time = 0;
-  unsigned total_count = 0;
-  unsigned num_testcases = 0;
-  //unsigned curr_batch_size = rand()%BATCH_SIZE + 4;     //min batch size
-  unsigned curr_batch_size = BATCH_SIZE;
-
-  testcase tc_in;
-  int break_value = 0;
-  uint64_t fp_single_exceptions_reexecute = 0;
-  uint64_t fp_single_exceptions_continue = 0;
-  uint64_t num_double_executions = 0;
+#ifndef CHECK_VALUES
+  all_ok = false;
+#endif
   while(1)
   {
-    break_value = use_old_read_testcase ? read_testcase(&tc_in, fptr) : 
-      read_mod_testcase(ifptr, &tc_in, true);
-    tc_vector.push_back(tc_in);
+    int break_value = use_old_read_testcase ? read_testcase(&tc, fptr) : read_mod_testcase(ifptr,&tc,true);
     if(break_value >= 0)
-      ++num_testcases;
-    if(num_testcases == curr_batch_size || (break_value < 0 && num_testcases > 0))
+      tc_vector.push_back(tc);
+    if(tc_vector.size() == BATCH_SIZE || (break_value < 0 && tc_vector.size() > 0))
     {
+      vector<double> results_vec;
+      vector<double> baseline_results_vec;
+      results_vec.clear();
+      baseline_results_vec.clear();
       results_vec.resize(tc_vector.size());
-      baseline_results.resize(tc_vector.size());
-
+      baseline_results_vec.resize(tc_vector.size());
       get_time();
-#ifdef USE_PAPI
-      assert(PAPI_start_counters(events, NUM_PAPI_COUNTERS) == PAPI_OK);
-#endif
 #pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
-      for(unsigned i=0;i<num_testcases;++i)
+      for(unsigned i=0;i<tc_vector.size();++i)
       {
-        double result = 0;
-#ifdef COUNT_EXCEPTIONS
-        fexcept_t flagp = 0;
-        feclearexcept(FE_ALL_EXCEPT | __FE_DENORM);                 
-#endif
-        float result_avxf = g_compute_full_prob_float(&(tc_vector[i]), 0);
-        //CONVERT_AND_PRINT(result_avxf);
-#ifdef COUNT_EXCEPTIONS
-        STORE_FP_EXCEPTIONS(flagp, exceptions_array);
-        bool fp_exception =  ((flagp & (FE_UNDERFLOW|FE_OVERFLOW|FE_INVALID)) != 0);
-#endif
-#ifdef CHECK_UNDERFLOW
-        if (result_avxf < MIN_ACCEPTED)
-#else
-          if(false)
-#endif
-          {
-#ifdef COUNT_EXCEPTIONS
-            if(fp_exception)
-              ++fp_single_exceptions_reexecute;
-#endif
-            double result_avxd = g_compute_full_prob_double(&(tc_vector[i]), 0);
-            result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
-            ++num_double_executions;
-          }
-          else
-          {
-#ifdef COUNT_EXCEPTIONS
-            if(fp_exception)
-              ++fp_single_exceptions_continue;
-#endif
-            result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-          }
-        results_vec[i] = result;
+	testcase& tc = tc_vector[i];
+	float result_avxf = g_compute_full_prob_float(&tc, 0);
+	double result = 0;
+	if (result_avxf < MIN_ACCEPTED) {
+	  double result_avxd = g_compute_full_prob_double(&tc, 0);
+	  result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+          ++num_double_calls;
+	}
+	else
+	  result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+	results_vec[i] = result;
       }
-#ifdef USE_PAPI
-      //assert(PAPI_accum_counters(values, NUM_PAPI_COUNTERS) == PAPI_OK);
-      assert(PAPI_stop_counters(values, NUM_PAPI_COUNTERS) == PAPI_OK);
-#endif
-      total_time +=  get_time();
-#ifdef USE_PAPI
-      for(unsigned k=0;k<NUM_PAPI_COUNTERS;++k)
-        accum_values[k] += values[k];
-#endif
-
-#ifdef CHECK_RESULTS
+      vector_compute_time +=  get_time();
+#ifdef CHECK_VALUES
 #pragma omp parallel for schedule(dynamic,chunk_size)
-      for(unsigned i=0;i<num_testcases;++i)
+      for(unsigned i=0;i<tc_vector.size();++i)
       {
-        testcase& tc = tc_vector[i];
-        float result_avxf = compute_full_prob<float>(&tc);
-        double result = 0;
-        if (result_avxf < MIN_ACCEPTED) {
-          double result_avxd = compute_full_prob<double>(&tc);
-          result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
-        }
-        else
-          result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-        baseline_results[i] = result;
+	testcase& tc = tc_vector[i];
+	double baseline_result = compute_full_prob<double>(&tc);
+	baseline_result = log10(baseline_result) - log10(ldexp(1.0, 1020.0));
+        baseline_results_vec[i] = baseline_result;
       }
-      baseline_time += get_time();
-      for(unsigned i=0;i<num_testcases;++i)
+      baseline_compute_time += get_time();
+      for(unsigned i=0;i<tc_vector.size();++i)
       {
-        double baseline_result = baseline_results[i];
-        double abs_error = fabs(baseline_result-results_vec[i]);
-        double rel_error = (baseline_result != 0) ? fabs(abs_error/baseline_result) : 0;
-        if(abs_error > 1e-5 && rel_error > 1e-5)
+        double baseline_result = baseline_results_vec[i];
+	double abs_error = fabs(baseline_result-results_vec[i]);
+	double rel_error = (baseline_result != 0) ? fabs(abs_error/baseline_result) : 0;
+	if(abs_error > 1e-5 && rel_error > 1e-5)
         {
-          cout << "Line "<<total_count+i<< " " << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
+	  cout << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
           all_ok = false;
         }
       }
-#else
-      all_ok = false;
 #endif
-      for(unsigned i=0;i<num_testcases;++i)
+      for(unsigned i=0;i<tc_vector.size();++i)
       {
-        free(tc_vector[i].rs);
-        free(tc_vector[i].hap);
-        free(tc_vector[i].q);
-        free(tc_vector[i].i);
-        free(tc_vector[i].d);
-        free(tc_vector[i].c);
+	delete tc_vector[i].rs;
+	delete tc_vector[i].hap;
+	delete tc_vector[i].q;
+	delete tc_vector[i].i;
+	delete tc_vector[i].d;
+	delete tc_vector[i].c;
       }
-      total_count += num_testcases;
-      num_testcases = 0;
-      tc_vector.clear();
-      baseline_results.clear();
       results_vec.clear();
-      //curr_batch_size = rand()%BATCH_SIZE + 4;     //min batch size
-      curr_batch_size = BATCH_SIZE;
+      tc_vector.clear();
     }
     if(break_value < 0)
       break;
   }
-
-  baseline_results.clear();
-  results_vec.clear();
-  tc_vector.clear();
   if(all_ok)
-    cout << "All outputs acceptable\n";
-#ifdef USE_PAPI
-  for(unsigned i=0;i<NUM_PAPI_COUNTERS;++i)
-    cout << eventnames[i] << " : "<<accum_values[i]<<"\n";
-#endif
-  cout << "Total  vector time "<< (total_time*1e-9) << " baseline time "<<baseline_time*1e-9<<"\n";
-  cout.flush();
-  fflush(stdout);
+  {
+    cout << "All output values within acceptable error\n";
+    cout << "Baseline compute time "<<baseline_compute_time*1e-9<<"\n";
+  }
+  cout << "Num double invocations "<<num_double_calls<<"\n";
+  cout << "Vector compute time "<< vector_compute_time*1e-9 << "\n";
   if(use_old_read_testcase)
     fclose(fptr);
   else
     ifptr.close();
-#ifdef COUNT_EXCEPTIONS
-  cout << "Exceptions "
-    <<"invalid : "<<exceptions_array[FE_INVALID]<< " "
-    <<"denormal : "<<exceptions_array[__FE_DENORM]<< " "
-    <<"div_by_0 : "<<exceptions_array[FE_DIVBYZERO]<< " "
-    <<"overflow : "<<exceptions_array[FE_OVERFLOW]<< " "
-    <<"underflow : "<<exceptions_array[FE_UNDERFLOW]<< "\n";
-  cout << "Single precision FP exceptions continuations "<<fp_single_exceptions_continue<<" re-executions "<<fp_single_exceptions_reexecute<<"\n";
-#endif
-  cout << "Num double executions "<<num_double_executions<<"\n";
-
-  //fclose(g_debug_fptr);
 }

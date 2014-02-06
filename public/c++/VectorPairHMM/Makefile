@@ -12,6 +12,9 @@ CC=icc
 CXX=icc
 
 LDFLAGS=-lm -lrt $(OMPLDFLAGS)
+ifdef DISABLE_FTZ
+  COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ -no-ftz
+endif
 
 PAPI_DIR=/home/karthikg/softwares/papi-5.3.0
 ifdef USE_PAPI
