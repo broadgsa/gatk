@@ -1614,7 +1614,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "referenceConfidenceMergeData")
     public void testReferenceConfidenceMerge(final List<VariantContext> toMerge, final GenomeLoc loc, final boolean returnSiteEvenIfMonomorphic, final VariantContext expectedResult) {
-        final VariantContext result = GATKVariantContextUtils.referenceConfidenceMerge(toMerge, loc, returnSiteEvenIfMonomorphic ? (byte)'A' : null);
+        final VariantContext result = GATKVariantContextUtils.referenceConfidenceMerge(toMerge, loc, returnSiteEvenIfMonomorphic ? (byte)'A' : null, true);
         if ( result == null ) {
             Assert.assertTrue(expectedResult == null);
             return;

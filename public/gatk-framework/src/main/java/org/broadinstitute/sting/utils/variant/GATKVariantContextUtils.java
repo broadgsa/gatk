@@ -1041,9 +1041,10 @@ public class GATKVariantContextUtils {
      * @param VCs     collection of unsorted genomic VCs
      * @param loc     the current location
      * @param refBase the reference allele to use if all contexts in the VC are spanning (i.e. don't start at the location in loc); if null, we'll return null in this case
+     * @param removeNonRefSymbolicAllele if true, remove the <NON_REF> allele from the merged VC
      * @return new VariantContext representing the merge of all VCs or null if it not relevant
      */
-    public static VariantContext referenceConfidenceMerge(final List<VariantContext> VCs, final GenomeLoc loc, final Byte refBase) {
+    public static VariantContext referenceConfidenceMerge(final List<VariantContext> VCs, final GenomeLoc loc, final Byte refBase, final boolean removeNonRefSymbolicAllele) {
         // this can happen if e.g. you are using a dbSNP file that spans a region with no gVCFs
         if ( VCs == null || VCs.size() == 0 )
             return null;
@@ -1059,6 +1060,9 @@ public class GATKVariantContextUtils {
 
         // alt alleles
         final AlleleMapper alleleMapper = determineAlternateAlleleMapping(VCs, refAllele, loc);
+        // the allele list will not include the <NON_REF> symbolic allele, so add it if needed
+        if ( !removeNonRefSymbolicAllele )
+            alleleMapper.map.put(NON_REF_SYMBOLIC_ALLELE, NON_REF_SYMBOLIC_ALLELE);
         final List<Allele> alleles = getAllelesListFromMapper(refAllele, alleleMapper);
 
         final Map<String, Object> attributes = new LinkedHashMap<>();
@@ -1079,6 +1083,8 @@ public class GATKVariantContextUtils {
             // special case DP (add it up) for all events
             if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
                 depth += vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0);
+            else if ( vc.getNSamples() == 1 && vc.getGenotype(0).hasExtendedAttribute("MIN_DP") ) // handle the gVCF case from the HaplotypeCaller
+                depth += vc.getGenotype(0).getAttributeAsInt("MIN_DP", 0);
 
             if ( isSpanningEvent )
                 continue;
@@ -1106,7 +1112,7 @@ public class GATKVariantContextUtils {
         final String ID = rsIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(",", rsIDs);
 
         final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID).alleles(alleles)
-                .chr(loc.getContig()).start(loc.getStart()).computeEndFromAlleles(alleles, loc.getStart())
+                .chr(loc.getContig()).start(loc.getStart()).computeEndFromAlleles(alleles, loc.getStart(), loc.getStart())
                 .genotypes(genotypes).unfiltered().attributes(new TreeMap<>(attributes)).log10PError(CommonInfo.NO_LOG10_PERROR);  // we will need to regenotype later
 
         return builder.make();
@@ -1500,17 +1506,23 @@ public class GATKVariantContextUtils {
                                                     final List<Allele> remappedAlleles,
                                                     final List<Allele> targetAlleles) {
         for ( final Genotype g : VC.getGenotypes() ) {
-	    if ( !g.hasPL() )
-		throw new UserException("cannot merge genotypes from samples without PLs; sample " + g.getSampleName() + " does not have likelihoods at position " + VC.getChr() + ":" + VC.getStart());
-
             // only add if the name is new
             final String name = g.getSampleName();
             if ( !mergedGenotypes.containsSample(name) ) {
+
+                if ( !g.hasPL() ) {
+                    if ( g.isNoCall() ) {
+                        mergedGenotypes.add(g);
+                        continue;
+                    }
+                    throw new UserException("cannot merge genotypes from samples without PLs; sample " + g.getSampleName() + " does not have likelihoods at position " + VC.getChr() + ":" + VC.getStart());
+                }
+
                 // we need to modify it even if it already contains all of the alleles because we need to purge the <ALT> PLs out anyways
                 final int[] indexesOfRelevantAlleles = getIndexesOfRelevantAlleles(remappedAlleles, targetAlleles, VC.getStart());
                 final int[] PLs = generatePLs(g, indexesOfRelevantAlleles);
-                // note that we set the alleles to null here (as we expect it to be re-genotyped)
-                final Genotype newG = new GenotypeBuilder(g).name(name).alleles(null).PL(PLs).noAD().noGQ().make();
+
+                final Genotype newG = new GenotypeBuilder(g).name(name).alleles(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL)).PL(PLs).noAD().noGQ().make();
                 mergedGenotypes.add(newG);
             }
         }
