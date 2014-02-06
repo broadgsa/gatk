@@ -272,7 +272,7 @@ public class Sandbox {
         //System.err.println(e);
       //}
       Sandbox t = new Sandbox();
-      t.doEverythingNative(args[0]);
-      //t.parseSandboxFile(args[0]);
+      //t.doEverythingNative(args[0]);
+      t.parseSandboxFile(args[0]);
     }
 }

@@ -79,9 +79,13 @@ int read_testcase(testcase *tc, FILE* ifp)
 	int x, size = 0;
 	ssize_t read;
 
-	read = getline(&line, (size_t *) &size, ifp == 0 ? stdin : ifp);
+
+        read = getline(&line, (size_t *) &size, ifp == 0 ? stdin : ifp);
 	if (read == -1)
-		return -1;
+        {
+          free(line);
+          return -1;
+        }
 
 
 	tc->hap = (char *) malloc(size);
@@ -326,7 +330,7 @@ void do_compute(char* filename)
   long long accum_values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
 
 #endif
-#define BATCH_SIZE 100000
+#define BATCH_SIZE 10000
   bool use_old_read_testcase = true;
   unsigned chunk_size = 100;
   std::ifstream ifptr;
@@ -396,25 +400,25 @@ void do_compute(char* filename)
 #ifdef CHECK_UNDERFLOW
         if (result_avxf < MIN_ACCEPTED)
 #else
-        if(false)
+          if(false)
 #endif
-        {
+          {
 #ifdef COUNT_EXCEPTIONS
-          if(fp_exception)
-            ++fp_single_exceptions_reexecute;
+            if(fp_exception)
+              ++fp_single_exceptions_reexecute;
 #endif
-          double result_avxd = g_compute_full_prob_double(&(tc_vector[i]), 0);
-          result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
-          ++num_double_executions;
-        }
-        else
-        {
+            double result_avxd = g_compute_full_prob_double(&(tc_vector[i]), 0);
+            result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+            ++num_double_executions;
+          }
+          else
+          {
 #ifdef COUNT_EXCEPTIONS
-          if(fp_exception)
-            ++fp_single_exceptions_continue;
+            if(fp_exception)
+              ++fp_single_exceptions_continue;
 #endif
-          result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-        }
+            result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+          }
         results_vec[i] = result;
       }
 #ifdef USE_PAPI
@@ -459,12 +463,12 @@ void do_compute(char* filename)
 #endif
       for(unsigned i=0;i<num_testcases;++i)
       {
-        delete tc_vector[i].rs;
-        delete tc_vector[i].hap;
-        delete tc_vector[i].q;
-        delete tc_vector[i].i;
-        delete tc_vector[i].d;
-        delete tc_vector[i].c;
+        free(tc_vector[i].rs);
+        free(tc_vector[i].hap);
+        free(tc_vector[i].q);
+        free(tc_vector[i].i);
+        free(tc_vector[i].d);
+        free(tc_vector[i].c);
       }
       total_count += num_testcases;
       num_testcases = 0;
@@ -473,9 +477,9 @@ void do_compute(char* filename)
       results_vec.clear();
       //curr_batch_size = rand()%BATCH_SIZE + 4;     //min batch size
       curr_batch_size = BATCH_SIZE;
-      if(break_value < 0)
-        break;
     }
+    if(break_value < 0)
+      break;
   }
 
   baseline_results.clear();

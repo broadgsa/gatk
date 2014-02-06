@@ -10,6 +10,9 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
 #ifndef DISABLE_FTZ
   //Very important to get good performance - enable FTZ, converts denormals to 0
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+  cout << "FTZ enabled - may decrease accuracy if denormal numbers encountered\n";
+#else
+  cout << "FTZ is not set - may slow down performance if denormal numbers encountered\n";
 #endif
   m_sumNumReads = 0;
   m_sumSquareNumReads = 0;

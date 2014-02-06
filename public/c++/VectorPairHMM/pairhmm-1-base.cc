@@ -9,14 +9,14 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-#define BATCH_SIZE 5
+#define BATCH_SIZE 10000
   if(argc < 2)
   {
     cerr << "Needs path to input file as argument\n";
     exit(0);
   }
   do_compute(argv[1]);
-#if 0
+  return 0;
   bool use_old_read_testcase = false;
   if(argc >= 3 && string(argv[2]) == "1")
     use_old_read_testcase = true;
@@ -56,7 +56,6 @@ int main(int argc, char** argv)
   testcase tc_in;
   int break_value = 0;
   tc_vector.clear();
-  g_load_time_initializer.open_sandbox();
   while(1)
   {
     break_value = use_old_read_testcase ? read_testcase(&tc_in, fptr) : 
@@ -144,8 +143,6 @@ int main(int argc, char** argv)
     fclose(fptr);
   else
     ifptr.close();
-  g_load_time_initializer.close_sandbox();
-#endif
   return 0;  
 }
 
