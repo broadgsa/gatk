@@ -79,6 +79,12 @@ inline void CONCAT(CONCAT(computeDistVec,SIMD_ENGINE), PRECISION) (BITMASK_VEC& 
     bitMaskVec.shift_left_1bit() ;
 }
 
+/*
+ * This function:
+ * 1- Intializes probability values p_MM, p_XX, P_YY, p_MX, p_GAPM and pack them into vectors (SSE or AVX)
+ * 2- Precompute parts of "distm" which only depeneds on a row number and pack it into vector
+ */
+ 
 template<class NUMBER> void CONCAT(CONCAT(initializeVectors,SIMD_ENGINE), PRECISION)(int ROWS, int COLS, NUMBER* shiftOutM, NUMBER *shiftOutX, NUMBER *shiftOutY, Context<NUMBER> ctx, testcase *tc,  SIMD_TYPE *p_MM, SIMD_TYPE *p_GAPM, SIMD_TYPE *p_MX, SIMD_TYPE *p_XX, SIMD_TYPE *p_MY, SIMD_TYPE *p_YY, SIMD_TYPE *distm1D)
 {
     NUMBER zero = ctx._(0.0);
@@ -126,6 +132,11 @@ template<class NUMBER> void CONCAT(CONCAT(initializeVectors,SIMD_ENGINE), PRECIS
     }
 }
 
+/*
+ * This function handles pre-stripe computation:
+ * 1- Retrieve probaility vectors from memory 
+ * 2- Initialize M, X, Y vectors with all 0's (for the first stripe) and shifting the last row from previous stripe for the rest 
+ */
 
 template<class NUMBER> inline void CONCAT(CONCAT(stripeINITIALIZATION,SIMD_ENGINE), PRECISION)(
         int stripeIdx, Context<NUMBER> ctx, testcase *tc, SIMD_TYPE &pGAPM, SIMD_TYPE &pMM, SIMD_TYPE &pMX, SIMD_TYPE &pXX, SIMD_TYPE &pMY, SIMD_TYPE &pYY,
@@ -170,34 +181,9 @@ template<class NUMBER> inline void CONCAT(CONCAT(stripeINITIALIZATION,SIMD_ENGIN
     M_t_1_y = M_t_1;
 }
 
-inline SIMD_TYPE CONCAT(CONCAT(computeDISTM,SIMD_ENGINE), PRECISION)(int d, int COLS, testcase * tc, HAP_TYPE &hap, SIMD_TYPE rs, UNION_TYPE rsN, SIMD_TYPE N_packed256,
-        SIMD_TYPE distm, SIMD_TYPE _1_distm)
-{
-    UNION_TYPE hapN, rshap;
-    SIMD_TYPE  cond;
-    IF_32 shiftInHap;
-
-    int *hap_ptr = tc->ihap;
-
-    shiftInHap.i = (d<COLS) ? hap_ptr[d-1] : hap_ptr[COLS-1];
-
-    /* shift hap */
-    SHIFT_HAP(hap, shiftInHap);
-    SIMD_TYPE hapF = VEC_CVT_128_256(hap);
-
-    rshap.d = VEC_CMP_EQ(rs, hapF);
-    hapN.d  = VEC_CMP_EQ(N_packed256, hapF);
-
-    /* OR rsN, rshap, hapN */
-    cond =  VEC_OR(rsN.d, rshap.d);
-    cond =  VEC_OR(cond, hapN.d);
-
-    /* distm1D = (cond) ? 1-distm1D : distm1D;  */
-    SIMD_TYPE distmSel = VEC_BLENDV(distm, _1_distm, cond);
-
-    return distmSel;
-}
-
+/*
+ *  This function is the main compute kernel to compute M, X and Y
+ */
 
 inline void CONCAT(CONCAT(computeMXY,SIMD_ENGINE), PRECISION)(UNION_TYPE &M_t, UNION_TYPE &X_t, UNION_TYPE &Y_t, UNION_TYPE &M_t_y,
         UNION_TYPE M_t_2, UNION_TYPE X_t_2, UNION_TYPE Y_t_2, UNION_TYPE M_t_1, UNION_TYPE X_t_1, UNION_TYPE M_t_1_y, UNION_TYPE Y_t_1,
@@ -205,6 +191,7 @@ inline void CONCAT(CONCAT(computeMXY,SIMD_ENGINE), PRECISION)(UNION_TYPE &M_t, U
 {
     /* Compute M_t <= distm * (p_MM*M_t_2 + p_GAPM*X_t_2 + p_GAPM*Y_t_2) */
     M_t.d = VEC_MUL(VEC_ADD(VEC_ADD(VEC_MUL(M_t_2.d, pMM), VEC_MUL(X_t_2.d, pGAPM)), VEC_MUL(Y_t_2.d, pGAPM)), distmSel);
+    //M_t.d = VEC_MUL( VEC_ADD(VEC_MUL(M_t_2.d, pMM), VEC_MUL(VEC_ADD(X_t_2.d, Y_t_2.d), pGAPM)), distmSel);
 
     M_t_y = M_t;
 
@@ -215,17 +202,39 @@ inline void CONCAT(CONCAT(computeMXY,SIMD_ENGINE), PRECISION)(UNION_TYPE &M_t, U
     Y_t.d = VEC_ADD(VEC_MUL(M_t_1_y.d, pMY) , VEC_MUL(Y_t_1.d, pYY));
 }
 
+/*
+ * This is the main compute function. It operates on the matrix in s stripe manner.
+ * The stripe height is determined by the SIMD engine type. 
+ * Stripe height: "AVX float": 8, "AVX double": 4, "SSE float": 4, "SSE double": 2
+ * For each stripe the operations are anti-diagonal based. 
+ * Each anti-diagonal (M_t, Y_t, X_t) depends on the two previous anti-diagonals (M_t_2, X_t_2, Y_t_2, M_t_1, X_t_1, Y_t_1).
+ * Each stripe (except the fist one) depends on the last row of the previous stripe.
+ * The last stripe computation handles the addition of the last row of M and X, that's the reason for loop spliting.
+ */
+
 template<class NUMBER> NUMBER CONCAT(CONCAT(compute_full_prob_,SIMD_ENGINE), PRECISION) (testcase *tc, NUMBER *before_last_log = NULL)
 {
     int ROWS = tc->rslen + 1;
     int COLS = tc->haplen + 1;
     int MAVX_COUNT = (ROWS+AVX_LENGTH-1)/AVX_LENGTH;
 
+    /* Probaility arrays */
     SIMD_TYPE p_MM   [MAVX_COUNT], p_GAPM [MAVX_COUNT], p_MX   [MAVX_COUNT];
     SIMD_TYPE p_XX   [MAVX_COUNT], p_MY   [MAVX_COUNT], p_YY   [MAVX_COUNT];
+
+    /* For distm precomputation */
     SIMD_TYPE distm1D[MAVX_COUNT];
+
+    /* Carries the values from each stripe to the next stripe */
     NUMBER shiftOutM[ROWS+COLS+AVX_LENGTH], shiftOutX[ROWS+COLS+AVX_LENGTH], shiftOutY[ROWS+COLS+AVX_LENGTH];
+
+    /* The vector to keep the anti-diagonals of M, X, Y*/
+    /* Current: M_t, X_t, Y_t */
+    /* Previous: M_t_1, X_t_1, Y_t_1 */
+    /* Previous to previous: M_t_2, X_t_2, Y_t_2 */ 
     UNION_TYPE  M_t, M_t_1, M_t_2, X_t, X_t_1, X_t_2, Y_t, Y_t_1, Y_t_2, M_t_y, M_t_1_y;
+
+    /* Probality vectors */
     SIMD_TYPE pGAPM, pMM, pMX, pXX, pMY, pYY;
 
     struct timeval start, end;
@@ -247,11 +256,14 @@ template<class NUMBER> NUMBER CONCAT(CONCAT(compute_full_prob_,SIMD_ENGINE), PRE
     const int maskBitCnt = MAIN_TYPE_SIZE ;
     const int numMaskVecs = (COLS+ROWS+maskBitCnt-1)/maskBitCnt ; // ceil function
 
+    /* Mask precomputation for distm*/
     MASK_TYPE maskArr[numMaskVecs][NUM_DISTINCT_CHARS] ;
     CONCAT(CONCAT(precompute_masks_,SIMD_ENGINE), PRECISION)(*tc, COLS, numMaskVecs, maskArr) ;
 
     char rsArr[AVX_LENGTH] ;
     MASK_TYPE lastMaskShiftOut[AVX_LENGTH] ;
+
+    /* Precompute initialization for probabilities and shift vector*/
     CONCAT(CONCAT(initializeVectors,SIMD_ENGINE), PRECISION)<NUMBER>(ROWS, COLS, shiftOutM, shiftOutX, shiftOutY,
             ctx, tc, p_MM, p_GAPM, p_MX, p_XX, p_MY, p_YY, distm1D);
 
