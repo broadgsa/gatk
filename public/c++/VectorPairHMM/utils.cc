@@ -22,6 +22,18 @@ bool is_avx_supported()
   return ((ecx >> 28)&1) == 1;
 }
 
+bool is_sse41_supported()
+{
+  int ecx = 0, edx = 0, ebx = 0;
+  __asm__("cpuid"
+      : "=b" (ebx),
+      "=c" (ecx),
+      "=d" (edx)
+      : "a" (1)
+      );
+  return ((ecx >> 19)&1) == 1;
+}
+
 bool is_sse42_supported()
 {
   int ecx = 0, edx = 0, ebx = 0;
@@ -41,6 +53,8 @@ uint64_t get_machine_capabilities()
     machine_mask |= (1 << AVX_CUSTOM_IDX);
   if(is_sse42_supported())
     machine_mask |= (1 << SSE42_CUSTOM_IDX);
+  if(is_sse41_supported())
+    machine_mask |= (1 << SSE41_CUSTOM_IDX);
   return machine_mask;
 }
 
@@ -54,9 +68,9 @@ void initialize_function_pointers(uint64_t mask)
     g_compute_full_prob_double = compute_full_prob_avxd<double>;
   }
   else
-    if(is_sse42_supported() && (mask & (1<< SSE42_CUSTOM_IDX)))
+    if(is_sse41_supported() && (mask & (1<< SSE41_CUSTOM_IDX)))
     {
-      cout << "Using SSE4.2 accelerated implementation of PairHMM\n";
+      cout << "Using SSE4.1 accelerated implementation of PairHMM\n";
       g_compute_full_prob_float = compute_full_prob_sses<float>;
       g_compute_full_prob_double = compute_full_prob_ssed<double>;
     }

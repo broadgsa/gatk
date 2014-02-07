@@ -32,7 +32,8 @@ uint64_t diff_time(struct timespec& prev_time);
 //bit 0 is sse4.2, bit 1 is AVX
 enum ProcessorCapabilitiesEnum
 {
-  SSE42_CUSTOM_IDX=0,
+  SSE41_CUSTOM_IDX=0,
+  SSE42_CUSTOM_IDX,
   AVX_CUSTOM_IDX
 };
 #define ENABLE_ALL_HARDWARE_FEATURES 0xFFFFFFFFFFFFFFFFull
