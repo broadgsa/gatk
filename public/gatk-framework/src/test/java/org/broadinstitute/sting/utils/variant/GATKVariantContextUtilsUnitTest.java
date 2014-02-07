@@ -1529,48 +1529,52 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         final int[] standardPLs = new int[]{30, 20, 10, 71, 72, 73};
         final int[] reorderedSecondAllelePLs = new int[]{30, 71, 73, 20, 72, 10};
 
+        final List<Allele> noCalls = new ArrayList<>(2);
+        noCalls.add(Allele.NO_CALL);
+        noCalls.add(Allele.NO_CALL);
+
         final List<Allele> A_ALT = Arrays.asList(Aref, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gA_ALT = new GenotypeBuilder("A").PL(new int[]{0, 100, 1000}).make();
+        final Genotype gA_ALT = new GenotypeBuilder("A").PL(new int[]{0, 100, 1000}).alleles(noCalls).make();
         final VariantContext vcA_ALT = new VariantContextBuilder(VCbase).alleles(A_ALT).genotypes(gA_ALT).make();
         final Allele AAref = Allele.create("AA", true);
         final List<Allele> AA_ALT = Arrays.asList(AAref, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gAA_ALT = new GenotypeBuilder("AA").PL(new int[]{0, 80, 800}).make();
+        final Genotype gAA_ALT = new GenotypeBuilder("AA").PL(new int[]{0, 80, 800}).alleles(noCalls).make();
         final VariantContext vcAA_ALT = new VariantContextBuilder(VCprevBase).alleles(AA_ALT).genotypes(gAA_ALT).make();
         final List<Allele> A_C = Arrays.asList(Aref, C);
-        final Genotype gA_C = new GenotypeBuilder("A_C").PL(new int[]{30, 20, 10}).make();
+        final Genotype gA_C = new GenotypeBuilder("A_C").PL(new int[]{30, 20, 10}).alleles(noCalls).make();
         final List<Allele> A_C_ALT = Arrays.asList(Aref, C, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gA_C_ALT = new GenotypeBuilder("A_C").PL(standardPLs).make();
+        final Genotype gA_C_ALT = new GenotypeBuilder("A_C").PL(standardPLs).alleles(noCalls).make();
         final VariantContext vcA_C_ALT = new VariantContextBuilder(VCbase).alleles(A_C_ALT).genotypes(gA_C_ALT).make();
         final List<Allele> A_G_ALT = Arrays.asList(Aref, G, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gA_G_ALT = new GenotypeBuilder("A_G").PL(standardPLs).make();
+        final Genotype gA_G_ALT = new GenotypeBuilder("A_G").PL(standardPLs).alleles(noCalls).make();
         final VariantContext vcA_G_ALT = new VariantContextBuilder(VCbase).alleles(A_G_ALT).genotypes(gA_G_ALT).make();
         final List<Allele> A_C_G = Arrays.asList(Aref, C, G);
-        final Genotype gA_C_G = new GenotypeBuilder("A_C_G").PL(new int[]{40, 20, 30, 20, 10, 30}).make();
+        final Genotype gA_C_G = new GenotypeBuilder("A_C_G").PL(new int[]{40, 20, 30, 20, 10, 30}).alleles(noCalls).make();
         final List<Allele> A_C_G_ALT = Arrays.asList(Aref, C, G, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gA_C_G_ALT = new GenotypeBuilder("A_C_G").PL(new int[]{40, 20, 30, 20, 10, 30, 71, 72, 73, 74}).make();
+        final Genotype gA_C_G_ALT = new GenotypeBuilder("A_C_G").PL(new int[]{40, 20, 30, 20, 10, 30, 71, 72, 73, 74}).alleles(noCalls).make();
         final VariantContext vcA_C_G_ALT = new VariantContextBuilder(VCbase).alleles(A_C_G_ALT).genotypes(gA_C_G_ALT).make();
         final List<Allele> A_ATC_ALT = Arrays.asList(Aref, ATC, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gA_ATC_ALT = new GenotypeBuilder("A_ATC").PL(standardPLs).make();
+        final Genotype gA_ATC_ALT = new GenotypeBuilder("A_ATC").PL(standardPLs).alleles(noCalls).make();
         final VariantContext vcA_ATC_ALT = new VariantContextBuilder(VCbase).alleles(A_ATC_ALT).genotypes(gA_ATC_ALT).make();
         final Allele A = Allele.create("A", false);
         final List<Allele> AA_A_ALT = Arrays.asList(AAref, A, GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE);
-        final Genotype gAA_A_ALT = new GenotypeBuilder("AA_A").PL(standardPLs).make();
+        final Genotype gAA_A_ALT = new GenotypeBuilder("AA_A").PL(standardPLs).alleles(noCalls).make();
         final VariantContext vcAA_A_ALT = new VariantContextBuilder(VCprevBase).alleles(AA_A_ALT).genotypes(gAA_A_ALT).make();
 
         // first test the case of a single record
         tests.add(new Object[]{Arrays.asList(vcA_C_ALT),
                 loc, false,
-                new VariantContextBuilder(VCbase).alleles(A_C).genotypes(gA_C).make()});
+                new VariantContextBuilder(VCbase).alleles(A_C).genotypes(gA_C).alleles(noCalls).make()});
 
         // now, test pairs:
         // a SNP with another SNP
         tests.add(new Object[]{Arrays.asList(vcA_C_ALT, vcA_G_ALT),
                 loc, false,
-                new VariantContextBuilder(VCbase).alleles(A_C_G).genotypes(gA_C_ALT, new GenotypeBuilder("A_G").PL(reorderedSecondAllelePLs).make()).make()});
+                new VariantContextBuilder(VCbase).alleles(A_C_G).genotypes(gA_C_ALT, new GenotypeBuilder("A_G").PL(reorderedSecondAllelePLs).alleles(noCalls).make()).make()});
         // a SNP with an indel
         tests.add(new Object[]{Arrays.asList(vcA_C_ALT, vcA_ATC_ALT),
                 loc, false,
-                new VariantContextBuilder(VCbase).alleles(Arrays.asList(Aref, C, ATC)).genotypes(gA_C_ALT, new GenotypeBuilder("A_ATC").PL(reorderedSecondAllelePLs).make()).make()});
+                new VariantContextBuilder(VCbase).alleles(Arrays.asList(Aref, C, ATC)).genotypes(gA_C_ALT, new GenotypeBuilder("A_ATC").PL(reorderedSecondAllelePLs).alleles(noCalls).make()).make()});
         // a SNP with 2 SNPs
         tests.add(new Object[]{Arrays.asList(vcA_C_ALT, vcA_C_G_ALT),
                 loc, false,
@@ -1588,7 +1592,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         // a SNP with a spanning deletion
         tests.add(new Object[]{Arrays.asList(vcA_C_ALT, vcAA_A_ALT),
                 loc, false,
-                new VariantContextBuilder(VCbase).alleles(A_C).genotypes(gA_C, new GenotypeBuilder("AA_A").PL(new int[]{30, 71, 73}).make()).make()});
+                new VariantContextBuilder(VCbase).alleles(A_C).genotypes(gA_C, new GenotypeBuilder("AA_A").PL(new int[]{30, 71, 73}).alleles(noCalls).make()).make()});
 
         // combination of all
         tests.add(new Object[]{Arrays.asList(vcA_C_ALT, vcA_G_ALT, vcA_ATC_ALT, vcA_C_G_ALT, vcA_ALT, vcAA_ALT, vcAA_A_ALT),
