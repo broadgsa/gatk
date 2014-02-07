@@ -64,6 +64,7 @@
     <property name="R.private.scripts.dir" value="${private.dir}/R/scripts" />
     <property name="R.protected.scripts.dir" value="${protected.dir}/R/scripts" />
     <property name="R.public.src.dir" value="${public.dir}/R/src" />
+    <property name="vector.pairhmm.library.source.dir" value="${public.dir}/c++/VectorPairHMM" />
 
     <!-- Build directories -->
     <property name="java.classes" value="${build.dir}/java/classes" />
@@ -270,21 +271,21 @@
         <mkdir dir="${lib.dir}"/>
         <mkdir dir="${ivy.jar.dir}"/>
 
-	 <!-- Comment out the following lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
+         <!-- Comment out the following lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
 
-	 <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
-	     dest="${ivy.jar.dir}/${ivy.jar.file}"
-	     usetimestamp="true"/>
-	 <taskdef resource="org/apache/ivy/ant/antlib.xml"
-	     uri="antlib:org.apache.ivy.ant"
-	     classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+         <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
+             dest="${ivy.jar.dir}/${ivy.jar.file}"
+             usetimestamp="true"/>
+         <taskdef resource="org/apache/ivy/ant/antlib.xml"
+             uri="antlib:org.apache.ivy.ant"
+             classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
 
-	 <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}"
-	     dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"
-	     usetimestamp="true"/>
-	 <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
-	     uri="antlib:antlib:org.apache.maven.artifact.ant"
-	     classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/>
+         <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}"
+             dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"
+             usetimestamp="true"/>
+         <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
+             uri="antlib:antlib:org.apache.maven.artifact.ant"
+             classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/>
 
         <!-- End network lines -->
 
@@ -601,14 +602,14 @@
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
-	    <pathelement location="${clover.jar}" />
+            <pathelement location="${clover.jar}" />
         </path>
 
         <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
-		 maxmemory="2g"
+                 maxmemory="2g"
                  additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet">
             <sourcefiles>
                 <union>
@@ -648,9 +649,23 @@
         </copy>
     </target>
 
-    <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar, R.script.stage">
+    <target name="build.vector.pairhmm.library">
+         <exec dir="${vector.pairhmm.library.source.dir}" executable="/usr/bin/make">
+         </exec>
+    </target>
+
+    <target name="copy.vector.pairhmm.library" depends="build.vector.pairhmm.library">
+      <exec executable="/usr/bin/rsync">
+          <arg value="-a"/>
+          <arg value="${vector.pairhmm.library.source.dir}/libVectorLoglessPairHMM.so"/>
+          <arg value="${java.classes}/org/broadinstitute/sting/utils/pairhmm/libVectorLoglessPairHMM.so"/> 
+        </exec>
+    </target>
+
+    <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar, R.script.stage, copy.vector.pairhmm.library">
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}" includes="**/sting/utils/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/utils/**/*.so"/>
             <fileset dir="${java.classes}" includes="**/sting/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/tools/**/*.class"/>
@@ -682,9 +697,9 @@
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
               <include name="net/sf/picard/reference/FastaSequenceFile.class"/>
             </fileset>
-	    <fileset dir="${java.private.source.dir}">
+            <fileset dir="${java.private.source.dir}">
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/resources/**/*"/>
-	    </fileset>
+            </fileset>
         </jar>
     </target>
 
@@ -693,7 +708,7 @@
             <path refid="gatk.resources"/>
             <fileset dir="${java.contracts.dir}" />
             <fileset dir="${java.classes}">
-	          <include name="${resource.file}" />
+                  <include name="${resource.file}" />
               <include name="**/sting/gatk/**/*.class" />
               <include name="**/sting/alignment/**/*.class"/>
             </fileset>
@@ -815,7 +830,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
-		 maxmemory="2g"
+                 maxmemory="2g"
                  additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet"> <!-- -test to only do DocumentationTest walker -->
             <sourcefiles>
                 <fileset refid="java.source.files"/>
@@ -974,10 +989,10 @@
       <!-- Build out a classpath -->
       <pathconvert property="required.picard.jars" pathsep=":">
         <fileset dir="${basedir}">
-	     <include name="${staging.dir}" />
-	     <include name="${lib.dir}/picard-*.*.*.jar" />
-	     <include name="${lib.dir}/sam-*.jar" />
-	   </fileset>
+             <include name="${staging.dir}" />
+             <include name="${lib.dir}/picard-*.*.*.jar" />
+             <include name="${lib.dir}/sam-*.jar" />
+           </fileset>
       </pathconvert>
       <echo message="required.picard.jars=${required.picard.jars}" />
 
@@ -990,7 +1005,7 @@
       <mkdir dir="${package.output.dir}" />
       <xslt in="${package.xml.dir}/PicardPrivate.xml" out="${package.output.dir}/BuildPicardPrivate.xml" style="${package.xml.dir}/CreatePackager.xsl" />
       <ant antfile="${package.output.dir}/BuildPicardPrivate.xml">
-	    <property name="additional.jars" value="${required.picard.jars}" />
+            <property name="additional.jars" value="${required.picard.jars}" />
       </ant>
     </target>
 
@@ -1149,31 +1164,31 @@
     <target name="clover.report">
       <clover-report coverageCacheSize="nocache">
       <current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
-	  <format type="html" filter="catch,static,property"/>
-	  <fileset dir="public">
-	    <patternset id="clover.excludes">
-	      <exclude name="**/*UnitTest.java"/>
-	      <exclude name="**/*TestProvider*.java"/>
-	      <exclude name="**/*PerformanceTest.java"/>
-	      <exclude name="**/*Benchmark.java"/>
-	      <exclude name="**/*LargeScaleTest.java"/>
-	      <exclude name="**/*IntegrationTest.java"/>
-	      <exclude name="**/jna/**/*.java"/>
-	      <exclude name="**/queue/extensions/**/*.java"/>
-	      <exclude name="**/sting/utils/help/*.java"/>
-	      <exclude name="**/sting/tools/*.java"/>
-	      <exclude name="**/datasources/reads/utilities/*.java"/>
-	      <exclude name="**/sting/alignment/**/*.java"/>
-	      <exclude name="**/examples/**/*.java"/>
-	    </patternset>
-	  </fileset>
-	  <fileset dir="private">
-	    <patternset refid="clover.excludes" />
-	  </fileset>
-	  <fileset dir="protected">
-	    <patternset refid="clover.excludes" />
-	  </fileset>
-	</current>
+          <format type="html" filter="catch,static,property"/>
+          <fileset dir="public">
+            <patternset id="clover.excludes">
+              <exclude name="**/*UnitTest.java"/>
+              <exclude name="**/*TestProvider*.java"/>
+              <exclude name="**/*PerformanceTest.java"/>
+              <exclude name="**/*Benchmark.java"/>
+              <exclude name="**/*LargeScaleTest.java"/>
+              <exclude name="**/*IntegrationTest.java"/>
+              <exclude name="**/jna/**/*.java"/>
+              <exclude name="**/queue/extensions/**/*.java"/>
+              <exclude name="**/sting/utils/help/*.java"/>
+              <exclude name="**/sting/tools/*.java"/>
+              <exclude name="**/datasources/reads/utilities/*.java"/>
+              <exclude name="**/sting/alignment/**/*.java"/>
+              <exclude name="**/examples/**/*.java"/>
+            </patternset>
+          </fileset>
+          <fileset dir="private">
+            <patternset refid="clover.excludes" />
+          </fileset>
+          <fileset dir="protected">
+            <patternset refid="clover.excludes" />
+          </fileset>
+        </current>
       </clover-report>
     </target>
 
@@ -1220,7 +1235,7 @@
     <target name="test.scala.compile" depends="test.java.compile,scala.compile" if="include.scala">
         <echo message="Scala: Compiling test cases!"/>
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes" addparams="-feature">
-	        <src refid="scala.test.source.path" />
+                <src refid="scala.test.source.path" />
             <classpath>
                 <path refid="build.results"/>
                 <pathelement location="${java.test.classes}"/>
@@ -1266,13 +1281,13 @@
             <echo message="Sting: Running @{testtype} test cases!"/>
             <echo message="Test Memory : ${test.maxmemory}" />
 
-	    <!-- no test is allowed to run for more than 10 hours -->
+            <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
                     classpathref="${testng.classpath}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
-		            timeout="36000000"
+                            timeout="36000000"
                     workingDir="${basedir}"
                     useDefaultListeners="false"
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
@@ -1308,7 +1323,7 @@
                 <report format="noframes" todir="@{outputdir}"/>
             </junitreport>
 
-	    <!-- copy the report to our private_html directory for easy viewing in a broswer -->
+            <!-- copy the report to our private_html directory for easy viewing in a broswer -->
             <mkdir dir="${iwww.report.dir}/@{testtype}"/>
             <copy todir="${iwww.report.dir}/@{testtype}" verbose="false">
               <fileset dir="@{outputdir}"/>
@@ -1442,7 +1457,7 @@
     <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
     <!-- Usage: ant fasttest -Dsingle=TestClass -->
     <target name="fasttest" depends="init.javaonly,init" description="Quickly run a single test">
-	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
+        <property name="test.maxmemory" value="${test.default.maxmemory}"/>
         <condition property="not.clean">
             <and>
                 <available file="${build.dir}" />
