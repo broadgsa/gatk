@@ -1521,8 +1521,9 @@ public class GATKVariantContextUtils {
                 // we need to modify it even if it already contains all of the alleles because we need to purge the <ALT> PLs out anyways
                 final int[] indexesOfRelevantAlleles = getIndexesOfRelevantAlleles(remappedAlleles, targetAlleles, VC.getStart());
                 final int[] PLs = generatePLs(g, indexesOfRelevantAlleles);
+                final int[] AD = g.hasAD() ? generateAD(g.getAD(), indexesOfRelevantAlleles) : null;
 
-                final Genotype newG = new GenotypeBuilder(g).name(name).alleles(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL)).PL(PLs).noAD().noGQ().make();
+                final Genotype newG = new GenotypeBuilder(g).name(name).alleles(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL)).PL(PLs).AD(AD).noGQ().make();
                 mergedGenotypes.add(newG);
             }
         }
@@ -1590,6 +1591,33 @@ public class GATKVariantContextUtils {
         }
 
         return newPLs;
+    }
+
+    /**
+     * Generates a new AD array by adding zeros for missing alleles given the set of indexes of the Genotype's current
+     * alleles from the original AD.
+     *
+     * @param originalAD    the original AD to extend
+     * @param indexesOfRelevantAlleles the indexes of the original alleles corresponding to the new alleles
+     * @return non-null array of new AD values
+     */
+    private static int[] generateAD(final int[] originalAD, final int[] indexesOfRelevantAlleles) {
+
+        final int numADs = indexesOfRelevantAlleles.length;
+        if ( numADs == originalAD.length )
+            return originalAD;
+
+        final int[] newAD = new int[numADs];
+
+        for ( int i = 0; i < numADs; i++ ) {
+            final int newIndex = indexesOfRelevantAlleles[i];
+            if ( newIndex >= originalAD.length )
+                newAD[i] = 0;
+            else
+                newAD[newIndex] = originalAD[i];
+        }
+
+        return newAD;
     }
 
     /**
