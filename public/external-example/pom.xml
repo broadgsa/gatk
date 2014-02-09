@@ -6,7 +6,7 @@
     <artifactId>external-example</artifactId>
     <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
-    <name>external-example</name>
+    <name>GATK External Example</name>
 
     <properties>
         <sting.version>2.8-SNAPSHOT</sting.version>
@@ -21,6 +21,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.build.timestamp.format>yyyy/MM/dd HH:mm:ss</maven.build.timestamp.format>
+
+        <!-- NOTE: Currently the testing infrastructure for walkers does not support running outside the Broad. -->
+        <sting.committests.skipped>true</sting.committests.skipped>
+        <sting.unittests.skipped>${sting.committests.skipped}</sting.unittests.skipped>
+        <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
     </properties>
 
     <repositories>
@@ -196,7 +201,7 @@
                             <goal>test</goal>
                         </goals>
                         <configuration>
-                            <skip>false</skip>
+                            <skip>${sting.unittests.skipped}</skip>
                             <includes>
                                 <include>**/*UnitTest.class</include>
                             </includes>
@@ -227,7 +232,7 @@
                         </goals>
                         <!-- run integration tests -->
                         <configuration>
-                            <skip>false</skip>
+                            <skip>${sting.integrationtests.skipped}</skip>
                             <includes>
                                 <include>**/*IntegrationTest.class</include>
                             </includes>
