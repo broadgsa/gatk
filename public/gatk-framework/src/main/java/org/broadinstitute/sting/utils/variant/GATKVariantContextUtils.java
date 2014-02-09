@@ -1601,7 +1601,8 @@ public class GATKVariantContextUtils {
      * @param indexesOfRelevantAlleles the indexes of the original alleles corresponding to the new alleles
      * @return non-null array of new AD values
      */
-    private static int[] generateAD(final int[] originalAD, final int[] indexesOfRelevantAlleles) {
+    protected static int[] generateAD(final int[] originalAD, final int[] indexesOfRelevantAlleles) {
+        if ( originalAD == null || indexesOfRelevantAlleles == null ) throw new IllegalArgumentException("The list of input AD values and alleles must not be null");
 
         final int numADs = indexesOfRelevantAlleles.length;
         if ( numADs == originalAD.length )
@@ -1610,11 +1611,11 @@ public class GATKVariantContextUtils {
         final int[] newAD = new int[numADs];
 
         for ( int i = 0; i < numADs; i++ ) {
-            final int newIndex = indexesOfRelevantAlleles[i];
-            if ( newIndex >= originalAD.length )
+            final int oldIndex = indexesOfRelevantAlleles[i];
+            if ( oldIndex >= originalAD.length )
                 newAD[i] = 0;
             else
-                newAD[newIndex] = originalAD[i];
+                newAD[i] = originalAD[oldIndex];
         }
 
         return newAD;
