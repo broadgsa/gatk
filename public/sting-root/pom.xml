@@ -37,6 +37,13 @@
         <scala.maxmemory>1g</scala.maxmemory>
         <test.maxmemory>4g</test.maxmemory>
         <test.args>-Xmx${test.maxmemory}</test.args>
+
+        <!-- Version numbers for picard sam-jdk. Usually kept in sync. -->
+        <picard.public.version>1.107.1676</picard.public.version>
+        <sam.version>${picard.public.version}</sam.version>
+        <picard.version>${picard.public.version}</picard.version>
+        <variant.version>${picard.public.version}</variant.version>
+        <tribble.version>${picard.public.version}</tribble.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -60,7 +67,7 @@
             <dependency>
                 <groupId>net.sf</groupId>
                 <artifactId>sam</artifactId>
-                <version>1.107.1676</version>
+                <version>${sam.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.testng</groupId>
@@ -71,22 +78,17 @@
             <dependency>
                 <groupId>net.sf</groupId>
                 <artifactId>picard</artifactId>
-                <version>1.107.1676</version>
-            </dependency>
-            <dependency>
-                <groupId>edu.mit.broad</groupId>
-                <artifactId>picard-private-parts</artifactId>
-                <version>2872</version>
+                <version>${picard.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.broad</groupId>
                 <artifactId>tribble</artifactId>
-                <version>1.107.1676</version>
+                <version>${tribble.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.broadinstitute</groupId>
                 <artifactId>variant</artifactId>
-                <version>1.107.1676</version>
+                <version>${variant.version}</version>
             </dependency>
             <dependency>
                 <groupId>log4j</groupId>
@@ -126,11 +128,6 @@
                 <groupId>org.simpleframework</groupId>
                 <artifactId>simple-xml</artifactId>
                 <version>2.0.4</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.bcel</groupId>
-                <artifactId>bcel</artifactId>
-                <version>5.2</version>
             </dependency>
             <dependency>
                 <groupId>org.reflections</groupId>
@@ -206,26 +203,6 @@
                 <groupId>net.sf.gridscheduler</groupId>
                 <artifactId>drmaa</artifactId>
                 <version>6.2u5p2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.uncommons</groupId>
-                <artifactId>reportng</artifactId>
-                <version>1.1.2</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.inject</groupId>
-                <artifactId>guice</artifactId>
-                <version>3.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi</artifactId>
-                <version>3.8-beta3</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi-ooxml</artifactId>
-                <version>3.8-beta3</version>
             </dependency>
             <dependency>
                 <groupId>net.sf.snpeff</groupId>
@@ -615,11 +592,6 @@
             <id>sting.public.repo.local</id>
             <name>Sting Public Local Repository</name>
             <url>file:${sting.basedir}/public/repo</url>
-        </repository>
-        <repository>
-            <id>sting.private.repo.local</id>
-            <name>Sting Private Local Repository</name>
-            <url>file:${sting.basedir}/private/repo</url>
         </repository>
     </repositories>
 
