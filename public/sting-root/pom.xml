@@ -34,6 +34,7 @@
         <sting.pipelinetests.skipped>${sting.committests.skipped}</sting.pipelinetests.skipped>
         <sting.largescaletests.skipped>true</sting.largescaletests.skipped>
         <sting.pipelinetests.run>false</sting.pipelinetests.run>
+        <scala.maxmemory>1g</scala.maxmemory>
         <test.maxmemory>4g</test.maxmemory>
         <test.args>-Xmx${test.maxmemory}</test.args>
     </properties>
@@ -332,6 +333,11 @@
                     <groupId>org.scala-tools</groupId>
                     <artifactId>maven-scala-plugin</artifactId>
                     <version>2.15.2</version>
+                    <configuration>
+                        <jvmArgs>
+                            <jvmArg>-Xmx${scala.maxmemory}</jvmArg>
+                        </jvmArgs>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
