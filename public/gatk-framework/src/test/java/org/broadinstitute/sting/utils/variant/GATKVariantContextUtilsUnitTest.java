@@ -1662,14 +1662,14 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         }
 
         for (final Allele other : otherAlleles) {
-            Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,true,true,true),-1);
+            Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc, other, true, true, true), -1);
             Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,false,true,true),-1);
             Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,true,true,false),-1);
             Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,false,true,false),-1);
             Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,true,false,true),-1);
             Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,false,false,true),-1);
             Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,true,false,false),-1);
-            Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc,other,false,false,false),-1);
+            Assert.assertEquals(GATKVariantContextUtils.indexOfAllele(vc, other, false, false, false),-1);
         }
     }
 
@@ -1707,6 +1707,16 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
                 throw new UnsupportedOperationException();
             }
         };
+    }
+
+    @Test
+    public void testGenerateADWithNewAlleles() {
+
+        final int[] originalAD = new int[] {1,2,0};
+        final int[] indexesOfRelevantAlleles = new int[] {0,1,2,2};
+        
+        final int[] newAD = GATKVariantContextUtils.generateAD(originalAD, indexesOfRelevantAlleles);
+        Assert.assertEquals(newAD, new int[]{1,2,0,0});
     }
 }
 
