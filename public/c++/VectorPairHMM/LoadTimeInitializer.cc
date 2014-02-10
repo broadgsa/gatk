@@ -74,7 +74,11 @@ void LoadTimeInitializer::print_profiling()
         denominator = m_sum_stats[NUM_REGIONS_IDX];
         break;
       case HAPLOTYPE_LENGTH_IDX:
+        denominator = m_sum_stats[NUM_HAPLOTYPES_IDX];
+        break;
       case READ_LENGTH_IDX:
+        denominator = m_sum_stats[NUM_READS_IDX];
+        break;
       case PRODUCT_READ_LENGTH_HAPLOTYPE_LENGTH_IDX:
         denominator = m_sum_stats[NUM_TESTCASES_IDX];
         break;
