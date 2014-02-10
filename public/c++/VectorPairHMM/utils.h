@@ -39,5 +39,5 @@ enum ProcessorCapabilitiesEnum
 #define ENABLE_ALL_HARDWARE_FEATURES 0xFFFFFFFFFFFFFFFFull
 uint64_t get_machine_capabilities();
 void initialize_function_pointers(uint64_t mask=ENABLE_ALL_HARDWARE_FEATURES);
-void do_compute(char* filename, bool use_old_read_testcase=true, unsigned chunk_size=10000);
+void do_compute(char* filename, bool use_old_read_testcase=true, unsigned chunk_size=10000, bool do_check=true);
 #endif

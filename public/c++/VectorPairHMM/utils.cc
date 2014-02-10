@@ -68,7 +68,7 @@ void initialize_function_pointers(uint64_t mask)
     g_compute_full_prob_double = compute_full_prob_avxd<double>;
   }
   else
-    if(is_sse41_supported() && (mask & (1<< SSE41_CUSTOM_IDX)))
+    if(is_sse41_supported() && (mask & ((1<< SSE41_CUSTOM_IDX) | (1<<SSE42_CUSTOM_IDX))))
     {
       cout << "Using SSE4.1 accelerated implementation of PairHMM\n";
       g_compute_full_prob_float = compute_full_prob_sses<float>;
@@ -299,10 +299,9 @@ uint64_t diff_time(struct timespec& prev_time)
 }
 
 //#define DUMP_COMPUTE_VALUES 1
-#define CHECK_VALUES 1
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
-void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
+void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size, bool do_check)
 {
   FILE* fptr = 0;
   ifstream ifptr;
@@ -322,10 +321,7 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
   uint64_t vector_compute_time = 0;
   uint64_t baseline_compute_time = 0;
   uint64_t num_double_calls = 0;
-  bool all_ok = true;
-#ifndef CHECK_VALUES
-  all_ok = false;
-#endif
+  bool all_ok = do_check ? true : false;
   while(1)
   {
     int break_value = use_old_read_testcase ? read_testcase(&tc, fptr) : read_mod_testcase(ifptr,&tc,true);
@@ -360,29 +356,30 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size)
 	results_vec[i] = result;
       }
       vector_compute_time +=  diff_time(start_time);
-#ifdef CHECK_VALUES
-      get_time(&start_time);
+      if(do_check)
+      {
+        get_time(&start_time);
 #pragma omp parallel for schedule(dynamic,chunk_size)
-      for(unsigned i=0;i<tc_vector.size();++i)
-      {
-	testcase& tc = tc_vector[i];
-	double baseline_result = compute_full_prob<double>(&tc);
-	baseline_result = log10(baseline_result) - log10(ldexp(1.0, 1020.0));
-        baseline_results_vec[i] = baseline_result;
-      }
-      baseline_compute_time += diff_time(start_time);
-      for(unsigned i=0;i<tc_vector.size();++i)
-      {
-        double baseline_result = baseline_results_vec[i];
-	double abs_error = fabs(baseline_result-results_vec[i]);
-	double rel_error = (baseline_result != 0) ? fabs(abs_error/baseline_result) : 0;
-	if(abs_error > 1e-5 && rel_error > 1e-5)
+        for(unsigned i=0;i<tc_vector.size();++i)
         {
-	  cout << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
-          all_ok = false;
+          testcase& tc = tc_vector[i];
+          double baseline_result = compute_full_prob<double>(&tc);
+          baseline_result = log10(baseline_result) - log10(ldexp(1.0, 1020.0));
+          baseline_results_vec[i] = baseline_result;
+        }
+        baseline_compute_time += diff_time(start_time);
+        for(unsigned i=0;i<tc_vector.size();++i)
+        {
+          double baseline_result = baseline_results_vec[i];
+          double abs_error = fabs(baseline_result-results_vec[i]);
+          double rel_error = (baseline_result != 0) ? fabs(abs_error/baseline_result) : 0;
+          if(abs_error > 1e-5 && rel_error > 1e-5)
+          {
+            cout << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
+            all_ok = false;
+          }
         }
       }
-#endif
       for(unsigned i=0;i<tc_vector.size();++i)
       {
 	delete tc_vector[i].rs;
