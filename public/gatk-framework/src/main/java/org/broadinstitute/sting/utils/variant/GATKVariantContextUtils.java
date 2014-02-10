@@ -640,11 +640,9 @@ public class GATKVariantContextUtils {
                 break;
             case SET_TO_NO_CALL:
                 gb.alleles(NO_CALL_ALLELES);
-                gb.noAD();
                 gb.noGQ();
                 break;
             case USE_PLS_TO_ASSIGN:
-                gb.noAD();
                 if ( newLikelihoods == null || likelihoodsAreUninformative(newLikelihoods) ) {
                     // if there is no mass on the (new) likelihoods, then just no-call the sample
                     gb.alleles(NO_CALL_ALLELES);
@@ -665,7 +663,6 @@ public class GATKVariantContextUtils {
                 }
                 gb.noGQ();
                 gb.noPL();
-                gb.noAD();
                 gb.alleles(best);
                 break;
         }

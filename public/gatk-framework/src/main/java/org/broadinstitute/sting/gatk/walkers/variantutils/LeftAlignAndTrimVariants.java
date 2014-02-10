@@ -136,10 +136,15 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
             // split first into biallelics, and optionally trim alleles to minimal representation
             Pair<VariantContext,Integer> result = new Pair<VariantContext, Integer>(vc,0); // default value
             if (splitMultiallelics) {
-                final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics( vc);
+                final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics(vc);
                 for (final VariantContext biallelicVC: vcList) {
-                    final VariantContext v = (trimAlleles ? GATKVariantContextUtils.trimAlleles(biallelicVC,true,true):biallelicVC);
+                    final VariantContext v = (trimAlleles ? GATKVariantContextUtils.trimAlleles(biallelicVC,true,true) : biallelicVC);
                     result = alignAndWrite(v, ref);
+
+                    // strip out PLs and AD if we've subsetted the alleles
+                    if ( vcList.size() > 1 )
+                        result.first = new VariantContextBuilder(result.first).genotypes(GATKVariantContextUtils.stripPLsAndAD(result.first.getGenotypes())).make();
+
                     writer.add(result.first);
                     changedSites += result.second;
                 }
