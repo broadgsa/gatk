@@ -127,6 +127,9 @@ for arg in "${@}" ; do
         elif [[ "${arg}" == "largescaletest" ]] ; then
             mvn_args="verify -Dsting.largescaletests.skipped=false"
 
+        elif [[ "${arg}" == "knowledgebasetest" ]] ; then
+            mvn_args="verify -Dsting.knowledgebasetests.skipped=false"
+
         elif [[ "${arg}" == "pipelinetest" ]] ; then
             mvn_args="verify -Dsting.pipelinetests.skipped=false"
 
