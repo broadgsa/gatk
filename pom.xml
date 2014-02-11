@@ -50,6 +50,7 @@
         <sting.packageintegrationtests.skipped>${sting.packagecommittests.skipped}</sting.packageintegrationtests.skipped>
         <sting.packagepipelinetests.skipped>${sting.packagecommittests.skipped}</sting.packagepipelinetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
+        <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
 
         <!--
         Serial tests use the test jars to run tests, such that all tests are run from a single TestNG invocation.
@@ -63,6 +64,7 @@
         <sting.serialintegrationtests.skipped>${sting.serialcommittests.skipped}</sting.serialintegrationtests.skipped>
         <sting.serialpipelinetests.skipped>${sting.serialcommittests.skipped}</sting.serialpipelinetests.skipped>
         <sting.seriallargescaletests.skipped>true</sting.seriallargescaletests.skipped>
+        <sting.serialknowledgebasetests.skipped>true</sting.serialknowledgebasetests.skipped>
     </properties>
 
     <dependencies>
@@ -638,6 +640,25 @@
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packagelargescaletests.skipped>${sting.packagelargescaletests.skipped}</sting.packagelargescaletests.skipped>
                                     <failsafe.summaryFile>${project.build.directory}/failsafe-reports/largescale/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
+                                </properties>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>package-knowledgebasetests</id>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                            <configuration>
+                                <goals>
+                                    <goal>verify</goal>
+                                </goals>
+                                <reportsDirectory>${project.build.directory}/invoker-reports/knowledgebase/${it.test}</reportsDirectory>
+                                <skipInvocation>${sting.packageknowledgebasetests.skipped}</skipInvocation>
+                                <properties>
+                                    <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
+                                    <sting.packageknowledgebasetests.skipped>${sting.packageknowledgebasetests.skipped}</sting.packageknowledgebasetests.skipped>
+                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/knowledgebase/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>

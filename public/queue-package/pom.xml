@@ -159,6 +159,15 @@
                             </dependenciesToScan>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>knowledge-base-tests</id>
+                        <configuration>
+                            <skip>${sting.serialknowledgebasetests.skipped}</skip>
+                            <dependenciesToScan>
+                                <scan>org.broadinstitute.sting:.*</scan>
+                            </dependenciesToScan>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 

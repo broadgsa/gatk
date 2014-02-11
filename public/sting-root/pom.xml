@@ -33,6 +33,7 @@
         <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
         <sting.pipelinetests.skipped>${sting.committests.skipped}</sting.pipelinetests.skipped>
         <sting.largescaletests.skipped>true</sting.largescaletests.skipped>
+        <sting.knowledgebasetests.skipped>true</sting.knowledgebasetests.skipped>
         <sting.pipelinetests.run>false</sting.pipelinetests.run>
         <scala.maxmemory>1g</scala.maxmemory>
         <test.maxmemory>4g</test.maxmemory>
@@ -453,6 +454,20 @@
                                 <skip>${sting.largescaletests.skipped}</skip>
                                 <includes>
                                     <include>**/*LargeScaleTest.class</include>
+                                </includes>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>knowledge-base-tests</id>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                            <!-- run knowledge base tests -->
+                            <configuration>
+                                <skip>${sting.knowledgebasetests.skipped}</skip>
+                                <includes>
+                                    <include>**/*KnowledgeBaseTest.class</include>
                                 </includes>
                             </configuration>
                         </execution>

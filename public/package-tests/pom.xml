@@ -23,6 +23,7 @@
         <sting.packageintegrationtests.skipped>true</sting.packageintegrationtests.skipped>
         <sting.packagepipelinetests.skipped>true</sting.packagepipelinetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
+        <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
         <failsafe.summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary.xml</failsafe.summaryFile>
     </properties>
 
@@ -179,6 +180,16 @@
                                 <!-- run large scale tests -->
                                 <configuration>
                                     <skip>${sting.packagelargescaletests.skipped}</skip>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>knowledge-base-tests</id>
+                                <goals>
+                                    <goal>verify</goal>
+                                </goals>
+                                <!-- run knowledge base tests -->
+                                <configuration>
+                                    <skip>${sting.packageknowledgebasetests.skipped}</skip>
                                 </configuration>
                             </execution>
                         </executions>
