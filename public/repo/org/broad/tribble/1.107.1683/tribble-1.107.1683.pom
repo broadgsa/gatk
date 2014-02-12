@@ -3,13 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.broad</groupId>
     <artifactId>tribble</artifactId>
-    <version>1.107.1676</version>
+    <version>1.107.1683</version>
     <name>tribble</name>
     <dependencies>
         <dependency>
             <groupId>net.sf</groupId>
             <artifactId>sam</artifactId>
-            <version>1.107.1676</version>
+            <version>1.107.1683</version>
         </dependency>
     </dependencies>
 </project>

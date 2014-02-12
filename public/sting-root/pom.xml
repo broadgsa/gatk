@@ -40,7 +40,7 @@
         <test.args>-Xmx${test.maxmemory}</test.args>
 
         <!-- Version numbers for picard sam-jdk. Usually kept in sync. -->
-        <picard.public.version>1.107.1676</picard.public.version>
+        <picard.public.version>1.107.1683</picard.public.version>
         <sam.version>${picard.public.version}</sam.version>
         <picard.version>${picard.public.version}</picard.version>
         <variant.version>${picard.public.version}</variant.version>
