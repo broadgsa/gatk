@@ -28,9 +28,11 @@ package org.broadinstitute.sting.gatk;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
 import org.broadinstitute.sting.gatk.walkers.readutils.PrintReads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
@@ -50,6 +52,23 @@ import java.util.*;
  * Tests selected functionality in the GenomeAnalysisEngine class
  */
 public class GenomeAnalysisEngineUnitTest extends BaseTest {
+
+    @Test(expectedExceptions=UserException.class)
+    public void testEmptySamFileListHandling() throws Exception {
+        GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
+        testEngine.setWalker(new CountReads()); //generalizable to any walker requiring reads
+
+        //supply command line args so validateSuppliedReads() knows whether reads were passed in
+        GATKArgumentCollection testArgs = new GATKArgumentCollection();
+        testArgs.samFiles.add("empty.list");
+        testEngine.setArguments(testArgs);
+
+        //represents the empty list of samFiles read in from empty.list by CommandLineExecutable
+        Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
+
+        testEngine.setSAMFileIDs(samFiles);
+        testEngine.validateSuppliedReads();
+    }
 
     @Test(expectedExceptions=UserException.class)
     public void testDuplicateSamFileHandlingSingleDuplicate() throws Exception {

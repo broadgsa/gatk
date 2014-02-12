@@ -497,18 +497,26 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Verifies that the supplied set of reads files mesh with what the walker says it requires,
-     * and also makes sure that there were no duplicate SAM files specified on the command line.
+     * Verifies that the supplied set of reads files mesh with what the walker says it requires;
+     * also makes sure that list of SAM files specified on the command line is not empty and contains
+     * no duplicates.
      */
     protected void validateSuppliedReads() {
         GATKArgumentCollection arguments = this.getArguments();
+        final Boolean samFilesArePresent = (arguments.samFiles != null && !arguments.samFiles.isEmpty());
+
         // Check what the walker says is required against what was provided on the command line.
-        if (WalkerManager.isRequired(walker, DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0))
+        if (WalkerManager.isRequired(walker, DataSource.READS) && !samFilesArePresent)
             throw new ArgumentException("Walker requires reads but none were provided.");
 
         // Check what the walker says is allowed against what was provided on the command line.
-        if ((arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker, DataSource.READS))
+        if (samFilesArePresent && !WalkerManager.isAllowed(walker, DataSource.READS))
             throw new ArgumentException("Walker does not allow reads but reads were provided.");
+
+        //Make sure SAM list specified by the user (if necessary) is not empty
+        if(WalkerManager.isRequired(walker, DataSource.READS) && samFilesArePresent && samReaderIDs.isEmpty() ) {
+            throw new UserException("The list of input files does not contain any BAM files.");
+        }
 
         // Make sure no SAM files were specified multiple times by the user.
         checkForDuplicateSamFiles();
@@ -535,6 +543,7 @@ public class GenomeAnalysisEngine {
             throw new UserException("The following BAM files appear multiple times in the list of input files: " +
                                     duplicateSamFiles + " BAM files may be specified at most once.");
         }
+
     }
 
     /**
