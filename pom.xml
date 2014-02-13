@@ -205,13 +205,6 @@
                         <annotationProcessors>
                             <annotationProcessor>com.google.java.contract.core.apt.AnnotationProcessor</annotationProcessor>
                         </annotationProcessors>
-                        <compilerArguments>
-                            <!--
-                            For com.sun.istack.internal. Because bootclasspath is set to include rt.jar, now jce.jar must be set for the Oracle only javax.crypto also.
-                            TODO: This Sun internal tool usage needs to be removed ASAP!
-                            -->
-                            <bootclasspath>${java.home}/lib/rt.jar:${java.home}/lib/jce.jar</bootclasspath>
-                        </compilerArguments>
                     </configuration>
                     <executions>
                         <execution>
