@@ -77,12 +77,15 @@ public class GATKDoclet {
      */
     final protected static File DESTINATION_DIR = new File("gatkdocs");
 
-    final private static String FORUM_KEY_FILE = "/local/gsa-engineering/gatkdocs_publisher/forum.key";
+    final private static String FORUM_KEY_PATH = "/local/gsa-engineering/gatkdocs_publisher/forum.key";
     // ----------------------------------------------------------------------
     //
     // Global variables that are set on the command line by javadoc
     //
     // ----------------------------------------------------------------------
+    protected static File settingsDir = SETTINGS_DIR;
+    protected static File destinationDir = DESTINATION_DIR;
+    protected static String forumKeyPath = FORUM_KEY_PATH;
     protected static String buildTimestamp = null, absoluteVersion = null;
     protected static boolean showHiddenFeatures = false;
 
@@ -135,15 +138,26 @@ public class GATKDoclet {
 
         // load arguments
         for (String[] options : rootDoc.options()) {
+            if (options[0].equals("-settings-dir"))
+                settingsDir = new File(options[1]);
+            if (options[0].equals("-destination-dir"))
+                destinationDir = new File(options[1]);
+            if (options[0].equals("-forum-key-path"))
+                forumKeyPath = options[1];
             if (options[0].equals("-build-timestamp"))
                 buildTimestamp = options[1];
             if (options[0].equals("-absolute-version"))
                 absoluteVersion = options[1];
-            if (options[0].equals("-include -hidden"))
+            if (options[0].equals("-include-hidden"))
                 showHiddenFeatures = true;
             if (options[0].equals("-test"))
                 testOnly = true;
         }
+
+        if (!settingsDir.exists())
+            throw new RuntimeException("-settings-dir " + settingsDir.getPath() + " does not exist");
+        else if (!settingsDir.isDirectory())
+            throw new RuntimeException("-settings-dir " + settingsDir.getPath() + " is not a directory");
 
         // process the docs
         new GATKDoclet().processDocs(rootDoc);
@@ -159,7 +173,10 @@ public class GATKDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if (option.equals("-build-timestamp") ||
+        if (option.equals("-settings-dir") ||
+                option.equals("-destination-dir") ||
+                option.equals("-forum-key-path") ||
+                option.equals("-build-timestamp") ||
                 option.equals("-absolute-version") ||
                 option.equals("-include-hidden")) {
             return 2;
@@ -187,19 +204,19 @@ public class GATKDoclet {
 
         try {
             // basic setup
-            DESTINATION_DIR.mkdirs();
-            FileUtils.copyFile(new File(SETTINGS_DIR + "/bootstrap.min.css"), new File(DESTINATION_DIR + "/bootstrap.min.css"));
-            FileUtils.copyFile(new File(SETTINGS_DIR + "/bootstrap.min.js"), new File(DESTINATION_DIR + "/bootstrap.min.js"));
-            FileUtils.copyFile(new File(SETTINGS_DIR + "/jquery.min.js"), new File(DESTINATION_DIR + "/jquery.min.js"));
+            destinationDir.mkdirs();
+            FileUtils.copyFile(new File(settingsDir + "/bootstrap.min.css"), new File(destinationDir + "/bootstrap.min.css"));
+            FileUtils.copyFile(new File(settingsDir + "/bootstrap.min.js"), new File(destinationDir + "/bootstrap.min.js"));
+            FileUtils.copyFile(new File(settingsDir + "/jquery.min.js"), new File(destinationDir + "/jquery.min.js"));
             // print the Version number
-            FileUtils.writeByteArrayToFile(new File(DESTINATION_DIR + "/current.version.txt"), getSimpleVersion(absoluteVersion).getBytes());
+            FileUtils.writeByteArrayToFile(new File(destinationDir + "/current.version.txt"), getSimpleVersion(absoluteVersion).getBytes());
 
             /* ------------------------------------------------------------------- */
             /* You should do this ONLY ONCE in the whole application life-cycle:   */
 
             Configuration cfg = new Configuration();
             // Specify the data source where the template files come from.
-            cfg.setDirectoryForTemplateLoading(SETTINGS_DIR);
+            cfg.setDirectoryForTemplateLoading(settingsDir);
             // Specify how templates will see the data-model. This is an advanced topic...
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
@@ -222,7 +239,7 @@ public class GATKDoclet {
 
             processIndex(cfg, new ArrayList<GATKDocWorkUnit>(myWorkUnits));
 
-            File forumKeyFile = new File(FORUM_KEY_FILE);
+            File forumKeyFile = new File(forumKeyPath);
             if (forumKeyFile.exists()) {
                 String forumKey = null;
                 // Read in a one-line file so we can do a for loop
@@ -377,7 +394,7 @@ public class GATKDoclet {
         Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
-        Writer out = new OutputStreamWriter(new FileOutputStream(new File(DESTINATION_DIR + "/index.html")));
+        Writer out = new OutputStreamWriter(new FileOutputStream(new File(destinationDir + "/index.html")));
         try {
             temp.process(groupIndexData(indexData), out);
             out.flush();
@@ -497,7 +514,7 @@ public class GATKDoclet {
         Template temp = cfg.getTemplate(unit.handler.getTemplateName(unit.classDoc));
 
         // Merge data-model with template
-        File outputPath = new File(DESTINATION_DIR + "/" + unit.filename);
+        File outputPath = new File(destinationDir + "/" + unit.filename);
         try {
             Writer out = new OutputStreamWriter(new FileOutputStream(outputPath));
             temp.process(unit.forTemplate, out);
