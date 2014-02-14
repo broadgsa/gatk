@@ -171,6 +171,10 @@
                 <artifactId>maven-junction-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>link-binary-jar</id>
+                        <phase>${sting.shade.phase}</phase>
+                    </execution>
+                    <execution>
                         <id>link-git-release</id>
                         <phase>${sting.shade.phase}</phase>
                     </execution>

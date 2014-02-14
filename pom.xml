@@ -512,6 +512,21 @@
                             </configuration>
                         </execution>
                         <execution>
+                            <id>link-binary-jar</id>
+                            <goals>
+                                <goal>link</goal>
+                            </goals>
+                            <phase>none</phase>
+                            <configuration>
+                                <links>
+                                    <link>
+                                        <dst>${sting.basedir}/target/${sting.binary-dist.name}.${project.packaging}</dst>
+                                        <src>${project.build.directory}/${project.build.finalName}.${project.packaging}</src>
+                                    </link>
+                                </links>
+                            </configuration>
+                        </execution>
+                        <execution>
                             <id>link-git-release</id>
                             <goals>
                                 <goal>link</goal>
