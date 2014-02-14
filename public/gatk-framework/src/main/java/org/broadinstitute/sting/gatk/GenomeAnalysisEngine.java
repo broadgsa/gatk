@@ -1205,12 +1205,11 @@ public class GenomeAnalysisEngine {
             // not yet initialized or not set because of testing
             return false;
 
-        final long runtime = progressMeter.getRuntimeInNanosecondsUpdatedPeriodically();
-        if ( runtime < 0 ) throw new IllegalArgumentException("runtime must be >= 0 but got " + runtime);
-
         if ( getArguments().maxRuntime == NO_RUNTIME_LIMIT )
             return false;
-        else {
+        else {  
+            final long runtime = progressMeter.getRuntimeInNanosecondsUpdatedPeriodically();
+            if ( runtime < 0 ) throw new IllegalArgumentException("runtime must be >= 0 but got " + runtime);
             final long maxRuntimeNano = getRuntimeLimitInNanoseconds();
             return runtime > maxRuntimeNano;
         }
