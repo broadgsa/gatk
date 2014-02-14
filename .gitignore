@@ -25,3 +25,4 @@ lib/
 out/
 /atlassian-ide-plugin.xml
 maven-metadata-local.xml
+dependency-reduced-pom.xml
