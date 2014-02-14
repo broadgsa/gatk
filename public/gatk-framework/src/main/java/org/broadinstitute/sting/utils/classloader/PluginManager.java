@@ -154,17 +154,6 @@ public class PluginManager<PluginType> {
         @SuppressWarnings("unchecked")
         Set<Class<? extends PluginType>> allTypes = reflections.getSubTypesOf(pluginType);
         for( Class<? extends PluginType> type: allTypes ) {
-            // Depending on the root directories/URLs fed to org.reflections, the scanner may pick up classes that are
-            // NOT actually in the classpath. When this happens, Class.forName() returns null, and the allTypes ends up
-            // containing null elements.
-            // This happens for example when the gatkdocs generator is invoked from the root of the source tree.
-            // In this case, ignore the null types, as they were most likely NOT supposed to be scanned, and continue.
-            // TODO: Fix location that the GATKDocs scans, since it currently runs from the source code root, due to
-            // TODO: hardcoded paths!
-
-            if (type == null)
-                continue;
-
             // The plugin manager does not support anonymous classes; to be a plugin, a class must have a name.
             if(JVMUtils.isAnonymous(type))
                 continue;

@@ -754,19 +754,7 @@
                             <useStandardDocletOptions>false</useStandardDocletOptions>
                             <quiet>true</quiet>
                             <show>private</show>
-                            <!--
-                            TODO: Stop GATKDoclet from hardcoding paths and start using parameters.
-                            For now... just run from the base directory, target/site/../..
-                            -->
-                            <destDir>../..</destDir>
-                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} ${gatkdocs.include.hidden}</additionalparam>
-                            <!--
-                            TODO: Leaving this true applies a patch to the git commited file
-                            TODO: private/resources/clover/api/index.html
-                            TODO: Determine if this file was generated and shoudldn't be touched,
-                            TODO: or patch the file and commit a new version.
-                            -->
-                            <applyJavadocSecurityFix>false</applyJavadocSecurityFix>
+                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} ${gatkdocs.include.hidden} -settings-dir ${sting.basedir}/settings/helpTemplates -destination-dir ${project.build.directory}/gatkdocs</additionalparam>
                         </configuration>
                     </reportSet>
                 </reportSets>
