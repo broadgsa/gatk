@@ -185,12 +185,14 @@
                 <configuration>
                     <!-- See explicit executions below -->
                     <skip>true</skip>
+                    <failIfNoTests>false</failIfNoTests>
+                    <!-- Pass various system properties -->
                     <systemPropertyVariables>
-                        <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                        <pipeline.run>false</pipeline.run>
+                        <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
+                    <!-- Disable maven default execution -->
                     <execution>
                         <id>default-test</id>
                         <phase>none</phase>
@@ -218,9 +220,10 @@
                 <configuration>
                     <!-- See explicit executions below -->
                     <skip>true</skip>
+                    <failIfNoTests>false</failIfNoTests>
+                    <!-- Pass various system properties -->
                     <systemPropertyVariables>
-                        <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                        <pipeline.run>false</pipeline.run>
+                        <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
