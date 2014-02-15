@@ -359,8 +359,6 @@
                         <systemPropertyVariables>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
-                            <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <pipeline.run>${sting.pipelinetests.run}</pipeline.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
