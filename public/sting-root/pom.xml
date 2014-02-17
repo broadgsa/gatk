@@ -531,6 +531,7 @@
                     </extraArguments>
                     <setReactorProjectsProperties>true</setReactorProjectsProperties>
                     <descriptionProperty>git.version</descriptionProperty>
+                    <failOutput>exported</failOutput>
                 </configuration>
                 <executions>
                     <execution>
