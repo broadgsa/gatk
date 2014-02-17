@@ -93,8 +93,8 @@
             <artifactId>jets3t</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.sf.gridscheduler</groupId>
-            <artifactId>drmaa</artifactId>
+            <groupId>us.levk</groupId>
+            <artifactId>drmaa-gridengine</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
