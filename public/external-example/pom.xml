@@ -26,6 +26,9 @@
         <sting.committests.skipped>true</sting.committests.skipped>
         <sting.unittests.skipped>${sting.committests.skipped}</sting.unittests.skipped>
         <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
+
+        <!-- This flag is used by the package tests to disable re-shading -->
+        <sting.shade.phase>package</sting.shade.phase>
     </properties>
 
     <repositories>
@@ -128,7 +131,7 @@
                 <version>2.1</version>
                 <executions>
                     <execution>
-                        <phase>package</phase>
+                        <phase>${sting.shade.phase}</phase>
                         <goals>
                             <goal>shade</goal>
                         </goals>
@@ -245,5 +248,20 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>packagetests-enabled</id>
+            <activation>
+                <property>
+                    <name>sting.packagetests.enabled</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <sting.shade.phase>none</sting.shade.phase>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>
