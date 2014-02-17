@@ -715,6 +715,14 @@
                         <id>unlink-public-testdata</id>
                         <phase>clean</phase>
                     </execution>
+                    <execution>
+                        <id>link-public-qscript</id>
+                        <phase>process-test-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>unlink-public-qscript</id>
+                        <phase>clean</phase>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -802,6 +810,33 @@
             <modules>
                 <module>private</module>
             </modules>
+            <build>
+                <plugins>
+                    <!-- TODO: All tests require access to private. For now. -->
+                    <plugin>
+                        <groupId>com.pyx4j</groupId>
+                        <artifactId>maven-junction-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>link-private-testdata</id>
+                                <phase>process-test-resources</phase>
+                            </execution>
+                            <execution>
+                                <id>unlink-private-testdata</id>
+                                <phase>clean</phase>
+                            </execution>
+                            <execution>
+                                <id>link-private-qscript</id>
+                                <phase>process-test-resources</phase>
+                            </execution>
+                            <execution>
+                                <id>unlink-private-qscript</id>
+                                <phase>clean</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
         <!-- Collection of properties for use during package testing -->
