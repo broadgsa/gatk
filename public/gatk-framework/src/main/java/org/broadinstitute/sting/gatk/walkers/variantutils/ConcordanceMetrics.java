@@ -42,9 +42,9 @@ public class ConcordanceMetrics {
     private Map<String,GenotypeConcordanceTable> perSampleGenotypeConcordance;
     private GenotypeConcordanceTable overallGenotypeConcordance;
     private SiteConcordanceTable overallSiteConcordance;
-    private Boolean printInterestingSites;
+    private boolean printInterestingSites;
 
-    public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth, Boolean printSitesEnabled) {
+    public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth, boolean printSitesEnabled) {
         HashSet<String> overlappingSamples = new HashSet<String>(evaluate.getGenotypeSamples());
         overlappingSamples.retainAll(truth.getGenotypeSamples());
         perSampleGenotypeConcordance = new HashMap<String, GenotypeConcordanceTable>(overlappingSamples.size());
@@ -116,7 +116,7 @@ public class ConcordanceMetrics {
 
     @Requires({"eval != null","truth != null"})
     public void update(VariantContext eval, VariantContext truth) {
-        Boolean doPrint = false;
+        boolean doPrint = false;
         overallSiteConcordance.update(eval,truth);
         Set<String> alleleTruth = new HashSet<String>(8);
         String truthRef = truth.getReference().getBaseString();
