@@ -136,11 +136,11 @@ public class CatVariants extends CommandLineProgram {
      * print usage information
      */
     private static void printUsage() {
-        System.err.println("Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
-        System.err.println("    The input files can be of type: VCF (ends in .vcf or .VCF)");
-        System.err.println("                                    BCF2 (ends in .bcf or .BCF)");
-        System.err.println("    Output file must be vcf or bcf file (.vcf or .bcf)");
-        System.err.println("    if the input files are already sorted, the last argument can indicate that");
+        System.err.println("Usage: java -cp target/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants --reference <reference> --variant <input VCF or BCF file; can specify --variant multiple times> --outputFile <outputFile> [--assumeSorted]");
+        System.err.println("    The input file(s) can be of type: VCF (must end in .vcf or .VCF) or");
+        System.err.println("                                      BCF2 (must end in .bcf or .BCF).");
+        System.err.println("    Output file must be of type vcf or bcf (must end in .vcf or .bcf).");
+        System.err.println("    If the input files are already sorted, then indicate that with --assumeSorted to improve performance.");
     }
 
     @Override
