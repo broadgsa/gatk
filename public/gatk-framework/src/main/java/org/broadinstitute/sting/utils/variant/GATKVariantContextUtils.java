@@ -774,6 +774,9 @@ public class GATKVariantContextUtils {
         return ( g.hasLikelihoods() || g.hasAD() ) ? new GenotypeBuilder(g).noPL().noAD().make() : g;
     }
 
+    //TODO consider refactor variant-context merging code so that we share as much as possible between
+    //TODO simpleMerge and referenceConfidenceMerge
+    //TODO likely using a separate helper class or hierarchy.
     /**
      * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
      * If uniquifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
@@ -1051,31 +1054,45 @@ public class GATKVariantContextUtils {
         final String name = first.getSource();
 
         // ref allele
-        final Allele refAllele = determineReferenceAlleleGiveReferenceBase(VCs, loc, refBase);
+        final Allele refAllele = determineReferenceAlleleGivenReferenceBase(VCs, loc, refBase);
         if ( refAllele == null )
             return null;
 
-        // alt alleles
-        final AlleleMapper alleleMapper = determineAlternateAlleleMapping(VCs, refAllele, loc);
-        // the allele list will not include the <NON_REF> symbolic allele, so add it if needed
-        if ( !removeNonRefSymbolicAllele )
-            alleleMapper.map.put(NON_REF_SYMBOLIC_ALLELE, NON_REF_SYMBOLIC_ALLELE);
-        final List<Allele> alleles = getAllelesListFromMapper(refAllele, alleleMapper);
+        // FinalAlleleSet contains the alleles of the new resulting VC.
+        // Using linked set in order to guaranteed an stable order:
+        final LinkedHashSet<Allele> finalAlleleSet = new LinkedHashSet<>(10);
+        // Reference goes first:
+        finalAlleleSet.add(refAllele);
 
         final Map<String, Object> attributes = new LinkedHashMap<>();
         final Set<String> rsIDs = new LinkedHashSet<>(1); // most of the time there's one id
-
         int depth = 0;
         final Map<String, List<Comparable>> annotationMap = new LinkedHashMap<>();
-        GenotypesContext genotypes = GenotypesContext.create();
+        final GenotypesContext genotypes = GenotypesContext.create();
 
+        final int variantContextCount = VCs.size();
+        // In this list we hold the mapping of each variant context alleles.
+        final List<Pair<VariantContext,List<Allele>>> vcAndNewAllelePairs = new ArrayList<>(variantContextCount);
         // cycle through and add info from the other VCs
         for ( final VariantContext vc : VCs ) {
 
             // if this context doesn't start at the current location then it must be a spanning event (deletion or ref block)
             final boolean isSpanningEvent = loc.getStart() != vc.getStart();
-            final List<Allele> remappedAlleles = isSpanningEvent ? replaceWithNoCalls(vc.getAlleles()) : alleleMapper.remap(vc.getAlleles());
-            mergeRefConfidenceGenotypes(genotypes, vc, remappedAlleles, alleles);
+
+            vcAndNewAllelePairs.add(new Pair<>(vc,isSpanningEvent ? replaceWithNoCalls(vc.getAlleles())
+                    : remapAlleles(vc.getAlleles(), refAllele, finalAlleleSet)));
+        }
+
+        // Add <NON_REF> to the end if at all required in in the output.
+        if (!removeNonRefSymbolicAllele) finalAlleleSet.add(NON_REF_SYMBOLIC_ALLELE);
+
+        final List<Allele> allelesList = new ArrayList<>(finalAlleleSet);
+
+        for ( final Pair<VariantContext,List<Allele>> pair : vcAndNewAllelePairs ) {
+            final VariantContext vc = pair.getFirst();
+            final List<Allele> remappedAlleles = pair.getSecond();
+
+            mergeRefConfidenceGenotypes(genotypes, vc, remappedAlleles, allelesList);
 
             // special case DP (add it up) for all events
             if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
@@ -1083,7 +1100,7 @@ public class GATKVariantContextUtils {
             else if ( vc.getNSamples() == 1 && vc.getGenotype(0).hasExtendedAttribute("MIN_DP") ) // handle the gVCF case from the HaplotypeCaller
                 depth += vc.getGenotype(0).getAttributeAsInt("MIN_DP", 0);
 
-            if ( isSpanningEvent )
+            if ( loc.getStart() != vc.getStart() )
                 continue;
 
             // special case ID (just preserve it)
@@ -1108,8 +1125,8 @@ public class GATKVariantContextUtils {
 
         final String ID = rsIDs.isEmpty() ? VCFConstants.EMPTY_ID_FIELD : Utils.join(",", rsIDs);
 
-        final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID).alleles(alleles)
-                .chr(loc.getContig()).start(loc.getStart()).computeEndFromAlleles(alleles, loc.getStart(), loc.getStart())
+        final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID).alleles(allelesList)
+                .chr(loc.getContig()).start(loc.getStart()).computeEndFromAlleles(allelesList, loc.getStart(), loc.getStart())
                 .genotypes(genotypes).unfiltered().attributes(new TreeMap<>(attributes)).log10PError(CommonInfo.NO_LOG10_PERROR);  // we will need to regenotype later
 
         return builder.make();
@@ -1123,25 +1140,11 @@ public class GATKVariantContextUtils {
      * @param refBase the reference allele to use if all contexts in the VC are spanning
      * @return new Allele or null if no reference allele/base is available
      */
-    private static Allele determineReferenceAlleleGiveReferenceBase(final List<VariantContext> VCs, final GenomeLoc loc, final Byte refBase) {
+    private static Allele determineReferenceAlleleGivenReferenceBase(final List<VariantContext> VCs, final GenomeLoc loc, final Byte refBase) {
         final Allele refAllele = determineReferenceAllele(VCs, loc);
         if ( refAllele == null )
             return ( refBase == null ? null : Allele.create(refBase, true) );
         return refAllele;
-    }
-
-    /**
-     * Creates an alleles list given a reference allele and a mapper
-     *
-     * @param refAllele      the reference allele
-     * @param alleleMapper   the allele mapper
-     * @return a non-null, non-empty list of Alleles
-     */
-    private static List<Allele> getAllelesListFromMapper(final Allele refAllele, final AlleleMapper alleleMapper) {
-        final List<Allele> alleles = new ArrayList<>();
-        alleles.add(refAllele);
-        alleles.addAll(alleleMapper.getUniqueMappedAlleles());
-        return alleles;
     }
 
     /**
@@ -1157,7 +1160,6 @@ public class GATKVariantContextUtils {
         attributes.remove(VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
         attributes.remove(VCFConstants.END_KEY);
     }
-
     /**
      * Adds attributes to the global map from the new context in a sophisticated manner
      *
@@ -1205,6 +1207,54 @@ public class GATKVariantContextUtils {
         // sets aren't the same size, which is indicated by the test below.  If they
         // are of the same size, though, the sets are compatible
         return it1.hasNext() || it2.hasNext();
+    }
+
+    //TODO as part of a larger refactoring effort remapAlleles can be merged with createAlleleMapping.
+    /**
+     * This method does a couple of things:
+     * <ul><li>
+     *     remaps the vc alleles considering the differences between the final reference allele and its own reference,</li>
+     * <li>
+     *     collects alternative alleles present in variant context and add them to the {@code finalAlleles} set.
+     * </li></ul>
+     *
+     * @param vcAlleles the variant context allele list.
+     * @param refAllele final reference allele.
+     * @param finalAlleles where to add the final set of non-ref called alleles.
+     * @return never {@code null}
+     */
+    private static List<Allele> remapAlleles(final List<Allele> vcAlleles, final Allele refAllele, final LinkedHashSet<Allele> finalAlleles) {
+        final Allele vcRef = vcAlleles.get(0);
+        if (!vcRef.isReference()) throw new IllegalStateException("the first allele of the vc allele list must be reference");
+        final byte[] refBases = refAllele.getBases();
+        final int extraBaseCount = refBases.length - vcRef.getBases().length;
+        if (extraBaseCount < 0) throw new IllegalStateException("the wrong reference was selected");
+        final List<Allele> result = new ArrayList<>(vcAlleles.size());
+
+        for (final Allele a : vcAlleles) {
+            if (a.isReference()) {
+                result.add(refAllele);
+            } else if (a.isSymbolic()) {
+                result.add(a);
+                // we always skip <NON_REF> when adding to finalAlleles this is done outside if applies.
+                if (!a.equals(NON_REF_SYMBOLIC_ALLELE))
+                    finalAlleles.add(a);
+            } else if (a.isCalled()) {
+                final Allele newAllele;
+                if (extraBaseCount > 0) {
+                    final byte[] oldBases = a.getBases();
+                    final byte[] newBases = Arrays.copyOf(oldBases,oldBases.length + extraBaseCount);
+                    System.arraycopy(refBases,refBases.length - extraBaseCount,newBases,oldBases.length,extraBaseCount);
+                    newAllele = Allele.create(newBases,false);
+                } else
+                    newAllele = a;
+                result.add(newAllele);
+                finalAlleles.add(newAllele);
+            } else { // NO_CALL and strange miscellanea
+                result.add(a);
+            }
+        }
+        return result;
     }
 
     public static GenotypesContext stripPLsAndAD(GenotypesContext genotypes) {
@@ -1346,48 +1396,8 @@ public class GATKVariantContextUtils {
         return ref;
     }
 
-    static private boolean contextMatchesLoc(final VariantContext vc, final GenomeLoc loc) {
+    public static boolean contextMatchesLoc(final VariantContext vc, final GenomeLoc loc) {
         return loc == null || loc.getStart() == vc.getStart();
-    }
-
-    /**
-     * Given the reference allele, determines the mapping for common alternate alleles in the list of VariantContexts.
-     *
-     * @param VCs        the list of VariantContexts
-     * @param refAllele  the reference allele
-     * @param loc        if not null, ignore records that do not begin at this start location
-     * @return non-null AlleleMapper
-     */
-    static private AlleleMapper determineAlternateAlleleMapping(final List<VariantContext> VCs, final Allele refAllele, final GenomeLoc loc) {
-        final Map<Allele, Allele> map = new HashMap<>();
-
-        for ( final VariantContext vc : VCs ) {
-            if ( contextMatchesLoc(vc, loc) )
-                addAllAlternateAllelesToMap(vc, refAllele, map);
-        }
-
-        return new AlleleMapper(map);
-    }
-
-    /**
-     * Adds all of the alternate alleles from the VariantContext to the allele mapping (for use in creating the AlleleMapper)
-     *
-     * @param vc           the VariantContext
-     * @param refAllele    the reference allele
-     * @param map          the allele mapping to populate
-     */
-    static private void addAllAlternateAllelesToMap(final VariantContext vc, final Allele refAllele, final Map<Allele, Allele> map) {
-        // if the ref allele matches, then just add the alts as is
-        if ( refAllele.equals(vc.getReference()) ) {
-            for ( final Allele altAllele : vc.getAlternateAlleles() ) {
-                // ignore symbolic alleles
-                if ( ! altAllele.isSymbolic() )
-                    map.put(altAllele, altAllele);
-            }
-        }
-        else {
-            map.putAll(createAlleleMapping(refAllele, vc, map.values()));
-        }
     }
 
     static private AlleleMapper resolveIncompatibleAlleles(final Allele refAllele, final VariantContext vc, final Set<Allele> allAlleles) {
@@ -1976,7 +1986,6 @@ public class GATKVariantContextUtils {
 
         return new VariantContextBuilder(vc).genotypes(newGenotypes).make();
     }
-
 
     protected static class AlleleMapper {
         private VariantContext vc = null;
