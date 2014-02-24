@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.queue.pipeline
 
-import collection.JavaConversions._
 import org.broadinstitute.sting.utils.Utils
 import org.testng.Assert
 import org.broadinstitute.sting.commandline.CommandLineProgram
@@ -33,12 +32,12 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.MD5DB
-import org.broadinstitute.sting.queue.QCommandLine
+import org.broadinstitute.sting.queue.{QScript, QCommandLine}
 import org.broadinstitute.sting.queue.util.Logging
-import java.io.File
+import java.io.{FilenameFilter, File}
 import org.broadinstitute.sting.gatk.report.GATKReport
 import org.apache.commons.io.FileUtils
-import org.broadinstitute.sting.queue.engine.CommandLinePluginManager
+import org.apache.commons.io.filefilter.WildcardFileFilter
 
 object PipelineTest extends BaseTest with Logging {
 
@@ -86,7 +85,7 @@ object PipelineTest extends BaseTest with Logging {
   def executeTest(pipelineTest: PipelineTestSpec) {
     var jobRunners = pipelineTest.jobRunners
     if (jobRunners == null)
-      jobRunners = defaultJobRunners;
+      jobRunners = defaultJobRunners
     jobRunners.foreach(executeTest(pipelineTest, _))
   }
 
@@ -96,15 +95,22 @@ object PipelineTest extends BaseTest with Logging {
    * @param jobRunner The name of the job manager to run the jobs.
    */
   def executeTest(pipelineTest: PipelineTestSpec, jobRunner: String) {
+    // Reset the order of functions added to the graph.
+    QScript.resetAddOrder()
+
     val name = pipelineTest.name
     if (name == null)
       Assert.fail("PipelineTestSpec.name is null")
-    println(Utils.dupString('-', 80));
+    println(Utils.dupString('-', 80))
     executeTest(name, pipelineTest.args, pipelineTest.jobQueue, pipelineTest.expectedException, jobRunner)
     if (BaseTest.pipelineTestRunModeIsSet) {
       assertMatchingMD5s(name, pipelineTest.fileMD5s.map{case (file, md5) => new File(runDir(name, jobRunner), file) -> md5}, pipelineTest.parameterize)
       if (pipelineTest.evalSpec != null)
         validateEval(name, pipelineTest.evalSpec, jobRunner)
+      for (path <- pipelineTest.expectedFilePaths)
+        assertPathExists(runDir(name, jobRunner), path)
+      for (path <- pipelineTest.unexpectedFilePaths)
+        assertPathDoesNotExist(runDir(name, jobRunner), path)
       println("  => %s PASSED (%s)".format(name, jobRunner))
     }
     else
@@ -128,9 +134,9 @@ object PipelineTest extends BaseTest with Logging {
     val reportLocation = "%s%s/%s/validation.%s.eval".format(validationReportsDataLocation, jobRunner, name, formatter.format(new Date))
     val reportFile = new File(reportLocation)
 
-    FileUtils.copyFile(new File(runDir(name, jobRunner) + evalSpec.evalReport), reportFile);
+    FileUtils.copyFile(new File(runDir(name, jobRunner) + evalSpec.evalReport), reportFile)
 
-    val report = new GATKReport(reportFile);
+    val report = new GATKReport(reportFile)
 
     var allInRange = true
 
@@ -212,6 +218,28 @@ object PipelineTest extends BaseTest with Logging {
     } else {
       if (CommandLineProgram.result != 0)
         throw new RuntimeException("Error running Queue with arguments: " + args)
+    }
+  }
+
+  private def assertPathExists(runDir: String, path: String) {
+    val orig = new File(runDir, path)
+    var dir = orig.getParentFile
+    if (dir == null)
+      dir = new File(".")
+    Assert.assertTrue(dir.exists, "Missing directory: " + dir.getAbsolutePath)
+    val filter: FilenameFilter = new WildcardFileFilter(orig.getName)
+    Assert.assertNotEquals(dir.listFiles(filter).length, 0, "Missing file: " + orig.getAbsolutePath)
+  }
+
+  private def assertPathDoesNotExist(runDir: String, path: String) {
+    val orig = new File(runDir, path)
+    var dir = orig.getParentFile
+    if (dir == null)
+      dir = new File(".")
+    if (dir.exists) {
+      val filter: FilenameFilter = new WildcardFileFilter(orig.getName)
+      Assert.assertEquals(dir.listFiles(filter).length, 0,
+        "Found unexpected file(s): " + dir.listFiles().map(_.getAbsolutePath).mkString(", "))
     }
   }
 

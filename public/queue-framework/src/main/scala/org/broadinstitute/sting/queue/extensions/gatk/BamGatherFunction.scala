@@ -27,9 +27,10 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
 import org.broadinstitute.sting.queue.extensions.picard.MergeSamFiles
-import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, QFunction}
+import org.broadinstitute.sting.queue.function.RetryMemoryLimit
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor
 import org.broadinstitute.sting.queue.util.ClassFieldCache
+import java.io.File
 
 /**
  * Merges BAM files using net.sf.picard.sam.MergeSamFiles.
@@ -43,7 +44,7 @@ class BamGatherFunction extends MergeSamFiles with GatherFunction with RetryMemo
     //Left to its own devices (ie, MergeSamFiles.freezeFieldValues), outputIndex
     //will be in the gather directory.  Ensure that it actually matches this.output
     if (output != null)
-      outputIndex = new File(output.getParentFile(), output.getName.stripSuffix(".bam") + ".bai")
+      outputIndex = new File(output.getParentFile, output.getName.stripSuffix(".bam") + ".bai")
     
     val originalGATK = originalFunction.asInstanceOf[CommandLineGATK]
 

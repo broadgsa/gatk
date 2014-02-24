@@ -29,14 +29,17 @@ import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 
 /**
- * Script used for testing output to /dev/null
+ * Script used for testing output to /dev/null, deleting .bai files, etc.
  */
-class DevNullOutput extends QScript {
+class ExamplePrintReads extends QScript {
   @Input(doc="The reference file for the bam files.", shortName="R")
   var referenceFile: File = _
 
   @Input(doc="Bam file to genotype.", shortName="I")
   var bamFile: File = _
+
+  @Output(doc="Bam output", shortName="out")
+  var outFile: File = _
 
   def script() {
     val printReads = new PrintReads
@@ -44,7 +47,7 @@ class DevNullOutput extends QScript {
     printReads.memoryLimit = 2
     printReads.scatterCount = 3
     printReads.input_file :+= bamFile
-    printReads.out = "/dev/null"
+    printReads.out = outFile
     add(printReads)
   }
 }

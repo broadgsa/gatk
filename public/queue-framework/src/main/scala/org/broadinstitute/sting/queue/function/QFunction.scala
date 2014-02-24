@@ -382,13 +382,15 @@ trait QFunction extends Logging with QJobReport {
         The relative case is first as it's arguably the most common condition
       */
       jobOutputFile = firstOutput match {
-        case file: File if (!IOUtils.isSpecialFile(file) && !file.isAbsolute) => {
-            val logDir : File = if (file.getParentFile() == null) qSettings.logDirectory else new File(qSettings.logDirectory, file.getParent)
+        case file: File if !IOUtils.isSpecialFile(file) && !file.isAbsolute =>
+            val logDir : File = if (file.getParentFile == null) qSettings.logDirectory else new File(qSettings.logDirectory, file.getParent)
             new File(logDir, file.getName + ".out")
-        }
-        case file: File if (!IOUtils.isSpecialFile(file) && file.isAbsolute) => 
+
+        case file: File if !IOUtils.isSpecialFile(file) && file.isAbsolute =>
             new File(file.getParentFile, file.getName + ".out")
-        case _ => new File(qSettings.logDirectory, jobName + ".out")
+
+        case _ =>
+          new File(qSettings.logDirectory, jobName + ".out")
       }
     }
 
