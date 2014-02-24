@@ -61,6 +61,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!--
+        NOTE: Because exec-maven-plugin is used, this aggregator dependency
+        will cause mvn compile to not work. Use mvn test-compile for now.
+
+        See:
+          http://stackoverflow.com/questions/4786881/why-is-test-jar-dependency-required-for-mvn-compile
+          http://jira.codehaus.org/browse/MEXEC-91
+        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>gatk-framework</artifactId>
@@ -78,6 +86,9 @@
 
     <build>
         <plugins>
+            <!--
+            See note above about exec plugin breaking mvn compile
+            -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

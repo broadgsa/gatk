@@ -141,8 +141,8 @@
                 <version>1.6.1</version>
             </dependency>
             <dependency>
-                <groupId>gov.nist</groupId>
-                <artifactId>Jama</artifactId>
+                <groupId>gov.nist.math</groupId>
+                <artifactId>jama</artifactId>
                 <version>1.0.2</version>
             </dependency>
             <dependency>
@@ -201,9 +201,9 @@
                 <version>0.8.1</version>
             </dependency>
             <dependency>
-                <groupId>net.sf.gridscheduler</groupId>
-                <artifactId>drmaa</artifactId>
-                <version>6.2u5p2</version>
+                <groupId>us.levk</groupId>
+                <artifactId>drmaa-gridengine</artifactId>
+                <version>6.2u5</version>
             </dependency>
             <dependency>
                 <groupId>net.sf.snpeff</groupId>
@@ -531,6 +531,7 @@
                     </extraArguments>
                     <setReactorProjectsProperties>true</setReactorProjectsProperties>
                     <descriptionProperty>git.version</descriptionProperty>
+                    <failOutput>exported</failOutput>
                 </configuration>
                 <executions>
                     <execution>
