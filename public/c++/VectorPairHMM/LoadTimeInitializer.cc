@@ -47,7 +47,13 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   m_filename_to_fptr.clear();
   m_written_files_set.clear();
 
+  //Common buffer - 8MB
+  unsigned size = 1024*1024;
+  m_buffer = new uint64_t[size];
+  m_buffer_size = size*sizeof(uint64_t);
+  
   initialize_function_pointers();
+
   cout.flush();
 }
 

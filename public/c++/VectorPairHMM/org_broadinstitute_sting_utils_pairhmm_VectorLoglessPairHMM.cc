@@ -191,25 +191,32 @@ inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_Vector
   }
 }
 
+//#define DO_WARMUP
+//#define DO_REPEAT_PROFILING
 //Do compute over vector of testcase structs
 inline void compute_testcases(vector<testcase>& tc_array, unsigned numTestCases, double* likelihoodDoubleArray,
     unsigned maxNumThreadsToUse)
 {
-#pragma omp parallel for schedule (dynamic,10000) num_threads(maxNumThreadsToUse)
-  for(unsigned tc_idx=0;tc_idx<numTestCases;++tc_idx)
-  {
-    float result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
-    double result = 0;
-    if (result_avxf < MIN_ACCEPTED) {
-      double result_avxd = g_compute_full_prob_double(&(tc_array[tc_idx]), 0);
-      result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
-#ifdef DO_PROFILING
-      g_load_time_initializer.update_stat(NUM_DOUBLE_INVOCATIONS_IDX, 1);
+#ifdef DO_REPEAT_PROFILING
+  for(unsigned i=0;i<10;++i)
 #endif
+  {
+#pragma omp parallel for schedule (dynamic,10000) num_threads(maxNumThreadsToUse)
+    for(unsigned tc_idx=0;tc_idx<numTestCases;++tc_idx)
+    {
+      float result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
+      double result = 0;
+      if (result_avxf < MIN_ACCEPTED) {
+        double result_avxd = g_compute_full_prob_double(&(tc_array[tc_idx]), 0);
+        result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+#ifdef DO_PROFILING
+        g_load_time_initializer.update_stat(NUM_DOUBLE_INVOCATIONS_IDX, 1);
+#endif
+      }
+      else
+        result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+      likelihoodDoubleArray[tc_idx] = result;
     }
-    else
-      result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-    likelihoodDoubleArray[tc_idx] = result;
   }
 }
 
@@ -227,6 +234,10 @@ inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_Vector
   readBasesArrayVector.clear();
 }
 
+
+#ifdef DO_WARMUP
+uint64_t g_sum = 0;
+#endif
 //JNI function to invoke compute_full_prob_avx
 //readDataArray - array of JNIReadDataHolderClass objects which contain the readBases, readQuals etc
 //haplotypeDataArray - array of JNIHaplotypeDataHolderClass objects which contain the haplotypeBases
@@ -267,6 +278,24 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #ifdef ENABLE_ASSERTIONS
   assert(likelihoodDoubleArray && "likelihoodArray is NULL");
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
+#endif
+#ifdef DO_WARMUP
+  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
+  for(unsigned i=0;i<haplotypeBasesArrayVector.size();++i)
+  {
+    unsigned curr_size = env->GetArrayLength(haplotypeBasesArrayVector[i].first);
+    for(unsigned j=0;j<curr_size;++j)
+      g_sum += ((uint64_t)((haplotypeBasesArrayVector[i].second)[j]));
+  }
+  for(unsigned i=0;i<readBasesArrayVector.size();++i)
+  {
+    for(unsigned j=0;j<readBasesArrayVector[i].size();++j)
+    {
+      unsigned curr_size = env->GetArrayLength(readBasesArrayVector[i][j].first);
+      for(unsigned k=0;k<curr_size;++k)
+        g_sum += ((uint64_t)((readBasesArrayVector[i][j].second)[k]));
+    }
+  }
 #endif
 #ifdef DO_PROFILING
   g_load_time_initializer.m_bytes_copied += (is_copy ? numTestCases*sizeof(double) : 0);

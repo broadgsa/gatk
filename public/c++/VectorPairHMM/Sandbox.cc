@@ -73,7 +73,9 @@ JNIEXPORT void JNICALL Java_Sandbox_doEverythingNative
   (JNIEnv* env, jobject thisObject, jstring fileNameString)
 {
   const char* fileName = env->GetStringUTFChars(fileNameString, 0);
-  do_compute((char*)fileName);
+  char local_array[800];
+  strncpy(local_array, fileName, 200);
   env->ReleaseStringUTFChars(fileNameString, fileName);
+  do_compute(local_array, true, 10000, false);
 }
 

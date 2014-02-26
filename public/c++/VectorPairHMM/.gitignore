@@ -12,3 +12,5 @@ reformat
 subdir_checkout.sh
 avx/
 sse/
+triplicate.sh
+
