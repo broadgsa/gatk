@@ -58,7 +58,7 @@ $(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xAVX
 $(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xSSE4.2
 OBJECTS=$(NO_VECTOR_OBJECTS) $(AVX_OBJECTS) $(SSE_OBJECTS)
 
-all: $(BIN) Sandbox.class
+all: $(BIN) Sandbox.class copied_lib
 
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
@@ -78,6 +78,12 @@ $(OBJECTS): %.o: %.cc
 
 Sandbox.class: Sandbox.java
 	javac Sandbox.java
+
+copied_lib: libVectorLoglessPairHMM.so
+ifdef OUTPUT_DIR
+	mkdir -p $(OUTPUT_DIR)
+	rsync -a libVectorLoglessPairHMM.so $(OUTPUT_DIR)/
+endif
 
 clean:
 	rm -rf $(BIN) *.o $(DEPDIR) *.class

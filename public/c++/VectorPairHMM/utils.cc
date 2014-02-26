@@ -306,15 +306,12 @@ uint64_t diff_time(struct timespec& prev_time)
   return (uint64_t)((curr_time.tv_sec-prev_time.tv_sec)*1000000000+(curr_time.tv_nsec-prev_time.tv_nsec));
 }
 
-#define DUMP_COMPUTE_VALUES 1
-//#define DO_REPEATS
+
 #ifdef USE_PAPI
 #include "papi.h"
 #define NUM_PAPI_COUNTERS 4
 #endif
 
-#define BATCH_SIZE  10000
-#define RUN_HYBRID
 void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size, bool do_check)
 {
   FILE* fptr = 0;
@@ -370,7 +367,7 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
 #endif
       get_time(&start_time);
 #pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
-#ifdef DO_REPEATS
+#ifdef DO_REPEAT_PROFILING
       for(unsigned z=0;z<10;++z)
 #endif
       {
