@@ -377,9 +377,20 @@ trait QFunction extends Logging with QJobReport {
       jobName = qSettings.runName + "-" + this.addOrder.mkString("-")
 
     if (jobOutputFile == null) {
+      /*If the outputFile has been set to an absolute path, respect that.
+        Otherwise, place it in (possibly a subdirectory of) the log directory
+        The relative case is first as it's arguably the most common condition
+      */
       jobOutputFile = firstOutput match {
-        case file: File if (!IOUtils.isSpecialFile(file)) => new File(file.getParentFile, file.getName + ".out")
-        case _ => new File(jobName + ".out")
+        case file: File if !IOUtils.isSpecialFile(file) && !file.isAbsolute =>
+            val logDir : File = if (file.getParentFile == null) qSettings.logDirectory else new File(qSettings.logDirectory, file.getParent)
+            new File(logDir, file.getName + ".out")
+
+        case file: File if !IOUtils.isSpecialFile(file) && file.isAbsolute =>
+            new File(file.getParentFile, file.getName + ".out")
+
+        case _ =>
+          new File(qSettings.logDirectory, jobName + ".out")
       }
     }
 

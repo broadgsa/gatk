@@ -138,4 +138,15 @@ class HelloWorldPipelineTest {
     spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
+
+  @Test(timeOut=36000000)
+  def testHelloWorldWithLogDirectory() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithLogDirectory"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -logDir pipelineLogDir"
+    spec.jobRunners = PipelineTest.allJobRunners
+    spec.expectedFilePaths = Seq("pipelineLogDir/HelloWorld-1.out")
+    PipelineTest.executeTest(spec)
+  }
 }
