@@ -1,0 +1,267 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Properties for your assembly -->
+    <groupId>org.mycompany.app</groupId>
+    <artifactId>external-example</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <name>GATK External Example</name>
+
+    <properties>
+        <sting.version>2.8-SNAPSHOT</sting.version>
+        <!--
+        sting.basedir property must point to your checkout of Sting/GATK until we can get all the
+        dependencies out of the committed sting repo and into central.
+        The installed pom for sting-root looks for this property.
+        Alternatively, one can install all the sting files into their local ~/.m2/repository repo.
+        http://maven.apache.org/plugins/maven-install-plugin/examples/custom-pom-installation.html
+        -->
+        <sting.basedir>../..</sting.basedir>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.build.timestamp.format>yyyy/MM/dd HH:mm:ss</maven.build.timestamp.format>
+
+        <!-- NOTE: Currently the testing infrastructure for walkers does not support running outside the Broad. -->
+        <sting.committests.skipped>true</sting.committests.skipped>
+        <sting.unittests.skipped>${sting.committests.skipped}</sting.unittests.skipped>
+        <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
+
+        <!-- This flag is used by the package tests to disable re-shading -->
+        <sting.shade.phase>package</sting.shade.phase>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>sting.public.repo.local</id>
+            <name>Sting Public Local Repository</name>
+            <url>file:${sting.basedir}/public/repo</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.broadinstitute.sting</groupId>
+            <artifactId>gatk-framework</artifactId>
+            <version>${sting.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.broadinstitute.sting</groupId>
+            <artifactId>gatk-framework</artifactId>
+            <version>${sting.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.8</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <!-- Copy test resources to your classes directory -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.8</version>
+                <executions>
+                    <execution>
+                        <id>unpack</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.broadinstitute.sting</groupId>
+                                    <artifactId>gatk-framework</artifactId>
+                                    <version>${sting.version}</version>
+                                    <classifier>example-resources</classifier>
+                                    <type>tar.bz2</type>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Generate help text -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <executions>
+                    <execution>
+                        <id>extract-resource-bundle</id>
+                        <goals>
+                            <goal>javadoc</goal>
+                        </goals>
+                        <phase>prepare-package</phase>
+                        <configuration>
+                            <doclet>org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet</doclet>
+                            <!-- Required as doclet uses reflection to access classes for documentation, instead of source java-->
+                            <docletPath>${project.build.outputDirectory}</docletPath>
+                            <docletArtifact>
+                                <groupId>org.broadinstitute.sting</groupId>
+                                <!-- TODO: THIS IS SUPPOSED TO BE STING-UTILS! -->
+                                <artifactId>gatk-framework</artifactId>
+                                <version>${sting.version}</version>
+                            </docletArtifact>
+                            <maxmemory>2g</maxmemory>
+                            <useStandardDocletOptions>false</useStandardDocletOptions>
+                            <quiet>true</quiet>
+                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version "${project.version}" -out ${project.build.outputDirectory}/StingText.properties</additionalparam>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Create packaged jar, containing only your walker and required classes -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.1</version>
+                <executions>
+                    <execution>
+                        <phase>${sting.shade.phase}</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>true</minimizeJar>
+                            <!-- Explicitly include classes loaded via reflection from artifacts below -->
+                            <filters>
+                                <filter>
+                                    <artifact>commons-logging:commons-logging</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.broad:tribble</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                                <filter>
+                                    <artifact>org.broadinstitute:variant</artifact>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
+                            <!-- Stop shade from trying to unzip these indirect dependencies -->
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.broadinstitute.sting:gsalib:tar.gz:*</exclude>
+                                    <exclude>org.broadinstitute.sting:*:tar.bz2:example-resources</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <transformers>
+                                <!-- Set the main class to the GATK -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.broadinstitute.sting.gatk.CommandLineGATK</mainClass>
+                                </transformer>
+                                <!-- Include and append to the existing gatk help text in StingText.properties -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>StingText.properties</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- surefire runs fast, small (aka unit) tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.16</version>
+                <configuration>
+                    <!-- See explicit executions below -->
+                    <skip>true</skip>
+                    <failIfNoTests>false</failIfNoTests>
+                    <!-- Pass various system properties -->
+                    <systemPropertyVariables>
+                        <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <!-- Disable maven default execution -->
+                    <execution>
+                        <id>default-test</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>unit-tests</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${sting.unittests.skipped}</skip>
+                            <includes>
+                                <include>**/*UnitTest.class</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- failsafe runs all other tests that may take longer, and may require pre/post test setup and teardown -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.16</version>
+                <configuration>
+                    <!-- See explicit executions below -->
+                    <skip>true</skip>
+                    <failIfNoTests>false</failIfNoTests>
+                    <!-- Pass various system properties -->
+                    <systemPropertyVariables>
+                        <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <!-- run integration tests -->
+                        <configuration>
+                            <skip>${sting.integrationtests.skipped}</skip>
+                            <includes>
+                                <include>**/*IntegrationTest.class</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>packagetests-enabled</id>
+            <activation>
+                <property>
+                    <name>sting.packagetests.enabled</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <sting.shade.phase>none</sting.shade.phase>
+            </properties>
+        </profile>
+    </profiles>
+
+</project>

@@ -86,7 +86,13 @@
         	<a href="${forum}">Support Forum</a>
         </p>
 
-        <p class="version">GATK version ${version} built at ${timestamp}.</p>
+        <p class="version">GATK version ${version} built at ${timestamp}.
+        <#-- closing P tag in next macro -->
+    </#macro>
+    
+    <#macro footerClose>
+    	<#-- ugly little hack to enable adding tool-specific info inline -->
+        </p>
     </#macro>
 
     <#macro pageFooter>

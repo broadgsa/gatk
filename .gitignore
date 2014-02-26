@@ -38,3 +38,5 @@ resources/
 velocity.log
 perf
 verify
+maven-metadata-local.xml
+dependency-reduced-pom.xml
