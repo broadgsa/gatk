@@ -353,7 +353,6 @@
                             <property>
                                 <name>usedefaultlisteners</name>
                                 <value>false</value>
-                                <!-- TODO: Why do the default listeners take so long post tests, what is the "old" directory, and why doesn't ant have this problem? -->
                             </property>
                         </properties>
                         <systemPropertyVariables>
@@ -376,6 +375,7 @@
                             <configuration>
                                 <!-- TODO: Re-enable unit tests by default? -->
                                 <skip>${sting.unittests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/surefire-reports/unit/${test}</reportsDirectory>
                                 <includes>
                                     <include>**/*UnitTest.class</include>
                                 </includes>
@@ -399,7 +399,6 @@
                             <property>
                                 <name>usedefaultlisteners</name>
                                 <value>false</value>
-                                <!-- TODO: Why do the default listeners take so long post tests, what is the "old" directory, and why doesn't ant have this problem? -->
                             </property>
                         </properties>
                         <systemPropertyVariables>
@@ -421,6 +420,8 @@
                             <configuration>
                                 <!-- TODO: Re-enable integration tests by default? -->
                                 <skip>${sting.integrationtests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/integration/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/integration/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
                                     <include>**/*IntegrationTest.class</include>
                                 </includes>
@@ -436,6 +437,8 @@
                             <configuration>
                                 <!-- TODO: Re-enable pipeline tests by default? -->
                                 <skip>${sting.pipelinetests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/pipeline/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/pipeline/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
                                     <include>**/*PipelineTest.class</include>
                                 </includes>
@@ -450,6 +453,8 @@
                             <!-- run large scale tests -->
                             <configuration>
                                 <skip>${sting.largescaletests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/largescale/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/largescale/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
                                     <include>**/*LargeScaleTest.class</include>
                                 </includes>
@@ -464,6 +469,8 @@
                             <!-- run knowledge base tests -->
                             <configuration>
                                 <skip>${sting.knowledgebasetests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/knowledgebasetests/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/knowledgebasetests/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
                                     <include>**/*KnowledgeBaseTest.class</include>
                                 </includes>
