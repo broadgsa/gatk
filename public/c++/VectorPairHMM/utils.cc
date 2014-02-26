@@ -61,6 +61,7 @@ uint64_t get_machine_capabilities()
 void initialize_function_pointers(uint64_t mask)
 {
   //mask = 0ull;
+  //mask = (1 << SSE41_CUSTOM_IDX);
   if(is_avx_supported() && (mask & (1<< AVX_CUSTOM_IDX)))
   {
     cout << "Using AVX accelerated implementation of PairHMM\n";
@@ -286,6 +287,13 @@ double getCurrClk() {
   return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
 }
 
+inline unsigned long long rdtsc(void)
+{
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
 void get_time(struct timespec* store_struct)
 {
   clock_gettime(CLOCK_REALTIME, store_struct);
@@ -298,7 +306,13 @@ uint64_t diff_time(struct timespec& prev_time)
   return (uint64_t)((curr_time.tv_sec-prev_time.tv_sec)*1000000000+(curr_time.tv_nsec-prev_time.tv_nsec));
 }
 
-//#define DUMP_COMPUTE_VALUES 1
+#define DUMP_COMPUTE_VALUES 1
+//#define DO_REPEATS
+#ifdef USE_PAPI
+#include "papi.h"
+#define NUM_PAPI_COUNTERS 4
+#endif
+
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
 void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size, bool do_check)
@@ -321,7 +335,22 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
   uint64_t vector_compute_time = 0;
   uint64_t baseline_compute_time = 0;
   uint64_t num_double_calls = 0;
+  unsigned num_testcases = 0;
   bool all_ok = do_check ? true : false;
+#ifdef USE_PAPI
+  uint32_t all_mask = (0);
+  uint32_t no_usr_mask = (1 << 16);    //bit 16 user mode, bit 17 kernel mode
+  uint32_t no_kernel_mask = (1 << 17);    //bit 16 user mode, bit 17 kernel mode
+  PAPI_num_counters();
+  int events[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
+  char* eventnames[NUM_PAPI_COUNTERS]=  { "cycles", "itlb_walk_cycles", "dtlb_load_walk_cycles", "dtlb_store_walk_cycles" };
+  assert(PAPI_event_name_to_code("UNHALTED_REFERENCE_CYCLES:u=1:k=1",&(events[0])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("ITLB_MISSES:WALK_DURATION",   &(events[1])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("DTLB_LOAD_MISSES:WALK_DURATION",   &(events[2])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("DTLB_STORE_MISSES:WALK_DURATION",   &(events[3])) == PAPI_OK);
+  long long values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
+  long long accum_values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
+#endif
   while(1)
   {
     int break_value = use_old_read_testcase ? read_testcase(&tc, fptr) : read_mod_testcase(ifptr,&tc,true);
@@ -336,26 +365,42 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
       results_vec.resize(tc_vector.size());
       baseline_results_vec.resize(tc_vector.size());
       struct timespec start_time;
+#ifdef USE_PAPI
+      assert(PAPI_start_counters(events, NUM_PAPI_COUNTERS) == PAPI_OK);
+#endif
       get_time(&start_time);
 #pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
-      for(unsigned i=0;i<tc_vector.size();++i)
-      {
-	testcase& tc = tc_vector[i];
-	float result_avxf = g_compute_full_prob_float(&tc, 0);
-	double result = 0;
-	if (result_avxf < MIN_ACCEPTED) {
-	  double result_avxd = g_compute_full_prob_double(&tc, 0);
-	  result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
-          ++num_double_calls;
-	}
-	else
-	  result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
-#ifdef DUMP_COMPUTE_VALUES
-        g_load_time_initializer.debug_dump("return_values_vector.txt",to_string(result),true);
+#ifdef DO_REPEATS
+      for(unsigned z=0;z<10;++z)
 #endif
-	results_vec[i] = result;
+      {
+        for(unsigned i=0;i<tc_vector.size();++i)
+        {
+          testcase& tc = tc_vector[i];
+          float result_avxf = g_compute_full_prob_float(&tc, 0);
+          double result = 0;
+          if (result_avxf < MIN_ACCEPTED) {
+            double result_avxd = g_compute_full_prob_double(&tc, 0);
+            result = log10(result_avxd) - log10(ldexp(1.0, 1020.0));
+            ++num_double_calls;
+          }
+          else
+            result = (double)(log10f(result_avxf) - log10f(ldexpf(1.f, 120.f)));
+#ifdef DUMP_COMPUTE_VALUES
+          g_load_time_initializer.debug_dump("return_values_vector.txt",to_string(result),true);
+#endif
+          results_vec[i] = result;
+        }
       }
+#ifdef USE_PAPI
+      assert(PAPI_stop_counters(values, NUM_PAPI_COUNTERS) == PAPI_OK);
+#endif
       vector_compute_time +=  diff_time(start_time);
+#ifdef USE_PAPI
+      for(unsigned k=0;k<NUM_PAPI_COUNTERS;++k)
+        accum_values[k] += values[k];
+#endif
+      num_testcases += tc_vector.size();
       if(do_check)
       {
         get_time(&start_time);
@@ -401,10 +446,15 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
   if(all_ok)
   {
     cout << "All output values within acceptable error\n";
-    cout << "Baseline compute time "<<baseline_compute_time*1e-9<<"\n";
+    cout << "Baseline double precision compute time "<<baseline_compute_time*1e-9<<"\n";
   }
-  cout << "Num double invocations "<<num_double_calls<<"\n";
+  cout << "Num testcase "<<num_testcases<< " num double invocations "<<num_double_calls<<"\n";
   cout << "Vector compute time "<< vector_compute_time*1e-9 << "\n";
+#ifdef USE_PAPI
+  for(unsigned i=0;i<NUM_PAPI_COUNTERS;++i)
+    cout << eventnames[i] << " : "<<accum_values[i]<<"\n";
+#endif
+
   if(use_old_read_testcase)
     fclose(fptr);
   else
