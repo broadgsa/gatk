@@ -45,6 +45,12 @@ class PipelineTestSpec(var name: String = null) {
   /** Expected exception from the test. */
   var expectedException: Class[_ <: Exception] = null
 
+  /** Expected files. The file name may contain wildcards acceptable by the WildcardFileFilter. */
+  var expectedFilePaths: Seq[String] = Seq.empty
+
+  /** Unexpected files. The file name may contain wildcards acceptable by the WildcardFileFilter. */
+  var unexpectedFilePaths: Seq[String] = Seq.empty
+
   /** If true will check the MD5s without failing. */
   var parameterize = false
 
