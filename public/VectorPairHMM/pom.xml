@@ -6,20 +6,20 @@
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-root</artifactId>
         <version>2.8-SNAPSHOT</version>
-        <relativePath>../../../public/sting-root</relativePath>
+        <relativePath>../../public/sting-root</relativePath>
     </parent>
 
     <artifactId>VectorPairHMM</artifactId>
     <packaging>pom</packaging>
     <name>Vectorized PairHMM native libraries</name>
 
-    <description>Builds a platform dependent version of pairhmm. During install, copies it into sting-utils.</description>
+    <description>Builds a GNU/Linux x86_64 version of VectorPairHMM. During install, copies it into sting-utils.</description>
 
     <properties>
         <sourceEncoding>UTF-8</sourceEncoding>
         <project.build.sourceEncoding>${sourceEncoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${sourceEncoding}</project.reporting.outputEncoding>
-        <sting.basedir>${project.basedir}/../../..</sting.basedir>
+        <sting.basedir>${project.basedir}/../..</sting.basedir>
         <sting-utils.basedir>${sting.basedir}/public/sting-utils</sting-utils.basedir>
         <!-- Where to place the library in sting-utils -->
         <pairhmm.resources.directory>${sting-utils.basedir}/src/main/resources/org/broadinstitute/sting/utils/pairhmm</pairhmm.resources.directory>
@@ -33,8 +33,6 @@
         -->
         <pairhmm.build.architecture>x86_64</pairhmm.build.architecture>
         <pairhmm.build.extension>so</pairhmm.build.extension>
-        <pairhmm.build.cxxflags>-Wall</pairhmm.build.cxxflags>
-        <pairhmm.build.ldflags>-dynamiclib</pairhmm.build.ldflags>
     </properties>
     <build>
         <plugins>
@@ -64,12 +62,10 @@
                         <phase>compile</phase>
                         <configuration>
                             <executable>make</executable>
-                            <workingDirectory>.</workingDirectory>
+                            <workingDirectory>src/main/c++</workingDirectory>
                             <environmentVariables>
                                 <ARCHITECTURE>${pairhmm.build.architecture}</ARCHITECTURE>
-                                <LIB_EXT>${pairhmm.build.extension}</LIB_EXT>
-                                <CXXFLAGS>${pairhmm.build.cxxflags}</CXXFLAGS>
-                                <LDFLAGS>${pairhmm.build.ldflags}</LDFLAGS>
+                                <JRE_HOME>${java.home}</JRE_HOME>
                                 <OUTPUT_DIR>${project.build.directory}</OUTPUT_DIR>
                             </environmentVariables>
                         </configuration>
@@ -133,21 +129,6 @@
     <profiles>
 
         <profile>
-            <id>mac_x86_64</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                    <arch>x86_64</arch>
-                </os>
-            </activation>
-            <properties>
-                <pairhmm.build.architecture>mac_x86_64</pairhmm.build.architecture>
-                <pairhmm.build.extension>jnilib</pairhmm.build.extension>
-                <pairhmm.build.ldflags>-dynamiclib</pairhmm.build.ldflags>
-            </properties>
-        </profile>
-
-        <profile>
             <id>linux_x86_64</id>
             <activation>
                 <os>
@@ -157,9 +138,6 @@
             </activation>
             <properties>
                 <pairhmm.build.architecture>linux_x86_64</pairhmm.build.architecture>
-                <pairhmm.build.extension>jnilib</pairhmm.build.extension>
-                <pairhmm.build.cxxflags>-fPIC</pairhmm.build.cxxflags>
-                <pairhmm.build.ldflags>-shared</pairhmm.build.ldflags>
             </properties>
         </profile>
 

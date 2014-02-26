@@ -4,8 +4,8 @@
 #CFLAGS=-O2 -std=c++11 -W -Wall -march=corei7-avx -Wa,-q            -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
 #CFLAGS=-O2             -W -Wall -march=corei7 -mfpmath=sse -msse4.2 -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
 
-JAVA_ROOT=/opt/jdk1.7.0_25/
-JNI_COMPILATION_FLAGS=-D_REENTRANT -fPIC -I${JAVA_ROOT}/include -I${JAVA_ROOT}/include/linux
+JRE_HOME?=/opt/jdk1.7.0_25/
+JNI_COMPILATION_FLAGS=-D_REENTRANT -fPIC -I${JRE_HOME}/../include -I${JRE_HOME}/../include/linux
 
 COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -W -Wall -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
 CC=icc
