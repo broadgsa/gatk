@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.ProgressLoggerInterface;
 
 /**
  * XXX
@@ -76,5 +77,10 @@ public class SimplifyingSAMFileWriter implements SAMFileWriter {
         read.clearAttributes();
         read.setAttribute("RG", rg);
         return read;
+    }
+
+    @Override
+    public void setProgressLogger(final ProgressLoggerInterface logger) {
+        dest.setProgressLogger(logger);
     }
 }

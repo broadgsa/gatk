@@ -43,6 +43,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
@@ -94,36 +95,44 @@ public class GATKVCFUtilsUnitTest extends BaseTest {
         private final GATKVCFIndexType type;
         private final int parameter;
         private final Class expectedClass;
-        private final int expectedDefaultBinSize;
-        private final int expectedBinSize;
+        private final Integer expectedDimension;
+        private final Method dimensionGetter;
 
-        private IndexCreatorTest(GATKVCFIndexType type, int parameter, Class expectedClass, int expectedDefaultBinSize, int expectedBinSize) {
+        private IndexCreatorTest(GATKVCFIndexType type, int parameter, Class expectedClass, Integer expectedDimension,
+                                 String dimensionGetterName) {
             super(IndexCreatorTest.class);
 
             this.type = type;
             this.parameter = parameter;
             this.expectedClass = expectedClass;
-            this.expectedDefaultBinSize = expectedDefaultBinSize;
-            this.expectedBinSize = expectedBinSize;
+            this.expectedDimension = expectedDimension;
+            try {
+                // Conditional matches testGetIndexCreator's if-statement
+                this.dimensionGetter = this.expectedDimension == null ? null : expectedClass.getDeclaredMethod(dimensionGetterName);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     @DataProvider(name = "indexCreator")
     public Object[][] indexCreatorData() {
-        new IndexCreatorTest(GATKVCFIndexType.DYNAMIC_SEEK, 0, DynamicIndexCreator.class, -1, -1);
-        new IndexCreatorTest(GATKVCFIndexType.DYNAMIC_SIZE, 0, DynamicIndexCreator.class, -1, -1);
-        new IndexCreatorTest(GATKVCFIndexType.LINEAR, 100, LinearIndexCreator.class, LinearIndexCreator.DEFAULT_BIN_WIDTH, 100);
-        new IndexCreatorTest(GATKVCFIndexType.INTERVAL, 200, IntervalIndexCreator.class, IntervalIndexCreator.DEFAULT_FEATURE_COUNT, 200);
+        new IndexCreatorTest(GATKVCFIndexType.DYNAMIC_SEEK, 0, DynamicIndexCreator.class, null, null);
+        new IndexCreatorTest(GATKVCFIndexType.DYNAMIC_SIZE, 0, DynamicIndexCreator.class, null, null);
+        new IndexCreatorTest(GATKVCFIndexType.LINEAR, 100, LinearIndexCreator.class, 100, "getBinSize");
+        new IndexCreatorTest(GATKVCFIndexType.INTERVAL, 200, IntervalIndexCreator.class, 200, "getFeaturesPerInterval");
 
         return IndexCreatorTest.getTests(IndexCreatorTest.class);
     }
 
     @Test(dataProvider = "indexCreator")
-    public void testGetIndexCreator(IndexCreatorTest spec) {
+    public void testGetIndexCreator(IndexCreatorTest spec) throws Exception{
         File dummy = new File("");
         IndexCreator ic = GATKVCFUtils.getIndexCreator(spec.type, spec.parameter, dummy);
         Assert.assertEquals(ic.getClass(), spec.expectedClass, "Wrong IndexCreator type");
-        Assert.assertEquals(ic.defaultBinSize(), spec.expectedDefaultBinSize, "Wrong default bin size");
-        Assert.assertEquals(ic.getBinSize(), spec.expectedBinSize, "Wrong bin size");
+        if (spec.expectedDimension != null) {
+            Integer dimension = (int)spec.dimensionGetter.invoke(ic);
+            Assert.assertEquals(dimension, spec.expectedDimension, "Wrong dimension");
+        }
     }
 }

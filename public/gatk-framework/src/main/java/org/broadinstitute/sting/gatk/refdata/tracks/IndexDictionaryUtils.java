@@ -29,10 +29,11 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.index.Index;
+import org.broad.tribble.index.MutableIndex;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
 
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -70,23 +71,29 @@ public class IndexDictionaryUtils {
      * @param dict the sequence dictionary to add contigs to
      * @return the filled-in sequence dictionary
      */
-    static SAMSequenceDictionary createSequenceDictionaryFromContigList(Index index, SAMSequenceDictionary dict) {
-        LinkedHashSet<String> seqNames = index.getSequenceNames();
+    static SAMSequenceDictionary createSequenceDictionaryFromContigList(final Index index, final SAMSequenceDictionary dict) {
+        final List<String> seqNames = index.getSequenceNames();
         if (seqNames == null) {
             return dict;
         }
-        for (String name : seqNames) {
+        for (final String name : seqNames) {
             SAMSequenceRecord seq = new SAMSequenceRecord(name, 0);
             dict.addSequence(seq);
         }
         return dict;
     }
 
+    /**
+     *  Sets the sequence dictionary of the given index.  THE INDEX MUST BE MUTABLE (i.e. not Tabix).
+     *
+     * @param index the (mutable) index file to use
+     * @param dict  the dictionary to use
+     */
     public static void setIndexSequenceDictionary(Index index, SAMSequenceDictionary dict) {
         for ( SAMSequenceRecord seq : dict.getSequences() ) {
             final String contig = IndexDictionaryUtils.SequenceDictionaryPropertyPredicate + seq.getSequenceName();
             final String length = String.valueOf(seq.getSequenceLength());
-            index.addProperty(contig,length);
+            ((MutableIndex)index).addProperty(contig, length);
         }
     }
 
