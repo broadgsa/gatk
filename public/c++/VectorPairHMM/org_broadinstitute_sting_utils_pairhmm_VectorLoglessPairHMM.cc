@@ -191,8 +191,6 @@ inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_Vector
   }
 }
 
-//#define DO_WARMUP
-//#define DO_REPEAT_PROFILING
 //Do compute over vector of testcase structs
 inline void compute_testcases(vector<testcase>& tc_array, unsigned numTestCases, double* likelihoodDoubleArray,
     unsigned maxNumThreadsToUse)
