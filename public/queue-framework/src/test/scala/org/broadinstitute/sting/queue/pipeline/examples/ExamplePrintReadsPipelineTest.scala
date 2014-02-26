@@ -53,16 +53,31 @@ import org.testng.annotations.Test
 import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
-class DevNullOutputPipelineTest {
+class ExamplePrintReadsPipelineTest {
   @Test(timeOut=36000000)
   def testDevNullOutput() {
     val spec = new PipelineTestSpec
     spec.name = "devnulloutput"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/DevNullOutput.scala",
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExamplePrintReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
-      " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -out /dev/null").mkString
     spec.jobRunners = PipelineTest.allJobRunners
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test(timeOut=36000000)
+  def testCleanupBai() {
+    val spec = new PipelineTestSpec
+    spec.name = "cleanupbai"
+    spec.args = Array(
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExamplePrintReads.scala",
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -out exampleOut.bam").mkString
+    spec.jobRunners = PipelineTest.allJobRunners
+    spec.unexpectedFilePaths :+= ".queue/scatterGather/ExamplePrintReads-1-sg/temp_1_of_1/exampleOut.bai"
     PipelineTest.executeTest(spec)
   }
 }

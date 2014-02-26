@@ -174,4 +174,11 @@ object QScript {
     addOrder += 1
     Seq(addOrder)
   }
+
+  /**
+   * Resets the add order back to zero. Useful for testing purposes.
+   */
+  def resetAddOrder() {
+    addOrder = 0
+  }
 }
