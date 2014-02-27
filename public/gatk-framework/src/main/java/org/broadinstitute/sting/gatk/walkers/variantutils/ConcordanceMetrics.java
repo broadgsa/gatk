@@ -42,8 +42,9 @@ public class ConcordanceMetrics {
     private Map<String,GenotypeConcordanceTable> perSampleGenotypeConcordance;
     private GenotypeConcordanceTable overallGenotypeConcordance;
     private SiteConcordanceTable overallSiteConcordance;
+    private Boolean printInterestingSites;
 
-    public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth) {
+    public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth, Boolean printSitesEnabled) {
         HashSet<String> overlappingSamples = new HashSet<String>(evaluate.getGenotypeSamples());
         overlappingSamples.retainAll(truth.getGenotypeSamples());
         perSampleGenotypeConcordance = new HashMap<String, GenotypeConcordanceTable>(overlappingSamples.size());
@@ -52,6 +53,7 @@ public class ConcordanceMetrics {
         }
         overallGenotypeConcordance = new GenotypeConcordanceTable();
         overallSiteConcordance = new SiteConcordanceTable();
+        printInterestingSites = printSitesEnabled;
     }
 
     public GenotypeConcordanceTable getOverallGenotypeConcordance() {
@@ -114,6 +116,7 @@ public class ConcordanceMetrics {
 
     @Requires({"eval != null","truth != null"})
     public void update(VariantContext eval, VariantContext truth) {
+        Boolean doPrint = false;
         overallSiteConcordance.update(eval,truth);
         Set<String> alleleTruth = new HashSet<String>(8);
         String truthRef = truth.getReference().getBaseString();
@@ -130,7 +133,12 @@ public class ConcordanceMetrics {
                 throw new UserException(String.format("Concordance Metrics is currently only implemented for DIPLOID genotypes, found eval ploidy: %d, comp ploidy: %d",evalGenotype.getPloidy(),truthGenotype.getPloidy()));
             }
             perSampleGenotypeConcordance.get(sample).update(evalGenotype,truthGenotype,alleleTruth,truthRef);
-            overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth,truthRef);
+            doPrint = overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth,truthRef);
+            if(printInterestingSites && doPrint)
+                System.out.println(eval.getChr() + ":" + eval.getStart() + "\t truth is:" + truthGenotype.getType() + "\t eval is:" + evalGenotype.getType());
+
+                //Below is code to print out mismatched alternate alleles
+                //System.out.println(eval.getChr() + ":" + eval.getStart() + "\t truth is:" + truthGenotype.getAlleles() + "\t eval is:" + evalGenotype.getAlleles());
         }
     }
 
@@ -212,13 +220,14 @@ public class ConcordanceMetrics {
         }
 
         @Requires({"eval!=null","truth != null","truthAlleles != null"})
-        public void update(Genotype eval, Genotype truth, Set<String> truthAlleles, String truthRef) {
+        public Boolean update(Genotype eval, Genotype truth, Set<String> truthAlleles, String truthRef) {
             // this is slow but correct.
 
             // NOTE: a reference call in "truth" is a special case, the eval can match *any* of the truth alleles
             // that is, if the reference base is C, and a sample is C/C in truth, A/C, A/A, T/C, T/T will
             // all match, so long as A and T are alleles in the truth callset.
             boolean matchingAlt = true;
+            int evalGT, truthGT;
             if ( eval.isCalled() && truth.isCalled() && truth.isHomRef() ) {
                 // by default, no-calls "match" between alleles, so if
                 // one or both sites are no-call or unavailable, the alt alleles match
@@ -241,10 +250,17 @@ public class ConcordanceMetrics {
             }
 
             if ( matchingAlt ) {
-                genotypeCounts[eval.getType().ordinal()][truth.getType().ordinal()]++;
+                evalGT = eval.getType().ordinal();
+                truthGT = truth.getType().ordinal();
+                genotypeCounts[evalGT][truthGT]++;
+                if(evalGT != truthGT)  //report variants where genotypes don't match
+                    return true;
             } else {
                 nMismatchingAlt++;
+                return false;
+                //return true; //alternatively, report variants where alt alleles don't match
             }
+            return false;
         }
 
         public int[][] getTable() {
