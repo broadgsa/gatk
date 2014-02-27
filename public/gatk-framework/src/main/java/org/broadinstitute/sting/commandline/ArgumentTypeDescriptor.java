@@ -455,6 +455,8 @@ public abstract class ArgumentTypeDescriptor {
     /**
      * Retrieve and parse a collection of RodBindings from the given file.
      *
+     * If the file contains duplicate entries or is empty, an exception will be thrown.
+     *
      * @param file             the source file
      * @param parsingEngine    the engine responsible for parsing
      * @param parameterType    the Tribble Feature parameter type
@@ -471,6 +473,9 @@ public abstract class ArgumentTypeDescriptor {
                                                   final String fieldName) throws IOException {
         final List<RodBinding> bindings = new ArrayList<>();
 
+        // Keep track of the files in this list so that we can check for duplicates and empty files
+        final Set<String> fileValues = new HashSet<>();
+
         // parse each line separately using the given Tags if none are provided on each line
         for ( final String line: FileUtils.readLines(file) ) {
             final String[] tokens = line.split("\\s+");
@@ -481,14 +486,15 @@ public abstract class ArgumentTypeDescriptor {
             }
             // use the default tags if none are provided for this binding
             else if ( tokens.length == 1 ) {
-                final ArgumentMatchValue value = new ArgumentMatchStringValue(tokens[0]);
+                final ArgumentMatchValue value = parseAndValidateArgumentMatchValue(tokens[0], fileValues, fieldName, file.getName());
                 binding = (RodBinding)parseBinding(value, parameterType, RodBinding.class, bindingName, defaultTags, fieldName);
                 parsingEngine.addTags(binding, defaultTags);
+
             }
             // use the new tags if provided
             else if ( tokens.length == 2 ) {
                 final Tags tags = ParsingMethod.parseTags(fieldName, tokens[0]);
-                final ArgumentMatchValue value = new ArgumentMatchStringValue(tokens[1]);
+                final ArgumentMatchValue value = parseAndValidateArgumentMatchValue(tokens[1], fileValues, fieldName, file.getName());
                 binding = (RodBinding)parseBinding(value, parameterType, RodBinding.class, bindingName, tags, fieldName);
                 parsingEngine.addTags(binding, tags);
             } else {
@@ -499,7 +505,51 @@ public abstract class ArgumentTypeDescriptor {
             parsingEngine.addRodBinding(binding);
         }
 
+        if (fileValues.isEmpty()) {
+            throw new UserException.BadArgumentValue(fieldName, "The input list " + file.getName() + " is empty.");
+        }
+
         return RodBindingCollection.createRodBindingCollectionOfType(parameterType, bindings);
+    }
+
+    /**
+     * Validates the resource file name and constructs an ArgumentMatchValue from it.
+     *
+     * If the list name has already been processed in the current list, throws a UserException, otherwise
+     * creates an ArgumentMatchValue to represent the list.
+     *
+     * @param token Name of the ROD resource file.
+     * @param fileValues Set of names of ROD files that have already been processed.
+     * @param fieldName Name of the argument field being populated.
+     * @param listFileName Name of the list file being processed.
+     * @return
+     */
+    private static ArgumentMatchValue parseAndValidateArgumentMatchValue(final String token, final Set<String> fileValues, final String fieldName,
+                                                                         final String listFileName) {
+        checkForDuplicateFileName(token, fileValues, fieldName, listFileName);
+        return new ArgumentMatchStringValue(token);
+    }
+
+    /**
+     * Checks to make sure that the current file name to be processed has not already been processed.
+     *
+     * Checks the name of the current file against the names that have already been processed, throwing
+     * an informative BadArgumentValue exception if it has already been seen. As a side effect adds the
+     * current file name to the set of filenames that have already been processed.
+     *
+     * @param currentFile Name of the current file to process
+     * @param processedFiles Set of file names that have already been processed
+     * @param fieldName Name of the argument that is being populated
+     * @param listName Filename of the list that is being processed
+     */
+    protected static void checkForDuplicateFileName(final String currentFile, final Set<String> processedFiles,
+                                                    final String fieldName, final String listName) {
+        if (processedFiles.contains(currentFile)) {
+            throw new UserException.BadArgumentValue(fieldName, "The input list " + listName + " contains file " + currentFile +
+                                                     " multiple times, which isn't allowed. If you are intentionally trying to " +
+                                                     "include the same file more than once, you will need to specify it in separate file lists.");
+        }
+        processedFiles.add(currentFile);
     }
 }
 
