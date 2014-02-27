@@ -9,9 +9,9 @@ function implementation that is supported on the machine on which the program is
 run. The two pointers are for float and double respectively. This initialization is done 
 only once for the whole program.
 3. initialize(): To initialized the region for PairHMM. Pass haplotype bases to native 
-code through the JNIHaplotypeDataHolders class.  Since the haplotype list is common across 
-multiple samples in computeReadLikelihoods(), we can store the haplotype bases to the 
-native code once and re-use across multiple samples.
+code through the JNIHaplotypeDataHolders class.  Since the haplotype list is common across multiple 
+samples in computeReadLikelihoods(), we can store the haplotype bases to the native code once and 
+re-use across multiple samples.
 4. computeLikelihoods(): Copies array references for readBases/quals etc to array of 
 JNIReadDataHolder objects.  Invokes the JNI function to perform the computation and 
 updates the likelihoodMap.
@@ -33,9 +33,16 @@ support all AVX intrinsics.
 Type 'make'. This should create a library called libVectorLoglessPairHMM.so 
 
 Running:
-If libVectorLoglessPairHMM.so is compiled using icc, make sure that the Intel Composer XE 
-libraries are in your LD_LIBRARY_PATH :
-source <COMPOSER_XE_DIR>/bin/compilervars.sh intel64
-See run.sh in this directory on how to invoke HaplotypeCaller with the native library. The 
-argument -Djava.library.path is needed if the native implementation is selected, else 
-unnecessary. 
+The default implementation of PairHMM is still LOGLESS_CACHING in HaplotypeCaller.java. To use the 
+native version, use the command line argument "--pair_hmm_implementation VECTOR_LOGLESS_CACHING"
+(see run.sh in src/main/c++).
+The native library is bundled with the StingUtils jar file. When HaplotypeCaller is invoked with the 
+VectorLoglessPairHMM implementation (see run.sh in the directory src/main/c++), then the library is 
+unpacked from the jar file, copied to the /tmp directory (with a unique id) and loaded by the Java class 
+VectorLoglessPairHMM in the constructor (if it has not been loaded already).
+The default library can be overridden by using the -Djava.library.path argument for the JVM to pass 
+the path to the library. If the library libVectorLoglessPairHMM.so can be found in 
+java.library.path, then it is loaded and the 'packed' library is not used.
+See run.sh in this directory on how to invoke HaplotypeCaller with the vector implementation of 
+PairHMM. The argument -Djava.library.path is needed if you wish to override the default packed 
+library, else unnecessary.

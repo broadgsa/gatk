@@ -13,7 +13,7 @@
     <packaging>pom</packaging>
     <name>Vectorized PairHMM native libraries</name>
 
-    <description>Builds a GNU/Linux x86_64 version of VectorPairHMM. During install, copies it into sting-utils.</description>
+    <description>Builds a GNU/Linux x86_64 library of VectorPairHMM using icc (Intel C++ compiler). During install, copies it into sting-utils. Neither tested nor expected to work on any other platform.</description>
 
     <properties>
         <sourceEncoding>UTF-8</sourceEncoding>
@@ -23,20 +23,12 @@
         <sting-utils.basedir>${sting.basedir}/public/sting-utils</sting-utils.basedir>
         <!-- Where to place the library in sting-utils -->
         <pairhmm.resources.directory>${sting-utils.basedir}/src/main/resources/org/broadinstitute/sting/utils/pairhmm</pairhmm.resources.directory>
-
-        <!-- Per architecture properties, overriden in profiles below -->
-        <!--
-        NOTE: cxxflags is for currently only for -fPIC on linux.
-        For other architectures still have to pass something, until possibly
-        switching to command line arguments with exec-maven-plugin 1.3
-        http://jira.codehaus.org/browse/MEXEC-104
-        -->
-        <pairhmm.build.architecture>x86_64</pairhmm.build.architecture>
-        <pairhmm.build.extension>so</pairhmm.build.extension>
     </properties>
     <build>
         <plugins>
-            <!-- Print out the current architecture, to know which profile is being activated. -->
+            <!-- Print out the architecture - works only on GNU/Linux x86_64 systems -->
+            <!-- Neither tested nor expected to work on any other platform. -->
+            <!-- Requires icc (Intel C++ compiler) to be in your PATH. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -64,7 +56,6 @@
                             <executable>make</executable>
                             <workingDirectory>src/main/c++</workingDirectory>
                             <environmentVariables>
-                                <ARCHITECTURE>${pairhmm.build.architecture}</ARCHITECTURE>
                                 <JRE_HOME>${java.home}</JRE_HOME>
                                 <OUTPUT_DIR>${project.build.directory}</OUTPUT_DIR>
                             </environmentVariables>
@@ -125,21 +116,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-
-        <profile>
-            <id>linux_x86_64</id>
-            <activation>
-                <os>
-                    <name>linux</name>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <properties>
-                <pairhmm.build.architecture>linux_x86_64</pairhmm.build.architecture>
-            </properties>
-        </profile>
-
-    </profiles>
 </project>
