@@ -120,7 +120,7 @@ public class MD5DB {
         for ( String dir : Arrays.asList(GLOBAL_MD5_DB_DIR, LOCAL_MD5_DB_DIR)) {
             File f = getFileForMD5(md5, dir);
             if ( f.exists() && f.canRead() )
-                return f.getPath();
+                return f.getAbsolutePath();
         }
 
         return valueIfNotFound;
