@@ -32,7 +32,6 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.*;
@@ -115,13 +114,9 @@ public class PerReadAlleleLikelihoodMap {
             alleleReadMap.put(allele, new ArrayList<GATKSAMRecord>());
 
         for ( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
-            // TODO -- come up with a strategy for down-sampling reduced reads
-            // Currently we are unable to remove reduced reads because their representative base count differs throughout the read
-            if ( !entry.getKey().isReducedRead() ) {
-                final MostLikelyAllele bestAllele = getMostLikelyAllele(entry.getValue());
-                if ( bestAllele.isInformative() )
-                    alleleReadMap.get(bestAllele.getMostLikelyAllele()).add(entry.getKey());
-            }
+            final MostLikelyAllele bestAllele = getMostLikelyAllele(entry.getValue());
+            if ( bestAllele.isInformative() )
+                alleleReadMap.get(bestAllele.getMostLikelyAllele()).add(entry.getKey());
         }
 
         return alleleReadMap;
@@ -233,10 +228,9 @@ public class PerReadAlleleLikelihoodMap {
                 for( final Map.Entry<GATKSAMRecord, Map<Allele,Double>> entry : likelihoodReadMap.entrySet() ) {
                     // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
                     final GATKSAMRecord read = entry.getKey();
-                    final int count = ReadUtils.getMeanRepresentativeReadCount(read);
                     final double likelihood_iii = entry.getValue().get(iii_allele);
                     final double likelihood_jjj = entry.getValue().get(jjj_allele);
-                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + MathUtils.LOG_ONE_HALF);
+                    haplotypeLikelihood += MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + MathUtils.LOG_ONE_HALF;
 
                     // fast exit.  If this diploid pair is already worse than the max, just stop and look at the next pair
                     if ( haplotypeLikelihood < maxElement ) break;

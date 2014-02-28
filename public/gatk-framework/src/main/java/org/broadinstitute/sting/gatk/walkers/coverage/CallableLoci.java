@@ -314,14 +314,13 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
             // count up the depths of all and QC+ bases
             int rawDepth = 0, QCDepth = 0, lowMAPQDepth = 0;
             for (PileupElement e : context.getBasePileup()) {
-                final int depth = e.getRepresentativeCount();
-                rawDepth += depth;
+                rawDepth++;
 
                 if (e.getMappingQual() <= maxLowMAPQ)
-                    lowMAPQDepth += depth;
+                    lowMAPQDepth++;
 
                 if (e.getMappingQual() >= minMappingQuality && (e.getQual() >= minBaseQuality || e.isDeletion())) {
-                    QCDepth += depth;
+                    QCDepth++;
                 }
             }
 

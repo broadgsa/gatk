@@ -811,10 +811,7 @@ public class ReadBackedPileupImpl implements ReadBackedPileup {
     @Override
     public int depthOfCoverage() {
         if (depthOfCoverage == UNINITIALIZED_CACHED_INT_VALUE) {
-            depthOfCoverage = 0;
-            for (PileupElement p : pileupElementTracker.unorderedIterable()) {
-                depthOfCoverage += p.getRepresentativeCount();
-            }
+            depthOfCoverage = pileupElementTracker.size();
         }
         return depthOfCoverage;
     }

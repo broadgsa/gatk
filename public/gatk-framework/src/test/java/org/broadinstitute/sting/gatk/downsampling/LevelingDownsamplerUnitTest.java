@@ -25,12 +25,8 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
-import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.locusiterator.AlignmentStateMachine;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
 import org.testng.Assert;
@@ -163,42 +159,5 @@ public class LevelingDownsamplerUnitTest extends BaseTest {
         Assert.assertEquals(downsampler.getNumberOfDiscardedItems(), 0);
 
         Assert.assertTrue(totalRemainingItems <= Math.max(test.targetSize, test.numStacks));
-    }
-
-    @Test
-    public void testDoNotDiscardReducedReads() {
-        GenomeAnalysisEngine.resetRandomGenerator();
-        final Downsampler<LinkedList<AlignmentStateMachine>> downsampler = new LevelingDownsampler<LinkedList<AlignmentStateMachine>, AlignmentStateMachine>(1);
-
-        final Collection<LinkedList<AlignmentStateMachine>> groups = new LinkedList<LinkedList<AlignmentStateMachine>>();
-        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
-        final int[] baseCounts = { 10, 10, 10, 10, 10 };
-
-        for ( int alignmentStart : Arrays.asList(1, 2, 3) ) {
-            final LinkedList<AlignmentStateMachine> group = new LinkedList<AlignmentStateMachine>();
-            for ( int i = 1; i <= 10; i++ ) {
-                group.add(new AlignmentStateMachine(ArtificialSAMUtils.createArtificialReducedRead(header, "foo", 0, alignmentStart, 5, baseCounts)));
-            }
-            groups.add(group);
-        }
-
-        downsampler.submit(groups);
-        downsampler.signalEndOfInput();
-
-        Assert.assertEquals(downsampler.getNumberOfDiscardedItems(), 0, "wrong number of items discarded by the downsampler");
-        Assert.assertTrue(downsampler.hasFinalizedItems(), "downsampler should have finalized items but doesn't");
-        Assert.assertEquals(downsampler.size(), 30, "downsampler size() reports wrong number of items");
-
-        final Collection<LinkedList<AlignmentStateMachine>> groupsReturned = downsampler.consumeFinalizedItems();
-
-        Assert.assertEquals(groupsReturned.size(), 3, "wrong number of groups returned by the downsampler");
-
-        for ( LinkedList<AlignmentStateMachine> group : groupsReturned ) {
-            Assert.assertEquals(group.size(), 10, "group has wrong size after downsampling");
-
-            for ( AlignmentStateMachine state : group ) {
-                Assert.assertTrue(state.isReducedRead());
-            }
-        }
     }
 }

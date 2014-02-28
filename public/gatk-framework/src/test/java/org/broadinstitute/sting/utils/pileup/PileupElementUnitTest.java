@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.locusiterator.AlignmentStateMachine;
 import org.broadinstitute.sting.utils.locusiterator.LIBS_position;
@@ -126,7 +125,6 @@ public class PileupElementUnitTest extends LocusIteratorByStateBaseTest {
             // TODO -- add meaningful tests
             pe.getBaseInsertionQual();
             pe.getBaseDeletionQual();
-            pe.getRepresentativeCount();
         }
     }
 

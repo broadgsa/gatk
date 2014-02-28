@@ -57,15 +57,6 @@ public class ReadUtils {
     private static final int DEFAULT_ADAPTOR_SIZE = 100;
     public static final int CLIPPING_GOAL_NOT_REACHED = -1;
 
-    public static int getMeanRepresentativeReadCount(GATKSAMRecord read) {
-        if (!read.isReducedRead())
-            return 1;
-
-        // compute mean representative read counts
-        final int[] counts = read.getReducedReadCounts();
-        return (int)Math.round((double)MathUtils.sum(counts)/counts.length);
-    }
-
     /**
      * A marker to tell which end of the read has been clipped
      */
@@ -695,8 +686,7 @@ public class ReadUtils {
                 case D:
                     for (int i = 0; i < cigarElement.getLength(); i++) {
                         if (refLocation >= startLocation && refLocation <= stopLocation) {
-                            int baseCount = read.isReducedRead() ? read.getReducedCount(refLocation - read.getSoftStart()) : 1;
-                            coverage[refLocation - startLocation] += baseCount;   // this may be a reduced read, so add the proper number of bases
+                            coverage[refLocation - startLocation]++;
                         }
                         refLocation++;
                     }
