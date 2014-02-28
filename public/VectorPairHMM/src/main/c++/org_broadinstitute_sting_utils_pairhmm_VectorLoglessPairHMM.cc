@@ -98,6 +98,8 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   }
 }
 
+//Create a vector of testcases for computation - copy the references to bytearrays read/readQuals etc into the appropriate
+//testcase struct
 inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector
   (JNIEnv* env, jint numReads, jint numHaplotypes, jobjectArray& readDataArray,
    vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector, vector<testcase>& tc_array)
@@ -272,12 +274,13 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   g_load_time_initializer.m_data_transfer_time += diff_time(start_time);
 #endif
 
+  //Get double array where results are stored (to pass back to java)
   jdouble* likelihoodDoubleArray = (jdouble*)GET_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, &is_copy);
 #ifdef ENABLE_ASSERTIONS
   assert(likelihoodDoubleArray && "likelihoodArray is NULL");
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
 #endif
-#ifdef DO_WARMUP
+#ifdef DO_WARMUP        //ignore - only for crazy profiling
   vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
   for(unsigned i=0;i<haplotypeBasesArrayVector.size();++i)
   {
@@ -299,7 +302,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   g_load_time_initializer.m_bytes_copied += (is_copy ? numTestCases*sizeof(double) : 0);
   get_time(&start_time);
 #endif
-  compute_testcases(tc_array, numTestCases, likelihoodDoubleArray, maxNumThreadsToUse);
+  compute_testcases(tc_array, numTestCases, likelihoodDoubleArray, maxNumThreadsToUse); //actual computation
 #ifdef DO_PROFILING
   g_load_time_initializer.m_compute_time += diff_time(start_time);
 #endif
