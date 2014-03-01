@@ -2,8 +2,8 @@
 #include "template.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
-
 using namespace std;
+
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log)
 {
@@ -62,7 +62,8 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log)
     int _i = tc->i[r-1] & 127;
     int _d = tc->d[r-1] & 127;
     int _c = tc->c[r-1] & 127;
-    p[r][MM] = ctx._(1.0) - ctx.ph2pr[(_i + _d) & 127];
+    //p[r][MM] = ctx._(1.0) - ctx.ph2pr[(_i + _d) & 127];
+    SET_MATCH_TO_MATCH_PROB(p[r][MM], _i, _d);
     p[r][GapM] = ctx._(1.0) - ctx.ph2pr[_c];
     p[r][MX] = ctx.ph2pr[_i];
     p[r][XX] = ctx.ph2pr[_c];

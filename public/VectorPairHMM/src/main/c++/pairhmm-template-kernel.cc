@@ -116,7 +116,8 @@ template<class NUMBER> void CONCAT(CONCAT(initializeVectors,SIMD_ENGINE), PRECIS
         int _d = tc->d[r-1] & 127;
         int _c = tc->c[r-1] & 127;
 
-        *(ptr_p_MM+r-1) = ctx._(1.0) - ctx.ph2pr[(_i + _d) & 127];
+        //*(ptr_p_MM+r-1) = ctx._(1.0) - ctx.ph2pr[(_i + _d) & 127];
+        SET_MATCH_TO_MATCH_PROB(*(ptr_p_MM+r-1), _i, _d);
         *(ptr_p_GAPM+r-1) = ctx._(1.0) - ctx.ph2pr[_c];
         *(ptr_p_MX+r-1) = ctx.ph2pr[_i];
         *(ptr_p_XX+r-1) = ctx.ph2pr[_c];

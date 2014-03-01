@@ -8,8 +8,8 @@ then
 fi
 
 #-Djava.library.path is needed if you wish to override the default 'packed' library
-#java  -Djava.library.path=${GSA_ROOT_DIR}/public/VectorPairHMM/src/main/c++ -jar $GSA_ROOT_DIR/target/GenomeAnalysisTK.jar   -T HaplotypeCaller \
-java -jar $GSA_ROOT_DIR/target/GenomeAnalysisTK.jar   -T HaplotypeCaller \
+#java -jar $GSA_ROOT_DIR/target/GenomeAnalysisTK.jar   -T HaplotypeCaller \
+java  -Djava.library.path=${GSA_ROOT_DIR}/public/VectorPairHMM/src/main/c++ -jar $GSA_ROOT_DIR/target/GenomeAnalysisTK.jar   -T HaplotypeCaller \
 --dbsnp /data/broad/samples/joint_variant_calling/dbSNP/00-All.vcf \
 -R /opt/Genomics/ohsu/dnapipeline/humanrefgenome/human_g1k_v37.fasta \
 -I /data/simulated/sim1M_pairs_final.bam \

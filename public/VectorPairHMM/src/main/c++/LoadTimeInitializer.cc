@@ -14,7 +14,6 @@ char* LoadTimeInitializerStatsNames[] =
   "dummy"
 };
 
-
 LoadTimeInitializer g_load_time_initializer;
 
 LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loaded
@@ -53,6 +52,10 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   m_buffer_size = size*sizeof(uint64_t);
   
   initialize_function_pointers();
+
+  //Initialize static members of class
+  Context<float>::initializeStaticMembers();
+  Context<double>::initializeStaticMembers();
 
   cout.flush();
 }

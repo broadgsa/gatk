@@ -22,7 +22,10 @@ class LoadTimeInitializer
 {
   public:
     LoadTimeInitializer();		//will be called when library is loaded
-    ~LoadTimeInitializer()  { delete m_buffer;	}
+    ~LoadTimeInitializer()
+    {
+      delete m_buffer;
+    }
     void print_profiling();
     void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
     void debug_close();

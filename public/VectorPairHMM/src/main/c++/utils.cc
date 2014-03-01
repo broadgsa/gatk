@@ -3,12 +3,21 @@
 #include "utils.h"
 #include "vector_defs.h"
 #include "LoadTimeInitializer.h"
+using namespace std;
 
+//static members from ConvertChar
 uint8_t ConvertChar::conversionTable[255];
+//Global function pointers in utils.h
 float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
 double (*g_compute_full_prob_double)(testcase *tc, double* before_last_log) = 0;
+//Static members in ContextBase
+bool ContextBase<double>::staticMembersInitializedFlag = false;
+double ContextBase<double>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE];
+double ContextBase<double>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1];
+bool ContextBase<float>::staticMembersInitializedFlag = false;
+float ContextBase<float>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE];
+float ContextBase<float>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1];
 
-using namespace std;
 
 bool is_avx_supported()
 {
