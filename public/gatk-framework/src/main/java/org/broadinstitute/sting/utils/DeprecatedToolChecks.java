@@ -42,6 +42,7 @@ public class DeprecatedToolChecks {
     private static Object2ObjectMap deprecatedGATKWalkers = new Object2ObjectOpenHashMap();
     static {
         // Indicate recommended replacement in parentheses if applicable
+        deprecatedGATKWalkers.put("ReduceReads", "3.0 (use recommended best practices pipeline with the HaplotypeCaller)");
         deprecatedGATKWalkers.put("CountCovariates", "2.0 (use BaseRecalibrator instead; see documentation for usage)");
         deprecatedGATKWalkers.put("TableRecalibration", "2.0 (use PrintReads with -BQSR instead; see documentation for usage)");
         deprecatedGATKWalkers.put("AlignmentWalker", "2.2 (no replacement)");

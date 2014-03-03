@@ -30,7 +30,6 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -128,47 +127,5 @@ public class ReservoirDownsamplerUnitTest extends BaseTest {
 
         downsampler.resetStats();
         Assert.assertEquals(downsampler.getNumberOfDiscardedItems(), 0);
-    }
-
-    @Test
-    public void testDoNotDiscardReducedReads() {
-        GenomeAnalysisEngine.resetRandomGenerator();
-        final ReadsDownsampler<GATKSAMRecord> downsampler = new ReservoirDownsampler<GATKSAMRecord>(1);
-
-        final Collection<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
-        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
-        final int[] baseCounts = { 10, 10, 10, 10, 10 };
-
-        for ( int i = 1; i <= 10; i++ ) {
-            reads.add(ArtificialSAMUtils.createArtificialReducedRead(header, "foo", 0, 1, 5, baseCounts));
-        }
-        for ( int i = 1; i <= 5; i++ ) {
-            reads.add(ArtificialSAMUtils.createArtificialRead(header, "foo", 0, 1, 5));
-        }
-
-        downsampler.submit(reads);
-        downsampler.signalEndOfInput();
-
-        Assert.assertEquals(downsampler.getNumberOfDiscardedItems(), 4, "wrong number of items discarded by the downsampler");
-        Assert.assertTrue(downsampler.hasFinalizedItems(), "downsampler should have finalized items but doesn't");
-        Assert.assertEquals(downsampler.size(), 11, "downsampler size() reports wrong number of items");
-
-        final Collection<GATKSAMRecord> readsReturned = downsampler.consumeFinalizedItems();
-
-        Assert.assertEquals(readsReturned.size(), 11, "wrong number of items returned by the downsampler");
-
-        int numReducedReadsReturned = 0;
-        int numNormalReadsReturned = 0;
-        for ( GATKSAMRecord readReturned : readsReturned ) {
-            if ( readReturned.isReducedRead() ) {
-                numReducedReadsReturned++;
-            }
-            else {
-                numNormalReadsReturned++;
-            }
-        }
-
-        Assert.assertEquals(numReducedReadsReturned, 10, "wrong number of reduced reads returned by the downsampler");
-        Assert.assertEquals(numNormalReadsReturned, 1, "wrong number of non-reduced reads returned by the downsampler");
     }
 }

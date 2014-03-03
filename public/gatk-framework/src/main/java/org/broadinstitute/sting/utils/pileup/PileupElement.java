@@ -30,8 +30,6 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
@@ -295,43 +293,6 @@ public class PileupElement implements Comparable<PileupElement> {
     // Reduced read accessors
     //
     // --------------------------------------------------------------------------
-
-    /**
-     * Returns the number of elements in the pileup element.
-     *
-     * Unless this is a reduced read, the number of elements in a pileup element is one. In the event of
-     * this being a reduced read and a deletion, we return the average number of elements between the left
-     * and right elements to the deletion. We assume the deletion to be left aligned.
-     *
-     * @return the representative count
-     */
-    public int getRepresentativeCount() {
-        if (read.isReducedRead())     {
-            if (isDeletion() && (offset + 1 >= read.getReadLength()) )  // deletion in the end of the read
-                throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s", read.getReadName(), read.getCigarString()));
-
-            return isDeletion()
-                    ? MathUtils.fastRound((read.getReducedCount(offset) + read.getReducedCount(offset + 1)) / 2.0)
-                    : read.getReducedCount(offset);
-        } else {
-            return 1;
-        }
-    }
-
-    /**
-     * Adjusts the representative count of this pileup element.
-     * Throws an exception if this element does not represent a reduced read.
-     *
-     * See GATKSAMRecord.adjustReducedCount() for warnings on the permanency of this operation.
-     *
-     * @param adjustmentFactor   how much to adjust the representative count (can be positive or negative)
-     */
-    public void adjustRepresentativeCount(final int adjustmentFactor) {
-        if ( read.isReducedRead() )
-            read.adjustReducedCount(offset, adjustmentFactor);
-        else
-            throw new IllegalArgumentException("Trying to adjust the representative count of a read that is not reduced");
-    }
 
     /**
      * Get the cigar element aligning this element to the genome
