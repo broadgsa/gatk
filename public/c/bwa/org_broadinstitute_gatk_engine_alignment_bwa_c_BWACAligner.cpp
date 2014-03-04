@@ -6,7 +6,7 @@
 #include "bwt.h"
 #include "bwtaln.h"
 #include "bwa_gateway.h"
-#include "org_broadinstitute_sting_alignment_bwa_c_BWACAligner.h"
+#include "org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner.h"
 
 typedef void (BWA::*boolean_setter)();
 typedef void (BWA::*int_setter)(int value);
@@ -19,7 +19,7 @@ static void set_int_configuration_param(JNIEnv* env, jobject configuration, cons
 static void set_float_configuration_param(JNIEnv* env, jobject configuration, const char* field_name, BWA* bwa, float_setter setter);
 static void throw_config_value_exception(JNIEnv* env, const char* field_name, const char* message);
 
-JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject bwtFiles, jobject configuration)
+JNIEXPORT jlong JNICALL Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_create(JNIEnv* env, jobject instance, jobject bwtFiles, jobject configuration)
 {
   jstring java_ann = get_configuration_file(env,bwtFiles,"annFile");
   if(java_ann == NULL) return 0L;
@@ -59,7 +59,7 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligne
 		     reverse_bwt_filename,
 		     reverse_sa_filename);
 
-  Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_updateConfiguration(env,instance,(jlong)bwa,configuration); 
+  Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_updateConfiguration(env,instance,(jlong)bwa,configuration); 
   if(env->ExceptionCheck()) return 0L;
 
   env->ReleaseStringUTFChars(java_ann,ann_filename);
@@ -80,13 +80,13 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligne
   return (jlong)bwa;
 }
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_destroy(JNIEnv* env, jobject instance, jlong java_bwa) 
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_destroy(JNIEnv* env, jobject instance, jlong java_bwa) 
 {
   BWA* bwa = (BWA*)java_bwa;
   delete bwa;
 }
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_updateConfiguration(JNIEnv *env, jobject instance, jlong java_bwa, jobject configuration) {
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_updateConfiguration(JNIEnv *env, jobject instance, jlong java_bwa, jobject configuration) {
   BWA* bwa = (BWA*)java_bwa;
   set_float_configuration_param(env, configuration, "maximumEditDistance", bwa, &BWA::set_max_edit_distance);
   if(env->ExceptionCheck()) return; 
@@ -108,7 +108,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner
   if(env->ExceptionCheck()) return;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getPaths(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) 
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_getPaths(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) 
 {
  BWA* bwa = (BWA*)java_bwa;
 
@@ -124,13 +124,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   unsigned best_path_count, second_best_path_count;
   bwa->find_paths((const char*)read_bases,read_length,paths,num_paths,best_path_count,second_best_path_count);
 
-  jobjectArray java_paths = env->NewObjectArray(num_paths, env->FindClass("org/broadinstitute/sting/alignment/bwa/c/BWAPath"), NULL);  
+  jobjectArray java_paths = env->NewObjectArray(num_paths, env->FindClass("org/broadinstitute/gatk/engine/alignment/bwa/c/BWAPath"), NULL);
   if(java_paths == NULL) return NULL;
 
   for(unsigned path_idx = 0; path_idx < (unsigned)num_paths; path_idx++) {
     bwt_aln1_t& path = *(paths + path_idx);
 
-    jclass java_path_class = env->FindClass("org/broadinstitute/sting/alignment/bwa/c/BWAPath");
+    jclass java_path_class = env->FindClass("org/broadinstitute/gatk/engine/alignment/bwa/c/BWAPath");
     if(java_path_class == NULL) return NULL;
 
     jmethodID java_path_constructor = env->GetMethodID(java_path_class, "<init>", "(IIIZJJIII)V");
@@ -164,7 +164,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   return env->ExceptionCheck() ? NULL : java_paths;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_convertPathsToAlignments(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases, jobjectArray java_paths) 
+JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_convertPathsToAlignments(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases, jobjectArray java_paths) 
 {
   BWA* bwa = (BWA*)java_bwa;
 
@@ -235,7 +235,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   unsigned num_alignments = 0;
   bwa->generate_alignments_from_paths((const char*)read_bases,read_length,paths,num_paths,best_count,second_best_count,alignments,num_alignments);
 
-  jobjectArray java_alignments = env->NewObjectArray(num_alignments, env->FindClass("org/broadinstitute/sting/alignment/Alignment"), NULL);  
+  jobjectArray java_alignments = env->NewObjectArray(num_alignments, env->FindClass("org/broadinstitute/gatk/engine/alignment/Alignment"), NULL);
   if(java_alignments == NULL) return NULL;
 
   for(unsigned alignment_idx = 0; alignment_idx < (unsigned)num_alignments; alignment_idx++) {
@@ -254,7 +254,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWA
   return env->ExceptionCheck() ? NULL : java_alignments;
 }
 
-JNIEXPORT jobject JNICALL Java_org_broadinstitute_sting_alignment_bwa_c_BWACAligner_getBestAlignment(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) {
+JNIEXPORT jobject JNICALL Java_org_broadinstitute_gatk_engine_alignment_bwa_c_BWACAligner_getBestAlignment(JNIEnv *env, jobject instance, jlong java_bwa, jbyteArray java_bases) {
   BWA* bwa = (BWA*)java_bwa;
 
   const jsize read_length = env->GetArrayLength(java_bases);
@@ -305,7 +305,7 @@ static jobject convert_to_java_alignment(JNIEnv *env, const jbyte* read_bases, c
   }
   delete[] alignment.cigar;
     
-  jclass java_alignment_class = env->FindClass("org/broadinstitute/sting/alignment/Alignment");
+  jclass java_alignment_class = env->FindClass("org/broadinstitute/gatk/engine/alignment/Alignment");
   if(java_alignment_class == NULL) return NULL;
   
   jmethodID java_alignment_constructor = env->GetMethodID(java_alignment_class, "<init>", "(IIZI[C[IILjava/lang/String;IIIII)V");
@@ -466,8 +466,8 @@ static void throw_config_value_exception(JNIEnv* env, const char* field_name, co
 {
   char* buffer = new char[strlen(field_name)+1+strlen(message)+1];
   sprintf(buffer,"%s %s",field_name,message);
-  jclass sting_exception_class = env->FindClass("org/broadinstitute/sting/utils/StingException");
-  if(sting_exception_class == NULL) return;
-  env->ThrowNew(sting_exception_class, buffer);
+  jclass gatk_exception_class = env->FindClass("org/broadinstitute/gatk/utils/exceptions/GATKException");
+  if(gatk_exception_class == NULL) return;
+  env->ThrowNew(gatk_exception_class, buffer);
   delete[] buffer;
 }

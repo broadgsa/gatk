@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
+package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
 import htsjdk.variant.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 
@@ -109,7 +109,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
                 nComp += getCounts(x, y);
 
         if ( nComp != TP + FN + FP + TN + CompFiltered )
-            throw new ReviewedStingException("BUG: nComp != TP + FN + FP + TN + CompFiltered!");
+            throw new ReviewedGATKException("BUG: nComp != TP + FN + FP + TN + CompFiltered!");
 
         sensitivity = (100.0 * TP) / (TP + FN);
         specificity = (TN+FP > 0) ? (100.0 * TN) / (TN + FP) : 100.0;

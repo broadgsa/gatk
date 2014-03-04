@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.gatk.utils.locusiterator;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import htsjdk.samtools.SAMFileHeader;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -71,8 +71,8 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
 
 //    public void timeOriginalLIBS(int rep) {
 //        for ( int i = 0; i < rep; i++ ) {
-//            final org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState libs =
-//                    new org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState(
+//            final org.broadinstitute.gatk.utils.locusiterator.old.LocusIteratorByState libs =
+//                    new org.broadinstitute.gatk.utils.locusiterator.old.LocusIteratorByState(
 //                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
 //                            LocusIteratorByStateBaseTest.createTestReadProperties(),
 //                            genomeLocParser,
@@ -86,8 +86,8 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
 //
 //    public void timeLegacyLIBS(int rep) {
 //        for ( int i = 0; i < rep; i++ ) {
-//            final org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState libs =
-//                    new org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState(
+//            final org.broadinstitute.gatk.utils.locusiterator.legacy.LegacyLocusIteratorByState libs =
+//                    new org.broadinstitute.gatk.utils.locusiterator.legacy.LegacyLocusIteratorByState(
 //                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
 //                            LocusIteratorByStateBaseTest.createTestReadProperties(),
 //                            genomeLocParser,
@@ -101,8 +101,8 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
 
     public void timeNewLIBS(int rep) {
         for ( int i = 0; i < rep; i++ ) {
-            final org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState libs =
-                    new org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState(
+            final org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState libs =
+                    new org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState(
                             new LocusIteratorByStateBaseTest.FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
                             LocusIteratorByStateBaseTest.createTestReadProperties(),
                             genomeLocParser,

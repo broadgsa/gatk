@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.text;
+package org.broadinstitute.gatk.utils.text;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.commandline.ParsingEngine;
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.commandline.ParsingEngine;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

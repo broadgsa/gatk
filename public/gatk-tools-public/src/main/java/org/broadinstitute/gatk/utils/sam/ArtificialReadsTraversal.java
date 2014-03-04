@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.datasources.providers.ShardDataProvider;
+import org.broadinstitute.gatk.engine.traversals.TraversalEngine;
+import org.broadinstitute.gatk.engine.walkers.ReadWalker;
+import org.broadinstitute.gatk.engine.walkers.Walker;
 
 
 /*

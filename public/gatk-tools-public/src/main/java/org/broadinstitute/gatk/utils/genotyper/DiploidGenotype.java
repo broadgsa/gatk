@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.genotyper;
+package org.broadinstitute.gatk.utils.genotyper;
 
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.BaseUtils;
 
 public enum DiploidGenotype {
     AA ('A', 'A'),

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
 /**
  * Documentation unit.  Effectively a class version of the DocumentedGATKFeature.

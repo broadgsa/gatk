@@ -23,28 +23,28 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
 import com.google.java.contract.Ensures;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.gatk.traversals.*;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.AutoFormattingTime;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
-import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.ReadMetrics;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.engine.iterators.NullSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.engine.traversals.*;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.AutoFormattingTime;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
+import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -216,11 +216,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         int thisInstance = instanceNumber++;
         mBeanServer = ManagementFactory.getPlatformMBeanServer();
         try {
-            mBeanName = new ObjectName("org.broadinstitute.sting.gatk.executive:type=MicroScheduler,instanceNumber="+thisInstance);
+            mBeanName = new ObjectName("org.broadinstitute.gatk.engine.executive:type=MicroScheduler,instanceNumber="+thisInstance);
             mBeanServer.registerMBean(this, mBeanName);
         }
         catch (JMException ex) {
-            throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
+            throw new ReviewedGATKException("Unable to register microscheduler with JMX", ex);
         }
     }
 
@@ -317,7 +317,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @param shard the shard to use when querying reads.
      * @return an iterator over the reads specified in the shard.
      */
-    protected StingSAMIterator getReadIterator(Shard shard) {
+    protected GATKSAMIterator getReadIterator(Shard shard) {
         return (!reads.isEmpty()) ? reads.seek(shard) : new NullSAMIterator();
     }
 
@@ -403,7 +403,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             mBeanServer.unregisterMBean(mBeanName);
         }
         catch (JMException ex) {
-            throw new ReviewedStingException("Unable to unregister microscheduler with JMX", ex);
+            throw new ReviewedGATKException("Unable to unregister microscheduler with JMX", ex);
         }
     }
 

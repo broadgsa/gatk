@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.interval;
+package org.broadinstitute.gatk.utils.interval;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -32,17 +32,17 @@ import htsjdk.samtools.util.IntervalList;
 import htsjdk.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.commandline.IntervalArgumentCollection;
-import org.broadinstitute.sting.commandline.IntervalBinding;
-import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.utils.commandline.IntervalArgumentCollection;
+import org.broadinstitute.gatk.utils.commandline.IntervalBinding;
+import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +50,7 @@ import java.util.*;
 
 /**
  * Parse text representations of interval strings that
- * can appear in Sting-based applications.
+ * can appear in GATK-based applications.
  *
  * @author mhanna
  * @version 0.1
@@ -129,7 +129,7 @@ public class IntervalUtils {
         // case: BED file
         if ( file_name.toUpperCase().endsWith(".BED") ) {
             // this is now supported in Tribble
-            throw new ReviewedStingException("BED files must be parsed through Tribble; parsing them as intervals through the GATK engine is no longer supported");
+            throw new ReviewedGATKException("BED files must be parsed through Tribble; parsing them as intervals through the GATK engine is no longer supported");
         }
         else {
             /**

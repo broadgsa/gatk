@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa.java;
+package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
-import org.broadinstitute.sting.alignment.reference.bwt.BWT;
+import org.broadinstitute.gatk.engine.alignment.reference.bwt.BWT;
 
 import java.util.ArrayList;
 import java.util.List;

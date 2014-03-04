@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 
 import htsjdk.samtools.SAMFileHeader;
@@ -31,12 +31,12 @@ import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.tribble.BasicFeature;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -111,7 +111,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(0, "chr1".compareTo(genomeLocParser.getContigInfo("chr1").getSequenceName())); // should be in the reference
     }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedGATKException.class)
     public void testParseBadString() {
         genomeLocParser.parseGenomeLoc("Bad:0-1");
     }
@@ -206,7 +206,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedGATKException.class)
     public void testGenomeLocParseOnlyBadChrome() {
         GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr12");
         assertEquals(loc.getContigIndex(), 0);
@@ -214,7 +214,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedGATKException.class)
     public void testGenomeLocBad() {
         GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr1:1-");
         assertEquals(loc.getContigIndex(), 0);
@@ -252,7 +252,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",2,1)); // stop < start
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class)
+    @Test(expectedExceptions = ReviewedGATKException.class)
     public void testValidateGenomeLoc() {
         // bad contig index
         genomeLocParser.validateGenomeLoc("chr1", 1, 1, 2, false);

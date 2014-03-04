@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.text;
+package org.broadinstitute.gatk.utils.text;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -110,7 +110,7 @@ public class TextFormattingUtils {
                 bundle = new PropertyResourceBundle(new StringReader(""));
             }
             catch(IOException ioe) {
-                throw new ReviewedStingException("No resource bundle found, and unable to create an empty placeholder.",ioe);
+                throw new ReviewedGATKException("No resource bundle found, and unable to create an empty placeholder.",ioe);
             }
         }
         return bundle;
@@ -125,7 +125,7 @@ public class TextFormattingUtils {
      */
     public static List<Integer> getWordStarts(String line) {
         if (line == null)
-            throw new ReviewedStingException("line is null");
+            throw new ReviewedGATKException("line is null");
         List<Integer> starts = new ArrayList<Integer>();
         int stop = line.length();
         for (int i = 1; i < stop; i++)
@@ -143,9 +143,9 @@ public class TextFormattingUtils {
      */
     public static String[] splitFixedWidth(String line, List<Integer> columnStarts) {
         if (line == null)
-            throw new ReviewedStingException("line is null");
+            throw new ReviewedGATKException("line is null");
         if (columnStarts == null)
-            throw new ReviewedStingException("columnStarts is null");
+            throw new ReviewedGATKException("columnStarts is null");
         int startCount = columnStarts.size();
         String[] row = new String[startCount + 1];
         if (startCount == 0) {
@@ -166,7 +166,7 @@ public class TextFormattingUtils {
      */
     public static String[] splitWhiteSpace(String line) {
         if (line == null)
-            throw new ReviewedStingException("line is null");
+            throw new ReviewedGATKException("line is null");
         return line.trim().split("\\s+");
     }
 }

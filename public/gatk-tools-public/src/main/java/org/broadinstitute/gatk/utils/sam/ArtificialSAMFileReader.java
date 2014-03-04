@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -150,7 +150,7 @@ public class ArtificialSAMFileReader extends SAMFileReader {
             return new ByteArrayInputStream(byteArray);
         }
         catch( UnsupportedEncodingException ex ) {
-            throw new ReviewedStingException("Unable to build empty input stream",ex);
+            throw new ReviewedGATKException("Unable to build empty input stream",ex);
         }
     }
 }

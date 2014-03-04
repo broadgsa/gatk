@@ -23,29 +23,29 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.baq;
+package org.broadinstitute.gatk.utils.baq;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 
 /**
  * Iterator that applies a ReadTransformer to a stream of reads
  */
-public class ReadTransformingIterator implements StingSAMIterator {
-    private final StingSAMIterator it;
+public class ReadTransformingIterator implements GATKSAMIterator {
+    private final GATKSAMIterator it;
     private final ReadTransformer transformer;
 
     /**
      * Creates a new ReadTransforming iterator
      */
     @Requires({"it != null", "transformer != null", "transformer.isInitialized()"})
-    public ReadTransformingIterator(final StingSAMIterator it, final ReadTransformer transformer) {
+    public ReadTransformingIterator(final GATKSAMIterator it, final ReadTransformer transformer) {
         if ( ! transformer.isInitialized() )
             throw new IllegalStateException("Creating a read transformer stream for an uninitialized read transformer: " + transformer);
         if ( transformer.getApplicationTime() == ReadTransformer.ApplicationTime.FORBIDDEN )

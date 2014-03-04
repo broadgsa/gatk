@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 
 import java.lang.annotation.*;
 
@@ -51,6 +51,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface BAQMode {
-    public abstract org.broadinstitute.sting.utils.baq.BAQ.QualityMode QualityMode() default org.broadinstitute.sting.utils.baq.BAQ.QualityMode.OVERWRITE_QUALS;
+    public abstract org.broadinstitute.gatk.utils.baq.BAQ.QualityMode QualityMode() default org.broadinstitute.gatk.utils.baq.BAQ.QualityMode.OVERWRITE_QUALS;
     public abstract ReadTransformer.ApplicationTime ApplicationTime() default ReadTransformer.ApplicationTime.ON_INPUT;
 }

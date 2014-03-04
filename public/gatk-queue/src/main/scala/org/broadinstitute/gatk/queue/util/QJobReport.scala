@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
-import org.broadinstitute.sting.queue.function.QFunction
-import org.broadinstitute.sting.gatk.report.GATKReportTable
-import org.broadinstitute.sting.queue.engine.JobRunInfo
+import org.broadinstitute.gatk.queue.function.QFunction
+import org.broadinstitute.gatk.engine.report.GATKReportTable
+import org.broadinstitute.gatk.queue.engine.JobRunInfo
 
 /**
  * A mixin to add Job info to the class

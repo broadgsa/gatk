@@ -23,26 +23,26 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordComparator;
 import htsjdk.samtools.SAMRecordCoordinateComparator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
 
 import java.util.*;
 
 
 /**
- * StingSAMIterator wrapper around our generic reads downsampler interface
+ * GATKSAMIterator wrapper around our generic reads downsampler interface
  * that downsamples reads for each sample independently, and then re-assembles
  * the reads back into a single merged stream.
  *
  * @author David Roazen
  */
-public class PerSampleDownsamplingReadsIterator implements StingSAMIterator {
+public class PerSampleDownsamplingReadsIterator implements GATKSAMIterator {
 
-    private StingSAMIterator nestedSAMIterator;
+    private GATKSAMIterator nestedSAMIterator;
     private ReadsDownsamplerFactory<SAMRecord> downsamplerFactory;
     private Map<String, ReadsDownsampler<SAMRecord>> perSampleDownsamplers;
     private PriorityQueue<SAMRecord> orderedDownsampledReadsCache;
@@ -63,7 +63,7 @@ public class PerSampleDownsamplingReadsIterator implements StingSAMIterator {
      * @param iter wrapped iterator from which this iterator will pull reads
      * @param downsamplerFactory factory used to create new downsamplers as needed
      */
-    public PerSampleDownsamplingReadsIterator( StingSAMIterator iter, ReadsDownsamplerFactory<SAMRecord> downsamplerFactory ) {
+    public PerSampleDownsamplingReadsIterator( GATKSAMIterator iter, ReadsDownsamplerFactory<SAMRecord> downsamplerFactory ) {
         nestedSAMIterator = iter;
         this.downsamplerFactory = downsamplerFactory;
         perSampleDownsamplers = new HashMap<String, ReadsDownsampler<SAMRecord>>();

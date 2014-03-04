@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
 import java.io.File
-import org.broadinstitute.sting.queue.QSettings
-import org.broadinstitute.sting.queue.util.{EmailSettings, SystemUtils}
-import org.broadinstitute.sting.commandline.{Advanced, ArgumentCollection, Argument}
+import org.broadinstitute.gatk.queue.QSettings
+import org.broadinstitute.gatk.queue.util.{EmailSettings, SystemUtils}
+import org.broadinstitute.gatk.utils.commandline.{Advanced, ArgumentCollection, Argument}
 
 /**
  * Command line options for a QGraph.

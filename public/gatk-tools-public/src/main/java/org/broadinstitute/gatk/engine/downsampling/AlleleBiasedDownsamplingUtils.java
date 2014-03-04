@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.DefaultHashMap;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.pileup.*;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.utils.*;
+import org.broadinstitute.gatk.utils.collections.DefaultHashMap;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.pileup.*;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 import htsjdk.variant.variantcontext.Allele;
 
 import java.io.File;
@@ -290,7 +290,7 @@ public class AlleleBiasedDownsamplingUtils {
      * @return sample-contamination Map
      */
 
-    public static DefaultHashMap<String, Double> loadContaminationFile(File ContaminationFractionFile, final Double defaultContaminationFraction, final Set<String> AvailableSampleIDs, Logger logger) throws StingException {
+    public static DefaultHashMap<String, Double> loadContaminationFile(File ContaminationFractionFile, final Double defaultContaminationFraction, final Set<String> AvailableSampleIDs, Logger logger) throws GATKException {
         DefaultHashMap<String, Double> sampleContamination = new DefaultHashMap<String, Double>(defaultContaminationFraction);
         Set<String> nonSamplesInContaminationFile = new HashSet<String>(sampleContamination.keySet());
         try {
@@ -361,7 +361,7 @@ public class AlleleBiasedDownsamplingUtils {
             return sampleContamination;
 
         } catch (IOException e) {
-            throw new StingException("I/O Error while reading sample-contamination file " + ContaminationFractionFile.getName() + ": " + e.getMessage());
+            throw new GATKException("I/O Error while reading sample-contamination file " + ContaminationFractionFile.getName() + ": " + e.getMessage());
         }
 
     }

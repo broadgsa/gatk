@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.qc;
+package org.broadinstitute.gatk.tools.walkers.qc;
 
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

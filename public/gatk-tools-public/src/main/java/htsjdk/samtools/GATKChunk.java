@@ -33,7 +33,7 @@ package htsjdk.samtools;
 public class GATKChunk extends Chunk {
     /**
      * The average ratio of compressed block size / uncompressed block size, computed empirically
-     * using the output of org.broadinstitute.sting.gatk.datasources.reads.utilities.PrintBGZFBounds.
+     * using the output of org.broadinstitute.gatk.engine.datasources.reads.utilities.PrintBGZFBounds.
      */
     private static final double AVERAGE_BAM_COMPRESSION_RATIO = 0.39;
 

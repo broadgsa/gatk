@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.activeregion;
+package org.broadinstitute.gatk.utils.activeregion;
 
 /**
  * Describes how a read relates to an assigned ActiveRegion

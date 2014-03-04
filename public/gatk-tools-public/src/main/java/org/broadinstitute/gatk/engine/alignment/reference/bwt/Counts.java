@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -121,7 +121,7 @@ public class Counts implements Cloneable {
             other = (Counts)super.clone();
         }
         catch(CloneNotSupportedException ex) {
-            throw new ReviewedStingException("Unable to clone counts object", ex);
+            throw new ReviewedGATKException("Unable to clone counts object", ex);
         }
         other.counts = new HashMap<Byte,Long>(counts);
         other.cumulativeCounts = new HashMap<Byte,Long>(cumulativeCounts);

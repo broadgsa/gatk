@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import com.google.java.contract.Ensures;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

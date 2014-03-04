@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMProgramRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -562,7 +562,7 @@ public class Utils {
      * @param walker              the walker object (so we can extract the command line)
      * @param PROGRAM_RECORD_NAME the name for the PG tag
      */
-    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, Object walker, String PROGRAM_RECORD_NAME) {
+    public static void setupWriter(GATKSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, Object walker, String PROGRAM_RECORD_NAME) {
         SAMFileHeader header = setupWriter(toolkit, originalHeader, walker, PROGRAM_RECORD_NAME);
         writer.writeHeader(header);
         writer.setPresorted(preSorted);
@@ -579,9 +579,9 @@ public class Utils {
      */
     public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
         final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
-        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
         try {
-            final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+            final String version = headerInfo.getString("org.broadinstitute.gatk.tools.version");
             programRecord.setProgramVersion(version);
         } catch (MissingResourceException e) {
             // couldn't care less if the resource is missing...

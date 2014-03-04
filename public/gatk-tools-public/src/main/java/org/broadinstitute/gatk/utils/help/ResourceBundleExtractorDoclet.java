@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
 import com.sun.javadoc.*;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.Utils;
 
 import java.io.*;
 import java.util.*;
@@ -115,7 +115,7 @@ public class ResourceBundleExtractorDoclet {
             renderHelpText(currentPackage.name(),currentPackage);
 
         try {
-            resourceText.store(out,"Strings displayed by the Sting help system");
+            resourceText.store(out,"Strings displayed by the GATK help system");
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException(e);
         } catch ( IOException e ) {

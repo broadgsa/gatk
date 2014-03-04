@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
-import org.broadinstitute.sting.queue.util.TextFormatUtils._
+import org.broadinstitute.gatk.queue.util.TextFormatUtils._
 
 /**
  * Utilities for retrying a function and waiting a number of minutes.

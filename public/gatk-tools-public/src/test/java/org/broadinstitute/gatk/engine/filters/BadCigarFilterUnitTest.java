@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 import htsjdk.samtools.Cigar;
-import org.broadinstitute.sting.utils.clipping.ReadClipperTestUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.clipping.ReadClipperTestUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

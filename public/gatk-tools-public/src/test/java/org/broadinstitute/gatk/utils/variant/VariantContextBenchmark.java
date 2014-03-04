@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.variant;
+package org.broadinstitute.gatk.utils.variant;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;

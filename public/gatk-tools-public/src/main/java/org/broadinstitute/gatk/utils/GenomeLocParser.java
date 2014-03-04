@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -34,8 +34,8 @@ import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 /**
  * Factory class for creating GenomeLocs
@@ -314,7 +314,7 @@ public final class GenomeLocParser {
         try {
             validateGenomeLoc(contig, getContigIndexWithoutException(contig), start, stop, mustBeOnReference);
             return true;
-        } catch ( ReviewedStingException e) {
+        } catch ( ReviewedGATKException e) {
             return false;
         }
     }

@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 /**
  * A utility to track exceptions that occur across threads.
@@ -66,12 +66,12 @@ public class MultiThreadedErrorTracker {
     /**
      * Retrieve the error that has occurred.
      *
-     * @throws ReviewedStingException if no error has occurred.
+     * @throws ReviewedGATKException if no error has occurred.
      * @return
      */
     public synchronized RuntimeException getError() {
         if(!hasAnErrorOccurred())
-            throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
+            throw new ReviewedGATKException("User has attempted to retrieve a traversal error when none exists");
         return error;
     }
 
@@ -100,6 +100,6 @@ public class MultiThreadedErrorTracker {
         if (error instanceof RuntimeException)
             return (RuntimeException)error;
         else
-            return new ReviewedStingException("An error occurred during the traversal.  Message=" + error.getMessage(), error);
+            return new ReviewedGATKException("An error occurred during the traversal.  Message=" + error.getMessage(), error);
     }
 }

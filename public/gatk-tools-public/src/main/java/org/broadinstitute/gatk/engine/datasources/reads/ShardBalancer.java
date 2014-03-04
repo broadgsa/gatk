@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import java.util.Iterator;
 

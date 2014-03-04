@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.qscripts.CNV
+package org.broadinstitute.gatk.queue.qscripts.CNV
 
-import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.util.VCF_BAM_utilities
-import org.broadinstitute.sting.queue.util.DoC._
-import org.broadinstitute.sting.commandline.Hidden
+import org.broadinstitute.gatk.queue.extensions.gatk._
+import org.broadinstitute.gatk.queue.QScript
+import org.broadinstitute.gatk.queue.util.VCF_BAM_utilities
+import org.broadinstitute.gatk.queue.extensions.gatk.DoC._
+import org.broadinstitute.gatk.utils.commandline.Hidden
 import java.io.{PrintStream, PrintWriter}
-import org.broadinstitute.sting.utils.text.XReadLines
+import org.broadinstitute.gatk.utils.text.XReadLines
 import collection.JavaConversions._
-import org.broadinstitute.sting.gatk.walkers.coverage.CoverageUtils
+import org.broadinstitute.gatk.tools.walkers.coverage.CoverageUtils
 
 class xhmmCNVpipeline extends QScript {
   qscript =>

@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 /**
  * Created by IntelliJ IDEA.
@@ -50,6 +50,6 @@ public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, Re
         return true;
     }
 
-    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
+    // Map over the org.broadinstitute.gatk.engine.contexts.AlignmentContext
     public abstract MapType map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker);
 }

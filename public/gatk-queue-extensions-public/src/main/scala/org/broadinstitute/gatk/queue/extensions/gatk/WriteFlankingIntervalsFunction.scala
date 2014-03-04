@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
-import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.commandline.{Output, Argument, Input}
+import org.broadinstitute.gatk.queue.function.InProcessFunction
+import org.broadinstitute.gatk.utils.commandline.{Output, Argument, Input}
 import java.io.File
-import org.broadinstitute.sting.utils.interval.IntervalUtils
+import org.broadinstitute.gatk.utils.interval.IntervalUtils
 
 class WriteFlankingIntervalsFunction extends InProcessFunction {
   @Input(doc="The reference sequence")

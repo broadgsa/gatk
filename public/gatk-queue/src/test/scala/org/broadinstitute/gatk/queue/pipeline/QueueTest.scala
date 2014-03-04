@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline
+package org.broadinstitute.gatk.queue.pipeline
 
-import org.broadinstitute.sting.utils.Utils
+import org.broadinstitute.gatk.utils.Utils
 import org.testng.Assert
-import org.broadinstitute.sting.commandline.CommandLineProgram
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram
 import java.util.Date
 import java.text.SimpleDateFormat
-import org.broadinstitute.sting.BaseTest
-import org.broadinstitute.sting.MD5DB
-import org.broadinstitute.sting.queue.{QScript, QCommandLine}
-import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.gatk.utils.BaseTest
+import org.broadinstitute.gatk.utils.MD5DB
+import org.broadinstitute.gatk.queue.{QScript, QCommandLine}
+import org.broadinstitute.gatk.queue.util.Logging
 import java.io.{FilenameFilter, File}
-import org.broadinstitute.sting.gatk.report.GATKReport
+import org.broadinstitute.gatk.engine.report.GATKReport
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
 

@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.diffengine;
+package org.broadinstitute.gatk.engine.walkers.diffengine;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.report.GATKReport;
+import org.broadinstitute.gatk.engine.report.GATKReportTable;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -83,7 +83,7 @@ public class DiffEngine {
             DiffElement masterElt = master.getElement(name);
             DiffElement testElt = test.getElement(name);
             if ( masterElt == null && testElt == null ) {
-                throw new ReviewedStingException("BUG: unexpectedly got two null elements for field: " + name);
+                throw new ReviewedGATKException("BUG: unexpectedly got two null elements for field: " + name);
             } else if ( masterElt == null || testElt == null ) { // if either is null, we are missing a value
                 // todo -- should one of these be a special MISSING item?
                 diffs.add(new Difference(masterElt, testElt));
@@ -343,9 +343,9 @@ public class DiffEngine {
                 DiffableReader dr = drClass.newInstance();
                 readers.put(dr.getName(), dr);
             } catch (InstantiationException e) {
-                throw new ReviewedStingException("Unable to instantiate module '" + drClass.getSimpleName() + "'");
+                throw new ReviewedGATKException("Unable to instantiate module '" + drClass.getSimpleName() + "'");
             } catch (IllegalAccessException e) {
-                throw new ReviewedStingException("Illegal access error when trying to instantiate '" + drClass.getSimpleName() + "'");
+                throw new ReviewedGATKException("Illegal access error when trying to instantiate '" + drClass.getSimpleName() + "'");
             }
         }
     }

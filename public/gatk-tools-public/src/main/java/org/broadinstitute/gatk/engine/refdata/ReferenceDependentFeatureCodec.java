@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.gatk.engine.refdata;
 
 import htsjdk.tribble.FeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 /**
  * An interface marking that a given Tribble feature/codec is actually dependent on context within the

@@ -23,4 +23,4 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.gatk.engine.refdata;

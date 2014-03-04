@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.progressmeter;
+package org.broadinstitute.gatk.utils.progressmeter;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.*;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileNotFoundException;

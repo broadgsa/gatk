@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue
+package org.broadinstitute.gatk.queue
 
 import java.io.File
-import org.broadinstitute.sting.commandline.{ClassType, Argument}
+import org.broadinstitute.gatk.utils.commandline.{ClassType, Argument}
 
 /**
  * Default settings settable on the command line and passed to CommandLineFunctions.

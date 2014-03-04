@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.packing;
+package org.broadinstitute.gatk.engine.alignment.reference.packing;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -79,7 +79,7 @@ public class BasePackedInputStream<T> {
 
     public BasePackedInputStream( Class<T> type, FileInputStream inputStream, ByteOrder byteOrder ) {
         if( type != Integer.class )
-            throw new ReviewedStingException("Only bases packed into 32-bit words are currently supported by this input stream.  Type specified: " + type.getName());
+            throw new ReviewedGATKException("Only bases packed into 32-bit words are currently supported by this input stream.  Type specified: " + type.getName());
         this.type = type;
         this.targetInputStream = inputStream;
         this.targetInputChannel = inputStream.getChannel();

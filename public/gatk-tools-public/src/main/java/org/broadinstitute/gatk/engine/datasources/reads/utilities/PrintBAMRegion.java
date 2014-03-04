@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads.utilities;
+package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecordIterator;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.regex.Matcher;

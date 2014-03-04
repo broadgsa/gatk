@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +56,7 @@ public class FractionalDownsampler<T extends SAMRecord> extends ReadsDownsampler
      */
     public FractionalDownsampler( final double fraction ) {
         if ( fraction < 0.0 || fraction > 1.0 ) {
-            throw new ReviewedStingException("Fraction of reads to include must be between 0.0 and 1.0, inclusive");
+            throw new ReviewedGATKException("Fraction of reads to include must be between 0.0 and 1.0, inclusive");
         }
 
         cutoffForInclusion = (int)(fraction * RANDOM_POOL_SIZE);

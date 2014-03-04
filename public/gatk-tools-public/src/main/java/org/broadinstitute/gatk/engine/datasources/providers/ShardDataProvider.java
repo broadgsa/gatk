@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -156,7 +156,7 @@ public abstract class ShardDataProvider {
             Collection<Class<? extends View>> conflicts = registeredView.getConflictingViews();
             for( Class<? extends View> conflict: conflicts ) {
                 if( conflict.isInstance(view) )
-                    throw new ReviewedStingException(String.format("Tried to register two conflicting views: %s and %s",
+                    throw new ReviewedGATKException(String.format("Tried to register two conflicting views: %s and %s",
                                                            registeredView.getClass().getSimpleName(),
                                                            view.getClass().getSimpleName()));
             }
@@ -166,7 +166,7 @@ public abstract class ShardDataProvider {
         for( Class<? extends View> conflict: view.getConflictingViews() ) {
             for( View registeredView: registeredViews ) {
                 if( conflict.isInstance(registeredView) )
-                    throw new ReviewedStingException(String.format("Tried to register two conflicting views: %s and %s",
+                    throw new ReviewedGATKException(String.format("Tried to register two conflicting views: %s and %s",
                                                            registeredView.getClass().getSimpleName(),
                                                            view.getClass().getSimpleName()));
             }

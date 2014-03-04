@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.variantutils;
+package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.VCFHeader;
 
@@ -73,7 +73,7 @@ public class ConcordanceMetrics {
     public GenotypeConcordanceTable getGenotypeConcordance(String sample) {
         GenotypeConcordanceTable table = perSampleGenotypeConcordance.get(sample);
         if ( table == null )
-            throw new ReviewedStingException("Attempted to request the concordance table for sample "+sample+" on which it was not calculated");
+            throw new ReviewedGATKException("Attempted to request the concordance table for sample "+sample+" on which it was not calculated");
         return table;
     }
 

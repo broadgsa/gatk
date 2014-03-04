@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.util;
+package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -76,7 +76,7 @@ public class AnalysisModuleScanner {
     /** scan the class and find all appropriate fields and tables */
     public void scan() {
         if (cls == null || !cls.isAnnotationPresent(Analysis.class))
-            throw new ReviewedStingException("The class passed in cannot be null, " + "" +
+            throw new ReviewedGATKException("The class passed in cannot be null, " + "" +
                                      "and must contain the @Analysis annotation, class " + cls + " was the input");
 
         // get the annotation off of the class
@@ -96,7 +96,7 @@ public class AnalysisModuleScanner {
                         datums.put(f,(DataPoint) annotation);
                     if ( annotation.annotationType().equals(Molten.class)) {
                         if ( hasMoltenField() )
-                            throw new ReviewedStingException("Analysis " + analysis.name() + " has multiple @Molten fields, which is forbidden");
+                            throw new ReviewedGATKException("Analysis " + analysis.name() + " has multiple @Molten fields, which is forbidden");
                         moltenField = f;
                         moltenAnnotation = (Molten)annotation;
                     }
@@ -106,7 +106,7 @@ public class AnalysisModuleScanner {
         
         if ( hasMoltenField() ) {
             if ( datums.size() > 0 )
-                throw new ReviewedStingException("Analysis " + analysis.name() + " has an @Molten field as well as @DataPoint fields, which is forbidden");
+                throw new ReviewedGATKException("Analysis " + analysis.name() + " has an @Molten field as well as @DataPoint fields, which is forbidden");
         }
     }
 

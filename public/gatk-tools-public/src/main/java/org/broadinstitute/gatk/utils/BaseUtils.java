@@ -23,12 +23,12 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.util.StringUtil;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -644,7 +644,7 @@ public class BaseUtils {
             case 'N':
                 return 'N';
             default:
-                throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
+                throw new ReviewedGATKException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
         }
     }
 

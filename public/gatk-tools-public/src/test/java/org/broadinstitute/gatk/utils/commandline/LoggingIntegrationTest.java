@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,11 +36,11 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.MD5DB;
-import org.broadinstitute.sting.MD5Mismatch;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.runtime.*;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.MD5DB;
+import org.broadinstitute.gatk.utils.MD5Mismatch;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.utils.runtime.*;
 
 public class LoggingIntegrationTest {
     private final MD5DB md5db = new MD5DB();

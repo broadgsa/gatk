@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue
+package org.broadinstitute.gatk.queue
 
 import java.io.File
-import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.queue.engine.{QStatusMessenger, QGraphSettings, QGraph}
+import org.broadinstitute.gatk.utils.commandline._
+import org.broadinstitute.gatk.queue.util._
+import org.broadinstitute.gatk.queue.engine.{QStatusMessenger, QGraphSettings, QGraph}
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.classloader.PluginManager
-import org.broadinstitute.sting.utils.exceptions.UserException
-import org.broadinstitute.sting.utils.io.IOUtils
-import org.broadinstitute.sting.utils.help.ApplicationDetails
+import org.broadinstitute.gatk.utils.classloader.PluginManager
+import org.broadinstitute.gatk.utils.exceptions.UserException
+import org.broadinstitute.gatk.utils.io.IOUtils
+import org.broadinstitute.gatk.utils.help.ApplicationDetails
 import java.util.{ResourceBundle, Arrays}
-import org.broadinstitute.sting.utils.text.TextFormattingUtils
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils
 import org.apache.commons.io.FilenameUtils
 
 /**
@@ -266,10 +266,10 @@ class QCommandLine extends CommandLineProgram with Logging {
   }
 
   private def getQueueVersion : String = {
-    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
+    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("GATKText")
 
-    if ( stingResources.containsKey("org.broadinstitute.sting.queue.QueueVersion.version") ) {
-      stingResources.getString("org.broadinstitute.sting.queue.QueueVersion.version")
+    if ( stingResources.containsKey("org.broadinstitute.gatk.queue.QueueVersion.version") ) {
+      stingResources.getString("org.broadinstitute.gatk.queue.QueueVersion.version")
     }
     else {
       "<unknown>"
@@ -277,7 +277,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   }
 
   private def getBuildTimestamp : String = {
-    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("StingText")
+    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("GATKText")
 
     if ( stingResources.containsKey("build.timestamp") ) {
       stingResources.getString("build.timestamp")

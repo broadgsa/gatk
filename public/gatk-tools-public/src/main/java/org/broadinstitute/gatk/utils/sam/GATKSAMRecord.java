@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import com.google.java.contract.Ensures;
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.utils.NGSPlatform;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.recalibration.EventType;
+import org.broadinstitute.gatk.utils.NGSPlatform;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.recalibration.EventType;
 
 import java.util.*;
 
@@ -252,7 +252,7 @@ public class GATKSAMRecord extends BAMRecord {
                 setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, quals == null ? null : SAMUtils.phredToFastq(quals) );
                 break;
             default:
-                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+                throw new ReviewedGATKException("Unrecognized Base Recalibration type: " + errorModel );
         }
     }
 
@@ -265,7 +265,7 @@ public class GATKSAMRecord extends BAMRecord {
             case BASE_DELETION:
                 return getBaseDeletionQualities();
             default:
-                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
+                throw new ReviewedGATKException("Unrecognized Base Recalibration type: " + errorModel );
         }
     }
 

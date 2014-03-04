@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk;
+package org.broadinstitute.gatk.queue.extensions.gatk;
 
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMFileWriter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
+import org.broadinstitute.gatk.engine.filters.PlatformUnitFilterHelper;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;

@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata.utils;
+package org.broadinstitute.gatk.engine.refdata.utils;
 
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 
 /**

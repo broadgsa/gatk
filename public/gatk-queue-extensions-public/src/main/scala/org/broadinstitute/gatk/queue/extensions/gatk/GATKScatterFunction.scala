@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
-import org.broadinstitute.sting.utils.interval.IntervalUtils
+import org.broadinstitute.gatk.utils.interval.IntervalUtils
 import java.io.File
-import org.broadinstitute.sting.utils.io.IOUtils
-import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterFunction}
-import org.broadinstitute.sting.commandline._
+import org.broadinstitute.gatk.utils.io.IOUtils
+import org.broadinstitute.gatk.queue.function.scattergather.{CloneFunction, ScatterFunction}
+import org.broadinstitute.gatk.utils.commandline._
 
 trait GATKScatterFunction extends ScatterFunction {
   /* The runtime field to set for specifying intervals. */

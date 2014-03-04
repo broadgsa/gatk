@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -32,10 +32,10 @@ import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.recalibration.EventType;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.utils.recalibration.EventType;
 
 import java.util.*;
 
@@ -169,7 +169,7 @@ public final class AlignmentUtils {
                 case P:
                     break;
                 default:
-                    throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
+                    throw new ReviewedGATKException("The " + ce.getOperator() + " cigar element is not currently supported");
             }
         }
 
@@ -270,7 +270,7 @@ public final class AlignmentUtils {
                 case P:
                     break;
                 default:
-                    throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
+                    throw new ReviewedGATKException("The " + ce.getOperator() + " cigar element is not currently supported");
             }
 
         }
@@ -464,7 +464,7 @@ public final class AlignmentUtils {
                 case N:
                     break;
                 default:
-                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
+                    throw new ReviewedGATKException("Unsupported cigar operator: " + ce.getOperator());
             }
         }
 
@@ -526,7 +526,7 @@ public final class AlignmentUtils {
                 case P:
                     break;
                 default:
-                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
+                    throw new ReviewedGATKException("Unsupported cigar operator: " + ce.getOperator());
             }
         }
         return alignment;

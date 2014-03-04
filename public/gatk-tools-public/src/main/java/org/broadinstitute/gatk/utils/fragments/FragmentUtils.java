@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.fragments;
+package org.broadinstitute.gatk.utils.fragments;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -32,14 +32,14 @@ import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.clipping.ReadClipper;
-import org.broadinstitute.sting.utils.recalibration.EventType;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.clipping.ReadClipper;
+import org.broadinstitute.gatk.utils.recalibration.EventType;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -196,7 +196,7 @@ public final class FragmentUtils {
     }
 
     public static void adjustQualsOfOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {
-        if( overlappingPair.size() != 2 ) { throw new ReviewedStingException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
+        if( overlappingPair.size() != 2 ) { throw new ReviewedGATKException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
 
         final GATKSAMRecord firstRead = overlappingPair.get(0);
         final GATKSAMRecord secondRead = overlappingPair.get(1);
@@ -260,7 +260,7 @@ public final class FragmentUtils {
     }
 
     public static List<GATKSAMRecord> mergeOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {
-        if( overlappingPair.size() != 2 ) { throw new ReviewedStingException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
+        if( overlappingPair.size() != 2 ) { throw new ReviewedGATKException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
 
         final GATKSAMRecord firstRead = overlappingPair.get(0);
         final GATKSAMRecord secondRead = overlappingPair.get(1);

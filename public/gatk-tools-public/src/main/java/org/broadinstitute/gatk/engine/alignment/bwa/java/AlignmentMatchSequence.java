@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa.java;
+package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -56,7 +56,7 @@ public class AlignmentMatchSequence implements Cloneable {
             copy = (AlignmentMatchSequence)super.clone(); 
         }
         catch( CloneNotSupportedException ex ) {
-            throw new ReviewedStingException("Unable to clone AlignmentMatchSequence.");
+            throw new ReviewedGATKException("Unable to clone AlignmentMatchSequence.");
         }
 
         copy.entries = new ArrayDeque<AlignmentMatchSequenceEntry>();
@@ -76,7 +76,7 @@ public class AlignmentMatchSequence implements Cloneable {
                 case MATCH_MISMATCH: operator = CigarOperator.MATCH_OR_MISMATCH; break;
                 case INSERTION: operator = CigarOperator.INSERTION; break;
                 case DELETION: operator = CigarOperator.DELETION; break;
-                default: throw new ReviewedStingException("convertToCigar: cannot process state: " + entry.getAlignmentState());
+                default: throw new ReviewedGATKException("convertToCigar: cannot process state: " + entry.getAlignmentState());
             }
             cigar.add( new CigarElement(entry.count,operator) );
         }
@@ -152,7 +152,7 @@ public class AlignmentMatchSequence implements Cloneable {
                 return (AlignmentMatchSequenceEntry)super.clone(); 
             }
             catch( CloneNotSupportedException ex ) {
-                throw new ReviewedStingException("Unable to clone AlignmentMatchSequenceEntry.");
+                throw new ReviewedGATKException("Unable to clone AlignmentMatchSequenceEntry.");
             }
         }
 

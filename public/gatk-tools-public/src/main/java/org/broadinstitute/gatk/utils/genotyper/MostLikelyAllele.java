@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.genotyper;
+package org.broadinstitute.gatk.utils.genotyper;
 
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.gatk.utils.MathUtils;
 import htsjdk.variant.variantcontext.Allele;
 
 /**

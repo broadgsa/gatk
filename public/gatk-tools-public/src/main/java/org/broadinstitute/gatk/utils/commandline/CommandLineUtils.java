@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;
@@ -136,7 +136,7 @@ public class CommandLineUtils {
         try {
             return annotation.getClass().getMethod(method).invoke(annotation);
         } catch (Exception e) {
-            throw new ReviewedStingException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
+            throw new ReviewedGATKException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
         }
     }
 
@@ -151,11 +151,11 @@ public class CommandLineUtils {
     }
 
     /**
-     * Returns the root logger for all Sting code.
-     * @return the root logger for all Sting code.
+     * Returns the root logger for all GATK code.
+     * @return the root logger for all GATK  code.
      */
     public static Logger getStingLogger() {
-        return Logger.getLogger("org.broadinstitute.sting");
+        return Logger.getLogger("org.broadinstitute.gatk");
     }
 
     /**
@@ -171,7 +171,7 @@ public class CommandLineUtils {
                     return;
             }
         }
-        // Extracted from BasicConfigurator.configure(), but only applied to the Sting logger.
+        // Extracted from BasicConfigurator.configure(), but only applied to the GATK logger.
         Logger.getRootLogger().addAppender(new ConsoleAppender(
                     new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN), ConsoleAppender.SYSTEM_ERR));
     }

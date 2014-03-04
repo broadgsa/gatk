@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import static org.testng.Assert.fail;
 
@@ -31,11 +31,11 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 
 import org.testng.annotations.BeforeMethod;
 
@@ -118,7 +118,7 @@ public class BoundedReadIteratorUnitTest extends BaseTest {
     }
 }
 
-class testIterator implements StingSAMIterator {
+class testIterator implements GATKSAMIterator {
     SAMFileHeader header;
     testIterator() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1,1,2000);

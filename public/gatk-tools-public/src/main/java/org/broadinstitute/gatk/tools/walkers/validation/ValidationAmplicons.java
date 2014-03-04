@@ -23,29 +23,29 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.validation;
+package org.broadinstitute.gatk.tools.walkers.validation;
 
 import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
-import org.broadinstitute.sting.alignment.bwa.BWTFiles;
-import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.codecs.table.TableFeature;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.gatk.engine.alignment.Alignment;
+import org.broadinstitute.gatk.engine.alignment.bwa.BWAConfiguration;
+import org.broadinstitute.gatk.engine.alignment.bwa.BWTFiles;
+import org.broadinstitute.gatk.engine.alignment.bwa.c.BWACAligner;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.codecs.table.TableFeature;
+import org.broadinstitute.gatk.engine.walkers.DataSource;
+import org.broadinstitute.gatk.engine.walkers.Requires;
+import org.broadinstitute.gatk.engine.walkers.RodWalker;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.io.File;

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.gatk.queue.extensions.picard
 
 /*
 * Copyright (c) 2012 The Broad Institute
@@ -50,11 +50,11 @@ package org.broadinstitute.sting.queue.extensions.picard
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import org.broadinstitute.sting.commandline._
+import org.broadinstitute.gatk.utils.commandline._
 
 import java.io.File
 
-class FastqToSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction /*with PicardBamFunction*/ {
+class FastqToSam extends org.broadinstitute.gatk.queue.function.JavaCommandLineFunction /*with PicardBamFunction*/ {
   analysisName = "FastqToSam"
   javaMainClass = "picard.sam.FastqToSam"
 

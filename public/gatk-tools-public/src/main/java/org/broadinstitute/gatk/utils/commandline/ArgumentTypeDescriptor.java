@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.gatk.walkers.Multiplex;
-import org.broadinstitute.sting.gatk.walkers.Multiplexer;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.engine.walkers.Multiplex;
+import org.broadinstitute.gatk.engine.walkers.Multiplexer;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +53,7 @@ public abstract class ArgumentTypeDescriptor {
     private static Class[] ARGUMENT_ANNOTATIONS = {Input.class, Output.class, Argument.class};
 
     /**
-     * our log, which we want to capture anything from org.broadinstitute.sting
+     * our log, which we want to capture anything from org.broadinstitute.gatk
      */
     protected static final Logger logger = Logger.getLogger(ArgumentTypeDescriptor.class);
 
@@ -68,7 +68,7 @@ public abstract class ArgumentTypeDescriptor {
             if( descriptor.supports(type) )
                 return descriptor;
         }
-        throw new ReviewedStingException("Can't process command-line arguments of type: " + type.getName());
+        throw new ReviewedGATKException("Can't process command-line arguments of type: " + type.getName());
     }
 
     /**
@@ -234,7 +234,7 @@ public abstract class ArgumentTypeDescriptor {
         Tags tags = new Tags();
         for(ArgumentMatch match: matches) {
             if(!tags.isEmpty() && !match.tags.isEmpty())
-                throw new ReviewedStingException("BUG: multiple conflicting sets of tags are available, and the type descriptor specifies no way of resolving the conflict.");
+                throw new ReviewedGATKException("BUG: multiple conflicting sets of tags are available, and the type descriptor specifies no way of resolving the conflict.");
             tags = match.tags;
         }
         return tags;
@@ -266,7 +266,7 @@ public abstract class ArgumentTypeDescriptor {
         for (Class annotation: ARGUMENT_ANNOTATIONS)
             if (source.field.isAnnotationPresent(annotation))
                 return source.field.getAnnotation(annotation);
-        throw new ReviewedStingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
+        throw new ReviewedGATKException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
     }
 
     /**
@@ -722,7 +722,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 for (Object val : vals) {
                     if (String.valueOf(val).equalsIgnoreCase(value == null ? null : value.asString())) return val;
                     try { if (type.getField(val.toString()).isAnnotationPresent(EnumerationArgumentDefault.class)) defaultEnumeration = val; }
-                    catch (NoSuchFieldException e) { throw new ReviewedStingException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
+                    catch (NoSuchFieldException e) { throw new ReviewedGATKException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
                 }
                 // if their argument has no value (null), and there's a default, return that default for the enum value
                 if (defaultEnumeration != null && value == null)
@@ -811,11 +811,11 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
             catch (InstantiationException e) {
                 logger.fatal("ArgumentParser: InstantiationException: cannot convert field " + source.field.getName());
-                throw new ReviewedStingException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
+                throw new ReviewedGATKException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
             }
             catch (IllegalAccessException e) {
                 logger.fatal("ArgumentParser: IllegalAccessException: cannot convert field " + source.field.getName());
-                throw new ReviewedStingException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
+                throw new ReviewedGATKException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
             }
 
             for( ArgumentMatch match: matches ) {
@@ -851,7 +851,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
         }
         else
-            throw new ReviewedStingException("Unsupported compound argument type: " + type);
+            throw new ReviewedGATKException("Unsupported compound argument type: " + type);
 
         return result;
     }
@@ -916,7 +916,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(multiplexer == null || multiplexedIds == null)
-            throw new ReviewedStingException("No multiplexed ids available");
+            throw new ReviewedGATKException("No multiplexed ids available");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
         Class componentType = makeRawTypeIfNecessary(getCollectionComponentType(source.field));
@@ -939,7 +939,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches) {
         if(multiplexedIds == null)
-            throw new ReviewedStingException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
+            throw new ReviewedGATKException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
 
@@ -970,14 +970,14 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 if(!source.field.getName().equals(sourceField))
                     continue;
                 if(source.field.isAnnotationPresent(Multiplex.class))
-                    throw new ReviewedStingException("Command-line arguments can only depend on independent fields");
+                    throw new ReviewedGATKException("Command-line arguments can only depend on independent fields");
                 sourceTypes[currentField] = source.field.getType();
                 sourceValues[currentField] = JVMUtils.getFieldValue(source.field,containingObject);
                 currentField++;
                 fieldFound = true;
             }
             if(!fieldFound)
-                throw new ReviewedStingException(String.format("Unable to find source field %s, referred to by dependent field %s",sourceField,dependentArgument.field.getName()));
+                throw new ReviewedGATKException(String.format("Unable to find source field %s, referred to by dependent field %s",sourceField,dependentArgument.field.getName()));
         }
 
         Class<? extends Multiplexer> multiplexerType = dependentArgument.field.getAnnotation(Multiplex.class).value();
@@ -987,7 +987,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             multiplexerConstructor.setAccessible(true);
         }
         catch(NoSuchMethodException ex) {
-            throw new ReviewedStingException(String.format("Unable to find constructor for class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedGATKException(String.format("Unable to find constructor for class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
 
         Multiplexer multiplexer;
@@ -995,13 +995,13 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             multiplexer = multiplexerConstructor.newInstance(sourceValues);
         }
         catch(IllegalAccessException ex) {
-            throw new ReviewedStingException(String.format("Constructor for class %s with parameters %s is inaccessible",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedGATKException(String.format("Constructor for class %s with parameters %s is inaccessible",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
         catch(InstantiationException ex) {
-            throw new ReviewedStingException(String.format("Can't create class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedGATKException(String.format("Can't create class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
         catch(InvocationTargetException ex) {
-            throw new ReviewedStingException(String.format("Can't invoke constructor of class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedGATKException(String.format("Can't invoke constructor of class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
 
         return new MultiplexArgumentTypeDescriptor(multiplexer,multiplexer.multiplex());

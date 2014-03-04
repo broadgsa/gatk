@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.rmd;
+package org.broadinstitute.gatk.engine.datasources.rmd;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -116,10 +116,10 @@ abstract class ResourcePool <T,I extends CloseableIterator> {
 
             // make sure we actually removed the assignment
             if (obj == null)
-                    throw new ReviewedStingException("Failed to remove resource assignment; target key had no associated value in the resource assignment map");
+                    throw new ReviewedGATKException("Failed to remove resource assignment; target key had no associated value in the resource assignment map");
             // Return the resource to the pool.
             if( !allResources.contains(resource) )
-                throw new ReviewedStingException("Iterator does not belong to the given pool.");
+                throw new ReviewedGATKException("Iterator does not belong to the given pool.");
             availableResources.add(resource);
         }
     }

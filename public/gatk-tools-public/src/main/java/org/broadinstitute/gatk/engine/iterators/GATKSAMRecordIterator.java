@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 
@@ -38,14 +38,14 @@ import java.util.Iterator;
  * Date: 1/11/13
  * Time: 1:19 PM
  */
-public class GATKSAMIterator implements CloseableIterator<GATKSAMRecord>, Iterable<GATKSAMRecord> {
+public class GATKSAMRecordIterator implements CloseableIterator<GATKSAMRecord>, Iterable<GATKSAMRecord> {
     final CloseableIterator<SAMRecord> it;
 
-    public GATKSAMIterator(final CloseableIterator<SAMRecord> it) {
+    public GATKSAMRecordIterator(final CloseableIterator<SAMRecord> it) {
         this.it = it;
     }
 
-    public GATKSAMIterator(final StingSAMIterator it) {
+    public GATKSAMRecordIterator(final GATKSAMIterator it) {
         this.it = it;
     }
 

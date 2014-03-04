@@ -23,22 +23,22 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrderedView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadBasedReferenceOrderedView;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadReferenceView;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadView;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.ReadWalker;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSProgressFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSReduceFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NanoScheduler;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 import java.util.LinkedList;

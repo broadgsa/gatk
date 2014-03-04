@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.CNV;
+package org.broadinstitute.gatk.tools.walkers.CNV;
 
-import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;

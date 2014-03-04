@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.crypt;
+package org.broadinstitute.gatk.utils.crypt;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.SkipException;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -70,7 +70,7 @@ public class GATKKeyUnitTest extends BaseTest {
         Assert.assertTrue(key.isValid());
     }
 
-    @Test( expectedExceptions = ReviewedStingException.class )
+    @Test( expectedExceptions = ReviewedGATKException.class )
     public void testKeyPairMismatch() {
         KeyPair firstKeyPair = CryptUtils.generateKeyPair();
         KeyPair secondKeyPair = CryptUtils.generateKeyPair();
@@ -80,7 +80,7 @@ public class GATKKeyUnitTest extends BaseTest {
         GATKKey key = new GATKKey(firstKeyPair.getPrivate(), secondKeyPair.getPublic(), "foo@bar.com");
     }
 
-    @Test( expectedExceptions = ReviewedStingException.class )
+    @Test( expectedExceptions = ReviewedGATKException.class )
     public void testEncryptionAlgorithmMismatch() {
         KeyPair keyPair = CryptUtils.generateKeyPair(CryptUtils.DEFAULT_KEY_LENGTH, "DSA", CryptUtils.DEFAULT_RANDOM_NUMBER_GENERATION_ALGORITHM);
 

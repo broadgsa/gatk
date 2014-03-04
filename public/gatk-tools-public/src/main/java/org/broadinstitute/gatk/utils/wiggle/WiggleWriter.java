@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.wiggle;
+package org.broadinstitute.gatk.utils.wiggle;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.*;
 
@@ -101,7 +101,7 @@ public class WiggleWriter {
             write(wWriter,String.format("%d\t%s",loc.getStart(),dataPoint.toString()));
         } else {
             // todo -- maybe allow this to open a new file for the new chromosome?
-            throw new ReviewedStingException("Attempting to write multiple contigs into wiggle file, first contig was "+firstLoc.getContig()+" most recent "+loc.getContig());
+            throw new ReviewedGATKException("Attempting to write multiple contigs into wiggle file, first contig was "+firstLoc.getContig()+" most recent "+loc.getContig());
         }
     }
 

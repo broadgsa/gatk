@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.analysis;
+package org.broadinstitute.gatk.utils.analysis;
 
 /*
  * Copyright (c) 2010 The Broad Institute

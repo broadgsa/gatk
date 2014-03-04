@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.samples;
+package org.broadinstitute.gatk.engine.samples;
 
 /**
  * A class for imposing a trio structure on three samples; a common paradigm

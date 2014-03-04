@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.filters;
+package org.broadinstitute.gatk.tools.walkers.filters;
 
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
 import htsjdk.variant.variantcontext.VariantContext;
 
 

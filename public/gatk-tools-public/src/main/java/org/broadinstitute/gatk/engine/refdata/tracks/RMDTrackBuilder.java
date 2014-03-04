@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata.tracks;
+package org.broadinstitute.gatk.engine.refdata.tracks;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
@@ -34,18 +34,18 @@ import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.util.LittleEndianOutputStream;
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.file.FSLockWithShared;
-import org.broadinstitute.sting.utils.instrumentation.Sizeof;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet.RMDStorageType;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.file.FSLockWithShared;
+import org.broadinstitute.gatk.utils.instrumentation.Sizeof;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -160,7 +160,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         final FeatureManager.FeatureDescriptor descriptor = getFeatureManager().getByCodec(codecClass);
 
         if (descriptor == null)
-            throw new ReviewedStingException("Unable to find type name for codec class " + codecClass.getName());
+            throw new ReviewedGATKException("Unable to find type name for codec class " + codecClass.getName());
 
         return createInstanceOfTrack(new RMDTriplet("anonymous",descriptor.getName(),inputFile.getAbsolutePath(),RMDStorageType.FILE,new Tags()));
     }
@@ -224,7 +224,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
             try {
                 Index index = loadIndex(inputFile, createCodec(descriptor, name, inputFile));
                 try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
-                catch (ReviewedStingException e) { }
+                catch (ReviewedGATKException e) { }
 
                 sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
 
@@ -381,7 +381,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                 logger.warn("Unable to write to " + indexFile + " for the index file, creating index in memory only");
 
             try { logger.info(String.format("  Index for %s has size in bytes %d", indexFile, Sizeof.getObjectGraphSize(index))); }
-            catch ( ReviewedStingException e) { }
+            catch ( ReviewedGATKException e) { }
         }
         finally {
             if (locked) lock.unlock();
@@ -412,7 +412,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param index the index file
      */
     public void validateAndUpdateIndexSequenceDictionary(final File inputFile, final Index index, final SAMSequenceDictionary dict) {
-        if (dict == null) throw new ReviewedStingException("BUG: dict cannot be null");
+        if (dict == null) throw new ReviewedGATKException("BUG: dict cannot be null");
 
         // check that every contig in the RMD contig list is at least in the sequence dictionary we're being asked to set
         final SAMSequenceDictionary currentDict = IndexDictionaryUtils.createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());

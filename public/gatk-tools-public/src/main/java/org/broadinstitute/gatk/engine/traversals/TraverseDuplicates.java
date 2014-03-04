@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.walkers.DuplicateWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadView;
+import org.broadinstitute.gatk.engine.iterators.PushbackIterator;
+import org.broadinstitute.gatk.engine.walkers.DuplicateWalker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 

@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reference;
+package org.broadinstitute.gatk.engine.datasources.reference;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.engine.datasources.reads.LocusShard;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.util.ArrayList;

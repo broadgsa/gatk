@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.gatk.queue.function.InProcessFunction
 
 class InProcessJobManager extends JobManager[InProcessFunction, InProcessRunner] {
   def runnerType = classOf[InProcessRunner]

@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.library.ipf.vcf
+package org.broadinstitute.gatk.queue.library.ipf.vcf
 
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.utils.text.XReadLines
+import org.broadinstitute.gatk.queue.function.InProcessFunction
+import org.broadinstitute.gatk.utils.commandline._
+import org.broadinstitute.gatk.utils.text.XReadLines
 import java.io.{PrintStream, PrintWriter, File}
 import htsjdk.samtools.{SAMSequenceRecord, SAMSequenceDictionary}
-import org.broadinstitute.sting.utils.{GenomeLocParser, GenomeLoc}
+import org.broadinstitute.gatk.utils.{GenomeLocParser, GenomeLoc}
 
 class VCFSimpleMerge extends InProcessFunction {
   @Input(doc="VCFs to be merged") var vcfs: List[File] = Nil

@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.diffengine;
+package org.broadinstitute.gatk.engine.walkers.diffengine;
 
 import org.apache.log4j.Logger;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureReader;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.utils.Utils;
 import htsjdk.variant.vcf.*;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;

@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator;
+package org.broadinstitute.gatk.tools.walkers.annotator;
 
-import org.broadinstitute.sting.gatk.walkers.annotator.SnpEff.EffectType;
+import org.broadinstitute.gatk.tools.walkers.annotator.SnpEff.EffectType;
 
 import java.util.*;
 /**

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLoc;
 
 import org.testng.annotations.Test;
 

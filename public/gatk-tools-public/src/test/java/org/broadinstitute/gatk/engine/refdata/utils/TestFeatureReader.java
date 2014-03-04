@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata.utils;
+package org.broadinstitute.gatk.engine.refdata.utils;
 
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;

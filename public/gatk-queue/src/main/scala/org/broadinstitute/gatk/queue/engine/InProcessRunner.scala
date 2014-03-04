@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.gatk.queue.function.InProcessFunction
 import java.util.Date
-import org.broadinstitute.sting.utils.Utils
+import org.broadinstitute.gatk.utils.Utils
 import org.apache.commons.io.{IOUtils, FileUtils}
 import java.io.PrintStream
 

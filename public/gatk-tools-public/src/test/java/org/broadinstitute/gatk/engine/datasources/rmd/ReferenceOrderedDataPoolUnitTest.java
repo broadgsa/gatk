@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.rmd;
+package org.broadinstitute.gatk.engine.datasources.rmd;
 
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
 import org.testng.Assert;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.codecs.table.TableFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.codecs.table.TableFeature;
+import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet.RMDStorageType;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import static org.testng.Assert.assertTrue;
 import org.testng.annotations.BeforeMethod;

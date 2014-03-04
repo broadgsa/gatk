@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.gatk.utils.locusiterator;
 
 /**
  * Simple wrapper about the information LIBS needs about downsampling

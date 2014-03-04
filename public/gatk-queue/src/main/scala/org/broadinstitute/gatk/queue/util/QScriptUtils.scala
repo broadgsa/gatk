@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
 import java.io.File
 import io.Source._

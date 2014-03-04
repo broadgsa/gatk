@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.beagle;
+package org.broadinstitute.gatk.utils.codecs.beagle;
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -53,9 +53,9 @@ package org.broadinstitute.sting.utils.codecs.beagle;
 import htsjdk.tribble.AsciiFeatureCodec;
 import htsjdk.tribble.exception.CodecLineParsingException;
 import htsjdk.tribble.readers.LineIterator;
-import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import java.io.IOException;
 import java.util.*;

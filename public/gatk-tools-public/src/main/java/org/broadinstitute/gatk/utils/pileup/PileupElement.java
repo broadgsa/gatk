@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pileup;
+package org.broadinstitute.gatk.utils.pileup;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
 import java.util.EnumSet;

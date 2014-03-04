@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.gatk.queue.pipeline.examples
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
+import org.broadinstitute.gatk.queue.pipeline.{QueueTest, QueueTestSpec}
 
 class HelloWorldQueueTest {
   @Test(timeOut=36000000)
   def testHelloWorld() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorld"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala"
     spec.jobRunners = QueueTest.allJobRunners
     QueueTest.executeTest(spec)
   }
@@ -42,7 +42,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithRunName() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithRunName"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -runName HelloWorld"
     spec.jobRunners = QueueTest.allJobRunners
     QueueTest.executeTest(spec)
@@ -52,7 +52,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithMemoryLimit() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldMemoryLimit"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -memLimit 1.25"
     spec.jobRunners = QueueTest.allJobRunners
     QueueTest.executeTest(spec)
@@ -62,7 +62,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithPriority() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithPriority"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -jobPriority 100"
     spec.jobRunners = QueueTest.allJobRunners
     QueueTest.executeTest(spec)
@@ -72,7 +72,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithLsfResource() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfResource"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -jobResReq rusage[iodine_io=1] -jobResReq select[swp>0] -jobResReq order[swp]"
     spec.jobRunners = Seq("Lsf706")
     QueueTest.executeTest(spec)
@@ -82,7 +82,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithLsfResourceAndMemoryLimit() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfResourceAndMemoryLimit"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -memLimit 1.25 -jobResReq rusage[iodine_io=1] -jobResReq select[swp>0] -jobResReq order[swp]"
     spec.jobRunners = Seq("Lsf706")
     QueueTest.executeTest(spec)
@@ -92,7 +92,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithLsfEnvironment() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfEnvironment"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -jobEnv tv"
     spec.jobRunners = Seq("Lsf706")
     QueueTest.executeTest(spec)
@@ -102,7 +102,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithGridEngineResource() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithGridEngineResource"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -jobResReq s_core=1000M"
     spec.jobRunners = Seq("GridEngine")
     QueueTest.executeTest(spec)
@@ -112,7 +112,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithGridEngineResourceAndMemoryLimit() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithGridEngineResourceAndMemoryLimit"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -memLimit 1.25 -jobResReq s_core=1000M"
     spec.jobRunners = Seq("GridEngine")
     QueueTest.executeTest(spec)
@@ -122,7 +122,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithGridEngineEnvironment() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithGridEngineEnvironment"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -jobEnv \"make 1\""
     spec.jobRunners = Seq("GridEngine")
     QueueTest.executeTest(spec)
@@ -133,7 +133,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithWalltime() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithWalltime"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -wallTime 100"
     spec.jobRunners = QueueTest.allJobRunners
     QueueTest.executeTest(spec)
@@ -143,7 +143,7 @@ class HelloWorldQueueTest {
   def testHelloWorldWithLogDirectory() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLogDirectory"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+    spec.args = "-S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/HelloWorld.scala" +
       " -logDir pipelineLogDir"
     spec.jobRunners = QueueTest.allJobRunners
     spec.expectedFilePaths = Seq("pipelineLogDir/HelloWorld-1.out")

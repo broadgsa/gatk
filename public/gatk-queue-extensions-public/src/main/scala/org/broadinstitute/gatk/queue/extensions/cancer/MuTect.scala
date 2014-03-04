@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.cancer
+package org.broadinstitute.gatk.queue.extensions.cancer
 
 import java.io.File
-import org.broadinstitute.sting.commandline.Argument
-import org.broadinstitute.sting.commandline.Gather
-import org.broadinstitute.sting.commandline.Input
-import org.broadinstitute.sting.commandline.Output
-import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
-import org.broadinstitute.sting.queue.extensions.gatk.{TaggedFile, VcfGatherFunction, LocusScatterFunction}
+import org.broadinstitute.gatk.utils.commandline.Argument
+import org.broadinstitute.gatk.utils.commandline.Gather
+import org.broadinstitute.gatk.utils.commandline.Input
+import org.broadinstitute.gatk.utils.commandline.Output
+import org.broadinstitute.gatk.queue.function.scattergather.ScatterGatherableFunction
+import org.broadinstitute.gatk.queue.extensions.gatk.{TaggedFile, VcfGatherFunction, LocusScatterFunction}
 
-class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineGATK with ScatterGatherableFunction {
+class MuTect extends org.broadinstitute.gatk.queue.extensions.gatk.CommandLineGATK with ScatterGatherableFunction {
   analysisName = "MuTect"
   analysis_type = "MuTect"
   scatterClass = classOf[LocusScatterFunction]
@@ -256,7 +256,7 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   /** Call-stats output */
   @Output(fullName="out", shortName="o", doc="Call-stats output", required=false, exclusiveOf="", validation="")
-  @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+  @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
   var out: File = _
 
   /**
@@ -319,7 +319,7 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   /** write out coverage in WIGGLE format to this file */
   @Output(fullName="coverage_file", shortName="cov", doc="write out coverage in WIGGLE format to this file", required=false, exclusiveOf="", validation="")
-  @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+  @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
   var coverage_file: File = _
 
   /**
@@ -336,7 +336,7 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   /** write out 20x of Q20 coverage in WIGGLE format to this file */
   @Output(fullName="coverage_20_q20_file", shortName="cov_q20", doc="write out 20x of Q20 coverage in WIGGLE format to this file", required=false, exclusiveOf="", validation="")
-  @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+  @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
   var coverage_20_q20_file: File = _
 
   /**
@@ -353,7 +353,7 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   /** write out power in WIGGLE format to this file */
   @Output(fullName="power_file", shortName="pow", doc="write out power in WIGGLE format to this file", required=false, exclusiveOf="", validation="")
-  @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+  @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
   var power_file: File = _
 
   /**
@@ -370,7 +370,7 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   /** write out tumor read depth in WIGGLE format to this file */
   @Output(fullName="tumor_depth_file", shortName="tdf", doc="write out tumor read depth in WIGGLE format to this file", required=false, exclusiveOf="", validation="")
-  @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+  @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
   var tumor_depth_file: File = _
 
   /**
@@ -387,7 +387,7 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   /** write out normal read depth in WIGGLE format to this file */
   @Output(fullName="normal_depth_file", shortName="ndf", doc="write out normal read depth in WIGGLE format to this file", required=false, exclusiveOf="", validation="")
-  @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+  @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
   var normal_depth_file: File = _
 
   /**
@@ -420,8 +420,8 @@ class MuTect extends org.broadinstitute.sting.queue.extensions.gatk.CommandLineG
 
   override def freezeFieldValues() {
     super.freezeFieldValues()
-    if (vcf != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(vcf))
-      if (!org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(vcf.getPath))
+    if (vcf != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(vcf))
+      if (!org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(vcf.getPath))
         vcfIndex = new File(vcf.getPath + ".idx")
     dbsnpIndexes ++= dbsnp.filter(orig => orig != null).map(orig => new File(orig.getPath + ".idx"))
     cosmicIndexes ++= cosmic.filter(orig => orig != null).map(orig => new File(orig.getPath + ".idx"))

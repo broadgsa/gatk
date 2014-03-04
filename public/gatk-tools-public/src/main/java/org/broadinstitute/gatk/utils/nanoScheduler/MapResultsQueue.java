@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.nanoScheduler;
+package org.broadinstitute.gatk.utils.nanoScheduler;
 
-import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
+import org.broadinstitute.gatk.utils.collections.ExpandingArrayList;
 
 /**
  * Created with IntelliJ IDEA.

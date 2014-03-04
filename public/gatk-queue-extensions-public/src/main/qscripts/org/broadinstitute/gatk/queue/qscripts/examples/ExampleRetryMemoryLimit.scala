@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.qscripts.examples
+package org.broadinstitute.gatk.queue.qscripts.examples
 
-import org.broadinstitute.sting.queue.function.RetryMemoryLimit
-import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.gatk._
+import org.broadinstitute.gatk.queue.function.RetryMemoryLimit
+import org.broadinstitute.gatk.queue.QScript
+import org.broadinstitute.gatk.queue.extensions.gatk._
 
 class ExampleRetryMemoryLimit extends QScript {
   @Input(doc="The reference file for the bam files.", shortName="R")

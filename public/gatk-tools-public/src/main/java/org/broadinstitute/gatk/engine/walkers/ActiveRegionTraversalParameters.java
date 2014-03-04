@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.sting.utils.activeregion.BandPassActivityProfile;
+import org.broadinstitute.gatk.utils.activeregion.BandPassActivityProfile;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;

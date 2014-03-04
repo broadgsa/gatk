@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
@@ -33,7 +33,7 @@ import htsjdk.samtools.util.CloseableIterator;
  * @author hanna
  * @version 0.1
  */
-public class PositionTrackingIterator implements StingSAMIterator {
+public class PositionTrackingIterator implements GATKSAMIterator {
     /**
      * The iterator being tracked.
      */
@@ -87,7 +87,7 @@ public class PositionTrackingIterator implements StingSAMIterator {
     /**
      * {@inheritDoc}
      */
-    public StingSAMIterator iterator() {
+    public GATKSAMIterator iterator() {
         return this;
     }
 
@@ -101,5 +101,5 @@ public class PositionTrackingIterator implements StingSAMIterator {
     /**
      * {@inheritDoc}
      */
-    public void remove() { throw new UnsupportedOperationException("Cannot remove from a StingSAMIterator"); }
+    public void remove() { throw new UnsupportedOperationException("Cannot remove from a GATKSAMIterator"); }
 }

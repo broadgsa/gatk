@@ -23,4 +23,4 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.fasta;
+package org.broadinstitute.gatk.utils.fasta;

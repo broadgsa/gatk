@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.snpeff
+package org.broadinstitute.gatk.queue.extensions.snpeff
 
-import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
+import org.broadinstitute.gatk.queue.function.JavaCommandLineFunction
 import java.io.File
-import org.broadinstitute.sting.commandline.{Argument, Output, Input}
+import org.broadinstitute.gatk.utils.commandline.{Argument, Output, Input}
 
 /**
  * Basic snpEff support.

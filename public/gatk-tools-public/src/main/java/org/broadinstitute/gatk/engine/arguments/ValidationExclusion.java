@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.arguments;
+package org.broadinstitute.gatk.engine.arguments;
 
-import org.broadinstitute.sting.commandline.EnumerationArgumentDefault;
+import org.broadinstitute.gatk.utils.commandline.EnumerationArgumentDefault;
 
 import java.util.ArrayList;
 import java.util.List;

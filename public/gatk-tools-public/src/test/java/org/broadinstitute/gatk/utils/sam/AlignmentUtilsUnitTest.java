@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
 import org.apache.commons.lang.ArrayUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;

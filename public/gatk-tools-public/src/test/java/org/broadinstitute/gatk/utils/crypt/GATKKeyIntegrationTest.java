@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.crypt;
+package org.broadinstitute.gatk.utils.crypt;
 
-import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 

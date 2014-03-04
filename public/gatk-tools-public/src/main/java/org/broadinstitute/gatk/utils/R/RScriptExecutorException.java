@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.R;
+package org.broadinstitute.gatk.utils.R;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
-public class RScriptExecutorException extends ReviewedStingException {
+public class RScriptExecutorException extends ReviewedGATKException {
     public RScriptExecutorException(String msg) {
         super(msg);
     }

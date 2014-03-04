@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.help.ApplicationDetails;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.help.HelpFormatter;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.help.ApplicationDetails;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.help.HelpFormatter;
 
 import java.io.IOException;
 import java.util.*;
@@ -75,7 +75,7 @@ public abstract class CommandLineProgram {
 
     static {
         /**
-         * The very first thing that any Sting application does is forces the JVM locale into US English, so that we don't have
+         * The very first thing that any GATK application does is forces the JVM locale into US English, so that we don't have
          * to think about number formatting issues.
          */
         forceJVMLocaleToUSEnglish();
@@ -386,7 +386,7 @@ public abstract class CommandLineProgram {
 
     public static void exitSystemWithUserError(final Exception e) {
         if ( e.getMessage() == null )
-            throw new ReviewedStingException("UserException found with no message!", e);
+            throw new ReviewedGATKException("UserException found with no message!", e);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A USER ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
@@ -408,7 +408,7 @@ public abstract class CommandLineProgram {
 
     public static void exitSystemWithSamError(final Throwable t) {
         if ( t.getMessage() == null )
-            throw new ReviewedStingException("SamException found with no message!", t);
+            throw new ReviewedGATKException("SamException found with no message!", t);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A BAM ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());

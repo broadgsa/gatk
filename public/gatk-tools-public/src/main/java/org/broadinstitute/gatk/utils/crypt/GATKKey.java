@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.crypt;
+package org.broadinstitute.gatk.utils.crypt;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
 
 import java.io.*;
 import java.security.*;
@@ -131,7 +131,7 @@ public class GATKKey {
      */
     public GATKKey ( PrivateKey privateKey, PublicKey publicKey, String emailAddress, String signingAlgorithm ) {
         if ( privateKey == null || publicKey == null || emailAddress == null || emailAddress.length() == 0 || signingAlgorithm == null ) {
-            throw new ReviewedStingException("Cannot construct GATKKey using null/empty arguments");
+            throw new ReviewedGATKException("Cannot construct GATKKey using null/empty arguments");
         }
 
         this.privateKey = privateKey;
@@ -143,7 +143,7 @@ public class GATKKey {
         generateSignature();
 
         if ( ! isValid() ) {
-            throw new ReviewedStingException("Newly-generated GATK key fails validation -- this should never happen!");
+            throw new ReviewedGATKException("Newly-generated GATK key fails validation -- this should never happen!");
         }
     }
 
@@ -175,7 +175,7 @@ public class GATKKey {
      */
     public GATKKey ( PublicKey publicKey, File keyFile, String signingAlgorithm ) {
         if ( publicKey == null || keyFile == null || signingAlgorithm == null ) {
-            throw new ReviewedStingException("Cannot construct GATKKey using null arguments");
+            throw new ReviewedGATKException("Cannot construct GATKKey using null arguments");
         }
 
         this.publicKey = publicKey;
@@ -219,11 +219,11 @@ public class GATKKey {
             return sig.verify(signature);
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Signing algorithm %s not found", signingAlgorithm), e);
+            throw new ReviewedGATKException(String.format("Signing algorithm %s not found", signingAlgorithm), e);
         }
         catch ( InvalidKeyException e ) {
             // If the GATK public key is invalid, it's likely our problem, not the user's:
-            throw new ReviewedStingException(String.format("Public key %s is invalid", publicKey), e);
+            throw new ReviewedGATKException(String.format("Public key %s is invalid", publicKey), e);
         }
         catch ( SignatureException e ) {
             throw new UserException.UnreadableKeyException("Signature is invalid or signing algorithm was unable to process the input data", e);
@@ -246,13 +246,13 @@ public class GATKKey {
             signature = sig.sign();
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Signing algorithm %s not found", signingAlgorithm), e);
+            throw new ReviewedGATKException(String.format("Signing algorithm %s not found", signingAlgorithm), e);
         }
         catch ( InvalidKeyException e ) {
-            throw new ReviewedStingException(String.format("Private key %s is invalid", privateKey), e);
+            throw new ReviewedGATKException(String.format("Private key %s is invalid", privateKey), e);
         }
         catch ( SignatureException e ) {
-            throw new ReviewedStingException(String.format("Error creating signature for email address %s", emailAddress), e);
+            throw new ReviewedGATKException(String.format("Error creating signature for email address %s", emailAddress), e);
         }
     }
 

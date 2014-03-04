@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.classloader;
+package org.broadinstitute.gatk.utils.classloader;
 
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;

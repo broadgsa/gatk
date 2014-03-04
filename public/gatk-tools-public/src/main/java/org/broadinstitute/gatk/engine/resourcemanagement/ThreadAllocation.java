@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.resourcemanagement;
+package org.broadinstitute.gatk.engine.resourcemanagement;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 /**
  * Models how threads are distributed between various components of the GATK.
@@ -104,9 +104,9 @@ public class ThreadAllocation {
                             final int numCPUThreadsPerDataThread,
                             final int numIOThreads,
                             final boolean monitorEfficiency) {
-        if ( numDataThreads < 1 ) throw new ReviewedStingException("numDataThreads cannot be less than 1, but saw " + numDataThreads);
-        if ( numCPUThreadsPerDataThread < 1 ) throw new ReviewedStingException("numCPUThreadsPerDataThread cannot be less than 1, but saw " + numCPUThreadsPerDataThread);
-        if ( numIOThreads < 0 ) throw new ReviewedStingException("numIOThreads cannot be less than 0, but saw " + numIOThreads);
+        if ( numDataThreads < 1 ) throw new ReviewedGATKException("numDataThreads cannot be less than 1, but saw " + numDataThreads);
+        if ( numCPUThreadsPerDataThread < 1 ) throw new ReviewedGATKException("numCPUThreadsPerDataThread cannot be less than 1, but saw " + numCPUThreadsPerDataThread);
+        if ( numIOThreads < 0 ) throw new ReviewedGATKException("numIOThreads cannot be less than 0, but saw " + numIOThreads);
 
         this.numDataThreads = numDataThreads;
         this.numCPUThreadsPerDataThread = numCPUThreadsPerDataThread;

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pileup;
+package org.broadinstitute.gatk.utils.pileup;
 
 import htsjdk.samtools.util.PeekableIterator;
 

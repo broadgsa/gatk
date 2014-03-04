@@ -23,21 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.VerifyingSamIterator;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.ArtificialMultiSampleReadStream;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.ArtificialSingleSampleReadStream;
-import org.broadinstitute.sting.utils.sam.ArtificialSingleSampleReadStreamAnalyzer;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.VerifyingSamIterator;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.ArtificialMultiSampleReadStream;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.ArtificialSingleSampleReadStream;
+import org.broadinstitute.gatk.utils.sam.ArtificialSingleSampleReadStreamAnalyzer;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -215,7 +215,7 @@ public class PerSampleDownsamplingReadsIteratorUnitTest extends BaseTest {
         }
 
         public void run() {
-            StingSAMIterator downsamplingIter = new PerSampleDownsamplingReadsIterator(mergedReadStream.getStingSAMIterator(), downsamplerFactory);
+            GATKSAMIterator downsamplingIter = new PerSampleDownsamplingReadsIterator(mergedReadStream.getGATKSAMIterator(), downsamplerFactory);
 
             if ( verifySortedness ) {
                 downsamplingIter = new VerifyingSamIterator(downsamplingIter);
@@ -230,7 +230,7 @@ public class PerSampleDownsamplingReadsIteratorUnitTest extends BaseTest {
                     analyzer.update(read);
                 }
                 else {
-                    throw new ReviewedStingException("bug: stream analyzer for sample " + sampleName + " not found");
+                    throw new ReviewedGATKException("bug: stream analyzer for sample " + sampleName + " not found");
                 }
             }
 

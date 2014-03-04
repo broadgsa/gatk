@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
@@ -48,9 +48,9 @@ import htsjdk.samtools.util.CloseableIterator;
  * @version 1.0
  * @date May 6, 2009
  * <p/>
- * Interface StingSAMIterator
+ * Interface GATKSAMIterator
  * <p/>
- * This is the standard interface for all iterators in the Sting package that iterate over SAMRecords
+ * This is the standard interface for all iterators in the GATK package that iterate over SAMRecords
  */
-public interface StingSAMIterator extends CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
+public interface GATKSAMIterator extends CloseableIterator<SAMRecord>, Iterable<SAMRecord> {
 }

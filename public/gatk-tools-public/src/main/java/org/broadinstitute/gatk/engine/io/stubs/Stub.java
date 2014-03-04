@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.stubs;
+package org.broadinstitute.gatk.engine.io.stubs;
 
-import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
 
 import java.io.File;
 import java.io.OutputStream;

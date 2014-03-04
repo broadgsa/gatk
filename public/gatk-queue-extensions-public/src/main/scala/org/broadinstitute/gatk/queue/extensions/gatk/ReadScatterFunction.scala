@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
 /*
  * Copyright (c) 2011, The Broad Institute

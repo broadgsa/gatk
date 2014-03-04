@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.tools;
+package org.broadinstitute.gatk.tools;
 
 import org.apache.commons.lang.StringUtils;
 import htsjdk.tribble.AbstractFeatureReader;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.MD5DB;
-import org.broadinstitute.sting.MD5Mismatch;
-import org.broadinstitute.sting.utils.runtime.ProcessController;
-import org.broadinstitute.sting.utils.runtime.ProcessSettings;
-import org.broadinstitute.sting.utils.runtime.RuntimeUtils;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.MD5DB;
+import org.broadinstitute.gatk.utils.MD5Mismatch;
+import org.broadinstitute.gatk.utils.runtime.ProcessController;
+import org.broadinstitute.gatk.utils.runtime.ProcessSettings;
+import org.broadinstitute.gatk.utils.runtime.RuntimeUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.hapmap;
+package org.broadinstitute.gatk.utils.codecs.hapmap;
 
 import htsjdk.tribble.AsciiFeatureCodec;
 import htsjdk.tribble.FeatureCodecHeader;

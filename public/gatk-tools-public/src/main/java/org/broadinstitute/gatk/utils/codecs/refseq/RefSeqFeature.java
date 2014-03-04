@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.refseq;
+package org.broadinstitute.gatk.utils.codecs.refseq;
 
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -73,7 +73,7 @@ public class RefSeqFeature implements Transcript, Feature {
 
     /** Genomic location of the n-th exon; throws an exception if n is out of bounds */
     public GenomeLoc getExonLocation(int n) {
-        if ( n >= exons.size() || n < 0 ) throw new ReviewedStingException("Index out-of-bounds. Transcript has " + exons.size() +" exons; requested: "+n);
+        if ( n >= exons.size() || n < 0 ) throw new ReviewedGATKException("Index out-of-bounds. Transcript has " + exons.size() +" exons; requested: "+n);
         return exons.get(n);
     }
 

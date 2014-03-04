@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.ArrayList;
@@ -253,7 +253,7 @@ public class IndelUtils {
         if (k >=0 && k < COLUMN_KEYS.length)
             return COLUMN_KEYS[k];
         else
-            throw new ReviewedStingException("Invalid index when trying to get indel classification name");
+            throw new ReviewedGATKException("Invalid index when trying to get indel classification name");
     }
 
     public static boolean isInsideExtendedIndel(VariantContext vc, ReferenceContext ref) {

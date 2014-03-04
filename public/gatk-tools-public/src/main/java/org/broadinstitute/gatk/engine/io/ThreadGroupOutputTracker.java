@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io;
+package org.broadinstitute.gatk.engine.io;
 
-import org.broadinstitute.sting.gatk.executive.OutputMergeTask;
-import org.broadinstitute.sting.gatk.io.storage.Storage;
-import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.executive.OutputMergeTask;
+import org.broadinstitute.gatk.engine.io.storage.Storage;
+import org.broadinstitute.gatk.engine.io.storage.StorageFactory;
+import org.broadinstitute.gatk.engine.io.stubs.Stub;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -110,7 +110,7 @@ public class ThreadGroupOutputTracker extends OutputTracker {
 
             // make sure something hasn't gone wrong, and we somehow find a map that doesn't include our stub
             if ( target == null )
-                throw new ReviewedStingException("target isn't supposed to be null for " + Thread.currentThread()
+                throw new ReviewedGATKException("target isn't supposed to be null for " + Thread.currentThread()
                         + " id " + Thread.currentThread().getId() + " map is " + threadLocalOutputStreams);
         }
 
@@ -126,7 +126,7 @@ public class ThreadGroupOutputTracker extends OutputTracker {
         } else {
             // something is terribly wrong, we have a storage lookup for a thread that doesn't have
             // any map data associated with it!
-            throw new ReviewedStingException("Couldn't find storage map associated with thread " + thread + " in group " + thread.getThreadGroup());
+            throw new ReviewedGATKException("Couldn't find storage map associated with thread " + thread + " in group " + thread.getThreadGroup());
         }
     }
 

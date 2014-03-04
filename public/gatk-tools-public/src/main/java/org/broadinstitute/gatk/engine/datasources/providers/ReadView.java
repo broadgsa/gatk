@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,7 +50,7 @@ public class ReadView implements View, Iterable<SAMRecord> {
     /**
      * The iterator into the reads supplied by this provider.
      */
-    private StingSAMIterator reads;
+    private GATKSAMIterator reads;
 
     /**
      * Create a new view of the reads given the current data set.
@@ -82,7 +82,7 @@ public class ReadView implements View, Iterable<SAMRecord> {
      * Gets an iterator into the reads supplied by this provider.
      * @return Iterator into the reads that this provider covers.
      */
-    public StingSAMIterator iterator() {
+    public GATKSAMIterator iterator() {
         return reads;    
     }
 }

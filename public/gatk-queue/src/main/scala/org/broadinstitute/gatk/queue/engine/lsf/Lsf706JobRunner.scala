@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.lsf
+package org.broadinstitute.gatk.queue.engine.lsf
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.queue.QException
-import org.broadinstitute.sting.jna.lsf.v7_0_6.{LibLsf, LibBat}
-import org.broadinstitute.sting.utils.Utils
-import org.broadinstitute.sting.jna.clibrary.LibC
-import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
-import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.util._
+import org.broadinstitute.gatk.queue.QException
+import org.broadinstitute.gatk.utils.jna.lsf.v7_0_6.{LibLsf, LibBat}
+import org.broadinstitute.gatk.utils.Utils
+import org.broadinstitute.gatk.utils.jna.clibrary.LibC
+import org.broadinstitute.gatk.utils.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
+import org.broadinstitute.gatk.queue.engine.{RunnerStatus, CommandLineJobRunner}
 import java.util.regex.Pattern
 import java.lang.StringBuffer
 import java.util.Date

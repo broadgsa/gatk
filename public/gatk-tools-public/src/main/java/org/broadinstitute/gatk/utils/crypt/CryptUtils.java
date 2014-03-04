@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.crypt;
+package org.broadinstitute.gatk.utils.crypt;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
 
 import javax.crypto.Cipher;
 import java.io.File;
@@ -128,10 +128,10 @@ public class CryptUtils {
             return keyGen.generateKeyPair();
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Could not find an implementation of the requested encryption algorithm %s", encryptionAlgorithm), e);
+            throw new ReviewedGATKException(String.format("Could not find an implementation of the requested encryption algorithm %s", encryptionAlgorithm), e);
         }
         catch ( Exception e ) {
-            throw new ReviewedStingException("Error while generating key pair", e);
+            throw new ReviewedGATKException("Error while generating key pair", e);
         }
     }
 
@@ -155,7 +155,7 @@ public class CryptUtils {
             return SecureRandom.getInstance(randAlgorithm);
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Could not find an implementation of the requested random-number generation algorithm %s", randAlgorithm), e);
+            throw new ReviewedGATKException(String.format("Could not find an implementation of the requested random-number generation algorithm %s", randAlgorithm), e);
         }
     }
 
@@ -216,10 +216,10 @@ public class CryptUtils {
             return keyFactory.generatePublic(keySpec);
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Could not find an implementation of the requested encryption algorithm %s", encryptionAlgorithm), e);
+            throw new ReviewedGATKException(String.format("Could not find an implementation of the requested encryption algorithm %s", encryptionAlgorithm), e);
         }
         catch ( InvalidKeySpecException e ) {
-            throw new ReviewedStingException("Unable to use X.509 key specification to decode the given key", e);
+            throw new ReviewedGATKException("Unable to use X.509 key specification to decode the given key", e);
         }
     }
 
@@ -258,10 +258,10 @@ public class CryptUtils {
             return keyFactory.generatePrivate(keySpec);
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Could not find an implementation of the requested encryption algorithm %s", encryptionAlgorithm), e);
+            throw new ReviewedGATKException(String.format("Could not find an implementation of the requested encryption algorithm %s", encryptionAlgorithm), e);
         }
         catch ( InvalidKeySpecException e ) {
-            throw new ReviewedStingException("Unable to use the PKCS #8 key specification to decode the given key", e);
+            throw new ReviewedGATKException("Unable to use the PKCS #8 key specification to decode the given key", e);
         }
     }
 
@@ -276,7 +276,7 @@ public class CryptUtils {
         InputStream publicKeyInputStream = ClassLoader.getSystemResourceAsStream(GATK_DISTRIBUTED_PUBLIC_KEY_FILE_NAME);
 
         if ( publicKeyInputStream == null ) {
-            throw new ReviewedStingException(String.format("Could not locate the GATK public key %s in the classpath",
+            throw new ReviewedGATKException(String.format("Could not locate the GATK public key %s in the classpath",
                                                            GATK_DISTRIBUTED_PUBLIC_KEY_FILE_NAME));
         }
 
@@ -341,14 +341,14 @@ public class CryptUtils {
             return cipher.doFinal(data);
         }
         catch ( NoSuchAlgorithmException e ) {
-            throw new ReviewedStingException(String.format("Could not find an implementation of the requested algorithm %s",
+            throw new ReviewedGATKException(String.format("Could not find an implementation of the requested algorithm %s",
                                              key.getAlgorithm()), e);
         }
         catch ( InvalidKeyException e ) {
-            throw new ReviewedStingException("Key is invalid", e);
+            throw new ReviewedGATKException("Key is invalid", e);
         }
         catch ( GeneralSecurityException e ) {
-            throw new ReviewedStingException("Error during encryption", e);
+            throw new ReviewedGATKException("Error during encryption", e);
         }
     }
 

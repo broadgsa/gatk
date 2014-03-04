@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.rmd;
+package org.broadinstitute.gatk.engine.datasources.rmd;
 
 import htsjdk.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.refdata.SeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -245,7 +245,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<RMDTrack,LocationAwareS
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotReadInputFile(fileDescriptor.getName(), "it could not be found");
         } catch (IOException e) {
-            throw new ReviewedStingException("Unable to create iterator for rod named " + fileDescriptor.getName(),e);
+            throw new ReviewedGATKException("Unable to create iterator for rod named " + fileDescriptor.getName(),e);
         }
     }
 

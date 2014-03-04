@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager;
+package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager;
 
 import java.util.List;
 

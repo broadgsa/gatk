@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIteratorAdapter;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,33 +94,33 @@ public class ArtificialSingleSampleReadStream implements Iterable<SAMRecord> {
 
     private void validateStreamParameters() {
         if ( header == null || readGroupID == null ) {
-            throw new ReviewedStingException("null SAMFileHeader or read group ID") ;
+            throw new ReviewedGATKException("null SAMFileHeader or read group ID") ;
         }
 
         if ( header.getReadGroup(readGroupID) == null ) {
-            throw new ReviewedStingException(String.format("Read group %s not found in SAMFileHeader", readGroupID));
+            throw new ReviewedGATKException(String.format("Read group %s not found in SAMFileHeader", readGroupID));
         }
 
         if ( numContigs < 0 || numStacksPerContig < 0 || minReadsPerStack < 0 || maxReadsPerStack < 0 ||
              minDistanceBetweenStacks < 0 || maxDistanceBetweenStacks < 0 || minReadLength < 0 || maxReadLength < 0 ||
              numUnmappedReads < 0 ) {
-            throw new ReviewedStingException("Read stream parameters must be >= 0");
+            throw new ReviewedGATKException("Read stream parameters must be >= 0");
         }
 
         if ( (numContigs == 0 && numStacksPerContig != 0) || (numContigs != 0 && numStacksPerContig == 0) ) {
-            throw new ReviewedStingException("numContigs and numStacksPerContig must either both be > 0, or both be 0");
+            throw new ReviewedGATKException("numContigs and numStacksPerContig must either both be > 0, or both be 0");
         }
 
         if ( minReadsPerStack > maxReadsPerStack ) {
-            throw new ReviewedStingException("minReadsPerStack > maxReadsPerStack");
+            throw new ReviewedGATKException("minReadsPerStack > maxReadsPerStack");
         }
 
         if ( minDistanceBetweenStacks > maxDistanceBetweenStacks ) {
-            throw new ReviewedStingException("minDistanceBetweenStacks > maxDistanceBetweenStacks");
+            throw new ReviewedGATKException("minDistanceBetweenStacks > maxDistanceBetweenStacks");
         }
 
         if ( minReadLength > maxReadLength ) {
-            throw new ReviewedStingException("minReadLength > maxReadLength");
+            throw new ReviewedGATKException("minReadLength > maxReadLength");
         }
     }
 
@@ -128,8 +128,8 @@ public class ArtificialSingleSampleReadStream implements Iterable<SAMRecord> {
         return makeReads().iterator();
     }
 
-    public StingSAMIterator getStingSAMIterator() {
-        return StingSAMIteratorAdapter.adapt(iterator());
+    public GATKSAMIterator getGATKSAMIterator() {
+        return GATKSAMIteratorAdapter.adapt(iterator());
     }
 
     public Collection<SAMRecord> makeReads() {

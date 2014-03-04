@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.gatk.queue.pipeline.examples
 
 import org.testng.annotations.{DataProvider, Test}
-import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
-import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.gatk.queue.pipeline.{QueueTest, QueueTestSpec}
+import org.broadinstitute.gatk.utils.BaseTest
 
 class ExampleUnifiedGenotyperQueueTest {
   @Test(timeOut=36000000)
@@ -35,7 +35,7 @@ class ExampleUnifiedGenotyperQueueTest {
     val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -filter QD",
@@ -57,7 +57,7 @@ class ExampleUnifiedGenotyperQueueTest {
     val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_with_" + intervalsName
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
       " -R " + BaseTest.hg18Reference,
       " -L " + intervalsPath).mkString
@@ -70,7 +70,7 @@ class ExampleUnifiedGenotyperQueueTest {
     val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_no_gc_opt"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -noGCOpt").mkString
@@ -86,7 +86,7 @@ class ExampleUnifiedGenotyperQueueTest {
     val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_" + reqParam
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -resMemReqParam " + reqParam).mkString
@@ -99,7 +99,7 @@ class ExampleUnifiedGenotyperQueueTest {
     val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_with_log_directory"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -logDir exampleUGLogDir").mkString

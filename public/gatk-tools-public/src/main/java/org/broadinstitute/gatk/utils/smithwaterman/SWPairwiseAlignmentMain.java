@@ -23,10 +23,10 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.smithwaterman;
+package org.broadinstitute.gatk.utils.smithwaterman;
 
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.collections.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;

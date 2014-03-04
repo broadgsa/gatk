@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.arguments;
+package org.broadinstitute.gatk.engine.arguments;
 
 import htsjdk.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
-import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
+import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
+import org.broadinstitute.gatk.engine.samples.PedigreeValidationType;
+import org.broadinstitute.gatk.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.baq.BAQ;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 
 import java.io.File;
 import java.util.ArrayList;

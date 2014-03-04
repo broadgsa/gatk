@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata.tracks;
+package org.broadinstitute.gatk.engine.refdata.tracks;
 
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.codecs.table.BedTableCodec;
-import org.broadinstitute.sting.utils.codecs.table.TableFeature;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.codecs.table.BedTableCodec;
+import org.broadinstitute.gatk.utils.codecs.table.TableFeature;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 import htsjdk.variant.vcf.VCF3Codec;
 import htsjdk.variant.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;

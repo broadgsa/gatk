@@ -23,33 +23,33 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import com.google.java.contract.PreconditionError;
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.datasources.reads.*;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.sam.*;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.engine.datasources.reads.*;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.activeregion.ActiveRegionReadState;
+import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
+import org.broadinstitute.gatk.utils.interval.IntervalUtils;
+import org.broadinstitute.gatk.utils.sam.*;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.executive.WindowMaker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.datasources.providers.LocusShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.engine.executive.WindowMaker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.activeregion.ActiveRegion;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -57,7 +57,6 @@ import org.testng.annotations.Test;
 
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 

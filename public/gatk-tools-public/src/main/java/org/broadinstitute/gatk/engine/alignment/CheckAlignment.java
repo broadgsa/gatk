@@ -23,21 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment;
+package org.broadinstitute.gatk.engine.alignment;
 
-import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
-import org.broadinstitute.sting.alignment.bwa.BWTFiles;
-import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.alignment.bwa.BWAConfiguration;
+import org.broadinstitute.gatk.engine.alignment.bwa.BWTFiles;
+import org.broadinstitute.gatk.engine.alignment.bwa.c.BWACAligner;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.ReadWalker;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 
@@ -130,7 +130,7 @@ public class CheckAlignment extends ReadWalker<Integer,Integer> {
                     logger.error(String.format("    Mapping quality: %s%n", alignmentsByScore[i].getMappingQuality()));
                 }
             }
-            throw new ReviewedStingException(String.format("Read %s mismatches!", read.getReadName()));
+            throw new ReviewedGATKException(String.format("Read %s mismatches!", read.getReadName()));
         }
 
         return 1;

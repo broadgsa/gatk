@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import java.lang.annotation.*;
 

@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -99,7 +99,7 @@ public class ReservoirDownsampler<T extends SAMRecord> extends ReadsDownsampler<
      */
     public ReservoirDownsampler ( final int targetSampleSize, final boolean expectFewOverflows ) {
         if ( targetSampleSize <= 0 ) {
-            throw new ReviewedStingException("Cannot do reservoir downsampling with a sample size <= 0");
+            throw new ReviewedGATKException("Cannot do reservoir downsampling with a sample size <= 0");
         }
 
         this.targetSampleSize = targetSampleSize;

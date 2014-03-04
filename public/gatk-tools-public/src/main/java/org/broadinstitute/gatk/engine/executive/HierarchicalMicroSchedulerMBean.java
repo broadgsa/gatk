@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 /**
  * User: hanna
  * Date: May 29, 2009

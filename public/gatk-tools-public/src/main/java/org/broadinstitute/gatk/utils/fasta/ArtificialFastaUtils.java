@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.fasta;
+package org.broadinstitute.gatk.utils.fasta;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -59,7 +59,7 @@ public class ArtificialFastaUtils {
         try {
             s = new PrintStream(new FileOutputStream(fileName));
         } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("Filename " + fileName + " passed to the ArtificialFastaUtils generated a FileNotFound exception", e);
+            throw new ReviewedGATKException("Filename " + fileName + " passed to the ArtificialFastaUtils generated a FileNotFound exception", e);
         }
         generateFakeFasta(contigNames, contigSizes, pattern, s);
     }
@@ -83,7 +83,7 @@ public class ArtificialFastaUtils {
      */
     private static void generateFakeFasta(List<String> contigNames, List<Integer> contigSizes, BASE_PATTERN pattern, PrintStream s) {
         if (contigNames.size() != contigSizes.size()) {
-            throw new ReviewedStingException("ArtificialContig name and size arrays are not equal sizes");
+            throw new ReviewedGATKException("ArtificialContig name and size arrays are not equal sizes");
         }
         for (int x = 0; x < contigNames.size(); x++) {
             ArtificialContig tig = new ArtificialContig(contigNames.get(x), contigSizes.get(x), pattern);
@@ -147,7 +147,7 @@ class ArtificialContig {
             case ALL_G:
                 return "G";
             default:
-                throw new ReviewedStingException("Unknown base pattern");
+                throw new ReviewedGATKException("Unknown base pattern");
         }
     }
 

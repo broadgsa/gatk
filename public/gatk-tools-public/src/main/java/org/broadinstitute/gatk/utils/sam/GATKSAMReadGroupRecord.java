@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.gatk.utils.NGSPlatform;
 
 /**
  * @author ebanks

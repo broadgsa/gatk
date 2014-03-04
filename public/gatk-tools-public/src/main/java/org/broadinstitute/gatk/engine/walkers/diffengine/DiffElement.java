@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.diffengine;
+package org.broadinstitute.gatk.engine.walkers.diffengine;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -116,7 +116,7 @@ public class DiffElement {
         if ( getValue().isCompound() )
             return (DiffNode)getValue();
         else
-            throw new ReviewedStingException("Illegal request conversion of a DiffValue into a DiffNode: " + this);
+            throw new ReviewedGATKException("Illegal request conversion of a DiffValue into a DiffNode: " + this);
     }
 
     public int size() {

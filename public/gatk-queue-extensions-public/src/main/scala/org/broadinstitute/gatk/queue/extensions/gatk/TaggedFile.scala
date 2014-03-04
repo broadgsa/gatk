@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
 import java.io.File
-import org.broadinstitute.sting.utils.io.FileExtension
-import org.broadinstitute.sting.queue.util.ShellUtils
+import org.broadinstitute.gatk.utils.io.FileExtension
+import org.broadinstitute.gatk.queue.util.ShellUtils
 
 /**
  * Used to provide tagged -I input_file arguments to the GATK.

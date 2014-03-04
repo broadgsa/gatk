@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
 
 import java.lang.annotation.*;
 

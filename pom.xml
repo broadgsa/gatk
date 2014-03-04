@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-    This pom is the aggregator for all sting/gatk poms
+    This pom is the aggregator for all gatk poms
     See also:
       http://maven.apache.org/pom.html#Inheritance_v
       http://maven.apache.org/guides/introduction/introduction-to-the-pom.html#Project_Inheritance_vs_Project_Aggregation
@@ -11,15 +11,15 @@
     -->
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-root</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-root</artifactId>
         <version>3.2-SNAPSHOT</version>
-        <relativePath>public/sting-root</relativePath>
+        <relativePath>public/gatk-root</relativePath>
     </parent>
 
-    <artifactId>sting-aggregator</artifactId>
+    <artifactId>gatk-aggregator</artifactId>
     <packaging>pom</packaging>
-    <name>Sting Aggregator</name>
+    <name>GATK Aggregator</name>
 
     <modules>
         <module>public</module>
@@ -27,8 +27,8 @@
     </modules>
 
     <properties>
-        <sting.basedir>${project.basedir}</sting.basedir>
-        <resource.bundle.path>StingText.properties</resource.bundle.path>
+        <gatk.basedir>${project.basedir}</gatk.basedir>
+        <resource.bundle.path>GATKText.properties</resource.bundle.path>
         <resource.bundle.skip>false</resource.bundle.skip>
         <!-- TODO: Need a better a way to say "don't include hidden" by default -->
         <gatkdocs.include.hidden>-build-timestamp "${maven.build.timestamp}"</gatkdocs.include.hidden>
@@ -36,21 +36,21 @@
         <!--
         Phases of the build that may be disabled to speed up compilation.
         -->
-        <sting.jar.phase>package</sting.jar.phase>
-        <sting.generate-resources.phase>generate-resources</sting.generate-resources.phase>
-        <sting.process-resources.phase>process-resources</sting.process-resources.phase>
-        <sting.process-test-resources.phase>process-test-resources</sting.process-test-resources.phase>
+        <gatk.jar.phase>package</gatk.jar.phase>
+        <gatk.generate-resources.phase>generate-resources</gatk.generate-resources.phase>
+        <gatk.process-resources.phase>process-resources</gatk.process-resources.phase>
+        <gatk.process-test-resources.phase>process-test-resources</gatk.process-test-resources.phase>
 
         <!--
         Package tests ensure the consistency of the packaged / shaded jars.
         It runs the tests where the monolithic jar is the only dependency on the classpath.
         -->
-        <sting.packagecommittests.skipped>true</sting.packagecommittests.skipped>
-        <sting.packageunittests.skipped>${sting.packagecommittests.skipped}</sting.packageunittests.skipped>
-        <sting.packageintegrationtests.skipped>${sting.packagecommittests.skipped}</sting.packageintegrationtests.skipped>
-        <sting.packagequeuetests.skipped>${sting.packagecommittests.skipped}</sting.packagequeuetests.skipped>
-        <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
-        <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
+        <gatk.packagecommittests.skipped>true</gatk.packagecommittests.skipped>
+        <gatk.packageunittests.skipped>${gatk.packagecommittests.skipped}</gatk.packageunittests.skipped>
+        <gatk.packageintegrationtests.skipped>${gatk.packagecommittests.skipped}</gatk.packageintegrationtests.skipped>
+        <gatk.packagequeuetests.skipped>${gatk.packagecommittests.skipped}</gatk.packagequeuetests.skipped>
+        <gatk.packagelargescaletests.skipped>true</gatk.packagelargescaletests.skipped>
+        <gatk.packageknowledgebasetests.skipped>true</gatk.packageknowledgebasetests.skipped>
 
         <!--
         Serial tests use the test jars to run tests, such that all tests are run from a single TestNG invocation.
@@ -59,12 +59,12 @@
         TODO: Should there be another level up of tests, possibly running "all tests" via this aggregator level?
         TODO: If that require the aggregator to be dependent on the child dependencies, perhaps a better approach might be another monolithic test project.
         -->
-        <sting.serialcommittests.skipped>true</sting.serialcommittests.skipped>
-        <sting.serialunittests.skipped>${sting.serialcommittests.skipped}</sting.serialunittests.skipped>
-        <sting.serialintegrationtests.skipped>${sting.serialcommittests.skipped}</sting.serialintegrationtests.skipped>
-        <sting.serialqueuetests.skipped>${sting.serialcommittests.skipped}</sting.serialqueuetests.skipped>
-        <sting.seriallargescaletests.skipped>true</sting.seriallargescaletests.skipped>
-        <sting.serialknowledgebasetests.skipped>true</sting.serialknowledgebasetests.skipped>
+        <gatk.serialcommittests.skipped>true</gatk.serialcommittests.skipped>
+        <gatk.serialunittests.skipped>${gatk.serialcommittests.skipped}</gatk.serialunittests.skipped>
+        <gatk.serialintegrationtests.skipped>${gatk.serialcommittests.skipped}</gatk.serialintegrationtests.skipped>
+        <gatk.serialqueuetests.skipped>${gatk.serialcommittests.skipped}</gatk.serialqueuetests.skipped>
+        <gatk.seriallargescaletests.skipped>true</gatk.seriallargescaletests.skipped>
+        <gatk.serialknowledgebasetests.skipped>true</gatk.serialknowledgebasetests.skipped>
     </properties>
 
     <dependencies>
@@ -121,11 +121,21 @@
                                 <goal>unpack-dependencies</goal>
                             </goals>
                             <phase>none</phase>
+                            <!--
+                            NOTE: Shade include filters do NOT include transient dependencies, only the class directly listed.
+
+                            Thus to fully include all the classes in packages, we must:
+                                1) List the artifacts we want shaded as direct dependencies
+                                2) Run the unpack direct dependencies into the classes directory
+                                3) Shade the classes directory as we normally would.
+                            -->
                             <configuration>
                                 <excludeTransitive>true</excludeTransitive>
                                 <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                                 <includeTypes>jar</includeTypes>
-                                <excludeScope>system</excludeScope>
+                                <includeScope>runtime</includeScope>
+                                <!-- Don't unjar the resource bundle, so that shade's AppendingTransformer can merge -->
+                                <excludes>${resource.bundle.path}</excludes>
                             </configuration>
                         </execution>
                     </executions>
@@ -140,14 +150,14 @@
                             <goals>
                                 <goal>resources</goal>
                             </goals>
-                            <phase>${sting.process-resources.phase}</phase>
+                            <phase>${gatk.process-resources.phase}</phase>
                         </execution>
                         <execution>
                             <id>default-testResources</id>
                             <goals>
                                 <goal>testResources</goal>
                             </goals>
-                            <phase>${sting.process-test-resources.phase}</phase>
+                            <phase>${gatk.process-test-resources.phase}</phase>
                         </execution>
                         <execution>
                             <id>copy-resource-bundle-log4j</id>
@@ -156,10 +166,14 @@
                             </goals>
                             <phase>none</phase>
                             <configuration>
+                                <!--
+                                Just before running the resource bundle generation, copy a simple log4j
+                                config file to the apidocs execution directory, so that logging prints out.
+                                -->
                                 <outputDirectory>${project.reporting.outputDirectory}/apidocs</outputDirectory>
                                 <resources>
                                     <resource>
-                                        <directory>${sting.basedir}/sting-utils/src/main/config/org/broadinstitute/sting/utils/help</directory>
+                                        <directory>${gatk.basedir}/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
                                     </resource>
                                 </resources>
                             </configuration>
@@ -179,13 +193,13 @@
                             <configuration>
                                 <!-- Allow skipping for "fasttest" -->
                                 <skip>${resource.bundle.skip}</skip>
-                                <doclet>org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet</doclet>
+                                <doclet>org.broadinstitute.gatk.utils.help.ResourceBundleExtractorDoclet</doclet>
                                 <!-- Required as doclet uses reflection to access classes for documentation, instead of source java-->
                                 <docletPath>${project.build.outputDirectory}</docletPath>
                                 <docletArtifact>
                                     <groupId>${project.groupId}</groupId>
-                                    <!-- TODO: THIS IS SUPPOSED TO BE STING-UTILS! -->
-                                    <artifactId>gatk-framework</artifactId>
+                                    <!-- TODO: THIS IS SUPPOSED TO BE GATK-UTILS! -->
+                                    <artifactId>gatk-tools-public</artifactId>
                                     <version>${project.version}</version>
                                 </docletArtifact>
                                 <maxmemory>2g</maxmemory>
@@ -307,14 +321,14 @@
                     <executions>
                         <execution>
                             <id>default-jar</id>
-                            <phase>${sting.jar.phase}</phase>
+                            <phase>${gatk.jar.phase}</phase>
                         </execution>
                         <execution>
                             <id>test-jar</id>
                             <goals>
                                 <goal>test-jar</goal>
                             </goals>
-                            <phase>${sting.jar.phase}</phase>
+                            <phase>${gatk.jar.phase}</phase>
                             <configuration>
                                 <skipIfEmpty>true</skipIfEmpty>
                             </configuration>
@@ -327,7 +341,7 @@
                     <artifactId>maven-shade-plugin</artifactId>
                     <executions>
                         <execution>
-                            <id>sting-executable</id>
+                            <id>gatk-executable</id>
                             <goals>
                                 <goal>shade</goal>
                             </goals>
@@ -336,8 +350,8 @@
                                 <minimizeJar>true</minimizeJar>
                                 <artifactSet>
                                     <excludes>
-                                        <exclude>org.broadinstitute.sting:gsalib:tar.gz:*</exclude>
-                                        <exclude>org.broadinstitute.sting:*:tar.bz2:example-resources</exclude>
+                                        <exclude>org.broadinstitute.gatk:gsalib:tar.gz:*</exclude>
+                                        <exclude>org.broadinstitute.gatk:*:tar.bz2:example-resources</exclude>
                                     </excludes>
                                 </artifactSet>
                                 <filters>
@@ -413,7 +427,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/public/testdata</dst>
-                                        <src>${sting.basedir}/public/gatk-framework/src/test/resources</src>
+                                        <src>${gatk.basedir}/public/gatk-engine/src/test/resources</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -428,7 +442,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/public/testdata</dst>
-                                        <src>${sting.basedir}/public/gatk-framework/src/test/resources</src>
+                                        <src>${gatk.basedir}/public/gatk-engine/src/test/resources</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -443,7 +457,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/private/testdata</dst>
-                                        <src>${sting.basedir}/private/gatk-private/src/test/resources</src>
+                                        <src>${gatk.basedir}/private/gatk-tools-private/src/test/resources</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -458,7 +472,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/private/testdata</dst>
-                                        <src>${sting.basedir}/private/gatk-private/src/test/resources</src>
+                                        <src>${gatk.basedir}/private/gatk-tools-private/src/test/resources</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -473,7 +487,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/public/scala/qscript</dst>
-                                        <src>${sting.basedir}/public/queue-framework/src/main/qscripts</src>
+                                        <src>${gatk.basedir}/public/gatk-queue-extensions-public/src/main/qscripts</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -488,7 +502,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/public/scala/qscript</dst>
-                                        <src>${sting.basedir}/public/queue-framework/src/main/qscripts</src>
+                                        <src>${gatk.basedir}/public/gatk-queue-extensions-public/src/main/qscripts</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -503,7 +517,7 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/private/scala/qscript</dst>
-                                        <src>${sting.basedir}/private/queue-private/src/main/qscripts</src>
+                                        <src>${gatk.basedir}/private/gatk-queue-extensions-internal/src/main/qscripts</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -518,7 +532,27 @@
                                 <links>
                                     <link>
                                         <dst>${basedir}/private/scala/qscript</dst>
-                                        <src>${sting.basedir}/private/queue-private/src/main/qscripts</src>
+                                        <src>${gatk.basedir}/private/gatk-queue-extensions-internal/src/main/qscripts</src>
+                                    </link>
+                                </links>
+                            </configuration>
+                        </execution>
+                        <!--
+                        HACK: Adding the source directory via build-helper-maven-plugin doesn't work with IntelliJ.
+                        Add compatibility link from public's extensions source code to target/generated-sources.
+                        see: http://wiki.jetbrains.net/intellij/Maven_FAQ
+                        -->
+                        <execution>
+                            <id>link-extensions-sources</id>
+                            <goals>
+                                <goal>link</goal>
+                            </goals>
+                            <phase>none</phase>
+                            <configuration>
+                                <links>
+                                    <link>
+                                        <dst>${project.build.directory}/generated-sources/gatk-queue-extensions-public-src-main-scala</dst>
+                                        <src>${gatk.basedir}/public/gatk-queue-extensions-public/src/main/scala</src>
                                     </link>
                                 </links>
                             </configuration>
@@ -532,7 +566,7 @@
                             <configuration>
                                 <links>
                                     <link>
-                                        <dst>${sting.basedir}/target/${sting.binary-dist.name}.${project.packaging}</dst>
+                                        <dst>${gatk.basedir}/target/${gatk.binary-dist.name}.${project.packaging}</dst>
                                         <src>${project.build.directory}/${project.build.finalName}.${project.packaging}</src>
                                     </link>
                                 </links>
@@ -547,7 +581,7 @@
                             <configuration>
                                 <links>
                                     <link>
-                                        <dst>${project.build.directory}/${sting.binary-dist.name}-${build.version}.tar.bz2</dst>
+                                        <dst>${project.build.directory}/${gatk.binary-dist.name}-${build.version}.tar.bz2</dst>
                                         <src>${project.build.directory}/${project.build.finalName}-binary-dist.tar.bz2</src>
                                     </link>
                                 </links>
@@ -561,19 +595,19 @@
                     <configuration>
                         <skipInvocation>true</skipInvocation>
                         <debug>false</debug>
-                        <pom>${sting.basedir}/public/package-tests/pom.xml</pom>
+                        <pom>${gatk.basedir}/public/package-tests/pom.xml</pom>
                         <noLog>true</noLog>
                         <streamLogs>true</streamLogs>
-                        <localRepositoryPath>${sting.basedir}/${maven.repo.local}</localRepositoryPath>
+                        <localRepositoryPath>${gatk.basedir}/${maven.repo.local}</localRepositoryPath>
                         <properties>
                             <test>${test}</test>
                             <it.test>${it.test}</it.test>
                             <skip>false</skip>
                             <maven.test.skip>false</maven.test.skip>
-                            <sting.packagetests.artifactId>${sting.packagetests.artifactId}</sting.packagetests.artifactId>
-                            <sting.packagetests.testClasses>${project.build.testOutputDirectory}</sting.packagetests.testClasses>
-                            <sting.packagetests.basedir>${project.basedir}</sting.packagetests.basedir>
-                            <sting.queuetests.run>${sting.queuetests.run}</sting.queuetests.run>
+                            <gatk.packagetests.artifactId>${gatk.packagetests.artifactId}</gatk.packagetests.artifactId>
+                            <gatk.packagetests.testClasses>${project.build.testOutputDirectory}</gatk.packagetests.testClasses>
+                            <gatk.packagetests.basedir>${project.basedir}</gatk.packagetests.basedir>
+                            <gatk.queuetests.run>${gatk.queuetests.run}</gatk.queuetests.run>
                             <maven.surefire.debug>${maven.surefire.debug}</maven.surefire.debug>
                             <maven.failsafe.debug>${maven.failsafe.debug}</maven.failsafe.debug>
                         </properties>
@@ -599,10 +633,10 @@
                                     <goal>test</goal>
                                 </goals>
                                 <reportsDirectory>${project.build.directory}/invoker-reports/unit/${test}</reportsDirectory>
-                                <skipInvocation>${sting.packageunittests.skipped}</skipInvocation>
+                                <skipInvocation>${gatk.packageunittests.skipped}</skipInvocation>
                                 <properties>
                                     <unittests.profile.enabled>true</unittests.profile.enabled>
-                                    <sting.packageunittests.skipped>${sting.packageunittests.skipped}</sting.packageunittests.skipped>
+                                    <gatk.packageunittests.skipped>${gatk.packageunittests.skipped}</gatk.packageunittests.skipped>
                                 </properties>
                             </configuration>
                         </execution>
@@ -617,10 +651,10 @@
                                     <goal>verify</goal>
                                 </goals>
                                 <reportsDirectory>${project.build.directory}/invoker-reports/integration/${it.test}</reportsDirectory>
-                                <skipInvocation>${sting.packageintegrationtests.skipped}</skipInvocation>
+                                <skipInvocation>${gatk.packageintegrationtests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <sting.packageintegrationtests.skipped>${sting.packageintegrationtests.skipped}</sting.packageintegrationtests.skipped>
+                                    <gatk.packageintegrationtests.skipped>${gatk.packageintegrationtests.skipped}</gatk.packageintegrationtests.skipped>
                                 </properties>
                             </configuration>
                         </execution>
@@ -635,10 +669,10 @@
                                     <goal>verify</goal>
                                 </goals>
                                 <reportsDirectory>${project.build.directory}/invoker-reports/queuetest/${it.test}</reportsDirectory>
-                                <skipInvocation>${sting.packagequeuetests.skipped}</skipInvocation>
+                                <skipInvocation>${gatk.packagequeuetests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <sting.packagequeuetests.skipped>${sting.packagequeuetests.skipped}</sting.packagequeuetests.skipped>
+                                    <gatk.packagequeuetests.skipped>${gatk.packagequeuetests.skipped}</gatk.packagequeuetests.skipped>
                                 </properties>
                             </configuration>
                         </execution>
@@ -653,10 +687,10 @@
                                     <goal>verify</goal>
                                 </goals>
                                 <reportsDirectory>${project.build.directory}/invoker-reports/largescale/${it.test}</reportsDirectory>
-                                <skipInvocation>${sting.packagelargescaletests.skipped}</skipInvocation>
+                                <skipInvocation>${gatk.packagelargescaletests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <sting.packagelargescaletests.skipped>${sting.packagelargescaletests.skipped}</sting.packagelargescaletests.skipped>
+                                    <gatk.packagelargescaletests.skipped>${gatk.packagelargescaletests.skipped}</gatk.packagelargescaletests.skipped>
                                 </properties>
                             </configuration>
                         </execution>
@@ -671,10 +705,10 @@
                                     <goal>verify</goal>
                                 </goals>
                                 <reportsDirectory>${project.build.directory}/invoker-reports/knowledgebase/${it.test}</reportsDirectory>
-                                <skipInvocation>${sting.packageknowledgebasetests.skipped}</skipInvocation>
+                                <skipInvocation>${gatk.packageknowledgebasetests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <sting.packageknowledgebasetests.skipped>${sting.packageknowledgebasetests.skipped}</sting.packageknowledgebasetests.skipped>
+                                    <gatk.packageknowledgebasetests.skipped>${gatk.packageknowledgebasetests.skipped}</gatk.packageknowledgebasetests.skipped>
                                 </properties>
                             </configuration>
                         </execution>
@@ -776,7 +810,7 @@
                         <!-- Only generate the GATK Docs across the parent aggregation, not the children too. -->
                         <inherited>false</inherited>
                         <configuration>
-                            <doclet>org.broadinstitute.sting.utils.help.GATKDoclet</doclet>
+                            <doclet>org.broadinstitute.gatk.utils.help.GATKDoclet</doclet>
                             <docletArtifact>
                                 <groupId>${project.groupId}</groupId>
                                 <artifactId>gatk-package</artifactId>
@@ -785,7 +819,7 @@
                             <useStandardDocletOptions>false</useStandardDocletOptions>
                             <quiet>true</quiet>
                             <show>private</show>
-                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} ${gatkdocs.include.hidden} -settings-dir ${sting.basedir}/settings/helpTemplates -destination-dir ${project.build.directory}/gatkdocs</additionalparam>
+                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} ${gatkdocs.include.hidden} -settings-dir ${gatk.basedir}/settings/helpTemplates -destination-dir ${project.build.directory}/gatkdocs</additionalparam>
                         </configuration>
                     </reportSet>
                 </reportSets>
@@ -852,17 +886,17 @@
             <id>packagetests-enabled</id>
             <activation>
                 <property>
-                    <name>sting.packagetests.enabled</name>
+                    <name>gatk.packagetests.enabled</name>
                     <value>true</value>
                 </property>
             </activation>
             <properties>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
-                <sting.generate-gatk-extensions.skipped>true</sting.generate-gatk-extensions.skipped>
-                <sting.jar.phase>none</sting.jar.phase>
-                <sting.generate-resources.phase>none</sting.generate-resources.phase>
-                <sting.process-resources.phase>none</sting.process-resources.phase>
-                <sting.process-test-resources.phase>none</sting.process-test-resources.phase>
+                <gatk.generate-gatk-extensions.skipped>true</gatk.generate-gatk-extensions.skipped>
+                <gatk.jar.phase>none</gatk.jar.phase>
+                <gatk.generate-resources.phase>none</gatk.generate-resources.phase>
+                <gatk.process-resources.phase>none</gatk.process-resources.phase>
+                <gatk.process-test-resources.phase>none</gatk.process-test-resources.phase>
             </properties>
         </profile>
     </profiles>

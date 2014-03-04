@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io;
+package org.broadinstitute.gatk.engine.io;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -44,7 +44,7 @@ public class FastqFileWriter {
         try {
             this.output = new PrintStream(filename);
         } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("Can't open file " + filename);
+            throw new ReviewedGATKException("Can't open file " + filename);
         }
     }
 

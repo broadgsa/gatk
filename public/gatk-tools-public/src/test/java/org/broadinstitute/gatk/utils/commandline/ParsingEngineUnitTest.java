@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import org.apache.commons.io.FileUtils;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.testng.Assert;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -379,7 +379,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
-    @Test(expectedExceptions= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedGATKException.class)
     public void duplicateLongNameTest() {
         parsingEngine.addArgumentSource( DuplicateLongNameProvider.class );
     }
@@ -392,7 +392,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public Integer bar;
     }
 
-    @Test(expectedExceptions= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedGATKException.class)
     public void duplicateShortNameTest() {
         parsingEngine.addArgumentSource( DuplicateShortNameProvider.class );
     }
@@ -620,7 +620,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         RequiredArgProvider rap = new RequiredArgProvider();
     }
 
-    @Test(expectedExceptions= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedGATKException.class)
     public void multipleArgumentCollectionTest() {
         parsingEngine.addArgumentSource( MultipleArgumentCollectionProvider.class );
     }

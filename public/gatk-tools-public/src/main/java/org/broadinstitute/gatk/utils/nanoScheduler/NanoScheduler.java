@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.nanoScheduler;
+package org.broadinstitute.gatk.utils.nanoScheduler;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
-import org.broadinstitute.sting.utils.threading.NamedThreadFactory;
+import org.broadinstitute.gatk.utils.MultiThreadedErrorTracker;
+import org.broadinstitute.gatk.utils.threading.NamedThreadFactory;
 
 import java.util.Iterator;
 import java.util.List;

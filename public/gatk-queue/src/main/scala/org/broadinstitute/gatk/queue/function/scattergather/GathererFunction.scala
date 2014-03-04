@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function.scattergather
+package org.broadinstitute.gatk.queue.function.scattergather
 
-import org.broadinstitute.sting.commandline.Gatherer
-import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.gatk.utils.commandline.Gatherer
+import org.broadinstitute.gatk.queue.function.InProcessFunction
 import collection.JavaConversions._
 
 /**

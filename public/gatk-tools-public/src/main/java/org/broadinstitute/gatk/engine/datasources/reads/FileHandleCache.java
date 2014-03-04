@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -92,7 +92,7 @@ public class FileHandleCache {
                         lock.wait();
                 }
                 catch(InterruptedException ex) {
-                    throw new ReviewedStingException("Interrupted while waiting for a file handle");
+                    throw new ReviewedGATKException("Interrupted while waiting for a file handle");
                 }
                 inputStream = openInputStream(key);
             }
@@ -158,7 +158,7 @@ public class FileHandleCache {
             return new FileInputStream(reader.getSamFilePath());
         }
         catch(IOException ex) {
-            throw new StingException("Unable to open input file");
+            throw new GATKException("Unable to open input file");
         }
     }
 
@@ -167,7 +167,7 @@ public class FileHandleCache {
             inputStream.close();
         }
         catch(IOException ex) {
-            throw new StingException("Unable to open input file");
+            throw new GATKException("Unable to open input file");
         }
     }
 

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.collections;
+package org.broadinstitute.gatk.utils.collections;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +53,7 @@ public class NestedIntegerArray<T> {
     public NestedIntegerArray(final int... dimensions) {
         numDimensions = dimensions.length;
         if ( numDimensions == 0 )
-            throw new ReviewedStingException("There must be at least one dimension to an NestedIntegerArray");
+            throw new ReviewedGATKException("There must be at least one dimension to an NestedIntegerArray");
         this.dimensions = dimensions.clone();
 
         int dimensionsToPreallocate = Math.min(dimensions.length, NUM_DIMENSIONS_TO_PREALLOCATE);
@@ -126,13 +126,13 @@ public class NestedIntegerArray<T> {
      */
     public boolean put(final T value, final int... keys) { // WARNING! value comes before the keys!
         if ( keys.length != numDimensions )
-            throw new ReviewedStingException("Exactly " + numDimensions + " keys should be passed to this NestedIntegerArray but " + keys.length + " were provided");
+            throw new ReviewedGATKException("Exactly " + numDimensions + " keys should be passed to this NestedIntegerArray but " + keys.length + " were provided");
 
         final int numNestedDimensions = numDimensions - 1;
         Object[] myData = data;
         for ( int i = 0; i < numNestedDimensions; i++ ) {
             if ( keys[i] >= dimensions[i] )
-                throw new ReviewedStingException("Key " + keys[i] + " is too large for dimension " + i + " (max is " + (dimensions[i]-1) + ")");
+                throw new ReviewedGATKException("Key " + keys[i] + " is too large for dimension " + i + " (max is " + (dimensions[i]-1) + ")");
 
             // If we're at or beyond the last dimension that was pre-allocated, we need to do a synchronized
             // check to see if the next branch exists, and if it doesn't, create it

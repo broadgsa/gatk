@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.gatk.queue.pipeline.examples
 
 /*
  * Copyright (c) 2012, The Broad Institute
@@ -74,8 +74,8 @@ package org.broadinstitute.sting.queue.pipeline.examples
  */
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
-import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.gatk.queue.pipeline.{QueueTest, QueueTestSpec}
+import org.broadinstitute.gatk.utils.BaseTest
 
 class ExampleReadFilterQueueTest {
   @Test(timeOut=36000000)
@@ -83,7 +83,7 @@ class ExampleReadFilterQueueTest {
     val spec = new QueueTestSpec
     spec.name = "examplereadfilter"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleReadFilter.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleReadFilter.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
     QueueTest.executeTest(spec)

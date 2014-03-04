@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.haplotype;
+package org.broadinstitute.gatk.utils.haplotype;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -31,10 +31,10 @@ import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -168,7 +168,7 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
                 case H:
                 case P:
                 default:
-                    throw new ReviewedStingException( "Unsupported cigar operator created during SW alignment: " + ce.getOperator() );
+                    throw new ReviewedGATKException( "Unsupported cigar operator created during SW alignment: " + ce.getOperator() );
             }
         }
     }

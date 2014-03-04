@@ -23,23 +23,23 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.net.InetAddress;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 /**
- * Print out help for Sting command-line applications.
+ * Print out help for GATK command-line applications.
  */
 
 public class HelpFormatter {
-    /** our log, which we want to capture anything from org.broadinstitute.sting */
+    /** our log, which we want to capture anything from org.broadinstitute.gatk */
     private static Logger logger = Logger.getLogger(HelpFormatter.class);
 
     public static final int FIELD_SEPARATION_WIDTH = 3;

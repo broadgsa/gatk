@@ -23,21 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
+package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
 import htsjdk.samtools.util.IntervalTree;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.VariantEval;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 

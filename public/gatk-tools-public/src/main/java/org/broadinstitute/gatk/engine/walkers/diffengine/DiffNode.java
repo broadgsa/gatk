@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.diffengine;
+package org.broadinstitute.gatk.engine.walkers.diffengine;
 
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -225,16 +225,16 @@ public class DiffNode extends DiffValue {
         // X=(A=A B=B C=(D=D))
         String[] parts = tree.split("=", 2);
         if ( parts.length != 2 )
-            throw new ReviewedStingException("Unexpected tree structure: " + tree);
+            throw new ReviewedGATKException("Unexpected tree structure: " + tree);
         String name = parts[0];
         String value = parts[1];
 
         if ( value.length() == 0 )
-            throw new ReviewedStingException("Illegal tree structure: " + value + " at " + tree);
+            throw new ReviewedGATKException("Illegal tree structure: " + value + " at " + tree);
 
         if ( value.charAt(0) == '(' ) {
             if ( ! value.endsWith(")") )
-                throw new ReviewedStingException("Illegal tree structure.  Missing ): " + value + " at " + tree);
+                throw new ReviewedGATKException("Illegal tree structure.  Missing ): " + value + " at " + tree);
             String subtree = value.substring(1, value.length()-1);
             DiffNode rec = DiffNode.empty(name, parent);
             String[] subParts = subtree.split(" ");

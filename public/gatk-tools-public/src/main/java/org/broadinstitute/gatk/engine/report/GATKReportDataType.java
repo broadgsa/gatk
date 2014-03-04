@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.report;
+package org.broadinstitute.gatk.engine.report;
 
 import java.util.EnumSet;
 import java.util.HashMap;

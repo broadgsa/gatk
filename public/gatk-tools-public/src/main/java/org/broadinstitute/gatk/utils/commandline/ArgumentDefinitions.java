@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -56,9 +56,9 @@ public class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
             if( definition.fullName.length() == 0 )
                 throw new IllegalArgumentException( "Argument cannot have 0-length fullname." );
             if( hasArgumentDefinition( definition.fullName, FullNameDefinitionMatcher ) )
-                throw new ReviewedStingException("Duplicate definition of argument with full name: " + definition.fullName);
+                throw new ReviewedGATKException("Duplicate definition of argument with full name: " + definition.fullName);
             if( definition.shortName != null && hasArgumentDefinition( definition.shortName, ShortNameDefinitionMatcher ) )
-                throw new ReviewedStingException("Duplicate definition of argument with short name: " + definition.shortName);
+                throw new ReviewedGATKException("Duplicate definition of argument with short name: " + definition.shortName);
 
             argumentDefinitions.add( definition );
         }

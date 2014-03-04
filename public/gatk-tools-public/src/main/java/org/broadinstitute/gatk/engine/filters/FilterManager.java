@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.help.GATKDocUtils;
-import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.help.GATKDocUtils;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 
 import java.util.Collection;
 import java.util.List;

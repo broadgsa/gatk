@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
-import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
-import org.broadinstitute.sting.gatk.filters.FailsVendorQualityCheckFilter;
-import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
-import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
+import org.broadinstitute.gatk.engine.filters.DuplicateReadFilter;
+import org.broadinstitute.gatk.engine.filters.FailsVendorQualityCheckFilter;
+import org.broadinstitute.gatk.engine.filters.NotPrimaryAlignmentFilter;
+import org.broadinstitute.gatk.engine.filters.UnmappedReadFilter;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
 
 /**
  * Created by IntelliJ IDEA.
@@ -53,6 +53,6 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
         return true;    // We are keeping all the reads
     }
 
-    // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
+    // Map over the org.broadinstitute.gatk.engine.contexts.AlignmentContext
     public abstract MapType map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context);
 }

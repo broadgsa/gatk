@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk;
+package org.broadinstitute.gatk.queue.extensions.gatk;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.tribble.Tribble;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
@@ -161,7 +161,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
             // one can set the specific gatherer to use by adding @Gather before any output argument.
             // For example (used to be part of UG):
-            //      @Gather(className = "org.broadinstitute.sting.queue.extensions.gatk.CatVariantsGatherer")
+            //      @Gather(className = "org.broadinstitute.gatk.queue.extensions.gatk.CatVariantsGatherer")
             //      @Output(doc="File to which variants should be written",required=true)
             //      protected VariantContextWriter writer = null;
             if (gatherer != null)
@@ -171,7 +171,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             else if (VariantContextWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gatherClass = "CatVariantsGatherer"; // used to be "VcfGatherFunction";
             else
-                gatherClass = "org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction";
+                gatherClass = "org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction";
 
             fields.add(new OutputArgumentField(argumentDefinition, gatherClass));
 
@@ -479,8 +479,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFreezeFields() {
             return String.format(
-                    ("if (%2$s != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
-                            "  if (!org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
+                    ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
+                            "  if (!org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
                             "    %1$s = new File(%2$s.getPath + \"%3$s\")%n"),
                     auxFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
         }
@@ -492,7 +492,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFreezeFields() {
             return String.format(
-                    ("if (%2$s != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
+                    ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (!%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath.stripSuffix(\".bam\") + \"%4$s\")%n"),
                     auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME, BAMIndex.BAMIndexSuffix);
@@ -505,7 +505,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         }
         @Override protected String getFreezeFields() {
             return String.format(
-                    ("if (%2$s != null && !org.broadinstitute.sting.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
+                    ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath + \"%4$s\")%n"),
                     auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME, ".md5");

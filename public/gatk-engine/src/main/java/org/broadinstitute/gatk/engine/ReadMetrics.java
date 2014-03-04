@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.filter.SamRecordFilter;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -68,7 +68,7 @@ public class ReadMetrics implements Cloneable {
             newMetrics = (ReadMetrics)super.clone();
         }
         catch(CloneNotSupportedException ex) {
-            throw new ReviewedStingException("Unable to clone runtime metrics",ex);
+            throw new ReviewedGATKException("Unable to clone runtime metrics",ex);
         }
         newMetrics.nRecords = nRecords;
         newMetrics.nReads = nReads;

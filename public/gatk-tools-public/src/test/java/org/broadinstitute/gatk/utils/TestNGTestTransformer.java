@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting;
+package org.broadinstitute.gatk.utils;
 
 import org.apache.log4j.Logger;
 import org.testng.IAnnotationTransformer;

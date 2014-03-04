@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.variant;
+package org.broadinstitute.gatk.utils.variant;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -31,9 +31,9 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.util.popgen.HardyWeinbergCalculation;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.*;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.VCFConstants;
 

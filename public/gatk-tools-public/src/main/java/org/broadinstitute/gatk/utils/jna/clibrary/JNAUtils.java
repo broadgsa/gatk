@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.jna.clibrary;
+package org.broadinstitute.gatk.utils.jna.clibrary;
 
 import com.sun.jna.Platform;
 

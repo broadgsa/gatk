@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 import htsjdk.samtools.Cigar;
-import org.broadinstitute.sting.utils.sam.CigarUtils;
+import org.broadinstitute.gatk.utils.sam.CigarUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;

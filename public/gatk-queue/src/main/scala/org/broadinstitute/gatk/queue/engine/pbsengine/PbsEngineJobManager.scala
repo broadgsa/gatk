@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.pbsengine
+package org.broadinstitute.gatk.queue.engine.pbsengine
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.drmaa.DrmaaJobManager
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.engine.drmaa.DrmaaJobManager
 
 class PbsEngineJobManager extends DrmaaJobManager {
   override def create(function: CommandLineFunction) = new PbsEngineJobRunner(session, function)

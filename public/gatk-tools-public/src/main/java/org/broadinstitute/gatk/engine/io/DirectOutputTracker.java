@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io;
+package org.broadinstitute.gatk.engine.io;
 
-import org.broadinstitute.sting.gatk.io.storage.Storage;
-import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
+import org.broadinstitute.gatk.engine.io.storage.Storage;
+import org.broadinstitute.gatk.engine.io.storage.StorageFactory;
+import org.broadinstitute.gatk.engine.io.stubs.Stub;
 
 /**
  * Maps creation of storage directly to output streams in parent.

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue
+package org.broadinstitute.gatk.queue
 
 import engine.JobRunInfo
-import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.gatk.queue.function.QFunction
 import annotation.target.field
 import util._
-import org.broadinstitute.sting.commandline.ArgumentSource
+import org.broadinstitute.gatk.utils.commandline.ArgumentSource
 
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
@@ -38,21 +38,21 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
 
   // Type aliases so users don't have to import
   type File = java.io.File
-  type CommandLineFunction = org.broadinstitute.sting.queue.function.CommandLineFunction
-  type InProcessFunction = org.broadinstitute.sting.queue.function.InProcessFunction
-  type ScatterGatherableFunction = org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
-  type SimpleTextGatherFunction = org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
+  type CommandLineFunction = org.broadinstitute.gatk.queue.function.CommandLineFunction
+  type InProcessFunction = org.broadinstitute.gatk.queue.function.InProcessFunction
+  type ScatterGatherableFunction = org.broadinstitute.gatk.queue.function.scattergather.ScatterGatherableFunction
+  type SimpleTextGatherFunction = org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction
 
   // Make sure annotations can be used in class constructors but target the fields
   // ex: class MyClass(@Input var myVar: File) {}
   // This was implicitly enabled in 2.8.0-RC2 and then updated to this new syntax:
   // http://lampsvn.epfl.ch/trac/scala/ticket/3596
   // http://lampsvn.epfl.ch/trac/scala/ticket/3421
-  type Input = org.broadinstitute.sting.commandline.Input @field
-  type Output = org.broadinstitute.sting.commandline.Output @field
-  type Argument = org.broadinstitute.sting.commandline.Argument @field
-  type ArgumentCollection = org.broadinstitute.sting.commandline.ArgumentCollection @field
-  type Gather = org.broadinstitute.sting.commandline.Gather @field
+  type Input = org.broadinstitute.gatk.utils.commandline.Input @field
+  type Output = org.broadinstitute.gatk.utils.commandline.Output @field
+  type Argument = org.broadinstitute.gatk.utils.commandline.Argument @field
+  type ArgumentCollection = org.broadinstitute.gatk.utils.commandline.ArgumentCollection @field
+  type Gather = org.broadinstitute.gatk.utils.commandline.Gather @field
 
   /**
    * Default settings for QFunctions

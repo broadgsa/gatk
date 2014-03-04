@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.jna.lsf.v7_0_6;
+package org.broadinstitute.gatk.utils.jna.lsf.v7_0_6;
 
 import com.sun.jna.*;
 import com.sun.jna.ptr.*;
-import org.broadinstitute.sting.jna.clibrary.JNAUtils;
-import org.broadinstitute.sting.jna.clibrary.LibC;
+import org.broadinstitute.gatk.utils.jna.clibrary.JNAUtils;
+import org.broadinstitute.gatk.utils.jna.clibrary.LibC;
 
 /*
   NOTE: This library uses Pointer for some Struct.ByReference members going
@@ -84,7 +84,7 @@ public class LibBat {
         LSF 7.0.6 on the mac is missing the unsatisfied exported symbol for environ which was removed on MacOS X 10.5+.
         nm $LSF_LIBDIR/liblsf.dylib | grep environ
         See "man environ" for more info, along with http://lists.apple.com/archives/java-dev/2007/Dec/msg00096.html
-        For now, we export environ ourselves using libenvironhack.dylib available in Sting/c/libenvironhack.
+        For now, we export environ ourselves using libenvironhack.dylib available in c/libenvironhack.
         */
         if (Platform.isMac())
             NativeLibrary.getInstance("environhack");

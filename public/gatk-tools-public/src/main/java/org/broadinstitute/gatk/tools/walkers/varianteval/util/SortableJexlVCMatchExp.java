@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.util;
+package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
 import org.apache.commons.jexl2.Expression;
 import htsjdk.variant.variantcontext.VariantContextUtils;

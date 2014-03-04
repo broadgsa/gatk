@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -118,7 +118,7 @@ public class ReferenceView implements View {
         int overhang = (int)(genomeLoc.getStop() - stop);
         if ( overhang > 0 ) {
             if ( overhang > BUFFER ) // todo -- this is a bit dangerous
-                throw new ReviewedStingException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
+                throw new ReviewedGATKException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
             byte[] all = new byte[subsequence.getBases().length + overhang];
             System.arraycopy(subsequence.getBases(), 0, all, 0, subsequence.getBases().length);
             System.arraycopy(Xs, 0, all, subsequence.getBases().length, overhang);

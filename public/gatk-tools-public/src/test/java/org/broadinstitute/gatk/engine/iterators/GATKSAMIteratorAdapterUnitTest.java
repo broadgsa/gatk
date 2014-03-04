@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import static org.testng.Assert.assertEquals;
 import org.testng.annotations.Test;
 
@@ -55,11 +55,11 @@ import java.util.Iterator;
  * @version 1.0
  * @date May 13, 2009
  * <p/>
- * Class StingSAMIteratorTest
+ * Class GATKSAMIteratorTest
  * <p/>
- * Tests the StingSAMIteratorAdapter class.
+ * Tests the GATKSAMIteratorAdapter class.
  */
-public class StingSAMIteratorAdapterUnitTest extends BaseTest {
+public class GATKSAMIteratorAdapterUnitTest extends BaseTest {
 
     class MyTestIterator implements Iterator<SAMRecord> {
 
@@ -122,7 +122,7 @@ public class StingSAMIteratorAdapterUnitTest extends BaseTest {
         final int COUNT = 100;
         MyTestIterator it = new MyTestIterator();
 
-        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(it);
+        GATKSAMIterator samIt = GATKSAMIteratorAdapter.adapt(it);
         int countCheck = 0;
         while (samIt.hasNext()) {
             samIt.next();
@@ -141,7 +141,7 @@ public class StingSAMIteratorAdapterUnitTest extends BaseTest {
 
         MyTestCloseableIterator it = new MyTestCloseableIterator();
 
-        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(it);
+        GATKSAMIterator samIt = GATKSAMIteratorAdapter.adapt(it);
 
         int countCheck = 0;
         while (samIt.hasNext()) {
@@ -158,7 +158,7 @@ public class StingSAMIteratorAdapterUnitTest extends BaseTest {
 
         MyTestCloseableIterator it = new MyTestCloseableIterator();
         
-        StingSAMIterator samIt = StingSAMIteratorAdapter.adapt(it);
+        GATKSAMIterator samIt = GATKSAMIteratorAdapter.adapt(it);
 
 
         int countCheck = 0;

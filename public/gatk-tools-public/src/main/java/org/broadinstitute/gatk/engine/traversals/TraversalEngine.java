@@ -23,17 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.ReadMetrics;
+import org.broadinstitute.gatk.engine.datasources.providers.ShardDataProvider;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
     /** our log, which we want to capture anything from this class */
@@ -76,7 +75,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      */
     public void initialize(final GenomeAnalysisEngine engine, final Walker walker, final ProgressMeter progressMeter) {
         if ( engine == null )
-            throw new ReviewedStingException("BUG: GenomeAnalysisEngine cannot be null!");
+            throw new ReviewedGATKException("BUG: GenomeAnalysisEngine cannot be null!");
 
         this.engine = engine;
         this.progressMeter = progressMeter;

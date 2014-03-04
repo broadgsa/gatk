@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SAMFileHeader;
@@ -67,14 +67,14 @@ import java.util.Iterator;
  * This class implements a read iterator that is bounded by the number of reads
  * it will produce over the iteration.
  */
-public class BoundedReadIterator implements StingSAMIterator {
+public class BoundedReadIterator implements GATKSAMIterator {
 
     // the genome loc we're bounding
     final private long readCount;
     private long currentCount = 0;
 
     // the iterator we want to decorate
-    private final StingSAMIterator iterator;
+    private final GATKSAMIterator iterator;
 
     // our unmapped read flag
     private boolean doNotUseThatUnmappedReadPile = false;
@@ -90,7 +90,7 @@ public class BoundedReadIterator implements StingSAMIterator {
      * @param iter
      * @param readCount
      */
-    public BoundedReadIterator(StingSAMIterator iter, long readCount) {
+    public BoundedReadIterator(GATKSAMIterator iter, long readCount) {
         this.iterator = iter;
         this.readCount = readCount;
     }

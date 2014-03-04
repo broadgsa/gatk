@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.gatk.engine;
 
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.commandline.Hidden;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.tools.walkers.qc.CountLoci;
+import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
-import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
-import org.broadinstitute.sting.queue.extensions.picard.MergeSamFiles
-import org.broadinstitute.sting.queue.function.RetryMemoryLimit
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor
-import org.broadinstitute.sting.queue.util.ClassFieldCache
+import org.broadinstitute.gatk.queue.function.scattergather.GatherFunction
+import org.broadinstitute.gatk.queue.extensions.picard.MergeSamFiles
+import org.broadinstitute.gatk.queue.function.RetryMemoryLimit
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor
+import org.broadinstitute.gatk.queue.util.ClassFieldCache
 import java.io.File
 
 /**

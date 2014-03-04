@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
 import htsjdk.samtools.util.StringUtil;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.Comparator;
 import java.util.TreeSet;
@@ -77,7 +77,7 @@ public class SuffixArray {
         this.bwt = bwt;
 
         if(sequenceInterval != 1 && bwt == null)
-            throw new ReviewedStingException("A BWT must be provided if the sequence interval is not 1");
+            throw new ReviewedGATKException("A BWT must be provided if the sequence interval is not 1");
     }
 
     /**
@@ -142,7 +142,7 @@ public class SuffixArray {
                 inverseSA0 = i;
         }
         if(inverseSA0 < 0)
-            throw new ReviewedStingException("Unable to find first inverse SA entry in generated suffix array.");
+            throw new ReviewedGATKException("Unable to find first inverse SA entry in generated suffix array.");
 
         return new SuffixArray(inverseSA0,occurrences,suffixArray);
     }    

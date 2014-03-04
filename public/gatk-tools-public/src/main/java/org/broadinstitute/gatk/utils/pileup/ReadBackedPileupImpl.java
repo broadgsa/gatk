@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pileup;
+package org.broadinstitute.gatk.utils.pileup;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.fragments.FragmentCollection;
-import org.broadinstitute.sting.utils.fragments.FragmentUtils;
-import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.fragments.FragmentCollection;
+import org.broadinstitute.gatk.utils.fragments.FragmentUtils;
+import org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseUtils;
 
 import java.util.*;
 
@@ -78,8 +78,8 @@ public class ReadBackedPileupImpl implements ReadBackedPileup {
      * pointer to pileup.  Don't go changing the data in pileup.
      */
     public ReadBackedPileupImpl(GenomeLoc loc, List<PileupElement> pileup) {
-        if (loc == null) throw new ReviewedStingException("Illegal null genomeloc in ReadBackedPileup");
-        if (pileup == null) throw new ReviewedStingException("Illegal null pileup in ReadBackedPileup");
+        if (loc == null) throw new ReviewedGATKException("Illegal null genomeloc in ReadBackedPileup");
+        if (pileup == null) throw new ReviewedGATKException("Illegal null pileup in ReadBackedPileup");
 
         this.loc = loc;
         this.pileupElementTracker = new UnifiedPileupElementTracker<PileupElement>(pileup);
@@ -123,10 +123,10 @@ public class ReadBackedPileupImpl implements ReadBackedPileup {
      * @return
      */
     private PileupElementTracker<PileupElement> readsOffsets2Pileup(List<GATKSAMRecord> reads, List<Integer> offsets) {
-        if (reads == null) throw new ReviewedStingException("Illegal null read list in UnifiedReadBackedPileup");
-        if (offsets == null) throw new ReviewedStingException("Illegal null offsets list in UnifiedReadBackedPileup");
+        if (reads == null) throw new ReviewedGATKException("Illegal null read list in UnifiedReadBackedPileup");
+        if (offsets == null) throw new ReviewedGATKException("Illegal null offsets list in UnifiedReadBackedPileup");
         if (reads.size() != offsets.size())
-            throw new ReviewedStingException("Reads and offset lists have different sizes!");
+            throw new ReviewedGATKException("Reads and offset lists have different sizes!");
 
         UnifiedPileupElementTracker<PileupElement> pileup = new UnifiedPileupElementTracker<PileupElement>();
         for (int i = 0; i < reads.size(); i++) {
@@ -146,8 +146,8 @@ public class ReadBackedPileupImpl implements ReadBackedPileup {
      * @return
      */
     private PileupElementTracker<PileupElement> readsOffsets2Pileup(List<GATKSAMRecord> reads, int offset) {
-        if (reads == null) throw new ReviewedStingException("Illegal null read list in UnifiedReadBackedPileup");
-        if (offset < 0) throw new ReviewedStingException("Illegal offset < 0 UnifiedReadBackedPileup");
+        if (reads == null) throw new ReviewedGATKException("Illegal null read list in UnifiedReadBackedPileup");
+        if (offset < 0) throw new ReviewedGATKException("Illegal offset < 0 UnifiedReadBackedPileup");
 
         UnifiedPileupElementTracker<PileupElement> pileup = new UnifiedPileupElementTracker<PileupElement>();
         for (GATKSAMRecord read : reads) {

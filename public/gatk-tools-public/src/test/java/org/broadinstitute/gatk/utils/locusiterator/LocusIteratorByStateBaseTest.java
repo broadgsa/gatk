@@ -23,22 +23,22 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.gatk.utils.locusiterator;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.ReadProperties;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 

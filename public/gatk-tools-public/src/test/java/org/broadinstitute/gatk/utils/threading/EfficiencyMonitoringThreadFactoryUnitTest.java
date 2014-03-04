@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.gatk.utils.threading;
 
 import org.apache.log4j.Priority;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -110,9 +110,9 @@ public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
                 case WAITING_FOR_IO:
                     // TODO -- implement me
                     // shouldn't ever get here, throw an exception
-                    throw new ReviewedStingException("WAITING_FOR_IO testing currently not implemented, until we figure out how to force a system call block");
+                    throw new ReviewedGATKException("WAITING_FOR_IO testing currently not implemented, until we figure out how to force a system call block");
                 default:
-                    throw new ReviewedStingException("Unexpected thread test state " + stateToImplement);
+                    throw new ReviewedGATKException("Unexpected thread test state " + stateToImplement);
             }
         }
     }

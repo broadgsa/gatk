@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.gatk.queue.pipeline.examples
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
-import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.gatk.queue.pipeline.{QueueTest, QueueTestSpec}
+import org.broadinstitute.gatk.utils.BaseTest
 
 class ExampleCountLociQueueTest {
   @Test(timeOut=36000000)
@@ -36,7 +36,7 @@ class ExampleCountLociQueueTest {
     val spec = new QueueTestSpec
     spec.name = "countloci"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountLoci.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleCountLoci.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -o " + testOut).mkString

@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
+package org.broadinstitute.gatk.tools.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.io.File;
@@ -108,7 +108,7 @@ public class VQSRCalibrationCurve {
                 return r.getTruePositiveRate();
         }
 
-        throw new ReviewedStingException("BUG: should not be able to reach this code");
+        throw new ReviewedGATKException("BUG: should not be able to reach this code");
     }
 
     public double probTrueVariant(String VQSRQualKey, VariantContext vc) {

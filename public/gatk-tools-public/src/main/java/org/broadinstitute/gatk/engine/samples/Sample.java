@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.samples;
+package org.broadinstitute.gatk.engine.samples;
 
 
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.util.ArrayList;
 import java.util.HashMap;

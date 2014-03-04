@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.io;
+package org.broadinstitute.gatk.utils.io;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -282,7 +282,7 @@ public class IOUtils {
         if (file instanceof FileExtension)
             return ((FileExtension)file).withPath(path);
         if (!File.class.equals(file.getClass()))
-            throw new StingException("Sub classes of java.io.File must also implement FileExtension");
+            throw new GATKException("Sub classes of java.io.File must also implement FileExtension");
         return new File(path);
     }
 
@@ -365,7 +365,7 @@ public class IOUtils {
             outputStream = FileUtils.openOutputStream(file);
             org.apache.commons.io.IOUtils.copy(inputStream, outputStream);
         } catch (IOException e) {
-            throw new StingException(String.format("Unable to copy resource '%s' to '%s'", path, file), e);
+            throw new GATKException(String.format("Unable to copy resource '%s' to '%s'", path, file), e);
         } finally {
             org.apache.commons.io.IOUtils.closeQuietly(inputStream);
             org.apache.commons.io.IOUtils.closeQuietly(outputStream);
@@ -423,7 +423,7 @@ public class IOUtils {
      */
     public static byte[] readFileIntoByteArray ( File source, int readBufferSize ) {
         if ( source == null ) {
-            throw new ReviewedStingException("Source file was null");
+            throw new ReviewedGATKException("Source file was null");
         }
 
         byte[] fileContents;
@@ -462,10 +462,10 @@ public class IOUtils {
      */
     public static byte[] readStreamIntoByteArray ( InputStream in, int readBufferSize ) {
         if ( in == null ) {
-            throw new ReviewedStingException("Input stream was null");
+            throw new ReviewedGATKException("Input stream was null");
         }
         else if ( readBufferSize <= 0 ) {
-            throw new ReviewedStingException("Read buffer size must be > 0");
+            throw new ReviewedGATKException("Read buffer size must be > 0");
         }
 
         // Use a fixed-size buffer for each read, but a dynamically-growing buffer
@@ -500,7 +500,7 @@ public class IOUtils {
      */
     public static void writeByteArrayToFile ( byte[] bytes, File destination ) {
         if ( destination == null ) {
-            throw new ReviewedStingException("Destination file was null");
+            throw new ReviewedGATKException("Destination file was null");
         }
 
         try {
@@ -519,7 +519,7 @@ public class IOUtils {
      */
     public static void writeByteArrayToStream ( byte[] bytes, OutputStream out ) {
         if ( bytes == null || out == null ) {
-            throw new ReviewedStingException("Data to write or output stream was null");
+            throw new ReviewedGATKException("Data to write or output stream was null");
         }
 
         try {
@@ -544,7 +544,7 @@ public class IOUtils {
      */
     public static int getGZIPFileUncompressedSize ( File gzipFile ) {
         if ( gzipFile == null ) {
-            throw new ReviewedStingException("GZIP file to examine was null");
+            throw new ReviewedGATKException("GZIP file to examine was null");
         }
 
         try {

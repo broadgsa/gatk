@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SamFileHeaderMerger;
@@ -31,23 +31,23 @@ import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.downsampling.*;
-import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.*;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.baq.ReadTransformingIterator;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
-import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.gatk.engine.ReadMetrics;
+import org.broadinstitute.gatk.engine.ReadProperties;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.engine.downsampling.*;
+import org.broadinstitute.gatk.engine.filters.CountingFilteringIterator;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.iterators.*;
+import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.SimpleTimer;
+import org.broadinstitute.gatk.utils.baq.ReadTransformingIterator;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
+import org.broadinstitute.gatk.utils.sam.GATKSAMReadGroupRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -504,7 +504,7 @@ public class SAMDataSource {
         this.readMetrics.incrementMetrics(readMetrics);
     }
 
-    public StingSAMIterator seek(Shard shard) {
+    public GATKSAMIterator seek(Shard shard) {
         if(shard.buffersReads()) {
             return shard.iterator();
         }
@@ -524,7 +524,7 @@ public class SAMDataSource {
             if(readers.getReader(id) == read.getFileSource().getReader())
                 return id;
         }
-        throw new ReviewedStingException("Unable to find id for reader associated with read " + read.getReadName());
+        throw new ReviewedGATKException("Unable to find id for reader associated with read " + read.getReadName());
     }
 
     /**
@@ -550,7 +550,7 @@ public class SAMDataSource {
      * @param shard The shard specifying the data limits.
      * @return An iterator over the selected data.
      */
-    protected StingSAMIterator getIterator( Shard shard ) {
+    protected GATKSAMIterator getIterator( Shard shard ) {
         return getIterator(resourcePool.getAvailableReaders(), shard, shard instanceof ReadShard);
     }
 
@@ -561,7 +561,7 @@ public class SAMDataSource {
      * @param enableVerification True to verify.  For compatibility with old sharding strategy.
      * @return An iterator over the selected data.
      */
-    private StingSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
+    private GATKSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
         // Set up merging to dynamically merge together multiple BAMs.
         Map<SAMFileReader,CloseableIterator<SAMRecord>> iteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
 
@@ -571,7 +571,7 @@ public class SAMDataSource {
             // TODO: null used to be the signal for unmapped, but we've replaced that with a simple index query for the last bin.
             // TODO: Kill this check once we've proven that the design elements are gone.
             if(shard.getFileSpans().get(id) == null)
-                throw new ReviewedStingException("SAMDataSource: received null location for reader " + id + ", but null locations are no longer supported.");
+                throw new ReviewedGATKException("SAMDataSource: received null location for reader " + id + ", but null locations are no longer supported.");
 
             try {
                 if(threadAllocation.getNumIOThreads() > 0) {
@@ -603,7 +603,7 @@ public class SAMDataSource {
         return applyDecoratingIterators(readMetrics,
                 enableVerification,
                 readProperties.useOriginalBaseQualities(),
-                new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
+                new ReleasingIterator(readers,GATKSAMIteratorAdapter.adapt(mergingIterator)),
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
                 readProperties.getReadTransformers(),
@@ -667,10 +667,10 @@ public class SAMDataSource {
      * @param isLocusBasedTraversal true if we're dealing with a read stream from a LocusShard
      * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
      */
-    protected StingSAMIterator applyDecoratingIterators(ReadMetrics readMetrics,
+    protected GATKSAMIterator applyDecoratingIterators(ReadMetrics readMetrics,
                                                         boolean enableVerification,
                                                         boolean useOriginalBaseQualities,
-                                                        StingSAMIterator wrappedIterator,
+                                                        GATKSAMIterator wrappedIterator,
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<ReadFilter> supplementalFilters,
                                                         List<ReadTransformer> readTransformers,
@@ -686,7 +686,7 @@ public class SAMDataSource {
 
         // Read Filters: these are applied BEFORE downsampling, so that we downsample within the set of reads
         // that actually survive filtering. Otherwise we could get much less coverage than requested.
-        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
+        wrappedIterator = GATKSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
         // Downsampling:
 
@@ -719,7 +719,7 @@ public class SAMDataSource {
         return wrappedIterator;
     }
 
-    protected StingSAMIterator applyDownsamplingIterator( StingSAMIterator wrappedIterator ) {
+    protected GATKSAMIterator applyDownsamplingIterator( GATKSAMIterator wrappedIterator ) {
         if ( readProperties.getDownsamplingMethod() == null ||
              readProperties.getDownsamplingMethod().type == DownsampleType.NONE ) {
             return wrappedIterator;
@@ -791,7 +791,7 @@ public class SAMDataSource {
 
         public synchronized void releaseReaders(SAMReaders readers) {
             if(!allResources.contains(readers))
-                throw new ReviewedStingException("Tried to return readers from the pool that didn't originate in the pool.");
+                throw new ReviewedGATKException("Tried to return readers from the pool that didn't originate in the pool.");
             availableResources.add(readers);
         }
 
@@ -806,12 +806,12 @@ public class SAMDataSource {
                 if(id != null)
                     return id;
             }
-            throw new ReviewedStingException("No such reader id is available");
+            throw new ReviewedGATKException("No such reader id is available");
         }
 
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
-                throw new ReviewedStingException("Cannot create a new resource pool.  All resources are in use.");
+                throw new ReviewedGATKException("Cannot create a new resource pool.  All resources are in use.");
             SAMReaders readers = new SAMReaders(readerIDs, validationStringency, removeProgramRecords);
             allResources.add(readers);
             availableResources.add(readers);
@@ -1087,7 +1087,7 @@ public class SAMDataSource {
         }
     }
 
-    private class ReleasingIterator implements StingSAMIterator {
+    private class ReleasingIterator implements GATKSAMIterator {
         /**
          * The resource acting as the source of the data.
          */
@@ -1096,9 +1096,9 @@ public class SAMDataSource {
         /**
          * The iterator to wrap.
          */
-        private final StingSAMIterator wrappedIterator;
+        private final GATKSAMIterator wrappedIterator;
 
-        public ReleasingIterator(SAMReaders resource, StingSAMIterator wrapped) {
+        public ReleasingIterator(SAMReaders resource, GATKSAMIterator wrapped) {
             this.resource = resource;
             this.wrappedIterator = wrapped;
         }
@@ -1108,7 +1108,7 @@ public class SAMDataSource {
         }
 
         public void remove() {
-            throw new UnsupportedOperationException("Can't remove from a StingSAMIterator");
+            throw new UnsupportedOperationException("Can't remove from a GATKSAMIterator");
         }
 
         public void close() {
@@ -1146,16 +1146,16 @@ public class SAMDataSource {
             indexFile = (File)indexFileLocator.invoke(null,bamFile);
         }
         catch(ClassNotFoundException ex) {
-            throw new ReviewedStingException("Unable to locate BAMFileReader class, used to check for index files");
+            throw new ReviewedGATKException("Unable to locate BAMFileReader class, used to check for index files");
         }
         catch(NoSuchMethodException ex) {
-            throw new ReviewedStingException("Unable to locate Picard index file locator.");
+            throw new ReviewedGATKException("Unable to locate Picard index file locator.");
         }
         catch(IllegalAccessException ex) {
-            throw new ReviewedStingException("Unable to access Picard index file locator.");
+            throw new ReviewedGATKException("Unable to access Picard index file locator.");
         }
         catch(InvocationTargetException ex) {
-            throw new ReviewedStingException("Unable to invoke Picard index file locator.");
+            throw new ReviewedGATKException("Unable to invoke Picard index file locator.");
         }
 
         return indexFile;
@@ -1191,7 +1191,7 @@ public class SAMDataSource {
      */
     public Iterable<Shard> createShardIteratorOverIntervals(final GenomeLocSortedSet intervals,final ShardBalancer shardBalancer) {
         if(intervals == null)
-            throw new ReviewedStingException("Unable to create schedule from intervals; no intervals were provided.");
+            throw new ReviewedGATKException("Unable to create schedule from intervals; no intervals were provided.");
         shardBalancer.initialize(this,IntervalSharder.shardOverIntervals(SAMDataSource.this,intervals,intervalMergingRule),genomeLocParser);
         return shardBalancer;
     }

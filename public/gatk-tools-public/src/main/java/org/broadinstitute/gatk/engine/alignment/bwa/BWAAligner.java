@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.gatk.engine.alignment.bwa;
 
-import org.broadinstitute.sting.alignment.Aligner;
+import org.broadinstitute.gatk.engine.alignment.Aligner;
 
 /**
  * Align reads using BWA.

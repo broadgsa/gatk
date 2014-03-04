@@ -3,25 +3,25 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-aggregator</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-aggregator</artifactId>
         <version>3.2-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
-    <artifactId>gatk-queue-extgen</artifactId>
+    <artifactId>gatk-queue-extensions-generator</artifactId>
     <packaging>jar</packaging>
-    <name>Queue GATK ExtGen</name>
-    <description>Queue GATK Extensions Generator</description>
+    <name>GATK Queue Extensions Generator</name>
+    <description>GATK Queue Extensions Generator</description>
 
     <properties>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-framework</artifactId>
+            <artifactId>gatk-tools-public</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

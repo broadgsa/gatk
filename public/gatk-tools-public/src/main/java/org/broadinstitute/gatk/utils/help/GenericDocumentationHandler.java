@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -33,17 +33,17 @@ import com.sun.javadoc.Tag;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -139,7 +139,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         for (final Class extraDocClass : toProcess.annotation.extraDocs()) {
             final GATKDocWorkUnit otherUnit = getDoclet().findWorkUnitForClass(extraDocClass);
             if (otherUnit == null)
-                throw new ReviewedStingException("Requested extraDocs for class without any documentation: " + extraDocClass);
+                throw new ReviewedGATKException("Requested extraDocs for class without any documentation: " + extraDocClass);
             extraDocsData.add(
                     new HashMap<String, Object>() {{
                         put("filename", otherUnit.filename);
@@ -250,7 +250,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             if (argumentSource.createsTypeDefault()) {
                 try { // handle the case where there's an implicit default
                     return argumentSource.typeDefaultDocString();
-                } catch (ReviewedStingException e) {
+                } catch (ReviewedGATKException e) {
                     ; // failed to create type default, don't worry about it
                 }
             }
@@ -733,7 +733,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             if (field.isAnnotationPresent(ArgumentCollection.class)) {
                 ClassDoc typeDoc = getRootDoc().classNamed(fieldDoc.type().qualifiedTypeName());
                 if (typeDoc == null)
-                    throw new ReviewedStingException("Tried to get javadocs for ArgumentCollection field " + fieldDoc + " but could't find the class in the RootDoc");
+                    throw new ReviewedGATKException("Tried to get javadocs for ArgumentCollection field " + fieldDoc + " but could't find the class in the RootDoc");
                 else {
                     FieldDoc result = getFieldDoc(typeDoc, name, false);
                     if (result != null)
@@ -804,7 +804,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         } else if (type instanceof Class<?>) {
             return ((Class) type).getSimpleName();
         } else {
-            throw new StingException("Unknown type: " + type);
+            throw new GATKException("Unknown type: " + type);
         }
     }
 

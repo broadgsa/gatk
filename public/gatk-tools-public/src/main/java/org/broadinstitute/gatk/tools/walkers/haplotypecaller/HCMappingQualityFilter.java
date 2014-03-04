@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.haplotypecaller;
+package org.broadinstitute.gatk.tools.walkers.haplotypecaller;
 
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
 
 /**
  * Filter out reads with low mapping qualities.

@@ -23,12 +23,12 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 

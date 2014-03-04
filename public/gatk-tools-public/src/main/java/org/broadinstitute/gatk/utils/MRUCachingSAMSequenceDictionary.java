@@ -23,13 +23,13 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 /**
  * A wrapper class that provides efficient most recently used caching for the global
@@ -97,7 +97,7 @@ final class MRUCachingSAMSequenceDictionary {
      * Same as SAMSequenceDictionary.getSequence but uses a MRU cache for efficiency
      *
      * @param contig the contig name we want to get the sequence record of
-     * @throws ReviewedStingException if contig isn't present in the dictionary
+     * @throws ReviewedGATKException if contig isn't present in the dictionary
      * @return the sequence record for contig
      */
     @Requires("contig != null")
@@ -113,7 +113,7 @@ final class MRUCachingSAMSequenceDictionary {
      * Same as SAMSequenceDictionary.getSequence but uses a MRU cache for efficiency
      *
      * @param index the contig index we want to get the sequence record of
-     * @throws ReviewedStingException if contig isn't present in the dictionary
+     * @throws ReviewedGATKException if contig isn't present in the dictionary
      * @return the sequence record for contig
      */
     @Requires("index >= 0")
@@ -129,7 +129,7 @@ final class MRUCachingSAMSequenceDictionary {
      * Same as SAMSequenceDictionary.getSequenceIndex but uses a MRU cache for efficiency
      *
      * @param contig the contig we want to get the sequence record of
-     * @throws ReviewedStingException if index isn't present in the dictionary
+     * @throws ReviewedGATKException if index isn't present in the dictionary
      * @return the sequence record index for contig
      */
     @Requires("contig != null")
@@ -167,7 +167,7 @@ final class MRUCachingSAMSequenceDictionary {
      *
      * @param contig the contig we want to look up.  If null, index is used instead
      * @param index the contig index we want to look up.  Only used if contig is null
-     * @throws ReviewedStingException if index isn't present in the dictionary
+     * @throws ReviewedGATKException if index isn't present in the dictionary
      * @return the SAMSequenceRecord for contig / index
      */
     @Requires("contig != null || index >= 0")
@@ -175,7 +175,7 @@ final class MRUCachingSAMSequenceDictionary {
     private SAMSequenceRecord updateCache(final String contig, int index ) {
         SAMSequenceRecord rec = contig == null ? dict.getSequence(index) : dict.getSequence(contig);
         if ( rec == null ) {
-            throw new ReviewedStingException("BUG: requested unknown contig=" + contig + " index=" + index);
+            throw new ReviewedGATKException("BUG: requested unknown contig=" + contig + " index=" + index);
         } else {
             lastSSR = rec;
             lastContig = rec.getSequenceName();

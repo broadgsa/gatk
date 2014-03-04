@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.tools;
+package org.broadinstitute.gatk.tools;
 
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.help.HelpUtils;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.help.HelpUtils;
 
 /**
  * Utility program to print a list of available annotations
@@ -43,7 +43,7 @@ import org.broadinstitute.sting.utils.help.HelpUtils;
  * classic "CommandLineGATK" arguments.</p>
  *
  * <h3>Usage</h3>
- * <pre>java -cp GenomeAnalysisTK.jar org.broadinstitute.sting.tools.ListAnnotations</pre>
+ * <pre>java -cp GenomeAnalysisTK.jar org.broadinstitute.gatk.tools.ListAnnotations</pre>
  *
  * @author vdauwera
  * @since 3/14/13
@@ -57,7 +57,7 @@ public class ListAnnotations extends CommandLineProgram {
      * TODO: would be more convenient if we could just call the program by name instead of the full classpath
      */
     private static void printUsage() {
-        System.err.println("Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.ListAnnotations");
+        System.err.println("Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.gatk.tools.ListAnnotations");
         System.err.println("    Prints a list of available annotations and exits.");
     }
 

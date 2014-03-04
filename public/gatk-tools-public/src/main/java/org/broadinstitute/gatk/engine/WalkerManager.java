@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.gatk.engine;
 
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.filters.FilterManager;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.commandline.Hidden;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
+import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.engine.filters.FilterManager;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.help.ResourceBundleExtractorDoclet;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.lang.annotation.Annotation;
 import java.util.*;
@@ -53,7 +53,7 @@ public class WalkerManager extends PluginManager<Walker> {
 
     public WalkerManager() {
         super(Walker.class,"walker","");
-        helpText = TextFormattingUtils.loadResourceBundle("StingText");
+        helpText = TextFormattingUtils.loadResourceBundle("GATKText");
     }
 
     /**
@@ -161,7 +161,7 @@ public class WalkerManager extends PluginManager<Walker> {
     public static DataSource getWalkerDataSource(Class<? extends Walker> walkerClass) {
         By byDataSource = walkerClass.getAnnotation(By.class);
         if( byDataSource == null )
-            throw new ReviewedStingException("Unable to find By annotation for walker class " + walkerClass.getName());
+            throw new ReviewedGATKException("Unable to find By annotation for walker class " + walkerClass.getName());
         return byDataSource.value();
     }
 
@@ -368,7 +368,7 @@ public class WalkerManager extends PluginManager<Walker> {
     private static Requires getWalkerRequirements(Class<? extends Walker> walkerClass) {
         Requires requiresDataSource = walkerClass.getAnnotation(Requires.class);
         if( requiresDataSource == null )
-            throw new ReviewedStingException( "Unable to find data types required by walker class " + walkerClass.getName());
+            throw new ReviewedGATKException( "Unable to find data types required by walker class " + walkerClass.getName());
         return requiresDataSource;
     }
 

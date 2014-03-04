@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue;
+package org.broadinstitute.gatk.queue;
 
 /**
- * Generates the Queue version in the StingText.properties by working around http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4492654
+ * Generates the Queue version in the GATKText.properties by working around http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4492654
  */
 public class QueueVersion {
 }

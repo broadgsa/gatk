@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
@@ -52,17 +52,17 @@ import java.util.Iterator;
  * @version 1.0
  * @date May 13, 2009
  * <p/>
- * Class StingSAMIteratorAdapter
+ * Class GATKSAMIteratorAdapter
  * <p/>
- * This class adapts other SAMRecord iterators to the StingSAMIterator
+ * This class adapts other SAMRecord iterators to the GATKSAMIterator
  */
-public class StingSAMIteratorAdapter {  
+public class GATKSAMIteratorAdapter {  
 
-    public static StingSAMIterator adapt(Iterator<SAMRecord> iter) {
+    public static GATKSAMIterator adapt(Iterator<SAMRecord> iter) {
         return new PrivateStringSAMIterator(iter);
     }
 
-    public static StingSAMIterator adapt(CloseableIterator<SAMRecord> iter) {
+    public static GATKSAMIterator adapt(CloseableIterator<SAMRecord> iter) {
         return new PrivateStringSAMCloseableIterator(iter);
     }
 
@@ -70,10 +70,10 @@ public class StingSAMIteratorAdapter {
 
 
 /**
- * this class wraps iterators<SAMRecord> in a StingSAMIterator, which means just adding the
+ * this class wraps iterators<SAMRecord> in a GATKSAMIterator, which means just adding the
  * methods that implement the iterable<> interface and the close() method from CloseableIterator
  */
-class PrivateStringSAMIterator implements StingSAMIterator {
+class PrivateStringSAMIterator implements GATKSAMIterator {
     private Iterator<SAMRecord> iter = null;
 
     PrivateStringSAMIterator(Iterator<SAMRecord> iter) {
@@ -93,7 +93,7 @@ class PrivateStringSAMIterator implements StingSAMIterator {
     }
 
     public void remove() {
-        throw new UnsupportedOperationException("StingSAMIterator's don't allow remove()ing");
+        throw new UnsupportedOperationException("GATKSAMIterator's don't allow remove()ing");
     }
 
     public Iterator<SAMRecord> iterator() {
@@ -103,10 +103,10 @@ class PrivateStringSAMIterator implements StingSAMIterator {
 
 
 /**
- * this class wraps closeable iterators<SAMRecord> in a StingSAMIterator, which means adding the
+ * this class wraps closeable iterators<SAMRecord> in a GATKSAMIterator, which means adding the
  * methods that implement the iterable<> interface.
  */
-class PrivateStringSAMCloseableIterator implements StingSAMIterator {
+class PrivateStringSAMCloseableIterator implements GATKSAMIterator {
     private CloseableIterator<SAMRecord> iter = null;
 
     PrivateStringSAMCloseableIterator(CloseableIterator<SAMRecord> iter) {
@@ -126,7 +126,7 @@ class PrivateStringSAMCloseableIterator implements StingSAMIterator {
     }
 
     public void remove() {
-        throw new UnsupportedOperationException("StingSAMIterator's don't allow remove()ing");
+        throw new UnsupportedOperationException("GATKSAMIterator's don't allow remove()ing");
     }
 
     public Iterator<SAMRecord> iterator() {

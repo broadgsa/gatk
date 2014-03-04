@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.Bin;
 import htsjdk.samtools.GATKBin;
@@ -31,8 +31,8 @@ import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.LinearIndex;
 import htsjdk.samtools.seekablestream.SeekableBufferedStream;
 import htsjdk.samtools.seekablestream.SeekableFileStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,7 +98,7 @@ public class GATKBAMIndex {
         seek(0);
         final byte[] buffer = readBytes(4);
         if (!Arrays.equals(buffer, BAM_INDEX_MAGIC)) {
-            throw new ReviewedStingException("Invalid file header in BAM index " + mFile +
+            throw new ReviewedGATKException("Invalid file header in BAM index " + mFile +
                                        ": " + new String(buffer));
         }
 
@@ -122,7 +122,7 @@ public class GATKBAMIndex {
         openIndexFile();
 
         if (referenceSequence >= sequenceCount)
-            throw new ReviewedStingException("Invalid sequence number " + referenceSequence + " in index file " + mFile);
+            throw new ReviewedGATKException("Invalid sequence number " + referenceSequence + " in index file " + mFile);
 
         skipToSequence(referenceSequence);
 
@@ -193,12 +193,12 @@ public class GATKBAMIndex {
     public int getLevelForBin(final Bin bin) {
         GATKBin gatkBin = new GATKBin(bin);
         if(gatkBin.getBinNumber() >= MAX_BINS)
-            throw new ReviewedStingException("Tried to get level for invalid bin in index file " + mFile);
+            throw new ReviewedGATKException("Tried to get level for invalid bin in index file " + mFile);
         for(int i = getNumIndexLevels()-1; i >= 0; i--) {
             if(gatkBin.getBinNumber() >= LEVEL_STARTS[i])
                 return i;
         }
-        throw new ReviewedStingException("Unable to find correct bin for bin " + bin + " in index file " + mFile);
+        throw new ReviewedGATKException("Unable to find correct bin for bin " + bin + " in index file " + mFile);
     }
 
     /**
@@ -312,7 +312,7 @@ public class GATKBAMIndex {
             fileLength=bufferedStream.length();
         }
         catch (IOException exc) {
-            throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
+            throw new ReviewedGATKException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
         }
     }
 
@@ -323,7 +323,7 @@ public class GATKBAMIndex {
             fileLength = -1;
         }
         catch (IOException exc) {
-            throw new ReviewedStingException("Unable to close index file " + mFile, exc);
+            throw new ReviewedGATKException("Unable to close index file " + mFile, exc);
         }
     }
 
@@ -403,7 +403,7 @@ public class GATKBAMIndex {
             buffer.put(byteArray, 0, bytesRequested);
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Index: unable to read bytes from index file " + mFile);
+            throw new ReviewedGATKException("Index: unable to read bytes from index file " + mFile);
         }
     }
 
@@ -435,11 +435,11 @@ public class GATKBAMIndex {
             long skipped =  bufferedStream.skip(count);
 
             if( skipped != count ) { //if not managed to skip the requested amount
-		throw new ReviewedStingException("Index: unable to reposition file channel of index file " + mFile);
+		throw new ReviewedGATKException("Index: unable to reposition file channel of index file " + mFile);
             }
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Index: unable to reposition file channel of index file " + mFile);
+            throw new ReviewedGATKException("Index: unable to reposition file channel of index file " + mFile);
         }
     }
 
@@ -449,7 +449,7 @@ public class GATKBAMIndex {
             bufferedStream.seek(position);
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Index: unable to reposition of file channel of index file " + mFile);
+            throw new ReviewedGATKException("Index: unable to reposition of file channel of index file " + mFile);
         }
     }
 
@@ -462,7 +462,7 @@ public class GATKBAMIndex {
             return bufferedStream.position();
         }
         catch (IOException exc) {
-            throw new ReviewedStingException("Unable to read position from index file " + mFile, exc);
+            throw new ReviewedGATKException("Unable to read position from index file " + mFile, exc);
         }
     }
 }

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.gatk.queue.QException
 import java.lang.Class
-import org.broadinstitute.sting.commandline.{ArgumentMatches, ArgumentSource, ArgumentTypeDescriptor, ParsingEngine}
-import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.gatk.utils.commandline.{ArgumentMatches, ArgumentSource, ArgumentTypeDescriptor, ParsingEngine}
+import org.broadinstitute.gatk.utils.exceptions.UserException
 import java.lang.reflect.Type
 
 /**

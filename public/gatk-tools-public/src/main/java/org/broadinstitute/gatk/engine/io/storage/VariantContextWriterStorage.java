@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.storage;
+package org.broadinstitute.gatk.engine.io.storage;
 
 import htsjdk.samtools.util.BlockCompressedOutputStream;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
-import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.io.stubs.VariantContextWriterStub;
+import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.bcf2.BCF2Utils;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
@@ -86,7 +86,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
                     stub.getMasterSequenceDictionary(), stub.getWriterOptions(false));
         }
         else
-            throw new ReviewedStingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
+            throw new ReviewedGATKException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
     }
 
     /**
@@ -178,7 +178,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
     }
 
     public void add(VariantContext vc) {
-        if ( closed ) throw new ReviewedStingException("Attempting to write to a closed VariantContextWriterStorage " + vc.getStart() + " storage=" + this);
+        if ( closed ) throw new ReviewedGATKException("Attempting to write to a closed VariantContextWriterStorage " + vc.getStart() + " storage=" + this);
         writer.add(vc);
     }
 
@@ -202,7 +202,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
     public void mergeInto(VariantContextWriterStorage target) {
         try {
             if ( ! closed )
-                throw new ReviewedStingException("Writer not closed, but we are merging into the file!");
+                throw new ReviewedGATKException("Writer not closed, but we are merging into the file!");
             final String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
             logger.debug(String.format("Merging VariantContextWriterStorage from %s into %s", file.getAbsolutePath(), targetFilePath));
 

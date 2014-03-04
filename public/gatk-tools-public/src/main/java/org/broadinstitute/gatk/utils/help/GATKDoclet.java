@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
@@ -35,11 +35,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.FeatureCodec;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.walkers.qc.DocumentationTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.tools.walkers.qc.DocumentationTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.*;
 import java.util.*;
@@ -295,7 +295,7 @@ public class GATKDoclet {
             if (clazz != null && testOnly && !testOnlyKeepers.contains(clazz))
                 continue;
 
-            //if ( clazz != null && clazz.getName().equals("org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance"))
+            //if ( clazz != null && clazz.getName().equals("org.broadinstitute.gatk.tools.walkers.annotator.AlleleBalance"))
             //    logger.debug("foo");
 
             DocumentedGATKFeatureObject feature = getFeatureForClassDoc(doc);
@@ -399,7 +399,7 @@ public class GATKDoclet {
             temp.process(groupIndexData(indexData), out);
             out.flush();
         } catch (TemplateException e) {
-            throw new ReviewedStingException("Failed to create GATK documentation", e);
+            throw new ReviewedGATKException("Failed to create GATK documentation", e);
         }
     }
 
@@ -520,7 +520,7 @@ public class GATKDoclet {
             temp.process(unit.forTemplate, out);
             out.flush();
         } catch (TemplateException e) {
-            throw new ReviewedStingException("Failed to create GATK documentation", e);
+            throw new ReviewedGATKException("Failed to create GATK documentation", e);
         }
     }
 

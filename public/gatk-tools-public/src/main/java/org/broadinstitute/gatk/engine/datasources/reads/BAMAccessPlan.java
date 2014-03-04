@@ -23,12 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.util.BlockCompressedFilePointerUtil;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.LinkedList;
 import java.util.List;

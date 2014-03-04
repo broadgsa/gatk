@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.recalibration;
+package org.broadinstitute.gatk.utils.recalibration;
 
 public enum EventType {
     BASE_SUBSTITUTION("M", "Base Substitution"),

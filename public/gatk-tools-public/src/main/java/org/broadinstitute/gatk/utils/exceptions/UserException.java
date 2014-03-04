@@ -23,30 +23,30 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.exceptions;
+package org.broadinstitute.gatk.utils.exceptions;
 
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.io.File;
 
 /**
- * Represents the common user errors detected by Sting / GATK
+ * Represents the common user errors detected by GATK
  *
  * Root class for all GATK user errors, as well as the container for errors themselves
  */
 @DocumentedGATKFeature(
         groupName = HelpConstants.DOCS_CAT_USRERR,
         summary = "Errors caused by incorrect user behavior, such as bad files, bad arguments, etc." )
-public class UserException extends ReviewedStingException {
+public class UserException extends ReviewedGATKException {
     /**
      * The URL where people can get help messages.  Printed when an error occurs
      */

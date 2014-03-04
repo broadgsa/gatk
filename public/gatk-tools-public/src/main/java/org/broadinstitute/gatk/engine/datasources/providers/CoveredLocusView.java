@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
 /**
  * User: hanna
  * Date: May 12, 2009

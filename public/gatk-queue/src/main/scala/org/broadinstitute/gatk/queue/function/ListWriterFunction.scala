@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function
+package org.broadinstitute.gatk.queue.function
 
-import org.broadinstitute.sting.commandline.{Input, Output}
+import org.broadinstitute.gatk.utils.commandline.{Input, Output}
 import java.io.{PrintWriter, File}
 import org.apache.commons.io.IOUtils
 

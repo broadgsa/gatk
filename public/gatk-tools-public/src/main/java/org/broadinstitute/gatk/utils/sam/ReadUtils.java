@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.*;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.*;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -480,7 +480,7 @@ public class ReadUtils {
             if (allowGoalNotReached) {
                 return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
             } else {
-                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+                throw new ReviewedGATKException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
             }
         }
         boolean goalReached = refBases == goal;
@@ -513,7 +513,7 @@ public class ReadUtils {
                     if (allowGoalNotReached) {
                         return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
                     } else {
-                        throw new ReviewedStingException(String.format("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- check read with alignment start: %s  and cigar: %s", alignmentStart, cigar));
+                        throw new ReviewedGATKException(String.format("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- check read with alignment start: %s  and cigar: %s", alignmentStart, cigar));
                     }
                 }
 
@@ -534,7 +534,7 @@ public class ReadUtils {
                             if (allowGoalNotReached) {
                                 return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
                             } else {
-                                throw new ReviewedStingException(String.format("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- check read with alignment start: %s  and cigar: %s", alignmentStart, cigar));
+                                throw new ReviewedGATKException(String.format("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- check read with alignment start: %s  and cigar: %s", alignmentStart, cigar));
                             }
                         }
 
@@ -570,7 +570,7 @@ public class ReadUtils {
             if (allowGoalNotReached) {
                 return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
             } else {
-                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Alignment " + alignmentStart + " | " + cigar);
+                throw new ReviewedGATKException("Somehow the requested coordinate is not covered by the read. Alignment " + alignmentStart + " | " + cigar);
             }
         }
 
@@ -795,7 +795,7 @@ public class ReadUtils {
                     bases[i] = 'N';
                     break;
                 default:
-                    throw new ReviewedStingException("Something went wrong, this is just impossible");
+                    throw new ReviewedGATKException("Something went wrong, this is just impossible");
             }
         }
         return bases;
@@ -829,7 +829,7 @@ public class ReadUtils {
      */
     public static long getReferenceCoordinateForReadCoordinate(GATKSAMRecord read, int offset) {
         if (offset > read.getReadLength()) 
-            throw new ReviewedStingException(String.format(OFFSET_OUT_OF_BOUNDS_EXCEPTION, offset, read.getReadLength()));
+            throw new ReviewedGATKException(String.format(OFFSET_OUT_OF_BOUNDS_EXCEPTION, offset, read.getReadLength()));
 
         long location = read.getAlignmentStart();
         Iterator<CigarElement> cigarElementIterator = read.getCigar().getCigarElements().iterator();
@@ -842,7 +842,7 @@ public class ReadUtils {
             offset -= move;
         }
         if (offset > 0 && !cigarElementIterator.hasNext()) 
-            throw new ReviewedStingException(OFFSET_NOT_ZERO_EXCEPTION);
+            throw new ReviewedGATKException(OFFSET_NOT_ZERO_EXCEPTION);
 
         return location;
     }

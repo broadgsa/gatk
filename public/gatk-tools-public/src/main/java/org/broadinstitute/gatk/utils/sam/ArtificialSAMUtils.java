@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;
 
 import java.io.File;
 import java.util.*;
@@ -163,7 +163,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMFileHeader createEnumeratedReadGroups(SAMFileHeader header, List<String> readGroupIDs, List<String> sampleNames) {
         if (readGroupIDs.size() != sampleNames.size()) {
-            throw new ReviewedStingException("read group count and sample name count must be the same");
+            throw new ReviewedGATKException("read group count and sample name count must be the same");
         }
 
         List<SAMReadGroupRecord> readGroups = new ArrayList<SAMReadGroupRecord>();
@@ -192,7 +192,7 @@ public class ArtificialSAMUtils {
     public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, int length) {
         if ((refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
                 (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START))
-            throw new ReviewedStingException("Invalid alignment start for artificial read, start = " + alignmentStart);
+            throw new ReviewedGATKException("Invalid alignment start for artificial read, start = " + alignmentStart);
         GATKSAMRecord record = new GATKSAMRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
@@ -230,7 +230,7 @@ public class ArtificialSAMUtils {
      */
     public static GATKSAMRecord createArtificialRead(SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual) {
         if (bases.length != qual.length) {
-            throw new ReviewedStingException("Passed in read string is different length then the quality array");
+            throw new ReviewedGATKException("Passed in read string is different length then the quality array");
         }
         GATKSAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);
@@ -354,9 +354,9 @@ public class ArtificialSAMUtils {
      * @param startingChr the chromosome (reference ID) to start from
      * @param endingChr   the id to end with
      * @param readCount   the number of reads per chromosome
-     * @return StingSAMIterator representing the specified amount of fake data
+     * @return GATKSAMIterator representing the specified amount of fake data
      */
-    public static StingSAMIterator mappedReadIterator(int startingChr, int endingChr, int readCount) {
+    public static GATKSAMIterator mappedReadIterator(int startingChr, int endingChr, int readCount) {
         SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, 0, header);
@@ -369,9 +369,9 @@ public class ArtificialSAMUtils {
      * @param endingChr         the id to end with
      * @param readCount         the number of reads per chromosome
      * @param unmappedReadCount the count of unmapped reads to place at the end of the iterator, like in a sorted bam file
-     * @return StingSAMIterator representing the specified amount of fake data
+     * @return GATKSAMIterator representing the specified amount of fake data
      */
-    public static StingSAMIterator mappedAndUnmappedReadIterator(int startingChr, int endingChr, int readCount, int unmappedReadCount) {
+    public static GATKSAMIterator mappedAndUnmappedReadIterator(int startingChr, int endingChr, int readCount, int unmappedReadCount) {
         SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
@@ -383,7 +383,7 @@ public class ArtificialSAMUtils {
      * @param startingChr the chromosome (reference ID) to start from
      * @param endingChr   the id to end with
      * @param readCount   the number of reads per chromosome
-     * @return StingSAMIterator representing the specified amount of fake data
+     * @return GATKSAMIterator representing the specified amount of fake data
      */
     public static ArtificialSAMQueryIterator queryReadIterator(int startingChr, int endingChr, int readCount) {
         SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
@@ -398,9 +398,9 @@ public class ArtificialSAMUtils {
      * @param endingChr         the id to end with
      * @param readCount         the number of reads per chromosome
      * @param unmappedReadCount the count of unmapped reads to place at the end of the iterator, like in a sorted bam file
-     * @return StingSAMIterator representing the specified amount of fake data
+     * @return GATKSAMIterator representing the specified amount of fake data
      */
-    public static StingSAMIterator queryReadIterator(int startingChr, int endingChr, int readCount, int unmappedReadCount) {
+    public static GATKSAMIterator queryReadIterator(int startingChr, int endingChr, int readCount, int unmappedReadCount) {
         SAMFileHeader header = createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 
         return new ArtificialSAMQueryIterator(startingChr, endingChr, readCount, unmappedReadCount, header);
@@ -412,7 +412,7 @@ public class ArtificialSAMUtils {
      * @param reads the reads
      * @return iterator for the reads
      */
-    public static StingSAMIterator createReadIterator(SAMRecord... reads) {
+    public static GATKSAMIterator createReadIterator(SAMRecord... reads) {
         return createReadIterator(Arrays.asList(reads));
     }
 
@@ -422,9 +422,9 @@ public class ArtificialSAMUtils {
      * @param reads the reads
      * @return iterator for the reads
      */
-    public static StingSAMIterator createReadIterator(List<SAMRecord> reads) {
+    public static GATKSAMIterator createReadIterator(List<SAMRecord> reads) {
         final Iterator<SAMRecord> iter = reads.iterator();
-        return new StingSAMIterator() {
+        return new GATKSAMIterator() {
             @Override public void close() {}
             @Override public Iterator<SAMRecord> iterator() { return iter; }
             @Override public boolean hasNext() { return iter.hasNext(); }

@@ -3,26 +3,26 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-root</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-root</artifactId>
         <version>3.2-SNAPSHOT</version>
-        <relativePath>../../public/sting-root</relativePath>
+        <relativePath>../../public/gatk-root</relativePath>
     </parent>
 
     <artifactId>VectorPairHMM</artifactId>
     <packaging>pom</packaging>
     <name>Vectorized PairHMM native libraries</name>
 
-    <description>Builds a GNU/Linux x86_64 library of VectorPairHMM using icc (Intel C++ compiler). During install, copies it into sting-utils. Neither tested nor expected to work on any other platform.</description>
+    <description>Builds a GNU/Linux x86_64 library of VectorPairHMM using icc (Intel C++ compiler). During install, copies it into gatk-utils. Neither tested nor expected to work on any other platform.</description>
 
     <properties>
         <sourceEncoding>UTF-8</sourceEncoding>
         <project.build.sourceEncoding>${sourceEncoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${sourceEncoding}</project.reporting.outputEncoding>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
-        <sting-utils.basedir>${sting.basedir}/public/sting-utils</sting-utils.basedir>
-        <!-- Where to place the library in sting-utils -->
-        <pairhmm.resources.directory>${sting-utils.basedir}/src/main/resources/org/broadinstitute/sting/utils/pairhmm</pairhmm.resources.directory>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk-utils.basedir>${gatk.basedir}/public/gatk-utils</gatk-utils.basedir>
+        <!-- Where to place the library in gatk-utils -->
+        <pairhmm.resources.directory>${gatk-utils.basedir}/src/main/resources/org/broadinstitute/gatk/utils/pairhmm</pairhmm.resources.directory>
     </properties>
     <build>
         <plugins>
@@ -76,7 +76,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Copy the built library into sting-utils -->
+            <!-- Copy the built library into gatk-utils -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -102,7 +102,7 @@
                 </executions>
             </plugin>
 
-            <!-- pom.xml cleanup, always sort according to the definitions in sting-root -->
+            <!-- pom.xml cleanup, always sort according to the definitions in gatk-root -->
             <plugin>
                 <groupId>com.google.code.sortpom</groupId>
                 <artifactId>maven-sortpom-plugin</artifactId>

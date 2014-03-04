@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.beagle;
+package org.broadinstitute.gatk.utils.codecs.beagle;
 
 import htsjdk.tribble.Feature;
 import htsjdk.variant.variantcontext.Allele;

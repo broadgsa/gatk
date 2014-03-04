@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
 /**
  * Models a block of bases within the BWT.

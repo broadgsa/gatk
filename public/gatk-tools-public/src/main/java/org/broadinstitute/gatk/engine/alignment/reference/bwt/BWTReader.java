@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
-import org.broadinstitute.sting.alignment.reference.packing.BasePackedInputStream;
-import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
-import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedInputStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.BasePackedInputStream;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.PackUtils;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.UnsignedIntPackedInputStream;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,7 +56,7 @@ public class BWTReader {
             this.inputStream = new FileInputStream(inputFile);
         }
         catch( FileNotFoundException ex ) {
-            throw new ReviewedStingException("Unable to open input file", ex);
+            throw new ReviewedGATKException("Unable to open input file", ex);
         }
     }
 
@@ -94,7 +94,7 @@ public class BWTReader {
             }
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to read BWT from input stream.", ex);
+            throw new ReviewedGATKException("Unable to read BWT from input stream.", ex);
         }
 
         return new BWT(inverseSA0, new Counts(count,true), sequenceBlocks);
@@ -108,7 +108,7 @@ public class BWTReader {
             inputStream.close();
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to close input file", ex);
+            throw new ReviewedGATKException("Unable to close input file", ex);
         }
     }
 }

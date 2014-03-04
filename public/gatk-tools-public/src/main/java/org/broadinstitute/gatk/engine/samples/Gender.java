@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.samples;
+package org.broadinstitute.gatk.engine.samples;
 
 /**
 * ENUM of possible human genders: male, female, or unknown

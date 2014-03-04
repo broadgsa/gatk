@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment;
+package org.broadinstitute.gatk.engine.alignment;
 
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 /**
  * Represents an alignment of a read to a site in the reference genome.
@@ -214,7 +214,7 @@ public class Alignment {
             read = (SAMRecord)unmappedRead.clone();
         }
         catch(CloneNotSupportedException ex) {
-            throw new ReviewedStingException("Unable to create aligned read from template.");
+            throw new ReviewedGATKException("Unable to create aligned read from template.");
         }
 
         if(newSAMHeader != null)

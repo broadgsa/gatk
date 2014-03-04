@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
-import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedOutputStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.UnsignedIntPackedOutputStream;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.*;
 import java.nio.ByteOrder;
@@ -52,7 +52,7 @@ public class SuffixArrayWriter {
             this.outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
         }
         catch( FileNotFoundException ex ) {
-            throw new ReviewedStingException("Unable to open input file", ex);
+            throw new ReviewedGATKException("Unable to open input file", ex);
         }
     }
 
@@ -73,7 +73,7 @@ public class SuffixArrayWriter {
             uintPackedOutputStream.write(suffixArray.sequence,1,suffixArray.sequence.length-1);
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to read BWT from input stream.", ex);
+            throw new ReviewedGATKException("Unable to read BWT from input stream.", ex);
         }
     }
 
@@ -86,7 +86,7 @@ public class SuffixArrayWriter {
             outputStream.close();
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to close input file", ex);
+            throw new ReviewedGATKException("Unable to close input file", ex);
         }
     }
 }

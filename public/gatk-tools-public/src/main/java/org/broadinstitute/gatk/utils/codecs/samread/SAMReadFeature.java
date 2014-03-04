@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.samread;
+package org.broadinstitute.gatk.utils.codecs.samread;
 
 import htsjdk.tribble.Feature;
 

@@ -23,23 +23,23 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import com.google.caliper.Param;
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
-import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.filters.UnmappedReadFilter;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.engine.walkers.ReadWalker;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.tools.walkers.qc.CountLoci;
+import org.broadinstitute.gatk.tools.walkers.qc.CountReads;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.io.File;
 import java.util.Collections;

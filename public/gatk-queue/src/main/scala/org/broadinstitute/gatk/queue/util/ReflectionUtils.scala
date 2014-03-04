@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
-import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.gatk.queue.QException
 import java.lang.annotation.Annotation
 import java.lang.reflect.{ParameterizedType, Field}
-import org.broadinstitute.sting.commandline.ClassType
-import org.broadinstitute.sting.utils.classloader.JVMUtils
+import org.broadinstitute.gatk.utils.commandline.ClassType
+import org.broadinstitute.gatk.utils.classloader.JVMUtils
 
 /**
- * A collection of scala extensions to the Sting JVMUtils.
+ * A collection of scala extensions to the GATK JVMUtils.
  */
 object ReflectionUtils {
 
@@ -158,7 +158,7 @@ object ReflectionUtils {
    * @return The array of classes that are in the collection type, or None if the type cannot be found.
    */
   private def getGenericTypes(field: Field): Option[Array[Class[_]]] = {
-    // TODO: Refactor: based on java code in org.broadinstitute.sting.commandline.ArgumentTypeDescriptor
+    // TODO: Refactor: based on java code in org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor
     // If this is a parameterized collection, find the contained type.  If blow up if only one type exists.
     if (hasAnnotation(field, classOf[ClassType])) {
       Some(Array(getAnnotation(field, classOf[ClassType]).value))

@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.interval;
+package org.broadinstitute.gatk.utils.interval;
 
-import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.testng.annotations.Test;
 
 import java.io.File;

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.gatk.utils.threading;
 
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors; 

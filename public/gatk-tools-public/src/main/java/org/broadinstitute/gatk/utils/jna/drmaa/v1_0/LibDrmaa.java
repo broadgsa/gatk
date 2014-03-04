@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.jna.drmaa.v1_0;
+package org.broadinstitute.gatk.utils.jna.drmaa.v1_0;
 
 import com.sun.jna.*;
 import com.sun.jna.ptr.IntByReference;

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -93,7 +93,7 @@ class IntervalOverlapFilteringIterator implements CloseableIterator<SAMRecord> {
 
         if(foundMappedIntervals) {
             if(keepOnlyUnmappedReads)
-                throw new ReviewedStingException("Tried to apply IntervalOverlapFilteringIterator to a mixed of mapped and unmapped intervals.  Please apply this filter to only mapped or only unmapped reads");
+                throw new ReviewedGATKException("Tried to apply IntervalOverlapFilteringIterator to a mixed of mapped and unmapped intervals.  Please apply this filter to only mapped or only unmapped reads");
             this.intervalContigIndices = new int[intervals.size()];
             this.intervalStarts = new int[intervals.size()];
             this.intervalEnds = new int[intervals.size()];

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
 
 import java.util.List;
 /**

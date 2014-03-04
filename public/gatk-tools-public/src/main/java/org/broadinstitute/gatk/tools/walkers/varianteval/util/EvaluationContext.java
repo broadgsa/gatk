@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.util;
+package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
-import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.VariantEval;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager.StratificationManager;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.ArrayList;
@@ -59,9 +59,9 @@ public final class EvaluationContext {
                 if ( doInitialize ) eval.initialize(walker);
                 evaluationInstances.add(eval);
             } catch (InstantiationException e) {
-                throw new ReviewedStingException("Unable to instantiate eval module '" + c.getSimpleName() + "'", e);
+                throw new ReviewedGATKException("Unable to instantiate eval module '" + c.getSimpleName() + "'", e);
             } catch (IllegalAccessException e) {
-                throw new ReviewedStingException("Illegal access error when trying to instantiate eval module '" + c.getSimpleName() + "'", e);
+                throw new ReviewedGATKException("Illegal access error when trying to instantiate eval module '" + c.getSimpleName() + "'", e);
             }
         }
     }
@@ -92,7 +92,7 @@ public final class EvaluationContext {
                     evaluation.update2(eval, comp, tracker, ref, context);
                     break;
                 default:
-                    throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
+                    throw new ReviewedGATKException("BUG: Unexpected evaluation order " + evaluation);
             }
         }
     }

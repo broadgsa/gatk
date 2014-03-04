@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.rmd;
+package org.broadinstitute.gatk.engine.datasources.rmd;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.HasGenomeLocation;
 
 /**
  * Models a mapped position within a stream of GATK input data.

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval;
+package org.broadinstitute.gatk.tools.walkers.varianteval;
 
 import com.google.java.contract.Requires;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
@@ -31,30 +31,30 @@ import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.IntervalStratification;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.IntervalStratification;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager.StratificationManager;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.EvaluationContext;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.SortableJexlVCMatchExp;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.VariantEvalUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -343,7 +343,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
             try {
                 ancestralAlignments = new IndexedFastaSequenceFile(ancestralAlignmentsFile);
             } catch (FileNotFoundException e) {
-                throw new ReviewedStingException(String.format("The ancestral alignments file, '%s', could not be found", ancestralAlignmentsFile.getAbsolutePath()));
+                throw new ReviewedGATKException(String.format("The ancestral alignments file, '%s', could not be found", ancestralAlignmentsFile.getAbsolutePath()));
             }
         }
 

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,7 +114,7 @@ public class ArtificialSingleSampleReadStreamAnalyzer {
 
     /**
      * Validate the stream by checking whether our collected statistics match the properties of the
-     * original stream. Throws a ReviewedStingException if the stream is invalid.
+     * original stream. Throws a ReviewedGATKException if the stream is invalid.
      *
      * Override this method if you want to check whether the stream has been transformed in some
      * way relative to the original stream.
@@ -122,72 +122,72 @@ public class ArtificialSingleSampleReadStreamAnalyzer {
     public void validate() {
         if ( (originalStream.getNumContigs() == 0 || originalStream.getNumStacksPerContig() == 0) && originalStream.getNumUnmappedReads() == 0 ) {
             if ( totalReads != 0 ) {
-                throw new ReviewedStingException("got reads from the stream, but the stream was configured to have 0 reads");
+                throw new ReviewedGATKException("got reads from the stream, but the stream was configured to have 0 reads");
             }
             return;  // no further validation needed for the 0-reads case
         }
         else if ( totalReads == 0 ) {
-            throw new ReviewedStingException("got no reads from the stream, but the stream was configured to have > 0 reads");
+            throw new ReviewedGATKException("got no reads from the stream, but the stream was configured to have > 0 reads");
         }
 
         if ( ! allSamplesMatch ) {
-            throw new ReviewedStingException("some reads had the wrong sample");
+            throw new ReviewedGATKException("some reads had the wrong sample");
         }
 
         if ( numContigs != originalStream.getNumContigs() ) {
-            throw new ReviewedStingException("number of contigs not correct");
+            throw new ReviewedGATKException("number of contigs not correct");
         }
 
         if ( stacksPerContig.size() != originalStream.getNumContigs() ) {
-            throw new ReviewedStingException(String.format("bug in analyzer code: calculated sizes for %d contigs even though there were only %d contigs",
+            throw new ReviewedGATKException(String.format("bug in analyzer code: calculated sizes for %d contigs even though there were only %d contigs",
                                                            stacksPerContig.size(), originalStream.getNumContigs()));
         }
 
         for ( int contigStackCount : stacksPerContig ) {
             if ( contigStackCount != originalStream.getNumStacksPerContig() ) {
-                throw new ReviewedStingException("contig had incorrect number of stacks");
+                throw new ReviewedGATKException("contig had incorrect number of stacks");
             }
         }
 
         if ( originalStream.getNumStacksPerContig() > 0 ) {
             if ( minReadsPerStack < originalStream.getMinReadsPerStack() ) {
-                throw new ReviewedStingException("stack had fewer than the minimum number of reads");
+                throw new ReviewedGATKException("stack had fewer than the minimum number of reads");
             }
             if ( maxReadsPerStack > originalStream.getMaxReadsPerStack() ) {
-                throw new ReviewedStingException("stack had more than the maximum number of reads");
+                throw new ReviewedGATKException("stack had more than the maximum number of reads");
             }
         }
         else if ( minReadsPerStack != null || maxReadsPerStack != null ) {
-            throw new ReviewedStingException("bug in analyzer code: reads per stack was calculated even though 0 stacks per contig was specified");
+            throw new ReviewedGATKException("bug in analyzer code: reads per stack was calculated even though 0 stacks per contig was specified");
         }
 
         if ( originalStream.getNumStacksPerContig() > 1 ) {
             if ( minDistanceBetweenStacks < originalStream.getMinDistanceBetweenStacks() ) {
-                throw new ReviewedStingException("stacks were separated by less than the minimum distance");
+                throw new ReviewedGATKException("stacks were separated by less than the minimum distance");
             }
             if ( maxDistanceBetweenStacks > originalStream.getMaxDistanceBetweenStacks() ) {
-                throw new ReviewedStingException("stacks were separated by more than the maximum distance");
+                throw new ReviewedGATKException("stacks were separated by more than the maximum distance");
             }
         }
         else if ( minDistanceBetweenStacks != null || maxDistanceBetweenStacks != null ) {
-            throw new ReviewedStingException("bug in analyzer code: distance between stacks was calculated even though numStacksPerContig was <= 1");
+            throw new ReviewedGATKException("bug in analyzer code: distance between stacks was calculated even though numStacksPerContig was <= 1");
         }
 
         if ( minReadLength < originalStream.getMinReadLength() ) {
-            throw new ReviewedStingException("read was shorter than the minimum allowed length");
+            throw new ReviewedGATKException("read was shorter than the minimum allowed length");
         }
         if ( maxReadLength > originalStream.getMaxReadLength() ) {
-            throw new ReviewedStingException("read was longer than the maximum allowed length");
+            throw new ReviewedGATKException("read was longer than the maximum allowed length");
         }
 
         if ( numUnmappedReads != originalStream.getNumUnmappedReads() ) {
-            throw new ReviewedStingException(String.format("wrong number of unmapped reads: requested %d but saw %d",
+            throw new ReviewedGATKException(String.format("wrong number of unmapped reads: requested %d but saw %d",
                                                            originalStream.getNumUnmappedReads(), numUnmappedReads));
         }
 
         if ( (originalStream.getNumContigs() == 0 || originalStream.getNumStacksPerContig() == 0) &&
              numUnmappedReads != totalReads ) {
-            throw new ReviewedStingException("stream should have consisted only of unmapped reads, but saw some mapped reads");
+            throw new ReviewedGATKException("stream should have consisted only of unmapped reads, but saw some mapped reads");
         }
     }
 

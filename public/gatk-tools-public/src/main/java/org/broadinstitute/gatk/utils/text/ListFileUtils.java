@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.text;
+package org.broadinstitute.gatk.utils.text;
 
-import org.broadinstitute.sting.commandline.ParsingEngine;
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.commandline.ParsingEngine;
+import org.broadinstitute.gatk.utils.commandline.RodBinding;
+import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileNotFoundException;

@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
 import java.io.{PrintStream, File}
-import org.broadinstitute.sting.utils.io.{Resource}
-import org.broadinstitute.sting.queue.engine.{JobRunInfo, QGraph}
-import org.broadinstitute.sting.queue.function.QFunction
-import org.broadinstitute.sting.utils.R.{RScriptLibrary, RScriptExecutor}
-import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
-import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.gatk.utils.io.{Resource}
+import org.broadinstitute.gatk.queue.engine.{JobRunInfo, QGraph}
+import org.broadinstitute.gatk.queue.function.QFunction
+import org.broadinstitute.gatk.utils.R.{RScriptLibrary, RScriptExecutor}
+import org.broadinstitute.gatk.engine.report.{GATKReportTable, GATKReport}
+import org.broadinstitute.gatk.utils.exceptions.UserException
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 /**

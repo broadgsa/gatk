@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.recalibration;
+package org.broadinstitute.gatk.utils.recalibration;
 
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 
 import java.lang.annotation.*;
 

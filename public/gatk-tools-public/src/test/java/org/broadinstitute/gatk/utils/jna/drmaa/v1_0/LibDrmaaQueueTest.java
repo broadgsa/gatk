@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.jna.drmaa.v1_0;
+package org.broadinstitute.gatk.utils.jna.drmaa.v1_0;
 
 import com.sun.jna.Memory;
 import com.sun.jna.NativeLong;
@@ -32,7 +32,7 @@ import com.sun.jna.StringArray;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import org.apache.commons.io.FileUtils;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.Test;

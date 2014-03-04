@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -82,7 +82,7 @@ public class ApplicationDetails {
             runningInstructions = JVMUtils.getLocationFor( application ).getName();
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to determine running instructions", ex);
+            throw new ReviewedGATKException("Unable to determine running instructions", ex);
         }
 
         if( runningInstructions.endsWith(".jar") )

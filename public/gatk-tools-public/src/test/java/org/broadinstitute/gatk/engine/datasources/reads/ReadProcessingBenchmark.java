@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
@@ -31,7 +31,7 @@ import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +58,7 @@ public abstract class ReadProcessingBenchmark extends SimpleBenchmark {
             tempFile = File.createTempFile("testfile_"+getMaxReads(),".bam");
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to create temporary BAM",ex);
+            throw new ReviewedGATKException("Unable to create temporary BAM",ex);
         }
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         factory.setCreateIndex(true);

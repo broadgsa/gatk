@@ -23,24 +23,24 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.gatk.engine;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.crypt.CryptUtils;
-import org.broadinstitute.sting.utils.crypt.GATKKey;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.ListFileUtils;
+import org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.io.stubs.OutputStreamArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.crypt.CryptUtils;
+import org.broadinstitute.gatk.utils.crypt.GATKKey;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.ListFileUtils;
 
 import java.security.PublicKey;
 import java.util.ArrayList;

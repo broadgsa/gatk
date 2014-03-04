@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -229,7 +229,7 @@ public class ArgumentSource {
      */
     public MultiplexArgumentTypeDescriptor createDependentTypeDescriptor(ParsingEngine parsingEngine,Object containingObject) {
         if(!isDependent())
-            throw new ReviewedStingException("Field " + field.getName() + " is independent; no dependent type descriptor can be derived.");
+            throw new ReviewedGATKException("Field " + field.getName() + " is independent; no dependent type descriptor can be derived.");
         return ((MultiplexArgumentTypeDescriptor)typeDescriptor).createCustomTypeDescriptor(parsingEngine,this,containingObject);
     }
 

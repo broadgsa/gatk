@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue
+package org.broadinstitute.gatk.queue
 
-import org.broadinstitute.sting.utils.exceptions.StingException
+import org.broadinstitute.gatk.utils.exceptions.GATKException
 
 class QException(private val message: String, private val throwable: Throwable = null)
-  extends StingException(message, throwable)
+  extends GATKException(message, throwable)

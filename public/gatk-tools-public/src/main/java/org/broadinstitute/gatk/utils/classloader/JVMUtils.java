@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.classloader;
+package org.broadinstitute.gatk.utils.classloader;
 
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.reflections.util.ClasspathHelper;
 
 import java.io.File;
@@ -138,7 +138,7 @@ public class JVMUtils {
             field.set(instance, value);
         }
         catch( IllegalAccessException ex ) {
-            throw new ReviewedStingException(String.format("Could not set %s in instance %s to %s",field.getName(),instance.getClass().getName(),value.toString()));
+            throw new ReviewedGATKException(String.format("Could not set %s in instance %s to %s",field.getName(),instance.getClass().getName(),value.toString()));
         }
     }
 
@@ -154,7 +154,7 @@ public class JVMUtils {
             return field.get(instance);
         }
         catch( IllegalAccessException ex ) {
-            throw new ReviewedStingException(String.format("Could not retrieve %s in instance %s",field.getName(),instance.getClass().getName()));
+            throw new ReviewedGATKException(String.format("Could not retrieve %s in instance %s",field.getName(),instance.getClass().getName()));
         }
     }
 
@@ -169,9 +169,9 @@ public class JVMUtils {
         // TODO: Make JVM utils.
         Collection<T> selectedObjects = getObjectsOfType(objectsToFilter,type);
         if(selectedObjects.size() > 1)
-            throw new ReviewedStingException("User asked for a single instance of the type, multiple were present");
+            throw new ReviewedGATKException("User asked for a single instance of the type, multiple were present");
         if(selectedObjects.size() == 0)
-            throw new ReviewedStingException("User asked for a single instance of the type, but none were present");
+            throw new ReviewedGATKException("User asked for a single instance of the type, but none were present");
         return selectedObjects.iterator().next();
     }
 
@@ -222,7 +222,7 @@ public class JVMUtils {
         } else if (type instanceof Class<?>) {
             classes.add((Class<?>) type);
         } else {
-            throw new StingException("Unknown type: " + type + " (" + type.getClass().getName() + ")");
+            throw new GATKException("Unknown type: " + type + " (" + type.getClass().getName() + ")");
         }
     }
 
@@ -230,10 +230,10 @@ public class JVMUtils {
         if ( t instanceof ParameterizedType ) {
             ParameterizedType parameterizedType = (ParameterizedType)t;
             if ( parameterizedType.getActualTypeArguments().length != 1 )
-                throw new ReviewedStingException("BUG: more than 1 generic type found on class" + t);
+                throw new ReviewedGATKException("BUG: more than 1 generic type found on class" + t);
             return (Class)parameterizedType.getActualTypeArguments()[0];
         } else
-            throw new ReviewedStingException("BUG: could not find generic type on class " + t);
+            throw new ReviewedGATKException("BUG: could not find generic type on class " + t);
     }
 
     /**

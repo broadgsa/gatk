@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pileup;
+package org.broadinstitute.gatk.utils.pileup;
 
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.locusiterator.AlignmentStateMachine;
-import org.broadinstitute.sting.utils.locusiterator.LIBS_position;
-import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByStateBaseTest;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.locusiterator.AlignmentStateMachine;
+import org.broadinstitute.gatk.utils.locusiterator.LIBS_position;
+import org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByStateBaseTest;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

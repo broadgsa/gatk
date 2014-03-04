@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.SAMFileSpan;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
+import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 
 import java.util.*;
 
@@ -96,7 +96,7 @@ public class FilePointer {
                 foundMapped = true;
         }
         if ( foundMapped && foundUnmapped )
-            throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
+            throw new ReviewedGATKException("BUG: File pointers cannot be mixed mapped/unmapped.");
 
         return foundUnmapped;
     }
@@ -111,7 +111,7 @@ public class FilePointer {
 
         for ( GenomeLoc location : locations ) {
             if ( previousContigIndex != null && previousContigIndex != location.getContigIndex() ) {
-                throw new ReviewedStingException("Non-monolithic file pointers must contain intervals from at most one contig");
+                throw new ReviewedGATKException("Non-monolithic file pointers must contain intervals from at most one contig");
             }
 
             previousContigIndex = location.getContigIndex();
@@ -120,10 +120,10 @@ public class FilePointer {
 
     private void validateLocation( GenomeLoc location ) {
         if ( isRegionUnmapped != GenomeLoc.isUnmapped(location) ) {
-            throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
+            throw new ReviewedGATKException("BUG: File pointers cannot be mixed mapped/unmapped.");
         }
         if ( ! isRegionUnmapped && ! isMonolithic && contigIndex != null && contigIndex != location.getContigIndex() ) {
-            throw new ReviewedStingException("Non-monolithic file pointers must contain intervals from at most one contig");
+            throw new ReviewedGATKException("Non-monolithic file pointers must contain intervals from at most one contig");
         }
     }
 
@@ -329,7 +329,7 @@ public class FilePointer {
      */
     private void mergeElementsInto(final FilePointer combined, Iterator<Map.Entry<SAMReaderID,SAMFileSpan>>... iterators) {
         if(iterators.length == 0)
-            throw new ReviewedStingException("Tried to add zero elements to an existing file pointer.");
+            throw new ReviewedGATKException("Tried to add zero elements to an existing file pointer.");
         Map.Entry<SAMReaderID,SAMFileSpan> initialElement = iterators[0].next();
         GATKBAMFileSpan fileSpan = (GATKBAMFileSpan)initialElement.getValue();
         for(int i = 1; i < iterators.length; i++)
@@ -362,7 +362,7 @@ public class FilePointer {
         for ( FilePointer filePointer : filePointers ) {
             locations.addAll(filePointer.getLocations());
             if (mergeRule != filePointer.getIntervalMergingRule())
-                throw new ReviewedStingException("All FilePointers in FilePointer.union() must have use the same IntervalMergeRule");
+                throw new ReviewedGATKException("All FilePointers in FilePointer.union() must have use the same IntervalMergeRule");
 
             for ( Map.Entry<SAMReaderID, SAMFileSpan> fileSpanEntry : filePointer.getFileSpans().entrySet() ) {
                 GATKBAMFileSpan fileSpan = (GATKBAMFileSpan)fileSpanEntry.getValue();

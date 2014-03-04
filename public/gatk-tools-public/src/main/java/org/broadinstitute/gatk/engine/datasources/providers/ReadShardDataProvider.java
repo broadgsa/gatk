@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import java.util.Collection;
 
@@ -43,14 +43,14 @@ public class ReadShardDataProvider extends ShardDataProvider {
     /**
      * The raw collection of reads.
      */
-    private final StingSAMIterator reads;
+    private final GATKSAMIterator reads;
 
     /**
      * Create a data provider for the shard given the reads and reference.
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.
      */
-    public ReadShardDataProvider(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    public ReadShardDataProvider(Shard shard, GenomeLocParser genomeLocParser, GATKSAMIterator reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         super(shard,genomeLocParser,reference,rods);
         this.reads = reads;
     }
@@ -67,7 +67,7 @@ public class ReadShardDataProvider extends ShardDataProvider {
      * Gets an iterator over all the reads bound by this shard.
      * @return An iterator over all reads in this shard.
      */
-    public StingSAMIterator getReadIterator() {
+    public GATKSAMIterator getReadIterator() {
         return reads;
     }
 

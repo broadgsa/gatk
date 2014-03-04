@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.qscripts.examples
+package org.broadinstitute.gatk.queue.qscripts.examples
 
-import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.gatk.queue.QScript
 
 class HelloWorld extends QScript {
   def script() {

@@ -23,23 +23,23 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.executive.WindowMaker;
-import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.datasources.reads.MockLocusShard;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.executive.WindowMaker;
+import org.broadinstitute.gatk.engine.datasources.reads.LocusShard;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -371,7 +371,7 @@ public abstract class LocusViewTemplate extends BaseTest {
     }
 
     /** A simple iterator which iterates over a list of reads. */
-    protected class SAMRecordIterator implements StingSAMIterator {
+    protected class SAMRecordIterator implements GATKSAMIterator {
         private Iterator<SAMRecord> backingIterator = null;
 
         public SAMRecordIterator(SAMRecord... reads) {

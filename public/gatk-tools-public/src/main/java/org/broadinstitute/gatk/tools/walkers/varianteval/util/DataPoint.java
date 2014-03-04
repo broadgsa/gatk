@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.util;
+package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

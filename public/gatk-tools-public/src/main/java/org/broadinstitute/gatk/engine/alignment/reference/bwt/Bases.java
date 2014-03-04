@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -112,7 +112,7 @@ public class Bases implements Iterable<Byte>
             if( entry.getValue().equals(ascii) )
                 return entry.getKey();
         }
-        throw new ReviewedStingException(String.format("Base %c is an invalid base to pack", (char)ascii));
+        throw new ReviewedGATKException(String.format("Base %c is an invalid base to pack", (char)ascii));
     }
 
     /**

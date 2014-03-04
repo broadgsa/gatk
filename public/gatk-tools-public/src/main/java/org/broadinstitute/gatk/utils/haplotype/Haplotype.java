@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.haplotype;
+package org.broadinstitute.gatk.utils.haplotype;
 
 import com.google.java.contract.Requires;
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import org.apache.commons.lang.ArrayUtils;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 import htsjdk.variant.variantcontext.Allele;
 
 import java.util.Arrays;
@@ -254,7 +254,7 @@ public class Haplotype extends Allele {
         }
 
         if (refAllele == null)
-            throw new ReviewedStingException("BUG: no ref alleles in input to makeHaplotypeListfrom Alleles at loc: "+ startPos);
+            throw new ReviewedGATKException("BUG: no ref alleles in input to makeHaplotypeListfrom Alleles at loc: "+ startPos);
 
         final byte[] refBases = ref.getBases();
 

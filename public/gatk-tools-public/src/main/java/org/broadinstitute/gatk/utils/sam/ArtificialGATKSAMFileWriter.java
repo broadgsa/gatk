@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.ProgressLoggerInterface;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,12 +62,12 @@ import java.util.List;
 /**
  * @author aaron
  *         <p/>
- *         Class ArtificialStingSAMFileWriter
+ *         Class ArtificialGATKSAMFileWriter
  *         <p/>
  * generates a fake samwriter, that you can get the output reads
  * from when you're done.  
  */
-public class ArtificialStingSAMFileWriter implements StingSAMFileWriter {
+public class ArtificialGATKSAMFileWriter implements GATKSAMFileWriter {
 
     // are we closed
     private boolean closed = false;

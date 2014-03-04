@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.text;
+package org.broadinstitute.gatk.utils.text;
 
 import java.io.*;
 import java.util.Iterator;

@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.qscripts
+package org.broadinstitute.gatk.queue.qscripts
 
-import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
-import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
+import org.broadinstitute.gatk.queue.QScript
+import org.broadinstitute.gatk.queue.extensions.gatk._
+import org.broadinstitute.gatk.queue.extensions.samtools.SamtoolsIndexFunction
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException
+import org.broadinstitute.gatk.queue.extensions.picard.PicardBamFunction
+import org.broadinstitute.gatk.queue.function.JavaCommandLineFunction
 
 class GATKResourcesBundle extends QScript {
   // todo -- update to released version when things stabilize

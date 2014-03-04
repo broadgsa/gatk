@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.exceptions;
+package org.broadinstitute.gatk.utils.exceptions;
 
 /**
  *
@@ -47,17 +47,17 @@ package org.broadinstitute.sting.utils.exceptions;
  * @version 1.0
  * @date Apr 6, 2009
  * <p/>
- * Class StingException
+ * Class GATKException
  * <p/>
  * This exception allows us to filter out exceptions that come from core GATK code, and those that
  * are not homegrown..
  */
-public class StingException extends RuntimeException {
-    public StingException(String msg) {
+public class GATKException extends RuntimeException {
+    public GATKException(String msg) {
         super(msg);
     }
 
-    public StingException(String message, Throwable throwable) {
+    public GATKException(String message, Throwable throwable) {
         super(message, throwable);
     }
 }

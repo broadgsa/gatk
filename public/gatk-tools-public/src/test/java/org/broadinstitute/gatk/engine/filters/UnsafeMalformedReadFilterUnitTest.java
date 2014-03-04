@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
 
 import java.util.Collections;
 

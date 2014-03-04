@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.activeregion;
+package org.broadinstitute.gatk.utils.activeregion;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLoc;
 
 /**
  * The state of an active region walker's isActive call at a specific locus in the genome

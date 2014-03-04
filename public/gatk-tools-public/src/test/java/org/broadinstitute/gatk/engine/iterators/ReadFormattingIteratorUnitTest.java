@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -41,7 +41,7 @@ public class ReadFormattingIteratorUnitTest extends BaseTest {
         final Cigar unconsolidatedCigar = TextCigarCodec.getSingleton().decode("3M0M5M0M");
         final SAMRecord unconsolidatedRead = ArtificialSAMUtils.createArtificialRead(unconsolidatedCigar);
 
-        final StingSAMIterator readIterator = StingSAMIteratorAdapter.adapt(Arrays.asList(unconsolidatedRead).iterator());
+        final GATKSAMIterator readIterator = GATKSAMIteratorAdapter.adapt(Arrays.asList(unconsolidatedRead).iterator());
         final ReadFormattingIterator formattingIterator = new ReadFormattingIterator(readIterator, false, (byte)-1);
         final SAMRecord postIterationRead = formattingIterator.next();
 

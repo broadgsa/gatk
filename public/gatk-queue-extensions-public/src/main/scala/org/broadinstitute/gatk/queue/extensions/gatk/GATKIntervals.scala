@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
 import java.io.File
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.interval.{IntervalSetRule, IntervalMergingRule, IntervalUtils}
-import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource
+import org.broadinstitute.gatk.utils.interval.{IntervalSetRule, IntervalMergingRule, IntervalUtils}
+import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource
 import htsjdk.samtools.SAMFileHeader
-import org.broadinstitute.sting.utils.GenomeLoc
-import org.broadinstitute.sting.commandline._
+import org.broadinstitute.gatk.utils.GenomeLoc
+import org.broadinstitute.gatk.utils.commandline._
 import htsjdk.tribble.Feature
 
 case class GATKIntervals(reference: File, intervals: Seq[File], intervalsString: Seq[String],

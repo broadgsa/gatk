@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.testng.Assert;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 
 import org.testng.annotations.BeforeMethod;
 

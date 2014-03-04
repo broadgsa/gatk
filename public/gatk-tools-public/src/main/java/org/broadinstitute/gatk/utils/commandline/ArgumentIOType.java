@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.lang.annotation.Annotation;
 
@@ -47,6 +47,6 @@ public enum ArgumentIOType {
         for (ArgumentIOType ioType: ArgumentIOType.values())
             if (ioType.annotationClass.isAssignableFrom(annotation.getClass()))
                 return ioType;
-        throw new ReviewedStingException("Unknown annotation type: " + annotation);
+        throw new ReviewedGATKException("Unknown annotation type: " + annotation);
     }
 }

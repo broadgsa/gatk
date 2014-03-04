@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting;
+package org.broadinstitute.gatk.engine.walkers;
 
 import org.apache.commons.lang.StringUtils;
 import htsjdk.tribble.Tribble;
@@ -31,17 +31,20 @@ import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.util.TabixUtils;
-import org.broadinstitute.sting.gatk.CommandLineExecutable;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.MD5DB;
+import org.broadinstitute.gatk.utils.MD5Mismatch;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.engine.CommandLineExecutable;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import htsjdk.variant.bcf2.BCF2Utils;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.collections.Pair;
 import htsjdk.variant.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
@@ -98,7 +101,7 @@ public class WalkerTest extends BaseTest {
         if ( indexFile.exists() ) {
             if ( resultFile.getAbsolutePath().contains(".vcf") ) {
                 // todo -- currently we only understand VCF files! Blow up since we can't test them
-                throw new StingException("Found an index created for file " + resultFile + " but we can only validate VCF files.  Extend this code!");
+                throw new GATKException("Found an index created for file " + resultFile + " but we can only validate VCF files.  Extend this code!");
             }
 
             System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
@@ -253,7 +256,7 @@ public class WalkerTest extends BaseTest {
         }
 
         public Class getExpectedException() {
-            if ( ! expectsException() ) throw new ReviewedStingException("Tried to get expection for walker test that doesn't expect one");
+            if ( ! expectsException() ) throw new ReviewedGATKException("Tried to get expection for walker test that doesn't expect one");
             return expectedException;
         }
 

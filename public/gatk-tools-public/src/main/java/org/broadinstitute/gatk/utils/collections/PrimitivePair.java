@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.collections;
+package org.broadinstitute.gatk.utils.collections;
 
 
 /** This class is used to group together multiple Pair classes for

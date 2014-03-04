@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.annotations.BeforeMethod;
 
 
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -93,7 +93,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
     /**
      * Try adding a view which conflicts with some other view that's already been registered.
      */
-    @Test(expectedExceptions= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedGATKException.class)
     public void testAddViewWithExistingConflict() {
         View initial = new ConflictingTestView( provider );
         View conflictsWithInitial = new TestView( provider );
@@ -102,7 +102,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
     /**
      * Try adding a view which has a conflict with a previously registered view.
      */
-    @Test(expectedExceptions= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedGATKException.class)
     public void testAddViewWithNewConflict() {
         View conflictsWithInitial = new TestView( provider );
         View initial = new ConflictingTestView( provider );

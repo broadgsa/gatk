@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
 
 /**
  * Creates and stops CommandLineJobRunners

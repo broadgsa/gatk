@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function.scattergather
+package org.broadinstitute.gatk.queue.function.scattergather
 
-import org.broadinstitute.sting.commandline.ArgumentSource
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.util.ClassFieldCache
+import org.broadinstitute.gatk.utils.commandline.ArgumentSource
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.util.ClassFieldCache
 
 /**
  * Shadow clones another command line function.

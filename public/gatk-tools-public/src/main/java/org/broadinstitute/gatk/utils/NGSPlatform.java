@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSAMReadGroupRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.LinkedList;
 import java.util.List;

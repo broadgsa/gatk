@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.vectorpairhmm;
+package org.broadinstitute.gatk.utils.vectorpairhmm;
 
 import java.util.List;
 import java.util.LinkedList;

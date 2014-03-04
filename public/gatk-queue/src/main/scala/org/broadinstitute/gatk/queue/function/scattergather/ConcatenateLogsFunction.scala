@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function.scattergather
+package org.broadinstitute.gatk.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.queue.QException
-import org.broadinstitute.sting.commandline.Input
+import org.broadinstitute.gatk.queue.function.InProcessFunction
+import org.broadinstitute.gatk.queue.QException
+import org.broadinstitute.gatk.utils.commandline.Input
 import org.apache.commons.io.FileUtils
 import java.io.File
 import collection.JavaConversions._
@@ -45,7 +45,7 @@ class ConcatenateLogsFunction extends InProcessFunction {
   override def shortDescription = analysisName + ": " + jobOutputFile.getName
 
   def run() {
-    val missing = org.broadinstitute.sting.utils.io.IOUtils.waitFor(logs, 120)
+    val missing = org.broadinstitute.gatk.utils.io.IOUtils.waitFor(logs, 120)
     if (!missing.isEmpty)
       throw new QException("Unable to find log: " + missing.mkString(", "))
     logs.foreach(log => {

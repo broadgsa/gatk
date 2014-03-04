@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io;
+package org.broadinstitute.gatk.engine.io;
 
 import htsjdk.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.gatk.io.storage.Storage;
-import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
-import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
+import org.broadinstitute.gatk.utils.commandline.ArgumentSource;
+import org.broadinstitute.gatk.engine.io.storage.Storage;
+import org.broadinstitute.gatk.engine.io.storage.StorageFactory;
+import org.broadinstitute.gatk.engine.io.stubs.OutputStreamStub;
+import org.broadinstitute.gatk.engine.io.stubs.Stub;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.SAMFileReaderBuilder;
 
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -139,7 +139,7 @@ public abstract class OutputTracker {
      */
     protected <T> T getTargetStream( Stub<T> stub ) {
         if( !outputs.containsKey(stub) )
-            throw new ReviewedStingException("OutputTracker was not notified that this stub exists: " + stub);
+            throw new ReviewedGATKException("OutputTracker was not notified that this stub exists: " + stub);
         Storage<T> storage = outputs.get(stub);
         if( storage == null ) {
             storage = StorageFactory.createStorage(stub);

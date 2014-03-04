@@ -23,22 +23,22 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.gatk.engine.WalkerManager;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.datasources.providers.*;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.DataSource;
+import org.broadinstitute.gatk.engine.walkers.LocusWalker;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSProgressFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSReduceFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NanoScheduler;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;
 
 import java.util.Iterator;
 

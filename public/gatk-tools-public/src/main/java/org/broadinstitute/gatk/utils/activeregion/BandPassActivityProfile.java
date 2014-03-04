@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.activeregion;
+package org.broadinstitute.gatk.utils.activeregion;
 
 import com.google.java.contract.Ensures;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.MathUtils;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -55,14 +55,14 @@ public class BandPassActivityProfile extends ActivityProfile {
     /**
      * Create a new BandPassActivityProfile with default sigma and filter sizes
      *
-     * @see #BandPassActivityProfile(org.broadinstitute.sting.utils.GenomeLocParser, org.broadinstitute.sting.utils.GenomeLocSortedSet, int, double, boolean)
+     * @see #BandPassActivityProfile(org.broadinstitute.gatk.utils.GenomeLocParser, org.broadinstitute.gatk.utils.GenomeLocSortedSet, int, double, boolean)
      */
     public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals) {
         this(parser, restrictToIntervals, MAX_FILTER_SIZE, DEFAULT_SIGMA, true);
     }
 
     /**
-     * @see #BandPassActivityProfile(org.broadinstitute.sting.utils.GenomeLocParser, org.broadinstitute.sting.utils.GenomeLocSortedSet, int, double, boolean)
+     * @see #BandPassActivityProfile(org.broadinstitute.gatk.utils.GenomeLocParser, org.broadinstitute.gatk.utils.GenomeLocSortedSet, int, double, boolean)
      *
      * sets adaptiveFilterSize to true
      */

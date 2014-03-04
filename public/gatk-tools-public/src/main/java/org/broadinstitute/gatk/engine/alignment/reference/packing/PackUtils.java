@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.packing;
+package org.broadinstitute.gatk.engine.alignment.reference.packing;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -83,14 +83,14 @@ public class PackUtils {
             long typeSize = type.getField("MAX_VALUE").getLong(null) - type.getField("MIN_VALUE").getLong(null)+1;
             long intTypeSize = (long)Integer.MAX_VALUE - (long)Integer.MIN_VALUE + 1;
             if( typeSize > intTypeSize )
-                throw new ReviewedStingException("Cannot determine number of bits available in type: " + type.getName());
+                throw new ReviewedGATKException("Cannot determine number of bits available in type: " + type.getName());
             return (int)(Math.log(typeSize)/Math.log(2));
         }
         catch( NoSuchFieldException ex ) {
-            throw new ReviewedStingException("Cannot determine number of bits available in type: " + type.getName(),ex);
+            throw new ReviewedGATKException("Cannot determine number of bits available in type: " + type.getName(),ex);
         }
         catch( IllegalAccessException ex ) {
-            throw new ReviewedStingException("Cannot determine number of bits available in type: " + type.getName(),ex);
+            throw new ReviewedGATKException("Cannot determine number of bits available in type: " + type.getName(),ex);
         }
     }
 
@@ -110,7 +110,7 @@ public class PackUtils {
             case 'T':
                 return 3;
             default:
-                throw new ReviewedStingException("Unknown base type: " + base);
+                throw new ReviewedGATKException("Unknown base type: " + base);
         }
     }
 
@@ -130,7 +130,7 @@ public class PackUtils {
             case 3:
                 return 'T';
             default:
-                throw new ReviewedStingException("Unknown pack type: " + pack);
+                throw new ReviewedGATKException("Unknown pack type: " + pack);
         }
     }
 

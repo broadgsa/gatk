@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads.utilities;
+package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.instrumentation.Sizeof;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.instrumentation.Sizeof;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -58,7 +58,7 @@ public class BAMFileStat extends CommandLineProgram {
     public int execute() {
         switch(command) {
             case ShowBlocks:
-                throw new ReviewedStingException("The BAM block inspector has been disabled.");
+                throw new ReviewedGATKException("The BAM block inspector has been disabled.");
             case ShowIndex:
                 showIndexBins(new File(bamFileName),range);
                 break;
@@ -171,7 +171,7 @@ public class BAMFileStat extends CommandLineProgram {
             }
         }
         catch(IllegalAccessException ex) {
-            throw new ReviewedStingException("Unable to examine cached index",ex);
+            throw new ReviewedGATKException("Unable to examine cached index",ex);
         }
 
         System.out.printf("%nOverall: %d bins, %d chunks, %d linear index entries",numBins,numChunks,numLinearIndexEntries);

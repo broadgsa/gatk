@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +67,7 @@ public class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
      */
     public ArgumentDefinitionGroup merge( ArgumentDefinitionGroup other ) {
         if( !groupNameMatches(other) )
-            throw new ReviewedStingException("Unable to merge two argument groups with differing names.");
+            throw new ReviewedGATKException("Unable to merge two argument groups with differing names.");
 
         // Create a merged definition group.
         List<ArgumentDefinition> mergedDefinitions = new ArrayList<ArgumentDefinition>();

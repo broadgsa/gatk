@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.gatk.utils.locusiterator;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.downsampling.Downsampler;
-import org.broadinstitute.sting.gatk.downsampling.PassThroughDownsampler;
-import org.broadinstitute.sting.gatk.downsampling.ReservoirDownsampler;
+import org.broadinstitute.gatk.engine.downsampling.Downsampler;
+import org.broadinstitute.gatk.engine.downsampling.PassThroughDownsampler;
+import org.broadinstitute.gatk.engine.downsampling.ReservoirDownsampler;
 
 import java.util.*;
 

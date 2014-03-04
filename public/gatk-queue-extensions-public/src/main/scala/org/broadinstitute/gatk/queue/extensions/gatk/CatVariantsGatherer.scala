@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
-import org.broadinstitute.sting.queue.function.RetryMemoryLimit
-import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
+import org.broadinstitute.gatk.queue.function.RetryMemoryLimit
+import org.broadinstitute.gatk.queue.function.scattergather.GatherFunction
 
 
 /**
@@ -34,7 +34,7 @@ import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
  * Currently this is the default gather for VCFs.
  * One can set a specific gatherer to use by adding @Gather before any output argument.
  * For example (used to be part of UG):
- *           @Gather(className = "org.broadinstitute.sting.queue.extensions.gatk.CatVariantsGatherer")
+ *           @Gather(className = "org.broadinstitute.gatk.queue.extensions.gatk.CatVariantsGatherer")
  *           @Output(doc="File to which variants should be written",required=true)
  *           protected VariantContextWriter writer = null;
  */

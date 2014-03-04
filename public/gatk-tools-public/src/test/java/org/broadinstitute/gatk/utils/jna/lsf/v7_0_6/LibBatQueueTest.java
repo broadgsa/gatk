@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.jna.lsf.v7_0_6;
+package org.broadinstitute.gatk.utils.jna.lsf.v7_0_6;
 
 import com.sun.jna.*;
 import com.sun.jna.ptr.IntByReference;
 import org.apache.commons.io.FileUtils;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.utils.Utils;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.*;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.jna.lsf.v7_0_6.LibBat.*;
 
 import java.io.File;
 

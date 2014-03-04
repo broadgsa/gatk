@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.gatk.engine.refdata;
 
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.HasGenomeLocation;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.HasGenomeLocation;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -73,10 +73,10 @@ public class RODRecordListImpl extends AbstractList<GATKFeature> implements Comp
             records.add(r);
             if ( r == null ) continue;
             if ( ! this.name.equals(r.getName() ) ) {
-                throw new ReviewedStingException("Attempt to add GATKFeature with non-matching name "+r.getName()+" to the track "+name);
+                throw new ReviewedGATKException("Attempt to add GATKFeature with non-matching name "+r.getName()+" to the track "+name);
             }
             if ( location != null && ! location.overlapsP(r.getLocation()) ) {
-                    throw new ReviewedStingException("Attempt to add GATKFeature that lies outside of specified interval "+location+"; offending GATKFeature:\n"+r.toString());
+                    throw new ReviewedGATKException("Attempt to add GATKFeature that lies outside of specified interval "+location+"; offending GATKFeature:\n"+r.toString());
             }
         }
     }
@@ -98,7 +98,7 @@ public class RODRecordListImpl extends AbstractList<GATKFeature> implements Comp
     public void add(GATKFeature record, boolean allowNameMismatch) {
         if ( record != null ) {
             if ( ! allowNameMismatch && ! name.equals(record.getName() ) )
-                throw new ReviewedStingException("Attempt to add GATKFeature with non-matching name "+record.getName()+" to the track "+name);
+                throw new ReviewedGATKException("Attempt to add GATKFeature with non-matching name "+record.getName()+" to the track "+name);
         }
         records.add(record);
     }

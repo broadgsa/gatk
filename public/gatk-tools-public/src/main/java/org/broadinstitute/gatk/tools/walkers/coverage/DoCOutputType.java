@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.coverage;
+package org.broadinstitute.gatk.tools.walkers.coverage;
 
 /**
  * Models a single output file in the DoC walker.

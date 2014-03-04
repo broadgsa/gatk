@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pairhmm;
+package org.broadinstitute.gatk.utils.pairhmm;
 
-import org.broadinstitute.sting.utils.haplotype.Haplotype;
+import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 
 import java.util.List;
 

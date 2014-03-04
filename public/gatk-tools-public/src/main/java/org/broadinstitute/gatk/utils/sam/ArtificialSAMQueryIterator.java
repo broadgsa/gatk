@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.List;
 
@@ -150,7 +150,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         // sanity check that we have an actual matching read next
         SAMRecord rec = this.peek();
         if (rec == null) {
-            throw new ReviewedStingException("The next read doesn't match");
+            throw new ReviewedGATKException("The next read doesn't match");
         }
         // set the seeked variable to true
         seeked = true;
@@ -189,7 +189,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
             super.next();
         }
         if (!super.hasNext()) {
-            throw new ReviewedStingException("Unable to find the target chromosome");
+            throw new ReviewedGATKException("Unable to find the target chromosome");
         }
         while (super.hasNext() && this.peek().getAlignmentStart() < start) {
             super.next();
@@ -197,7 +197,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         // sanity check that we have an actual matching read next
         SAMRecord rec = this.peek();
         if (!matches(rec)) {
-            throw new ReviewedStingException("The next read doesn't match");
+            throw new ReviewedGATKException("The next read doesn't match");
         }
         // set the seeked variable to true
         seeked = true;

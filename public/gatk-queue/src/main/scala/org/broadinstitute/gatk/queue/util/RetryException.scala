@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
-import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.gatk.queue.QException
 
 /**
  * Thrown after giving up on retrying.

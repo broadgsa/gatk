@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.fasta;
+package org.broadinstitute.gatk.utils.fasta;
 
 import picard.PicardException;
 import htsjdk.samtools.reference.FastaSequenceIndex;
@@ -32,8 +32,8 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.util.StringUtil;
 import org.apache.log4j.Priority;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.BaseUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -297,7 +297,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             try {
                 result = new ReferenceSequence(myCache.seq.getName(), myCache.seq.getContigIndex(), Arrays.copyOfRange(myCache.seq.getBases(), cacheOffsetStart, cacheOffsetStop));
             } catch ( ArrayIndexOutOfBoundsException e ) {
-                throw new ReviewedStingException(String.format("BUG: bad array indexing.  Cache start %d and end %d, request start %d end %d, offset start %d and end %d, base size %d",
+                throw new ReviewedGATKException(String.format("BUG: bad array indexing.  Cache start %d and end %d, request start %d end %d, offset start %d and end %d, base size %d",
                         myCache.start, myCache.stop, start, stop, cacheOffsetStart, cacheOffsetStop, myCache.seq.getBases().length), e);
             }
         }

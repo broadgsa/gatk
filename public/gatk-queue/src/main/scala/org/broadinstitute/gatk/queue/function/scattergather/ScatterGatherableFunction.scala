@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function.scattergather
+package org.broadinstitute.gatk.queue.function.scattergather
 
 import java.io.File
-import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.commandline.{Gatherer, Gather, ArgumentSource}
-import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
-import org.broadinstitute.sting.queue.QException
-import org.broadinstitute.sting.utils.io.IOUtils
+import org.broadinstitute.gatk.queue.util._
+import org.broadinstitute.gatk.utils.commandline.{Gatherer, Gather, ArgumentSource}
+import org.broadinstitute.gatk.queue.function.{QFunction, CommandLineFunction}
+import org.broadinstitute.gatk.queue.QException
+import org.broadinstitute.gatk.utils.io.IOUtils
 import collection.immutable.ListMap
 
 /**

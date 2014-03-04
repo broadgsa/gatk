@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.gatk.utils.locusiterator;
 
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
 
 import java.util.Iterator;
 

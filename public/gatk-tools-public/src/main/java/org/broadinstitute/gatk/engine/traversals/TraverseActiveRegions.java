@@ -23,32 +23,32 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ActiveRegionTraversalParameters;
-import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
-import org.broadinstitute.sting.utils.activeregion.BandPassActivityProfile;
-import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.datasources.providers.*;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.ActiveRegionTraversalParameters;
+import org.broadinstitute.gatk.engine.walkers.ActiveRegionWalker;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.activeregion.ActiveRegion;
+import org.broadinstitute.gatk.utils.activeregion.ActivityProfile;
+import org.broadinstitute.gatk.utils.activeregion.ActivityProfileState;
+import org.broadinstitute.gatk.utils.activeregion.BandPassActivityProfile;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSProgressFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NSReduceFunction;
+import org.broadinstitute.gatk.utils.nanoScheduler.NanoScheduler;
+import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
 import java.util.Collection;

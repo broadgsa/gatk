@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.gatk.queue.engine.shell
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.engine.{RunnerStatus, CommandLineJobRunner}
 import java.util.Date
-import org.broadinstitute.sting.utils.Utils
-import org.broadinstitute.sting.utils.runtime.{ProcessSettings, OutputStreamSettings, ProcessController}
+import org.broadinstitute.gatk.utils.Utils
+import org.broadinstitute.gatk.utils.runtime.{ProcessSettings, OutputStreamSettings, ProcessController}
 
 /**
  * Runs jobs one at a time locally

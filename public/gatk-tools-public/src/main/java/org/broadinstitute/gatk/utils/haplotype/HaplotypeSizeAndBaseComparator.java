@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.haplotype;
+package org.broadinstitute.gatk.utils.haplotype;
 
 import java.util.Comparator;
 

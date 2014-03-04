@@ -23,34 +23,34 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.coverage;
+package org.broadinstitute.gatk.tools.walkers.coverage;
 
 import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.commandline.Advanced;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqCodec;
-import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.commandline.Advanced;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.Output;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.refdata.SeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.codecs.refseq.RefSeqCodec;
+import org.broadinstitute.gatk.utils.codecs.refseq.RefSeqFeature;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -366,7 +366,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
                 partition.add(String.format("%s_pl_%s_cn_%s",rg.getSample(),rg.getPlatform(),rg.getSequencingCenter()));
             }
         } else {
-            throw new ReviewedStingException("Invalid aggregation type sent to getSamplesFromToolKit");
+            throw new ReviewedGATKException("Invalid aggregation type sent to getSamplesFromToolKit");
         }
 
         return partition;
@@ -436,7 +436,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
                             getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
                             partition);
                 } else {
-                    throw new ReviewedStingException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
+                    throw new ReviewedGATKException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
                 }
             }
         } else {
@@ -959,7 +959,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
             int index = 0;
             for ( String s : namesInAg ) {
                 if ( ! s.equalsIgnoreCase(order.get(index)) ) {
-                    throw new ReviewedStingException("IDs are out of order for type "+t+"! Aggregator has different ordering");
+                    throw new ReviewedGATKException("IDs are out of order for type "+t+"! Aggregator has different ordering");
                 }
                 index++;
             }

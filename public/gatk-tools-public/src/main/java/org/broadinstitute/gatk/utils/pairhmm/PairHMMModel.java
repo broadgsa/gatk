@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pairhmm;
+package org.broadinstitute.gatk.utils.pairhmm;
 
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.QualityUtils;
 
 /**
  * Helper class that implement calculations required to implement the PairHMM Finite State Automation (FSA) model.

@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
-import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
-import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedInputStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.PackUtils;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.UnsignedIntPackedInputStream;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -63,7 +63,7 @@ public class SuffixArrayReader {
             this.bwt = bwt;
         }
         catch( FileNotFoundException ex ) {
-            throw new ReviewedStingException("Unable to open input file", ex);
+            throw new ReviewedGATKException("Unable to open input file", ex);
         }
     }
 
@@ -89,7 +89,7 @@ public class SuffixArrayReader {
             uintPackedInputStream.read(suffixArray);
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to read BWT from input stream.", ex);
+            throw new ReviewedGATKException("Unable to read BWT from input stream.", ex);
         }
 
         return new SuffixArray(inverseSA0, new Counts(occurrences,true), suffixArray, suffixArrayInterval, bwt);
@@ -104,7 +104,7 @@ public class SuffixArrayReader {
             inputStream.close();
         }
         catch( IOException ex ) {
-            throw new ReviewedStingException("Unable to close input file", ex);
+            throw new ReviewedGATKException("Unable to close input file", ex);
         }
     }    
 }

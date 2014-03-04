@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.rmd;
+package org.broadinstitute.gatk.engine.datasources.rmd;
 
 import htsjdk.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.refdata.SeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.engine.refdata.utils.FlashBackIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.List;
 
@@ -97,7 +97,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      */
     public LocationAwareSeekableRODIterator createNewResource() {
         if(numIterators() > 0)
-            throw new ReviewedStingException("BUG: Tried to create multiple iterators over streaming ROD interface");
+            throw new ReviewedGATKException("BUG: Tried to create multiple iterators over streaming ROD interface");
         RMDTrack track = builder.createInstanceOfTrack(fileDescriptor);
         LocationAwareSeekableRODIterator iter = new SeekableRODIterator(track.getHeader(),track.getSequenceDictionary(),referenceSequenceDictionary,genomeLocParser,track.getIterator());
         return (flashbackData) ? new FlashBackIterator(iter) : iter;
@@ -133,7 +133,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
             return null;
         }
         else {
-            throw new ReviewedStingException("Unable to find a ROD iterator for segments of type " + segment.getClass());
+            throw new ReviewedGATKException("Unable to find a ROD iterator for segments of type " + segment.getClass());
         }
     }
 

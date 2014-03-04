@@ -3,18 +3,18 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-    This pom is parent for all sting/gatk poms
+    This pom is parent for all gatk poms
     See also:
       http://maven.apache.org/pom.html#Inheritance_v
       http://maven.apache.org/guides/introduction/introduction-to-the-pom.html#Project_Inheritance_vs_Project_Aggregation
       http://stackoverflow.com/questions/1992213/maven-parent-pom-vs-modules-pom
     -->
 
-    <groupId>org.broadinstitute.sting</groupId>
-    <artifactId>sting-root</artifactId>
+    <groupId>org.broadinstitute.gatk</groupId>
+    <artifactId>gatk-root</artifactId>
     <version>3.2-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Sting Root</name>
+    <name>GATK Root</name>
 
     <prerequisites>
         <maven>3.0.4</maven>
@@ -27,20 +27,21 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <maven.build.timestamp.format>yyyy/MM/dd HH:mm:ss</maven.build.timestamp.format>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
-        <sting.committests.skipped>true</sting.committests.skipped>
-        <sting.unittests.skipped>${sting.committests.skipped}</sting.unittests.skipped>
-        <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
-        <sting.queuetests.skipped>${sting.committests.skipped}</sting.queuetests.skipped>
-        <sting.largescaletests.skipped>true</sting.largescaletests.skipped>
-        <sting.knowledgebasetests.skipped>true</sting.knowledgebasetests.skipped>
-        <sting.queuetests.run>false</sting.queuetests.run>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk.committests.skipped>true</gatk.committests.skipped>
+        <gatk.unittests.skipped>${gatk.committests.skipped}</gatk.unittests.skipped>
+        <gatk.integrationtests.skipped>${gatk.committests.skipped}</gatk.integrationtests.skipped>
+        <gatk.queuetests.skipped>${gatk.committests.skipped}</gatk.queuetests.skipped>
+        <gatk.largescaletests.skipped>true</gatk.largescaletests.skipped>
+        <gatk.knowledgebasetests.skipped>true</gatk.knowledgebasetests.skipped>
+        <gatk.queuetests.run>false</gatk.queuetests.run>
         <scala.maxmemory>1g</scala.maxmemory>
         <test.maxmemory>4g</test.maxmemory>
         <java.gc.threads>4</java.gc.threads>
         <java.gc.timeLimit>50</java.gc.timeLimit>
         <java.gc.heapFreeLimit>10</java.gc.heapFreeLimit>
         <test.args>-Xmx${test.maxmemory} -XX:+UseParallelOldGC -XX:ParallelGCThreads=${java.gc.threads} -XX:GCTimeLimit=${java.gc.timeLimit} -XX:GCHeapFreeLimit=${java.gc.heapFreeLimit}</test.args>
+        <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
         <htsjdk.version>1.112.1452</htsjdk.version>
@@ -70,6 +71,10 @@
                 <artifactId>htsjdk</artifactId>
                 <version>${htsjdk.version}</version>
                 <exclusions>
+                    <!-- The jdk15 classfier seems to throw off the normal dependency resolution,
+                    leading to both 6.8 and 5.0-jdk15 on the classpath, then leading to an old
+                    version testng loading, as seen by the super old TestNG4751Configurator.
+                    -->
                     <exclusion>
                         <groupId>org.testng</groupId>
                         <artifactId>testng</artifactId>
@@ -240,6 +245,24 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.uncommons</groupId>
+                <artifactId>reportng</artifactId>
+                <version>1.1.2</version>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.testng</groupId>
+                        <artifactId>testng</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.inject</groupId>
+                <artifactId>guice</artifactId>
+                <version>3.0</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>com.google.caliper</groupId>
                 <artifactId>caliper</artifactId>
                 <version>0.5-rc1</version>
@@ -257,6 +280,25 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Dependencies for custom testng reports -->
+        <dependency>
+            <groupId>org.uncommons</groupId>
+            <artifactId>reportng</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <!-- Plugin configuration -->
@@ -353,6 +395,10 @@
                                 <name>usedefaultlisteners</name>
                                 <value>false</value>
                             </property>
+                            <property>
+                                <name>listener</name>
+                                <value>${test.listeners}</value>
+                            </property>
                         </properties>
                         <systemPropertyVariables>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
@@ -373,7 +419,7 @@
                             </goals>
                             <configuration>
                                 <!-- TODO: Re-enable unit tests by default? -->
-                                <skip>${sting.unittests.skipped}</skip>
+                                <skip>${gatk.unittests.skipped}</skip>
                                 <reportsDirectory>${project.build.directory}/surefire-reports/unit/${test}</reportsDirectory>
                                 <includes>
                                     <include>**/*UnitTest.class</include>
@@ -399,12 +445,16 @@
                                 <name>usedefaultlisteners</name>
                                 <value>false</value>
                             </property>
+                            <property>
+                                <name>listener</name>
+                                <value>${test.listeners}</value>
+                            </property>
                         </properties>
                         <systemPropertyVariables>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
                             <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <queuetest.run>${sting.queuetests.run}</queuetest.run>
+                            <pipeline.run>${gatk.queuetests.run}</pipeline.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -418,7 +468,7 @@
                             <!-- run integration tests -->
                             <configuration>
                                 <!-- TODO: Re-enable integration tests by default? -->
-                                <skip>${sting.integrationtests.skipped}</skip>
+                                <skip>${gatk.integrationtests.skipped}</skip>
                                 <reportsDirectory>${project.build.directory}/failsafe-reports/integration/${it.test}</reportsDirectory>
                                 <summaryFile>${project.build.directory}/failsafe-reports/integration/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
@@ -435,9 +485,9 @@
                             <!-- run queue dry run tests -->
                             <configuration>
                                 <!-- TODO: Re-enable queue tests by default? -->
-                                <skip>${sting.queuetests.skipped}</skip>
-                                <reportsDirectory>${project.build.directory}/failsafe-reports/queuetest/${it.test}</reportsDirectory>
-                                <summaryFile>${project.build.directory}/failsafe-reports/queuetest/failsafe-summary-${it.test}.xml</summaryFile>
+                                <skip>${gatk.queuetests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/queue/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/queue/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
                                     <include>**/*QueueTest.class</include>
                                 </includes>
@@ -451,7 +501,7 @@
                             </goals>
                             <!-- run large scale tests -->
                             <configuration>
-                                <skip>${sting.largescaletests.skipped}</skip>
+                                <skip>${gatk.largescaletests.skipped}</skip>
                                 <reportsDirectory>${project.build.directory}/failsafe-reports/largescale/${it.test}</reportsDirectory>
                                 <summaryFile>${project.build.directory}/failsafe-reports/largescale/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
@@ -467,7 +517,7 @@
                             </goals>
                             <!-- run knowledge base tests -->
                             <configuration>
-                                <skip>${sting.knowledgebasetests.skipped}</skip>
+                                <skip>${gatk.knowledgebasetests.skipped}</skip>
                                 <reportsDirectory>${project.build.directory}/failsafe-reports/knowledgebasetests/${it.test}</reportsDirectory>
                                 <summaryFile>${project.build.directory}/failsafe-reports/knowledgebasetests/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
@@ -609,9 +659,9 @@
 
     <repositories>
         <repository>
-            <id>sting.public.repo.local</id>
-            <name>Sting Public Local Repository</name>
-            <url>file:${sting.basedir}/public/repo</url>
+            <id>gatk.public.repo.local</id>
+            <name>GATK Public Local Repository</name>
+            <url>file:${gatk.basedir}/public/repo</url>
         </repository>
     </repositories>
 

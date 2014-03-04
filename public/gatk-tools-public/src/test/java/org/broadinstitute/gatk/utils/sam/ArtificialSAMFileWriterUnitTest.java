@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMFileHeader;
 
@@ -65,14 +65,14 @@ import java.util.List;
 /**
  * @author aaron
  *         <p/>
- *         Class ArtificialStingSAMFileWriter
+ *         Class ArtificialGATKSAMFileWriter
  *         <p/>
- *         Test out the ArtificialStingSAMFileWriter class
+ *         Test out the ArtificialGATKSAMFileWriter class
  */
 public class ArtificialSAMFileWriterUnitTest extends BaseTest {
 
     /** the artificial sam writer */
-    private ArtificialStingSAMFileWriter writer;
+    private ArtificialGATKSAMFileWriter writer;
     private SAMFileHeader header;
     private final int startChr = 1;
     private final int numChr = 2;
@@ -80,7 +80,7 @@ public class ArtificialSAMFileWriterUnitTest extends BaseTest {
 
     @BeforeMethod
     public void before() {
-        writer = new ArtificialStingSAMFileWriter();
+        writer = new ArtificialGATKSAMFileWriter();
         header = ArtificialSAMUtils.createArtificialSamHeader(numChr, startChr, chrSize);
     }
 

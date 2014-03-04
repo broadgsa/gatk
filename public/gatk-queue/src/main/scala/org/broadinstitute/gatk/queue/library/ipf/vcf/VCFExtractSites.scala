@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.library.ipf.vcf
+package org.broadinstitute.gatk.queue.library.ipf.vcf
 
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.utils.text.XReadLines
+import org.broadinstitute.gatk.queue.function.InProcessFunction
+import org.broadinstitute.gatk.utils.commandline._
+import org.broadinstitute.gatk.utils.text.XReadLines
 import java.io.{PrintStream, PrintWriter, File}
 
 

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.packing;
+package org.broadinstitute.gatk.engine.alignment.reference.packing;
 
 import java.io.File;
 import java.io.FileOutputStream;

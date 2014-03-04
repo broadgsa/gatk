@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.fasta;
+package org.broadinstitute.gatk.tools.walkers.fasta;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.PrintStream;
 
@@ -48,7 +48,7 @@ public class FastaSequence {
     }
 
     public void setName(String name) {
-        if ( printedHeader ) throw new ReviewedStingException("Can not set name for FASTA record: header is already printed.");
+        if ( printedHeader ) throw new ReviewedGATKException("Can not set name for FASTA record: header is already printed.");
         this.name = name;
     }
 

@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval;
+package org.broadinstitute.gatk.tools.walkers.varianteval;
 
-import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
-import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.AnalysisModuleScanner;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.engine.report.GATKReport;
+import org.broadinstitute.gatk.engine.report.GATKReportTable;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager.StratificationManager;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.AnalysisModuleScanner;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.EvaluationContext;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
 import java.io.PrintStream;
 import java.lang.reflect.Field;
@@ -86,10 +86,10 @@ public class VariantEvalReportWriter {
                         final Object fieldValue = field.get(ve);
 
                         if ( fieldValue == null || ! (fieldValue instanceof Map) )
-                            throw new ReviewedStingException("BUG field " + field.getName() + " must be a non-null instance of Map in " + scanner.getAnalysis().name());
+                            throw new ReviewedGATKException("BUG field " + field.getName() + " must be a non-null instance of Map in " + scanner.getAnalysis().name());
                         final Map<Object, Object> map = (Map<Object, Object>)fieldValue;
                         if ( map.isEmpty() )
-                            throw new ReviewedStingException("BUG: map is null or empty in analysis " + scanner.getAnalysis());
+                            throw new ReviewedGATKException("BUG: map is null or empty in analysis " + scanner.getAnalysis());
                         
                         int counter = 0; // counter is used to ensure printing order is as defined by entrySet
                         for ( Map.Entry<Object, Object> keyValue : map.entrySet() ) {
@@ -106,7 +106,7 @@ public class VariantEvalReportWriter {
                         }
                     }
                 } catch (IllegalAccessException e) {
-                    throw new ReviewedStingException("BUG: analysis field not public: " + e);
+                    throw new ReviewedGATKException("BUG: analysis field not public: " + e);
                 }
             }
         }
@@ -132,7 +132,7 @@ public class VariantEvalReportWriter {
             final String columnName = vs.getName();
             final Object strat = stratAndState.getSecond();
             if ( columnName == null || strat == null )
-                throw new ReviewedStingException("Unexpected null variant stratifier state at " + table + " key = " + primaryKey);
+                throw new ReviewedGATKException("Unexpected null variant stratifier state at " + table + " key = " + primaryKey);
             table.set(primaryKey, columnName, strat);
         }
     }
@@ -181,7 +181,7 @@ public class VariantEvalReportWriter {
                 table.addColumn(scanner.getMoltenAnnotation().valueName(), scanner.getMoltenAnnotation().valueFormat());
             } else {
                 if ( datamap.isEmpty() )
-                    throw new ReviewedStingException("Datamap is empty for analysis " + scanner.getAnalysis());
+                    throw new ReviewedGATKException("Datamap is empty for analysis " + scanner.getAnalysis());
                 
                 // add DataPoint's for each field marked as such
                 for (final Map.Entry<Field, DataPoint> field : datamap.entrySet()) {
@@ -192,7 +192,7 @@ public class VariantEvalReportWriter {
                         final String format = field.getValue().format();
                         table.addColumn(field.getKey().getName(), format);
                     } catch (SecurityException e) {
-                        throw new StingException("SecurityException: " + e);
+                        throw new GATKException("SecurityException: " + e);
                     }
                 }
             }

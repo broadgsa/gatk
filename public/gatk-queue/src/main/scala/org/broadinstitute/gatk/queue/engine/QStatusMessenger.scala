@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.queue.util.RemoteFile
+import org.broadinstitute.gatk.queue.util.RemoteFile
 
 /**
  * Plugin to sends QStatus messages

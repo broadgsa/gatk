@@ -23,6 +23,6 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
+package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
 public interface WorkInProgressAnnotation extends AnnotationType {}

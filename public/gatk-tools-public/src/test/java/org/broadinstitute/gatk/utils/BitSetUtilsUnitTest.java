@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

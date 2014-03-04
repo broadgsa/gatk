@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads.utilities;
+package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
 import htsjdk.samtools.util.BlockGunzipper;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.commandline.Input;
 
 import java.io.File;
 import java.io.FileInputStream;

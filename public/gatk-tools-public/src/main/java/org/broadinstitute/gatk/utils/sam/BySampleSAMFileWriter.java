@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMProgramRecord;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -54,7 +54,7 @@ public class BySampleSAMFileWriter extends NWaySAMFileWriter{
             for (SAMReadGroupRecord rg : toolkit.getReadsDataSource().getHeader(readerID).getReadGroups()) {
                 String sample = rg.getSample();
                 if (sampleToWriterMap.containsKey(sample) && sampleToWriterMap.get(sample) != readerID) {
-                    throw new ReviewedStingException("The same sample appears in multiple files, this input cannot be multiplexed using the BySampleSAMFileWriter, try NWaySAMFileWriter instead.");
+                    throw new ReviewedGATKException("The same sample appears in multiple files, this input cannot be multiplexed using the BySampleSAMFileWriter, try NWaySAMFileWriter instead.");
                 }
                 else {
                     sampleToWriterMap.put(sample, readerID);

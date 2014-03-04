@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.clipping;
+package org.broadinstitute.gatk.utils.clipping;
 
 /**
  * How should we represent a clipped bases in a read?

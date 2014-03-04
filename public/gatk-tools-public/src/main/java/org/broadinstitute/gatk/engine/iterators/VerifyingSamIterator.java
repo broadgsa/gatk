@@ -23,23 +23,23 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.util.Iterator;
 
 /**
  * Verifies that the incoming stream of reads is correctly sorted
  */
-public class VerifyingSamIterator implements StingSAMIterator {
-    StingSAMIterator it;
+public class VerifyingSamIterator implements GATKSAMIterator {
+    GATKSAMIterator it;
     SAMRecord last = null;
     boolean checkOrderP = true;
 
-    public VerifyingSamIterator(StingSAMIterator it) {
+    public VerifyingSamIterator(GATKSAMIterator it) {
         this.it = it;
     }
 

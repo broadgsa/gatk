@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function.scattergather
+package org.broadinstitute.gatk.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.gatk.queue.function.InProcessFunction
+import org.broadinstitute.gatk.queue.QException
 import java.io.PrintWriter
 import org.apache.commons.io.{LineIterator, IOUtils, FileUtils}
 

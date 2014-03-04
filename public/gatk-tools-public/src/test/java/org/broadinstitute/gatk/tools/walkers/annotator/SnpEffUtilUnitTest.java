@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator;
+package org.broadinstitute.gatk.tools.walkers.annotator;
 
 /**
  * Created with IntelliJ IDEA.
@@ -34,7 +34,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
  */
 
 
-import org.broadinstitute.sting.gatk.walkers.annotator.SnpEff.EffectType;
+import org.broadinstitute.gatk.tools.walkers.annotator.SnpEff.EffectType;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

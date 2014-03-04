@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
-import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.gatk.engine.io.storage.Storage;
 
 import java.util.ArrayList;
 import java.util.Collection;

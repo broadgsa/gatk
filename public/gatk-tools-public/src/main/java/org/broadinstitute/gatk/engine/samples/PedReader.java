@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.samples;
+package org.broadinstitute.gatk.engine.samples;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.*;
 import java.util.*;
@@ -250,7 +250,7 @@ public class PedReader {
                     else if ( parts[phenotypePos].equals(MISSING_VALUE2) ) affection = Affection.UNKNOWN;
                     else if ( parts[phenotypePos].equals(PHENOTYPE_UNAFFECTED) ) affection = Affection.UNAFFECTED;
                     else if ( parts[phenotypePos].equals(PHENOTYPE_AFFECTED) ) affection = Affection.AFFECTED;
-                    else throw new ReviewedStingException("Unexpected phenotype type " + parts[phenotypePos] + " at line " + lineNo);
+                    else throw new ReviewedGATKException("Unexpected phenotype type " + parts[phenotypePos] + " at line " + lineNo);
                 }
             }
 

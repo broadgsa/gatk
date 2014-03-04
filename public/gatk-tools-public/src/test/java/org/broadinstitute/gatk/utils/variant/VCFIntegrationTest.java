@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.variant;
+package org.broadinstitute.gatk.utils.variant;
 
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.Tribble;
@@ -35,8 +35,8 @@ import htsjdk.tribble.index.interval.IntervalTreeIndex;
 import htsjdk.tribble.index.linear.LinearIndex;
 import htsjdk.tribble.index.tabix.TabixIndex;
 import htsjdk.tribble.util.TabixUtils;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import htsjdk.variant.vcf.VCFCodec;
 import org.testng.Assert;
 import org.testng.TestException;

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.jna.drmaa.v1_0;
+package org.broadinstitute.gatk.utils.jna.drmaa.v1_0;
 
 import org.apache.commons.io.FileUtils;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.ggf.drmaa.*;
 import org.testng.Assert;
 import org.testng.SkipException;

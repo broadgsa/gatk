@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.utils.classloader.PluginManager
+import org.broadinstitute.gatk.utils.classloader.PluginManager
 
 class CommandLinePluginManager extends
   PluginManager[CommandLineJobManager[CommandLineJobRunner]](

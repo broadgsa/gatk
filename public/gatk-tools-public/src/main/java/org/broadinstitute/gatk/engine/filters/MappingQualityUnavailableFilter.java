@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.QualityUtils;
 
 /**
  * Filter out mapping quality zero reads.

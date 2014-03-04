@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.packing;
+package org.broadinstitute.gatk.engine.alignment.reference.packing;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -159,7 +159,7 @@ public class BasePackedOutputStream<T> {
         else if( type == Byte.class )
             buffer.put((byte)packedBases);
         else
-            throw new ReviewedStingException("Cannot pack bases into type " + type.getName());
+            throw new ReviewedGATKException("Cannot pack bases into type " + type.getName());
         targetOutputStream.write(buffer.array());        
     }
 }

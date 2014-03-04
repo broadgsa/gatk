@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.gatk.queue.extensions.picard
 
-import org.broadinstitute.sting.commandline._
+import org.broadinstitute.gatk.utils.commandline._
 
 import java.io.File
 /*
@@ -34,7 +34,7 @@ import java.io.File
  * Date: 6/22/11
  * Time: 10:35 AM
  */
-class ReorderSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
+class ReorderSam extends org.broadinstitute.gatk.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "ReorderSam"
   javaMainClass = "picard.sam.ReorderSam"
 

@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -186,11 +186,11 @@ public class ReadShardBalancer extends ShardBalancer {
                     // Make sure that if we see a monolithic FilePointer (representing all regions in all files) that
                     // it is the ONLY FilePointer we ever encounter
                     if ( encounteredMonolithicFilePointer ) {
-                        throw new ReviewedStingException("Bug: encountered additional FilePointers after encountering a monolithic FilePointer");
+                        throw new ReviewedGATKException("Bug: encountered additional FilePointers after encountering a monolithic FilePointer");
                     }
                     if ( filePointers.peek().isMonolithic() ) {
                         if ( totalFilePointersConsumed > 0 ) {
-                            throw new ReviewedStingException("Bug: encountered additional FilePointers before encountering a monolithic FilePointer");
+                            throw new ReviewedGATKException("Bug: encountered additional FilePointers before encountering a monolithic FilePointer");
                         }
                         encounteredMonolithicFilePointer = true;
                         logger.debug(String.format("Encountered monolithic FilePointer: %s", filePointers.peek()));

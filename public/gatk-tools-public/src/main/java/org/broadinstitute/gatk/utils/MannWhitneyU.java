@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import cern.jet.math.Arithmetic;
 import cern.jet.random.Normal;
@@ -32,9 +32,9 @@ import com.google.java.contract.Requires;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
 import java.io.Serializable;
 import java.util.Comparator;
@@ -332,7 +332,7 @@ public class MannWhitneyU {
     @Requires({"m > 0","n > 0","u >= 0"})
     @Ensures({"result != null","! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
     public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided, ExactMode mode) {
-        if ( m > 8 && n > 5 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
+        if ( m > 8 && n > 5 ) { throw new GATKException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
         double p = mode == ExactMode.POINT ? cpr(n,m,u) : cumulativeCPR(n,m,u);
         //p *= twoSided ? 2.0 : 1.0;
         double z;
@@ -355,7 +355,7 @@ public class MannWhitneyU {
             }
 
         } catch (MathException me) {
-            throw new StingException("A math exception occurred in inverting the probability",me);
+            throw new GATKException("A math exception occurred in inverting the probability",me);
         }
 
         return new Pair<Double,Double>(z,(twoSided ? 2.0*p : p));

@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
-import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.gatk.utils.MathUtils;
 
 import java.util.*;
 

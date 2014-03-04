@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function.scattergather
+package org.broadinstitute.gatk.queue.function.scattergather
 
 import java.io.File
-import org.broadinstitute.sting.commandline.Input
-import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.gatk.utils.commandline.Input
+import org.broadinstitute.gatk.queue.function.QFunction
 
 /**
  * Base class for Scatter functions.

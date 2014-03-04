@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.storage;
+package org.broadinstitute.gatk.engine.io.storage;
 
 /**
  * An interface representing the temporary storage of data.

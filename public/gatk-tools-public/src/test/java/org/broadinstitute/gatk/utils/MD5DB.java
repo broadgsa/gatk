@@ -23,13 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting;
+package org.broadinstitute.gatk.utils;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.walkers.diffengine.DiffEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.*;
 import java.util.Arrays;
@@ -71,7 +70,7 @@ public class MD5DB {
             md5MismatchStream = new PrintStream(new FileOutputStream(MD5MismatchesFile));
             md5MismatchStream.printf("%s\t%s\t%s%n", "expected", "observed", "test");
         } catch ( FileNotFoundException e ) {
-            throw new ReviewedStingException("Failed to open md5 mismatch file", e);
+            throw new ReviewedGATKException("Failed to open md5 mismatch file", e);
         }
 
     }
@@ -101,7 +100,7 @@ public class MD5DB {
                 // within the same working directory, and another GATK instance may have come along and created the
                 // directory between the calls to exists() and mkdir() above.
                 if ( ! dir.exists() ) {
-                    throw new ReviewedStingException("Infrastructure failure: failed to create md5 directory " + LOCAL_MD5_DB_DIR);
+                    throw new ReviewedGATKException("Infrastructure failure: failed to create md5 directory " + LOCAL_MD5_DB_DIR);
                 }
             }
         }

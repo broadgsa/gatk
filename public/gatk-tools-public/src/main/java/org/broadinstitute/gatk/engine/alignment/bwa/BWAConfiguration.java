@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa;
+package org.broadinstitute.gatk.engine.alignment.bwa;
 
 /**
  * Configuration for the BWA/C aligner.

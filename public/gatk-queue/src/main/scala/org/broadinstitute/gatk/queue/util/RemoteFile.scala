@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.util
 
 import java.io.File
-import org.broadinstitute.sting.utils.io.FileExtension
+import org.broadinstitute.gatk.utils.io.FileExtension
 import java.util.Date
 import java.net.URL
 

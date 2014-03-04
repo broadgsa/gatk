@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pairhmm;
+package org.broadinstitute.gatk.utils.pairhmm;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.QualityUtils;
 
 import java.util.Arrays;
 
 import static java.lang.Math.log10;
-import static org.broadinstitute.sting.utils.pairhmm.PairHMMModel.*;
+import static org.broadinstitute.gatk.utils.pairhmm.PairHMMModel.*;
 
 /**
  * Util class for performing the pair HMM for local alignment. Figure 4.3 in Durbin 1998 book.

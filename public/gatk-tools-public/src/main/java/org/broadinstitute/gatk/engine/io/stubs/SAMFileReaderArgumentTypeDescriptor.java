@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.stubs;
+package org.broadinstitute.gatk.engine.io.stubs;
 
 import htsjdk.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.SAMFileReaderBuilder;
 
 import java.lang.reflect.Type;
 

@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.exceptions;
+package org.broadinstitute.gatk.utils.exceptions;
 
 /**
- * A trivial extension around StingException to mark exceptions that have been reviewed for correctness,
- * completeness, etc.  By using this exception you are saying "this is the right error message".  StingException
+ * A trivial extension around GATKException to mark exceptions that have been reviewed for correctness,
+ * completeness, etc.  By using this exception you are saying "this is the right error message".  GATKException
  * is now just a catch all for lazy users.
  */
-public class ReviewedStingException extends StingException {
-    public ReviewedStingException(String msg) {
+public class ReviewedGATKException extends GATKException {
+    public ReviewedGATKException(String msg) {
         super(msg);
     }
 
-    public ReviewedStingException(String message, Throwable throwable) {
+    public ReviewedGATKException(String message, Throwable throwable) {
         super(message, throwable);
     }
 }

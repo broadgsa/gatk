@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.stubs;
+package org.broadinstitute.gatk.engine.io.stubs;
 
 import htsjdk.tribble.AbstractFeatureReader;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
@@ -114,7 +114,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Type type) {
         if(source.isRequired() || !source.defaultsToStdout())
-            throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
+            throw new ReviewedGATKException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
         VariantContextWriterStub stub = new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
         engine.addOutput(stub);
         return stub;

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.R;
+package org.broadinstitute.gatk.utils.R;
 
-import org.broadinstitute.sting.utils.io.IOUtils;
-import org.broadinstitute.sting.utils.io.Resource;
+import org.broadinstitute.gatk.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.io.Resource;
 
 import java.io.File;
 

@@ -23,28 +23,27 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.variantutils;
+package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import htsjdk.tribble.TribbleException;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
-import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.Reference;
+import org.broadinstitute.gatk.engine.walkers.RodWalker;
+import org.broadinstitute.gatk.engine.walkers.Window;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.QualityUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 import htsjdk.variant.variantcontext.*;
 
 import java.io.*;
@@ -188,7 +187,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                         printMap.put(sample,new PrintStream(temp));
                         tempFiles.put(sample,temp);
                     } catch (IOException e) {
-                        throw new ReviewedStingException("Error creating temporary file",e);
+                        throw new ReviewedGATKException("Error creating temporary file",e);
                     }
                     genotypeBuffer.put(sample,new byte[BUFFER_SIZE]);
                 }
@@ -272,7 +271,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     try {
                         samOut.write(genotypeBuffer.get(sample));
                     } catch ( IOException e ) {
-                        throw new ReviewedStingException("Error writing to temporary bed file.",e);
+                        throw new ReviewedGATKException("Error writing to temporary bed file.",e);
                     }
                     // reset the buffer for this sample
                     genotypeBuffer.put(sample,new byte[BUFFER_SIZE]);
@@ -303,7 +302,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         try {
             outBed.write(bytes);
         } catch (IOException e) {
-            throw new ReviewedStingException("Error writing to output bed file",e);
+            throw new ReviewedGATKException("Error writing to output bed file",e);
         }
     }
 
@@ -331,13 +330,13 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 int lim = byteCount + (genotypeCount > 0 ? 1 : 0);
                 printMap.get(sample).write(genotypeBuffer.get(sample),0,lim);
             } catch (IOException e) {
-                throw new ReviewedStingException("Error closing temporary file.",e);
+                throw new ReviewedGATKException("Error closing temporary file.",e);
             }
 
             try {
                printMap.get(sample).close();
             } catch (IOException e) {
-                throw new ReviewedStingException("Error closing temporary file.",e);
+                throw new ReviewedGATKException("Error closing temporary file.",e);
             }
         }
         for ( String sample : famOrder ) {
@@ -346,7 +345,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             try {
                 inStream = new FileInputStream(tempFiles.get(sample));
             } catch (IOException e) {
-                throw new ReviewedStingException("Error opening temp file for input.",e);
+                throw new ReviewedGATKException("Error opening temp file for input.",e);
             }
 
 
@@ -366,7 +365,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 }
                 inStream.close();
             } catch (IOException e) {
-                throw new ReviewedStingException("Error reading form temp file for input.",e);
+                throw new ReviewedGATKException("Error reading form temp file for input.",e);
             }
         }
     }
@@ -448,7 +447,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, (byte) (mode == OutputMode.INDIVIDUAL_MAJOR ? 0x0 : 0x1)});
             // ultimately, the bed will be in individual-major mode
         } catch (IOException e) {
-            throw new ReviewedStingException("error writing to output file.");
+            throw new ReviewedGATKException("error writing to output file.");
         }
     }
 

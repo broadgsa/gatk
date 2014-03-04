@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.contexts;
+package org.broadinstitute.gatk.engine.contexts;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.HasGenomeLocation;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.HasGenomeLocation;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.List;
 
@@ -66,9 +66,9 @@ public class AlignmentContext implements HasGenomeLocation {
     }
 
     public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases,boolean hasPileupBeenDownsampled ) {
-        if ( loc == null ) throw new ReviewedStingException("BUG: GenomeLoc in Alignment context is null");
-        if ( basePileup == null ) throw new ReviewedStingException("BUG: ReadBackedPileup in Alignment context is null");
-        if ( skippedBases < 0 ) throw new ReviewedStingException("BUG: skippedBases is -1 in Alignment context");
+        if ( loc == null ) throw new ReviewedGATKException("BUG: GenomeLoc in Alignment context is null");
+        if ( basePileup == null ) throw new ReviewedGATKException("BUG: ReadBackedPileup in Alignment context is null");
+        if ( skippedBases < 0 ) throw new ReviewedGATKException("BUG: skippedBases is -1 in Alignment context");
 
         this.loc = loc;
         this.basePileup = basePileup;

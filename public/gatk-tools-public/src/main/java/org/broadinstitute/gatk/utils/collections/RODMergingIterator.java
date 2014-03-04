@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.collections;
+package org.broadinstitute.gatk.utils.collections;
 
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -45,10 +45,10 @@ public class RODMergingIterator implements Iterator<RODRecordList>, Iterable<ROD
         public Element(Iterator<RODRecordList> it) {
             if ( it instanceof LocationAwareSeekableRODIterator) {
                 this.it = (LocationAwareSeekableRODIterator)it;
-                if ( ! it.hasNext() ) throw new ReviewedStingException("Iterator is empty");
+                if ( ! it.hasNext() ) throw new ReviewedGATKException("Iterator is empty");
                 update();
             } else {
-                throw new ReviewedStingException("Iterator passed to RODMergingIterator is not LocationAwareSeekableRODIterator");
+                throw new ReviewedGATKException("Iterator passed to RODMergingIterator is not LocationAwareSeekableRODIterator");
             }
         }
 

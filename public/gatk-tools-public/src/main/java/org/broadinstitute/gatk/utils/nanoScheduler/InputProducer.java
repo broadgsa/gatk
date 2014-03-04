@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.nanoScheduler;
+package org.broadinstitute.gatk.utils.nanoScheduler;
 
 import org.apache.log4j.Logger;
 

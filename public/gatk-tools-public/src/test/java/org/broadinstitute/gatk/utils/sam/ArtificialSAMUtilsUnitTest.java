@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
@@ -45,7 +45,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
 
     @Test
     public void basicReadIteratorTest() {
-        StingSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 100);
+        GATKSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 100);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -56,7 +56,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
 
     @Test
     public void tenPerChromosome() {
-        StingSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 10);
+        GATKSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 10);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -69,7 +69,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
 
     @Test
     public void onePerChromosome() {
-        StingSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 1);
+        GATKSAMIterator iter = ArtificialSAMUtils.mappedReadIterator(1, 100, 1);
         int count = 0;
         while (iter.hasNext()) {
             SAMRecord rec = iter.next();
@@ -82,7 +82,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
 
     @Test
     public void basicUnmappedIteratorTest() {
-        StingSAMIterator iter = ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 100, 100, 1000);
+        GATKSAMIterator iter = ArtificialSAMUtils.mappedAndUnmappedReadIterator(1, 100, 100, 1000);
         int count = 0;
         for (int x = 0; x < (100* 100); x++ ) {
             if (!iter.hasNext()) {

@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
-import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
-import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, QFunction}
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor
-import org.broadinstitute.sting.queue.util.ClassFieldCache
+import org.broadinstitute.gatk.queue.function.scattergather.GatherFunction
+import org.broadinstitute.gatk.queue.function.{RetryMemoryLimit, QFunction}
+import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor
+import org.broadinstitute.gatk.queue.util.ClassFieldCache
 
 /**
  * Merges a vcf text file.

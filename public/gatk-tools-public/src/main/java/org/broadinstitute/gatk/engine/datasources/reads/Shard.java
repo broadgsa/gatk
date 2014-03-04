@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.SAMFileSpan;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.HasGenomeLocation;
+import org.broadinstitute.gatk.engine.ReadMetrics;
+import org.broadinstitute.gatk.engine.ReadProperties;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.HasGenomeLocation;
 
 import java.util.Collections;
 import java.util.List;
@@ -249,5 +249,5 @@ public abstract class Shard implements HasGenomeLocation {
      * Gets the iterator over the elements cached in the shard.
      * @return
      */
-    public StingSAMIterator iterator() { throw new UnsupportedOperationException("This shard does not buffer reads."); }    
+    public GATKSAMIterator iterator() { throw new UnsupportedOperationException("This shard does not buffer reads."); }    
 }

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.contexts;
+package org.broadinstitute.gatk.engine.contexts;
 
 import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.pileup.*;
 
 import java.util.*;
 
@@ -67,7 +67,7 @@ public class AlignmentContextUtils {
             case REVERSE:
                 return new AlignmentContext(context.getLocation(),context.getPileup().getNegativeStrandPileup());
             default:
-                throw new ReviewedStingException("Unable to get alignment context for type = " + type);
+                throw new ReviewedGATKException("Unable to get alignment context for type = " + type);
         }
     }
 
@@ -137,7 +137,7 @@ public class AlignmentContextUtils {
         GenomeLoc loc = contexts.iterator().next().getLocation();
         for(AlignmentContext context: contexts) {
             if(!loc.equals(context.getLocation()))
-                throw new ReviewedStingException("Illegal attempt to join contexts from different genomic locations");
+                throw new ReviewedGATKException("Illegal attempt to join contexts from different genomic locations");
         }
 
         List<PileupElement> pe = new ArrayList<PileupElement>();

@@ -6,7 +6,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
-            <directory>src/main/qscripts/org/broadinstitute/sting/queue/qscripts/examples</directory>
+            <directory>src/main/qscripts/org/broadinstitute/gatk/queue/qscripts/examples</directory>
             <outputDirectory>.</outputDirectory>
             <includes>
                 <include>ExampleCountReads.scala</include>

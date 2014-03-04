@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.function
+package org.broadinstitute.gatk.queue.function
 
 import java.io.File
 import java.lang.annotation.Annotation
-import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.queue.{QException, QSettings}
+import org.broadinstitute.gatk.utils.commandline._
+import org.broadinstitute.gatk.queue.{QException, QSettings}
 import java.lang.IllegalStateException
-import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.utils.io.IOUtils
+import org.broadinstitute.gatk.queue.util._
+import org.broadinstitute.gatk.utils.io.IOUtils
 import scala.language.reflectiveCalls
 
 /**

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileReader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 
@@ -71,9 +71,9 @@ public class SAMFileReaderBuilder {
      */
     public SAMFileReader build() {
         if( samFile == null )
-            throw new ReviewedStingException( "Filename for output sam file must be supplied.");
+            throw new ReviewedGATKException( "Filename for output sam file must be supplied.");
         if( validationStringency == null )
-            throw new ReviewedStingException( "Header for output sam file must be supplied.");
+            throw new ReviewedGATKException( "Header for output sam file must be supplied.");
 
         SAMFileReader reader = new SAMFileReader( samFile );
         reader.setValidationStringency( validationStringency );

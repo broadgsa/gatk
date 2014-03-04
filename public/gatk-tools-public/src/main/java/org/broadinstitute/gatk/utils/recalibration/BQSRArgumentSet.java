@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.recalibration;
+package org.broadinstitute.gatk.utils.recalibration;
 
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 
 import java.io.File;
 

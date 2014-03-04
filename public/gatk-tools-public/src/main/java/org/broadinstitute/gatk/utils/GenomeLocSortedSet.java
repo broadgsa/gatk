@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
+import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 
 import java.util.*;
 
@@ -390,7 +390,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             } else if ( e.getStop() < p.getStart() ) {
                 toExclude.pop();                 // p starts after e stops, e is done
             } else {
-                throw new ReviewedStingException("BUG: unexpected condition: p=" + p + ", e=" + e);
+                throw new ReviewedGATKException("BUG: unexpected condition: p=" + p + ", e=" + e);
             }
 
             if ( i++ % 10000 == 0 )

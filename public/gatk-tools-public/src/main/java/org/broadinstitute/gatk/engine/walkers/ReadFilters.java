@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.gatk.engine.walkers;
 
 import htsjdk.samtools.filter.SamRecordFilter;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 
 import java.lang.annotation.*;
 

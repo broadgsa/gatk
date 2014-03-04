@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.smithwaterman;
+package org.broadinstitute.gatk.utils.smithwaterman;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.utils.Utils;
 
 /**
  * Caliper microbenchmark of parsing a VCF file

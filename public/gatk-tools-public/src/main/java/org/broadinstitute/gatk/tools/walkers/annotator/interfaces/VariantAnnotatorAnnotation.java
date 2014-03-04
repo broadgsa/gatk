@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
+package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 import htsjdk.variant.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 
 import java.util.List;
 import java.util.Set;

@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import htsjdk.variant.variantcontext.VariantContext;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import htsjdk.samtools.SAMFileWriter;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.io.stubs.*;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.io.stubs.*;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -166,7 +166,7 @@ public class ArgumentTypeDescriptorUnitTest extends BaseTest {
                 Assert.assertEquals(!provided, outputIsStdout(argumentSource.getOut()));
 
         } catch (Exception e) {
-            throw new ReviewedStingException(e.getMessage());
+            throw new ReviewedGATKException(e.getMessage());
         }
     }
 
@@ -186,14 +186,14 @@ public class ArgumentTypeDescriptorUnitTest extends BaseTest {
                     new Tags(),
                     "variantTest");
             if (!(result instanceof RodBindingCollection))
-                throw new ReviewedStingException("getRodBindingsCollection did not return a RodBindingCollection");
+                throw new ReviewedGATKException("getRodBindingsCollection did not return a RodBindingCollection");
             RodBindingCollection<?> rbc = (RodBindingCollection) result;
 
             Assert.assertEquals(rbc.getType(), VariantContext.class);
             Assert.assertEquals(rbc.getRodBindings().size(), 1);
 
         } catch (IOException e) {
-            throw new ReviewedStingException(e.getMessage(), e);
+            throw new ReviewedGATKException(e.getMessage(), e);
         }
 
         //The same file, now with an extra blank line
@@ -207,14 +207,14 @@ public class ArgumentTypeDescriptorUnitTest extends BaseTest {
                     new Tags(),
                     "variantTest");
             if (!(result instanceof RodBindingCollection))
-                throw new ReviewedStingException("getRodBindingsCollection did not return a RodBindingCollection");
+                throw new ReviewedGATKException("getRodBindingsCollection did not return a RodBindingCollection");
             RodBindingCollection<?> rbc = (RodBindingCollection) result;
 
             Assert.assertEquals(rbc.getType(), VariantContext.class);
             Assert.assertEquals(rbc.getRodBindings().size(), 1);
 
         } catch (IOException e) {
-            throw new ReviewedStingException(e.getMessage(), e);
+            throw new ReviewedGATKException(e.getMessage(), e);
         }
     }
 

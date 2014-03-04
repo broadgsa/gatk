@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.gatk.queue.extensions.picard
 
-import org.broadinstitute.sting.commandline.{Argument, Output, Input}
+import org.broadinstitute.gatk.utils.commandline.{Argument, Output, Input}
 import java.io.File
 
 /**
@@ -35,7 +35,7 @@ import java.io.File
  * Time: 10:37 AM
  * To change this template use File | Settings | File Templates.
  */
-class CollectGcBiasMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction {
+class CollectGcBiasMetrics extends org.broadinstitute.gatk.queue.function.JavaCommandLineFunction with PicardMetricsFunction {
   analysisName = "CollectGcBiasMetrics"
   javaMainClass = "picard.analysis.CollectGcBiasMetrics"
 

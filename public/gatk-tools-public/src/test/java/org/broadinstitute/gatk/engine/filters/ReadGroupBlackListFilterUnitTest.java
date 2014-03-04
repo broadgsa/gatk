@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.Test;
 
 import htsjdk.samtools.SAMRecord;
@@ -39,18 +39,18 @@ import java.util.Collections;
 
 public class ReadGroupBlackListFilterUnitTest extends ReadFilterTest {
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedGATKException.class)
     public void testBadFilter() {
         List<String> badFilters = Collections.singletonList("bad");
         new ReadGroupBlackListFilter(badFilters);
     }
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedGATKException.class)
     public void testBadFilterTag() {
         List<String> badFilters = Collections.singletonList("bad:filter");
         new ReadGroupBlackListFilter(badFilters);
     }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedGATKException.class)
     public void testBadFilterFile() {
         List<String> badFilters = Collections.singletonList("/foo/bar/rgbl.txt");
         new ReadGroupBlackListFilter(badFilters);

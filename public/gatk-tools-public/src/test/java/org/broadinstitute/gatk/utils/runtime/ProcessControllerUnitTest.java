@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.runtime;
+package org.broadinstitute.gatk.utils.runtime;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -88,7 +88,7 @@ public class ProcessControllerUnitTest extends BaseTest {
             job = new ProcessSettings(new String[] {"no_such_command"});
             try {
                 controller.exec(job);
-            } catch (ReviewedStingException e) {
+            } catch (ReviewedGATKException e) {
                 /* Was supposed to throw an exception */
             }
 
@@ -392,7 +392,7 @@ public class ProcessControllerUnitTest extends BaseTest {
         }
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class)
+    @Test(expectedExceptions = ReviewedGATKException.class)
     public void testUnableToStart() {
         ProcessSettings job = new ProcessSettings(new String[]{"no_such_command"});
         new ProcessController().exec(job);

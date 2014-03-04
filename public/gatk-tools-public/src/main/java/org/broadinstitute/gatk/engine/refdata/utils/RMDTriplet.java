@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata.utils;
+package org.broadinstitute.gatk.engine.refdata.utils;
 
 
-import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.gatk.utils.commandline.Tags;
 
 /**
  * a helper class to manage our triplets of data for the -B command line option (name, type, file)

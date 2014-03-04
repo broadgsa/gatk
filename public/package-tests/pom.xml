@@ -3,49 +3,35 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-    Run during package testing by the maven invoker plugin in the sting-aggregator /pom.xml
+    Run during package testing by the maven invoker plugin in the gatk-aggregator /pom.xml
     -->
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-root</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-root</artifactId>
         <version>3.2-SNAPSHOT</version>
-        <relativePath>../sting-root</relativePath>
+        <relativePath>../gatk-root</relativePath>
     </parent>
 
-    <artifactId>sting-package-tests</artifactId>
+    <artifactId>gatk-package-tests</artifactId>
     <packaging>pom</packaging>
-    <name>Sting Package Tests</name>
+    <name>GATK Package Tests</name>
 
     <properties>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
-        <sting.packageunittests.skipped>true</sting.packageunittests.skipped>
-        <sting.packageintegrationtests.skipped>true</sting.packageintegrationtests.skipped>
-        <sting.packagequeuetests.skipped>true</sting.packagequeuetests.skipped>
-        <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
-        <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk.packageunittests.skipped>true</gatk.packageunittests.skipped>
+        <gatk.packageintegrationtests.skipped>true</gatk.packageintegrationtests.skipped>
+        <gatk.packagequeuetests.skipped>true</gatk.packagequeuetests.skipped>
+        <gatk.packagelargescaletests.skipped>true</gatk.packagelargescaletests.skipped>
+        <gatk.packageknowledgebasetests.skipped>true</gatk.packageknowledgebasetests.skipped>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>${sting.packagetests.artifactId}</artifactId>
+            <artifactId>${gatk.packagetests.artifactId}</artifactId>
             <version>${project.version}</version>
-        </dependency>
-
-        <!--
-            For com.sun.javadoc
-            See also: http://sunnytalkstech.blogspot.in/2011/08/maven-dependency-for-toolsjar-in-jdk7.html
-            -->
-        <dependency>
-            <groupId>com.sun</groupId>
-            <artifactId>tools</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.code.cofoja</groupId>
-            <artifactId>cofoja</artifactId>
         </dependency>
 
         <!--
@@ -54,14 +40,14 @@
         TODO: Currently the <exclusion> isn't working 100%, so switched to using additionalClasspathElements
 
         TODO: Uncomment below to use the explicitly bad "exclude *" to really test correct packaging,
-        TODO: until we can separate BaseTest and other utilities into their own sting-test-utils artifact.
+        TODO: until we can separate BaseTest and other utilities into their own gatk-test-utils artifact.
         TODO: We only want the classes in the packaged jars tested, not the classes within the dependency jars too.
         See also:
           http://stackoverflow.com/questions/547805/how-to-exclude-all-transitive-dependencies-of-a-maven-dependency
           http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-framework</artifactId>
+            <artifactId>gatk-tools-public</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -76,12 +62,11 @@
         </dependency>
         -->
 
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <scope>test</scope>
-        </dependency>
-
+        <!--
+        NOTE: Any test dependencies used by a packaged artifact must be ALSO added here.
+        For example, gatk-tools-protected uses caliper, so caliper should also be added here.
+        TestNG and its reporters are inherited from the global gatk-root/pom.xml as dependencies.
+        -->
         <dependency>
             <groupId>com.google.caliper</groupId>
             <artifactId>caliper</artifactId>
@@ -90,7 +75,7 @@
     </dependencies>
 
     <build>
-        <directory>${sting.packagetests.basedir}/target</directory>
+        <directory>${gatk.packagetests.basedir}/target</directory>
     </build>
 
     <profiles>
@@ -110,13 +95,13 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                            <basedir>${sting.packagetests.basedir}</basedir>
-                            <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
+                            <basedir>${gatk.packagetests.basedir}</basedir>
+                            <workingDirectory>${gatk.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
-                            <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
+                            <testClassesDirectory>${gatk.packagetests.testClasses}</testClassesDirectory>
                             <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
                             <additionalClasspathElements>
-                                <additionalClasspathElement>${sting.basedir}/public/gatk-framework/target/gatk-framework-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-tools-public/target/gatk-tools-public-${project.version}-tests.jar</additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
                         <executions>
@@ -126,7 +111,7 @@
                                     <goal>test</goal>
                                 </goals>
                                 <configuration>
-                                    <skip>${sting.packageunittests.skipped}</skip>
+                                    <skip>${gatk.packageunittests.skipped}</skip>
                                 </configuration>
                             </execution>
                         </executions>
@@ -151,13 +136,13 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
-                            <basedir>${sting.packagetests.basedir}</basedir>
-                            <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
+                            <basedir>${gatk.packagetests.basedir}</basedir>
+                            <workingDirectory>${gatk.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
-                            <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
+                            <testClassesDirectory>${gatk.packagetests.testClasses}</testClassesDirectory>
                             <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
                             <additionalClasspathElements>
-                                <additionalClasspathElement>${sting.basedir}/public/gatk-framework/target/gatk-framework-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-framework/target/gatk-framework-${project.version}-tests.jar</additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
                         <executions>
@@ -168,7 +153,7 @@
                                 </goals>
                                 <!-- run integration tests -->
                                 <configuration>
-                                    <skip>${sting.packageintegrationtests.skipped}</skip>
+                                    <skip>${gatk.packageintegrationtests.skipped}</skip>
                                 </configuration>
                             </execution>
                             <execution>
@@ -178,7 +163,7 @@
                                 </goals>
                                 <!-- run queue dry run tests -->
                                 <configuration>
-                                    <skip>${sting.packagequeuetests.skipped}</skip>
+                                    <skip>${gatk.packagequeuetests.skipped}</skip>
                                 </configuration>
                             </execution>
                             <execution>
@@ -188,7 +173,7 @@
                                 </goals>
                                 <!-- run large scale tests -->
                                 <configuration>
-                                    <skip>${sting.packagelargescaletests.skipped}</skip>
+                                    <skip>${gatk.packagelargescaletests.skipped}</skip>
                                 </configuration>
                             </execution>
                             <execution>
@@ -198,7 +183,7 @@
                                 </goals>
                                 <!-- run knowledge base tests -->
                                 <configuration>
-                                    <skip>${sting.packageknowledgebasetests.skipped}</skip>
+                                    <skip>${gatk.packageknowledgebasetests.skipped}</skip>
                                 </configuration>
                             </execution>
                         </executions>

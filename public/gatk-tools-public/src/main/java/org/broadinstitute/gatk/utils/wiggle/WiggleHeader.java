@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.wiggle;
+package org.broadinstitute.gatk.utils.wiggle;
 
 /**
  * A class for defining the header values for a wiggle graph file (see UCSC). The optional fields are:

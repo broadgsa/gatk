@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
  * Filters out reads whose length is >= some value or < some value.

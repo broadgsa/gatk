@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
-import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.PackUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.IOException;
@@ -182,7 +182,7 @@ public class CreateBWTFromReference {
 
         for( int i = 0; i < bwt.length(); i++ ) {
             if( bwtSequence[i] != existingBWTSequence[i] )
-                throw new ReviewedStingException("BWT mismatch at " + i);
+                throw new ReviewedGATKException("BWT mismatch at " + i);
         }
 
         File existingSAFile = new File(inputFileName+".sa");
@@ -193,7 +193,7 @@ public class CreateBWTFromReference {
             if( i % 10000 == 0 )
                 System.out.printf("Validating suffix array entry %d%n", i);
             if( suffixArray.get(i) != existingSuffixArray.get(i) )
-                throw new ReviewedStingException(String.format("Suffix array mismatch at %d; SA is %d; should be %d",i,existingSuffixArray.get(i),suffixArray.get(i)));
+                throw new ReviewedGATKException(String.format("Suffix array mismatch at %d; SA is %d; should be %d",i,existingSuffixArray.get(i),suffixArray.get(i)));
         }
     }
 

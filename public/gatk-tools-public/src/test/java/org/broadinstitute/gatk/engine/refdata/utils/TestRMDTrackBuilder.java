@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata.utils;
+package org.broadinstitute.gatk.engine.refdata.utils;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.tribble.Tribble;
 import htsjdk.tribble.index.Index;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.engine.refdata.tracks.IndexDictionaryUtils;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import java.io.File;
 import java.io.IOException;

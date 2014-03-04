@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.gatk.queue.pipeline.examples
 
 /*
  * Copyright (c) 2011, The Broad Institute
@@ -50,8 +50,8 @@ package org.broadinstitute.sting.queue.pipeline.examples
  */
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
-import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.gatk.queue.pipeline.{QueueTest, QueueTestSpec}
+import org.broadinstitute.gatk.utils.BaseTest
 
 class ExamplePrintReadsQueueTest {
   @Test(timeOut=36000000)
@@ -59,7 +59,7 @@ class ExamplePrintReadsQueueTest {
     val spec = new QueueTestSpec
     spec.name = "devnulloutput"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExamplePrintReads.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExamplePrintReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -out /dev/null").mkString
@@ -72,7 +72,7 @@ class ExamplePrintReadsQueueTest {
     val spec = new QueueTestSpec
     spec.name = "cleanupbai"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExamplePrintReads.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExamplePrintReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -out exampleOut.bam").mkString

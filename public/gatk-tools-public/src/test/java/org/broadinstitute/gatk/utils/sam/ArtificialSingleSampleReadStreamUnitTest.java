@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
 
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 
 public class ArtificialSingleSampleReadStreamUnitTest extends BaseTest {
 
@@ -155,7 +155,7 @@ public class ArtificialSingleSampleReadStreamUnitTest extends BaseTest {
     }
 
     @Test(dataProvider = "ArtificialSingleSampleReadStreamInvalidArgumentsTestDataProvider",
-          expectedExceptions = ReviewedStingException.class)
+          expectedExceptions = ReviewedGATKException.class)
     public void testInvalidArguments( String testName,
                                       SAMFileHeader header,
                                       String readGroupID,

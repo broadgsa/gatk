@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.collections;
+package org.broadinstitute.gatk.utils.collections;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.PrintStream;
 
@@ -61,7 +61,7 @@ public class LoggingNestedIntegerArray<T> extends NestedIntegerArray<T> {
         super(dimensions);
 
         if ( log == null ) {
-            throw new ReviewedStingException("Log output stream must not be null");
+            throw new ReviewedGATKException("Log output stream must not be null");
         }
         this.log = log;
         this.logEntryLabel = logEntryLabel != null ? logEntryLabel : "";

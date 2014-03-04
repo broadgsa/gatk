@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
-import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.gatk.utils.commandline.Tags;
 
 import java.io.File;
 

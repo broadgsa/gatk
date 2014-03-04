@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.nanoScheduler;
+package org.broadinstitute.gatk.utils.nanoScheduler;
 
 import org.apache.log4j.BasicConfigurator;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.SimpleTimer;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -274,9 +274,9 @@ public class NanoSchedulerUnitTest extends BaseTest {
         executeTestErrorThrowingInput(10, new NullPointerException(), exampleTest, false);
     }
 
-    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, timeOut = EXCEPTION_THROWING_TEST_TIMEOUT)
+    @Test(enabled = true, expectedExceptions = ReviewedGATKException.class, timeOut = EXCEPTION_THROWING_TEST_TIMEOUT)
     public void testInputErrorIsThrown_RSE() throws InterruptedException {
-        executeTestErrorThrowingInput(10, new ReviewedStingException("test"), exampleTest, false);
+        executeTestErrorThrowingInput(10, new ReviewedGATKException("test"), exampleTest, false);
     }
 
     @Test(enabled = true, expectedExceptions = NullPointerException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
@@ -284,7 +284,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         executeTestErrorThrowingInput(nElementsBeforeError, new NullPointerException(), test, addDelays);
     }
 
-    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
+    @Test(enabled = true, expectedExceptions = ReviewedGATKException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
     public void testInputErrorDoesntDeadlock(final int nElementsBeforeError, final NanoSchedulerBasicTest test, final boolean addDelays ) throws InterruptedException {
         executeTestErrorThrowingInput(nElementsBeforeError, new Error(), test, addDelays);
     }

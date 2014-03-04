@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
-import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.engine.datasources.reads.MockLocusShard;
+import org.broadinstitute.gatk.engine.iterators.GenomeLocusIterator;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
 
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.StringUtil;

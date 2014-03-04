@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordCoordinateComparator;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.ReadPairWalker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.providers.ReadView;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.walkers.DataSource;
+import org.broadinstitute.gatk.engine.walkers.ReadPairWalker;
+import org.broadinstitute.gatk.engine.walkers.Requires;
 
 import java.util.ArrayList;
 import java.util.Collections;

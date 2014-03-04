@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue
+package org.broadinstitute.gatk.queue
 
 import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.io.PlainFile
-import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.gatk.queue.util.Logging
 import collection.JavaConversions._
 import java.io.File
 import scala.tools.nsc.reporters.AbstractReporter
 import java.lang.String
 import org.apache.log4j.Level
-import org.broadinstitute.sting.queue.util.TextFormatUtils._
-import org.broadinstitute.sting.utils.classloader.JVMUtils
+import org.broadinstitute.gatk.queue.util.TextFormatUtils._
+import org.broadinstitute.gatk.utils.classloader.JVMUtils
 import scala.reflect.internal.util.{FakePos, NoPosition, Position, StringOps}
-import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.gatk.utils.exceptions.UserException
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.

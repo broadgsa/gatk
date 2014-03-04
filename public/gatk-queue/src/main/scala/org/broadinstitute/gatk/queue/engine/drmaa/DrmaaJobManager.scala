@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.drmaa
+package org.broadinstitute.gatk.queue.engine.drmaa
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
-import org.broadinstitute.sting.jna.drmaa.v1_0.JnaSessionFactory
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.engine.CommandLineJobManager
+import org.broadinstitute.gatk.utils.jna.drmaa.v1_0.JnaSessionFactory
 import org.ggf.drmaa.Session
 
 /**

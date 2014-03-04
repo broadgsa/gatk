@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.library.clf.vcf
+package org.broadinstitute.gatk.queue.library.clf.vcf
 
 import java.io.File
 import collection.JavaConversions._
-import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.utils.text.XReadLines
+import org.broadinstitute.gatk.utils.commandline._
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.utils.text.XReadLines
 
 class VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extends CommandLineFunction {
   @Input(doc="input VCF from which to extract samples") var inputVCF : File = inVCF

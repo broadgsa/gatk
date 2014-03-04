@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.storage;
+package org.broadinstitute.gatk.engine.io.storage;
 
-import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.io.stubs.OutputStreamStub;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
+import org.broadinstitute.gatk.engine.io.stubs.Stub;
+import org.broadinstitute.gatk.engine.io.stubs.VariantContextWriterStub;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 
@@ -85,7 +85,7 @@ public class StorageFactory {
                 storage = new VariantContextWriterStorage(vcfWriterStub);
         }
         else
-            throw new ReviewedStingException("Unsupported stub type: " + stub.getClass().getName());
+            throw new ReviewedGATKException("Unsupported stub type: " + stub.getClass().getName());
 
         return storage;
     }

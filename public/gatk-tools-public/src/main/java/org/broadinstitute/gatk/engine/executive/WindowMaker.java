@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
 import htsjdk.samtools.util.PeekableIterator;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
-import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.ReadProperties;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMRecordIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.locusiterator.LocusIterator;
+import org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -72,7 +72,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     /**
      * Hold the read iterator so that it can be closed later.
      */
-    private final GATKSAMIterator readIterator;
+    private final GATKSAMRecordIterator readIterator;
 
     /**
      * The data source for reads.  Will probably come directly from the BAM file.
@@ -107,9 +107,9 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
 
     private final LocusIteratorByState libs;
 
-    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, Collection<String> sampleNames) {
+    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, GATKSAMIterator iterator, List<GenomeLoc> intervals, Collection<String> sampleNames) {
         this.sourceInfo = shard.getReadProperties();
-        this.readIterator = new GATKSAMIterator(iterator);
+        this.readIterator = new GATKSAMRecordIterator(iterator);
 
         this.libs = new LocusIteratorByState(readIterator,sourceInfo,genomeLocParser,sampleNames);
         this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
@@ -117,7 +117,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 
-    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals ) {
+    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, GATKSAMIterator iterator, List<GenomeLoc> intervals ) {
         this(shard, genomeLocParser, iterator, intervals, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
@@ -205,7 +205,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
                     break;
                 }
                 else
-                    throw new ReviewedStingException("BUG: filtering locus does not contain, is not before, and is not past the given alignment context");
+                    throw new ReviewedGATKException("BUG: filtering locus does not contain, is not before, and is not past the given alignment context");
             }
         }
 

@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -292,6 +292,6 @@ public class ArgumentDefinition {
      */
     private void validateName(final String name) {
         if ( name != null && name.startsWith("-") )
-            throw new ReviewedStingException("Invalid argument definition: " + name + " begins with a -");
+            throw new ReviewedGATKException("Invalid argument definition: " + name + " begins with a -");
     }
 }

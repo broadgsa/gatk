@@ -23,29 +23,29 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk;
+package org.broadinstitute.gatk.queue.extensions.gatk;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.ParsingEngine;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.filters.FilterManager;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.walkers.PartitionBy;
-import org.broadinstitute.sting.gatk.walkers.PartitionType;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.commandline.Output;
+import org.broadinstitute.gatk.utils.commandline.ParsingEngine;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.WalkerManager;
+import org.broadinstitute.gatk.engine.filters.FilterManager;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.io.stubs.OutputStreamArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor;
+import org.broadinstitute.gatk.engine.walkers.PartitionBy;
+import org.broadinstitute.gatk.engine.walkers.PartitionType;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.IOException;
@@ -125,7 +125,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     protected int execute() {
         try {
             if (!outputDirectory.isDirectory() && !outputDirectory.mkdirs())
-                throw new ReviewedStingException("Unable to create output directory: " + outputDirectory);
+                throw new ReviewedGATKException("Unable to create output directory: " + outputDirectory);
 
             SortedSet<Class<?>> dependents = new TreeSet<Class<?>>(classComparator);
 
@@ -141,7 +141,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                     String clpClassName = clpManager.getName(clp);
                     String clpConstructor = String.format("analysisName = \"%s\"%njavaMainClass = \"%s\"%n", clpClassName, clp.getName());
 
-                    writeClass("org.broadinstitute.sting.queue.function.JavaCommandLineFunction", clpClassName,
+                    writeClass("org.broadinstitute.gatk.queue.function.JavaCommandLineFunction", clpClassName,
                             false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
 
                     if (clp == CommandLineGATK.class) {
@@ -166,13 +166,13 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                                     writeClass(GATK_EXTENSIONS_PACKAGE_NAME + "." + clpClassName, walkerName,
                                             isScatter, constructor, argumentFields, dependents);
                                 } catch (Exception e) {
-                                    throw new ReviewedStingException("Error generating wrappers for walker " + walkerType, e);
+                                    throw new ReviewedGATKException("Error generating wrappers for walker " + walkerType, e);
                                 }
                             }
                         }
                     }
                 } catch (Exception e) {
-                    throw new ReviewedStingException("Error generating wrappers for " + clp, e);
+                    throw new ReviewedGATKException("Error generating wrappers for " + clp, e);
                 }
             }
 
@@ -194,11 +194,10 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      * The list of packages to search through.
      */
     private static final List<String> gatkPackages = Arrays.asList(
-            "org.broadinstitute.sting.tools",
-            "org.broadinstitute.sting.gatk",
-            "org.broadinstitute.sting.pipeline",
-            "org.broadinstitute.sting.tools",
-            "org.broadinstitute.sting.gatk.datasources.reads.utilities");
+            "org.broadinstitute.gatk.engine",
+            "org.broadinstitute.gatk.utils.pipeline",
+            "org.broadinstitute.gatk.tools",
+            "org.broadinstitute.gatk.engine.datasources.reads.utilities");
 
     /**
      * Returns true if the class is part of the GATK.
@@ -253,7 +252,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      * @throws IOException If the file cannot be written.
      */
     private void writeFilter(String className, List<? extends ArgumentField> argumentFields, Set<Class<?>> dependents) throws IOException {
-        String content = getContent(TRAIT_TEMPLATE, "org.broadinstitute.sting.queue.function.CommandLineFunction",
+        String content = getContent(TRAIT_TEMPLATE, "org.broadinstitute.gatk.queue.function.CommandLineFunction",
                 className, "", false, String.format(" + required(\"--read_filter\", \"%s\")", className), argumentFields, dependents);
         writeFile(GATK_EXTENSIONS_PACKAGE_NAME + "." + className, content);
     }
@@ -366,11 +365,11 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         }
 
         if (isScatter) {
-            importSet.add("import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction");
+            importSet.add("import org.broadinstitute.gatk.queue.function.scattergather.ScatterGatherableFunction");
             baseClass += " with ScatterGatherableFunction";
         }
         if (isGather)
-            importSet.add("import org.broadinstitute.sting.commandline.Gather");
+            importSet.add("import org.broadinstitute.gatk.utils.commandline.Gather");
 
         // Sort the imports so that the are always in the same order.
         List<String> sortedImports = new ArrayList<String>(importSet);

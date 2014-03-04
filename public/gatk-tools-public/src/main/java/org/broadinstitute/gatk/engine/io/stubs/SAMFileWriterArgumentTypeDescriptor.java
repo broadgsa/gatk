@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.stubs;
+package org.broadinstitute.gatk.engine.io.stubs;
 
 import htsjdk.samtools.SAMFileWriter;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
@@ -76,7 +76,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public boolean supports( Class type ) {
-        return SAMFileWriter.class.equals(type) || StingSAMFileWriter.class.equals(type);
+        return SAMFileWriter.class.equals(type) || GATKSAMFileWriter.class.equals(type);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(source.isRequired() || !source.defaultsToStdout())
-            throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
+            throw new ReviewedGATKException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         SAMFileWriterStub stub = new SAMFileWriterStub(engine,defaultOutputStream);
         engine.addOutput(stub);
         return stub;

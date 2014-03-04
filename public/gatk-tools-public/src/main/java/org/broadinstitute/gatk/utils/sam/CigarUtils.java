@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import com.google.java.contract.Ensures;
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.TextCigarCodec;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.smithwaterman.Parameters;
-import org.broadinstitute.sting.utils.smithwaterman.SWPairwiseAlignment;
-import org.broadinstitute.sting.utils.smithwaterman.SmithWaterman;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.smithwaterman.Parameters;
+import org.broadinstitute.gatk.utils.smithwaterman.SWPairwiseAlignment;
+import org.broadinstitute.gatk.utils.smithwaterman.SmithWaterman;
 
 import java.util.Arrays;
 import java.util.Stack;
@@ -164,7 +164,7 @@ public class CigarUtils {
                 case I:
                     break;
                 default:
-                    throw new ReviewedStingException("Unsupported cigar operator: " + cigarElement.getOperator());
+                    throw new ReviewedGATKException("Unsupported cigar operator: " + cigarElement.getOperator());
             }
         }
         return result;

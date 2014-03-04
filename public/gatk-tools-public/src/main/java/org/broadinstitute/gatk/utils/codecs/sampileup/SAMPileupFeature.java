@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.sampileup;
+package org.broadinstitute.gatk.utils.codecs.sampileup;
 
 import htsjdk.samtools.util.StringUtil;
 import htsjdk.tribble.Feature;

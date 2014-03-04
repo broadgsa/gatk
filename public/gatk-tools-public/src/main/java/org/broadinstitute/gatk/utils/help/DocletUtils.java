@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.gatk.utils.help;
 
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.PackageDoc;
 import com.sun.javadoc.ProgramElementDoc;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
 
 import java.lang.reflect.Field;
 

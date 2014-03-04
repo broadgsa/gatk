@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.ProgressLoggerInterface;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.Collection;
@@ -89,7 +89,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
      */
     public void setupByReader(GenomeAnalysisEngine toolkit, Map<String,String> in2out, SAMFileHeader.SortOrder order,
                               boolean presorted, boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord pRecord) {
-        if ( in2out==null ) throw new StingException("input-output bam filename map for n-way-out writing is NULL");
+        if ( in2out==null ) throw new GATKException("input-output bam filename map for n-way-out writing is NULL");
         for ( SAMReaderID rid : toolkit.getReadsDataSource().getReaderIDs() ) {
 
             String fName = toolkit.getReadsDataSource().getSAMFile(rid).getName();
@@ -100,7 +100,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
             outName = in2out.get(fName);
 
             if ( writerMap.containsKey( rid ) )
-                throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered; "+
+                throw new GATKException("nWayOut mode: Reader id for input sam file "+fName+" is already registered; "+
                         "map file likely contains multiple entries for this input file");
 
             addWriter(rid,outName, order, presorted, indexOnTheFly, generateMD5, pRecord);
@@ -133,7 +133,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
             outName = prefix+ext;
 
             if ( writerMap.containsKey( rid ) )
-                throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
+                throw new GATKException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
             addWriter(rid,outName, order, presorted, indexOnTheFly, generateMD5, pRecord);
         }
 

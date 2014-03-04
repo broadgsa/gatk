@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.BlockCompressedStreamConstants;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -117,7 +117,7 @@ class BlockLoader implements Runnable {
             // value into an int buffer to transfer the bitwise contents into an int.
             inputBuffer.flip();
             if(inputBuffer.remaining() != BlockCompressedStreamConstants.BLOCK_HEADER_LENGTH)
-                throw new ReviewedStingException("BUG: unable to read a the complete block header in one pass.");
+                throw new ReviewedGATKException("BUG: unable to read a the complete block header in one pass.");
 
             // Verify that the file was read at a valid point.
             if(unpackUByte8(inputBuffer,0) != BlockCompressedStreamConstants.GZIP_ID1 ||
@@ -126,7 +126,7 @@ class BlockLoader implements Runnable {
                     unpackUInt16(inputBuffer,10) != BlockCompressedStreamConstants.GZIP_XLEN ||
                     unpackUByte8(inputBuffer,12) != BlockCompressedStreamConstants.BGZF_ID1 ||
                     unpackUByte8(inputBuffer,13) != BlockCompressedStreamConstants.BGZF_ID2) {
-                throw new ReviewedStingException("BUG: Started reading compressed block at incorrect position");
+                throw new ReviewedGATKException("BUG: Started reading compressed block at incorrect position");
             }
 
             inputBuffer.position(BlockCompressedStreamConstants.BLOCK_LENGTH_OFFSET);
@@ -168,7 +168,7 @@ class BlockLoader implements Runnable {
         inflater.setInput(compressedContent);
         int bytesUncompressed = inflater.inflate(uncompressedContent);
         if(bytesUncompressed != uncompressedBufferSize)
-            throw new ReviewedStingException("Error decompressing block");
+            throw new ReviewedGATKException("Error decompressing block");
 
         return ByteBuffer.wrap(uncompressedContent);
     }

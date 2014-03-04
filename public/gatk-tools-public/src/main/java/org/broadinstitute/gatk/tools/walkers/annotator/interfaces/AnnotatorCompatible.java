@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
+package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.List;

@@ -23,21 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.phonehome;
+package org.broadinstitute.gatk.engine.phonehome;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.crypt.CryptUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.io.IOUtils;
-import org.broadinstitute.sting.utils.io.Resource;
-import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.crypt.CryptUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.io.Resource;
+import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
@@ -243,7 +243,7 @@ public class GATKRunReport {
      */
     public GATKRunReport(final Walker<?,?> walker, final Exception e, final GenomeAnalysisEngine engine, final PhoneHomeOption type) {
         if ( type == PhoneHomeOption.NO_ET )
-            throw new ReviewedStingException("Trying to create a run report when type is NO_ET!");
+            throw new ReviewedGATKException("Trying to create a run report when type is NO_ET!");
 
         logger.debug("Aggregating data for run report");
 
@@ -365,7 +365,7 @@ public class GATKRunReport {
     // ---------------------------------------------------------------------------
 
     /**
-     * Write an XML representation of this report to the stream, throwing a StingException if the marshalling
+     * Write an XML representation of this report to the stream, throwing a GATKException if the marshalling
      * fails for any reason.
      *
      * @param stream an output stream to write the report to
@@ -453,7 +453,7 @@ public class GATKRunReport {
     /**
      * Check that the AWS keys can be decrypted and are what we expect them to be
      *
-     * @throws ReviewedStingException if anything goes wrong
+     * @throws ReviewedGATKException if anything goes wrong
      */
     public static void checkAWSAreValid() {
         try {
@@ -461,14 +461,14 @@ public class GATKRunReport {
             final String secretKeyMD5 = Utils.calcMD5(getAWSUploadSecretKey());
 
             if ( ! AWS_ACCESS_KEY_MD5.equals(accessKeyMD5) ) {
-                throw new ReviewedStingException("Invalid AWS access key found, expected MD5 " + AWS_ACCESS_KEY_MD5 + " but got " + accessKeyMD5);
+                throw new ReviewedGATKException("Invalid AWS access key found, expected MD5 " + AWS_ACCESS_KEY_MD5 + " but got " + accessKeyMD5);
             }
             if ( ! AWS_SECRET_KEY_MD5.equals(secretKeyMD5) ) {
-                throw new ReviewedStingException("Invalid AWS secret key found, expected MD5 " + AWS_SECRET_KEY_MD5 + " but got " + secretKeyMD5);
+                throw new ReviewedGATKException("Invalid AWS secret key found, expected MD5 " + AWS_SECRET_KEY_MD5 + " but got " + secretKeyMD5);
             }
 
         } catch ( Exception e ) {
-            throw new ReviewedStingException("Couldn't decrypt AWS keys, something is wrong with the GATK distribution");
+            throw new ReviewedGATKException("Couldn't decrypt AWS keys, something is wrong with the GATK distribution");
         }
     }
 

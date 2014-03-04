@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.progressmeter;
+package org.broadinstitute.gatk.utils.progressmeter;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;

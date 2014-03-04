@@ -3,33 +3,28 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-aggregator</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-aggregator</artifactId>
         <version>3.2-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
-    <artifactId>gatk-framework</artifactId>
+    <artifactId>gatk-tools-public</artifactId>
     <packaging>jar</packaging>
-    <name>GATK Framework</name>
+    <name>GATK Tools Public</name>
 
     <properties>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
-        <sting.packagetests.artifactId>gatk-package</sting.packagetests.artifactId>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk.packagetests.artifactId>gatk-package-distribution</gatk.packagetests.artifactId>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>sting-utils</artifactId>
+            <artifactId>gatk-engine</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>com.google.caliper</groupId>
             <artifactId>caliper</artifactId>
@@ -39,16 +34,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>example-resources</id>
-                        <phase>${sting.generate-resources.phase}</phase>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -95,10 +80,10 @@
 
     <profiles>
         <profile>
-            <id>private</id>
+            <id>private-testdata</id>
             <activation>
                 <file>
-                    <exists>${basedir}/../../private/gatk-private/pom.xml</exists>
+                    <exists>${basedir}/../../private/pom.xml</exists>
                 </file>
             </activation>
             <build>

@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIteratorAdapter;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -148,7 +148,7 @@ public class ReadShard extends Shard {
     @Override
     public void fill( PeekableIterator<SAMRecord> readIter ) {
         if( ! buffersReads() )
-            throw new ReviewedStingException("Attempting to fill a non-buffering shard.");
+            throw new ReviewedGATKException("Attempting to fill a non-buffering shard.");
 
         SAMFileHeader.SortOrder sortOrder = getReadProperties().getSortOrder();
         SAMRecord read = null;
@@ -205,8 +205,8 @@ public class ReadShard extends Shard {
      * Creates an iterator over reads stored in this shard's read cache.
      * @return
      */
-    public StingSAMIterator iterator() {
-        return StingSAMIteratorAdapter.adapt(reads.iterator());
+    public GATKSAMIterator iterator() {
+        return GATKSAMIteratorAdapter.adapt(reads.iterator());
     }
 
     /**
@@ -244,7 +244,7 @@ public class ReadShard extends Shard {
 
             for ( final SAMRecord read : reads ) {
                 if ( contig != null && ! read.getReferenceName().equals(contig) )
-                    throw new ReviewedStingException("ReadShard contains reads spanning contig boundaries, which is no longer allowed. "
+                    throw new ReviewedGATKException("ReadShard contains reads spanning contig boundaries, which is no longer allowed. "
                             + "First contig is " + contig + " next read was " + read.getReferenceName() );
                 contig = read.getReferenceName();
 

@@ -23,13 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import com.google.caliper.Param;
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
+import org.broadinstitute.gatk.engine.WalkerManager;
+import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.engine.walkers.LocusWalker;
 
 /**
  * Created by IntelliJ IDEA.

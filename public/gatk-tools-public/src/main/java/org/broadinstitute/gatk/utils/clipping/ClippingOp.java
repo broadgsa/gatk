@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.clipping;
+package org.broadinstitute.gatk.utils.clipping;
 
 import com.google.java.contract.Requires;
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.recalibration.EventType;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.recalibration.EventType;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 import java.util.List;
@@ -71,7 +71,7 @@ public class ClippingOp {
         try {
             read = (GATKSAMRecord) originalRead.clone();
         } catch (CloneNotSupportedException e) {
-            throw new ReviewedStingException("Where did the clone go?");
+            throw new ReviewedGATKException("Where did the clone go?");
         }
         byte[] quals = read.getBaseQualities();
         byte[] bases = read.getReadBases();
@@ -175,7 +175,7 @@ public class ClippingOp {
         try {
             unclipped = (GATKSAMRecord) read.clone();
         } catch (CloneNotSupportedException e) {
-            throw new ReviewedStingException("Where did the clone go?");
+            throw new ReviewedGATKException("Where did the clone go?");
         }
 
         Cigar unclippedCigar = new Cigar();
@@ -380,7 +380,7 @@ public class ClippingOp {
         try {
             hardClippedRead = (GATKSAMRecord) read.clone();
         } catch (CloneNotSupportedException e) {
-            throw new ReviewedStingException("Where did the clone go?");
+            throw new ReviewedGATKException("Where did the clone go?");
         }
 
         hardClippedRead.resetSoftStartAndEnd();                                                                         // reset the cached soft start and end because they may have changed now that the read was hard clipped. No need to calculate them now. They'll be lazily calculated on the next call to getSoftStart()/End()
@@ -420,7 +420,7 @@ public class ClippingOp {
                 if (cigarElementIterator.hasNext())
                     cigarElement = cigarElementIterator.next();
                 else
-                    throw new ReviewedStingException("Read is entirely hardclipped, shouldn't be trying to clip it's cigar string");
+                    throw new ReviewedGATKException("Read is entirely hardclipped, shouldn't be trying to clip it's cigar string");
             }
             // keep clipping until we hit stop
             while (index <= stop) {

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting;
+package org.broadinstitute.gatk.utils;
 
 import org.testng.reporters.TextReporter;
 
@@ -34,8 +34,8 @@ import org.testng.reporters.TextReporter;
  * @author hanna
  * @version 0.1
  */
-public class StingTextReporter extends TextReporter {
-    public StingTextReporter() {
-        super("Ant suite",2);
+public class GATKTextReporter extends TextReporter {
+    public GATKTextReporter() {
+        super("GATK test suite",2);
     }
 }

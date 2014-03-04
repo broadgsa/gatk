@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.samples;
+package org.broadinstitute.gatk.engine.samples;
 
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import htsjdk.variant.variantcontext.Genotype;
 
 import java.util.*;
@@ -140,7 +140,7 @@ public class SampleDB {
                 samples.add(getSample(name));
             }
             catch (Exception e) {
-                throw new StingException("Could not get sample with the following ID: " + name, e);
+                throw new GATKException("Could not get sample with the following ID: " + name, e);
             }
         }
         return samples;

@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
 
 import java.util.Iterator;
 
@@ -58,7 +58,7 @@ import java.util.Iterator;
  */
 
 /** this fake iterator allows us to look at how specific piles of reads are handled */
-public class ArtificialSAMIterator implements StingSAMIterator {
+public class ArtificialSAMIterator implements GATKSAMIterator {
 
 
     protected int currentChromo = 0;
@@ -183,7 +183,7 @@ public class ArtificialSAMIterator implements StingSAMIterator {
     }
 
     public void remove() {
-        throw new UnsupportedOperationException("You've tried to remove on a StingSAMIterator (unsupported), not to mention that this is a fake iterator.");
+        throw new UnsupportedOperationException("You've tried to remove on a GATKSAMIterator (unsupported), not to mention that this is a fake iterator.");
     }
 
     /**

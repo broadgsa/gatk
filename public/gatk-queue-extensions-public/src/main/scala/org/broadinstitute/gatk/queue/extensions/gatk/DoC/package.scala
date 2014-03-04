@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.util
+package org.broadinstitute.gatk.queue.extensions.gatk
 
 import java.io.File
-import org.broadinstitute.sting.queue.extensions.gatk.{IntervalScatterFunction, CommandLineGATK}
-import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType
-import org.broadinstitute.sting.commandline.{Input, Gather, Output}
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.gatk.walkers.coverage.CoverageUtils
+import org.broadinstitute.gatk.queue.util.VCF_BAM_utilities
+import org.broadinstitute.gatk.queue.function.scattergather.ScatterGatherableFunction
+import org.broadinstitute.gatk.engine.downsampling.DownsampleType
+import org.broadinstitute.gatk.utils.commandline.{Input, Gather, Output}
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.tools.walkers.coverage.CoverageUtils
 
 package object DoC {
   class DoC(val bams: List[File], val DoC_output: File, val countType: CoverageUtils.CountPileupType, val MAX_DEPTH: Int, val minMappingQuality: Int, val minBaseQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int]) extends CommandLineGATK with ScatterGatherableFunction {
@@ -52,7 +52,7 @@ package object DoC {
 
     // HACK for DoC to work properly within Queue:
     @Output
-    @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+    @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
     var intervalSampleOut: File = new File(DoC_output.getPath + DOC_OUTPUT_SUFFIX)
 
     override def commandLine = super.commandLine +
@@ -72,7 +72,7 @@ package object DoC {
   class DoCwithDepthOutputAtEachBase(bams: List[File], DoC_output: File, countType: CoverageUtils.CountPileupType, MAX_DEPTH: Int, minMappingQuality: Int, minBaseQuality: Int, scatterCountInput: Int, START_BIN: Int, NUM_BINS: Int, minCoverageCalcs: Seq[Int]) extends DoC(bams, DoC_output, countType: CoverageUtils.CountPileupType, MAX_DEPTH: Int, minMappingQuality, minBaseQuality, scatterCountInput, START_BIN, NUM_BINS, minCoverageCalcs) {
     // HACK for DoC to work properly within Queue:
     @Output
-    @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+    @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
     var outPrefix = DoC_output
 
     override def commandLine = super.commandLine.replaceAll(" --omitDepthOutputAtEachBase", "")

@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.gatk.walkers.Multiplexer;
+import org.broadinstitute.gatk.engine.walkers.Multiplexer;
 
 import java.util.*;
 

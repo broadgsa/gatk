@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.baq;
+package org.broadinstitute.gatk.utils.baq;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -32,10 +32,10 @@ import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 /*
   The topology of the profile HMM:
@@ -192,15 +192,15 @@ public class BAQ {
     //
     // ####################################################################################################
     public int hmm_glocal(final byte[] ref, final byte[] query, int qstart, int l_query, final byte[] _iqual, int[] state, byte[] q) {
-        if ( ref == null ) throw new ReviewedStingException("BUG: ref sequence is null");
-        if ( query == null ) throw new ReviewedStingException("BUG: query sequence is null");
-        if ( _iqual == null ) throw new ReviewedStingException("BUG: query quality vector is null");
-        if ( query.length != _iqual.length ) throw new ReviewedStingException("BUG: read sequence length != qual length");
-        if ( l_query < 1 ) throw new ReviewedStingException("BUG: length of query sequence < 0: " + l_query);
-        if ( qstart < 0 ) throw new ReviewedStingException("BUG: query sequence start < 0: " + qstart);
+        if ( ref == null ) throw new ReviewedGATKException("BUG: ref sequence is null");
+        if ( query == null ) throw new ReviewedGATKException("BUG: query sequence is null");
+        if ( _iqual == null ) throw new ReviewedGATKException("BUG: query quality vector is null");
+        if ( query.length != _iqual.length ) throw new ReviewedGATKException("BUG: read sequence length != qual length");
+        if ( l_query < 1 ) throw new ReviewedGATKException("BUG: length of query sequence < 0: " + l_query);
+        if ( qstart < 0 ) throw new ReviewedGATKException("BUG: query sequence start < 0: " + qstart);
 
-        //if ( q != null && q.length != state.length ) throw new ReviewedStingException("BUG: BAQ quality length != read sequence length");
-        //if ( state != null && state.length != l_query ) throw new ReviewedStingException("BUG: state length != read sequence length");
+        //if ( q != null && q.length != state.length ) throw new ReviewedGATKException("BUG: BAQ quality length != read sequence length");
+        //if ( state != null && state.length != l_query ) throw new ReviewedGATKException("BUG: state length != read sequence length");
 
 		int i, k;
 
@@ -417,7 +417,7 @@ public class BAQ {
             final int tag = bq - baq_i;
             // problem with the calculation of the correction factor; this is our problem
             if ( tag < 0 )
-                throw new ReviewedStingException("BAQ tag calculation error.  BAQ value above base quality at " + read);
+                throw new ReviewedGATKException("BAQ tag calculation error.  BAQ value above base quality at " + read);
             // the original quality is too high, almost certainly due to using the wrong encoding in the BAM file
             if ( tag > Byte.MAX_VALUE )
                 throw new UserException.MisencodedBAM(read, "we encountered an extremely high quality score (" + (int)read.getBaseQualities()[i] + ") with BAQ correction factor of " + baq_i);
@@ -542,9 +542,9 @@ public class BAQ {
 //    int n = 0;
     public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
 //        total.restart();
-        if ( queryStart < 0 ) throw new ReviewedStingException("BUG: queryStart < 0: " + queryStart);
-        if ( queryEnd < 0 ) throw new ReviewedStingException("BUG: queryEnd < 0: " + queryEnd);
-        if ( queryEnd < queryStart ) throw new ReviewedStingException("BUG: queryStart < queryEnd : " + queryStart + " end =" + queryEnd);
+        if ( queryStart < 0 ) throw new ReviewedGATKException("BUG: queryStart < 0: " + queryStart);
+        if ( queryEnd < 0 ) throw new ReviewedGATKException("BUG: queryEnd < 0: " + queryEnd);
+        if ( queryEnd < queryStart ) throw new ReviewedGATKException("BUG: queryStart < queryEnd : " + queryStart + " end =" + queryEnd);
 
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
@@ -584,7 +584,7 @@ public class BAQ {
                     // in the else case we aren't including soft clipped bases, so we don't update
                     // queryStart or queryStop
                     break;
-                default: throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
+                default: throw new ReviewedGATKException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
             }
         }
 
@@ -633,7 +633,7 @@ public class BAQ {
                     readI += l; refI += l;
                     break;
                 default:
-                    throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
+                    throw new ReviewedGATKException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
             }
         }
         if ( readI != read.getReadLength() ) // odd cigar string
@@ -683,7 +683,7 @@ public class BAQ {
                         case ADD_TAG:         addBAQTag(read, hmmResult.bq); break;
                         case OVERWRITE_QUALS: System.arraycopy(hmmResult.bq, 0, read.getBaseQualities(), 0, hmmResult.bq.length); break;
                         case DONT_MODIFY:     BAQQuals = hmmResult.bq; break;
-                        default:              throw new ReviewedStingException("BUG: unexpected qmode " + qmode);
+                        default:              throw new ReviewedGATKException("BUG: unexpected qmode " + qmode);
                     }
                 } else if ( readHasBAQTag ) {
                     // remove the BAQ tag if it's there because we cannot trust it

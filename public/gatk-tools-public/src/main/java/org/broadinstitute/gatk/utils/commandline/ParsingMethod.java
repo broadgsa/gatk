@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.utils.Utils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

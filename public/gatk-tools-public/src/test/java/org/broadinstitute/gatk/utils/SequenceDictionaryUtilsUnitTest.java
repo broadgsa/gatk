@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
-import static org.broadinstitute.sting.utils.SequenceDictionaryUtils.*;
-import static org.broadinstitute.sting.utils.SequenceDictionaryUtils.SequenceDictionaryCompatibility.*;
+import static org.broadinstitute.gatk.utils.SequenceDictionaryUtils.*;
+import static org.broadinstitute.gatk.utils.SequenceDictionaryUtils.SequenceDictionaryCompatibility.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;

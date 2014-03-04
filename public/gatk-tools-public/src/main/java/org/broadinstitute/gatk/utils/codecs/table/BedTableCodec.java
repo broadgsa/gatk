@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.table;
+package org.broadinstitute.gatk.utils.codecs.table;
 
 import htsjdk.tribble.Feature;
-import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
 
 import java.util.Arrays;
 

@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.coverage;
+package org.broadinstitute.gatk.tools.walkers.coverage;
 
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fragments.FragmentCollection;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.fragments.FragmentCollection;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
 
 import java.util.*;
 
@@ -98,7 +98,7 @@ public class CoverageUtils {
         } else if ( type == DoCOutputType.Partition.sample_by_platform_by_center ) {
             return String.format("%s_pl_%s_cn_%s",r.getSample(),r.getPlatform(),r.getSequencingCenter());
         } else {
-            throw new ReviewedStingException("Invalid type ID sent to getTypeID. This is a BUG!");
+            throw new ReviewedGATKException("Invalid type ID sent to getTypeID. This is a BUG!");
         }
     }
 
@@ -224,7 +224,7 @@ public class CoverageUtils {
             try {
                 counts[BaseUtils.simpleBaseToBaseIndex(e.getBase())]++;
             } catch (ArrayIndexOutOfBoundsException exc) {
-                throw new ReviewedStingException("Expected a simple base, but actually received"+(char)e.getBase());
+                throw new ReviewedGATKException("Expected a simple base, but actually received"+(char)e.getBase());
             }
         }
     }

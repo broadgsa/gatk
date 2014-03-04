@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.io.ThreadGroupOutputTracker;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.datasources.providers.LocusShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.providers.ShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.io.ThreadGroupOutputTracker;
+import org.broadinstitute.gatk.engine.traversals.TraversalEngine;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.concurrent.Callable;
 /**
@@ -149,7 +149,7 @@ public class ShardTraverser implements Callable {
             }
         }
         catch( InterruptedException ex ) {
-            throw new ReviewedStingException("Interrupted while waiting for more output to be finalized.",ex);
+            throw new ReviewedGATKException("Interrupted while waiting for more output to be finalized.",ex);
         }
     }
 

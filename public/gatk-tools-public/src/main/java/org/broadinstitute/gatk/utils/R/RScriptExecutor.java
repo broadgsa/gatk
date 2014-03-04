@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.R;
+package org.broadinstitute.gatk.utils.R;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.io.IOUtils;
-import org.broadinstitute.sting.utils.io.Resource;
-import org.broadinstitute.sting.utils.runtime.ProcessController;
-import org.broadinstitute.sting.utils.runtime.ProcessSettings;
-import org.broadinstitute.sting.utils.runtime.RuntimeUtils;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.io.Resource;
+import org.broadinstitute.gatk.utils.runtime.ProcessController;
+import org.broadinstitute.gatk.utils.runtime.ProcessSettings;
+import org.broadinstitute.gatk.utils.runtime.RuntimeUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -176,7 +176,7 @@ public class RScriptExecutor {
                                 (logger.isDebugEnabled() ? "" : ". Run with -l DEBUG for more info."));
 
             return true;
-        } catch (StingException e) {
+        } catch (GATKException e) {
             if (exceptOnError) {
                 throw e;
             } else {

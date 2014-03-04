@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.samtools
+package org.broadinstitute.gatk.queue.extensions.samtools
 
 import java.io.File
-import org.broadinstitute.sting.commandline.{Output, Input}
+import org.broadinstitute.gatk.utils.commandline.{Output, Input}
 
 /**
  * Indexes a BAM file using samtools.

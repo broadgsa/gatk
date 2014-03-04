@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.providers;
+package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.ReferenceSequence;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.walkers.Reference;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.engine.walkers.Window;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -109,8 +109,8 @@ public class LocusReferenceView extends ReferenceView {
         if( walker.getClass().isAnnotationPresent(Reference.class) ) {
             Window window = walker.getClass().getAnnotation(Reference.class).window();
 
-            if( window.start() > 0 ) throw new ReviewedStingException( "Reference window starts after current locus" );
-            if( window.stop() < 0 ) throw new ReviewedStingException( "Reference window ends before current locus" );
+            if( window.start() > 0 ) throw new ReviewedGATKException( "Reference window starts after current locus" );
+            if( window.stop() < 0 ) throw new ReviewedGATKException( "Reference window ends before current locus" );
 
             windowStart = window.start();
             windowStop = window.stop();

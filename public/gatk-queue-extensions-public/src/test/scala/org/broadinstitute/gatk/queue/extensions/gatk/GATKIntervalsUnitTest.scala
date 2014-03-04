@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
 import java.io.File
 import org.testng.Assert
 import org.testng.annotations.{DataProvider, Test}
-import org.broadinstitute.sting.BaseTest
-import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile
-import org.broadinstitute.sting.utils.{GenomeLocSortedSet, GenomeLocParser}
+import org.broadinstitute.gatk.utils.BaseTest
+import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile
+import org.broadinstitute.gatk.utils.{GenomeLocSortedSet, GenomeLocParser}
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.interval.IntervalUtils
-import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.gatk.utils.interval.IntervalUtils
+import org.broadinstitute.gatk.utils.exceptions.UserException
 
 class GATKIntervalsUnitTest {
   private final lazy val hg18Reference = new File(BaseTest.hg18Reference)

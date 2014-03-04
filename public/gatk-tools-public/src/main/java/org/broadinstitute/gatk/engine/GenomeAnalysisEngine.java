@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.gatk.engine;
 
 import com.google.java.contract.Ensures;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
@@ -32,38 +32,38 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.datasources.reads.*;
-import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.executive.MicroScheduler;
-import org.broadinstitute.sting.gatk.filters.FilterManager;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
-import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.gatk.samples.SampleDB;
-import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
-import org.broadinstitute.sting.utils.recalibration.BQSRArgumentSet;
-import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.engine.datasources.reads.*;
+import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.engine.executive.MicroScheduler;
+import org.broadinstitute.gatk.engine.filters.FilterManager;
+import org.broadinstitute.gatk.engine.filters.ReadFilter;
+import org.broadinstitute.gatk.engine.filters.ReadGroupBlackListFilter;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.engine.io.stubs.Stub;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformersMode;
+import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
+import org.broadinstitute.gatk.engine.refdata.tracks.IndexDictionaryUtils;
+import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.engine.samples.SampleDB;
+import org.broadinstitute.gatk.engine.samples.SampleDBBuilder;
+import org.broadinstitute.gatk.utils.*;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.interval.IntervalUtils;
+import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
+import org.broadinstitute.gatk.utils.recalibration.BQSRArgumentSet;
+import org.broadinstitute.gatk.utils.text.XReadLines;
+import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
 import htsjdk.variant.vcf.VCFConstants;
 
 import java.io.File;
@@ -71,8 +71,8 @@ import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static org.broadinstitute.sting.utils.DeprecatedToolChecks.getWalkerDeprecationInfo;
-import static org.broadinstitute.sting.utils.DeprecatedToolChecks.isDeprecatedWalker;
+import static org.broadinstitute.gatk.utils.DeprecatedToolChecks.getWalkerDeprecationInfo;
+import static org.broadinstitute.gatk.utils.DeprecatedToolChecks.isDeprecatedWalker;
 
 /**
  * A GenomeAnalysisEngine that runs a specified walker.
@@ -261,12 +261,12 @@ public class GenomeAnalysisEngine {
 
         // validate our parameters
         if (args == null) {
-            throw new ReviewedStingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
+            throw new ReviewedGATKException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
         // validate our parameters              
         if (this.walker == null)
-            throw new ReviewedStingException("The walker passed to GenomeAnalysisEngine can not be null.");
+            throw new ReviewedGATKException("The walker passed to GenomeAnalysisEngine can not be null.");
 
         if (args.nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
@@ -424,7 +424,7 @@ public class GenomeAnalysisEngine {
 
     protected void setReadTransformers(final List<ReadTransformer> readTransformers) {
         if ( readTransformers == null )
-            throw new ReviewedStingException("read transformers cannot be null");
+            throw new ReviewedGATKException("read transformers cannot be null");
 
         // sort them in priority order
         Collections.sort(readTransformers, new ReadTransformer.ReadTransformerComparator());
@@ -632,7 +632,7 @@ public class GenomeAnalysisEngine {
                     return readsDataSource.createShardIteratorOverIntervals(intervals, new ReadShardBalancer());
             }
             else
-                throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
+                throw new ReviewedGATKException("Unable to determine walker type for walker " + walker.getClass().getName());
         }
         else {
             // TODO -- Determine what the ideal shard size should be here.  Matt suggested that a multiple of 16K might work well

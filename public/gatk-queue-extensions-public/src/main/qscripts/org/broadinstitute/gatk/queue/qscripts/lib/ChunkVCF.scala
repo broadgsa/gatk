@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.qscripts.lib
+package org.broadinstitute.gatk.queue.qscripts.lib
 
-import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.library.ipf.vcf.VCFExtractIntervals
+import org.broadinstitute.gatk.queue.QScript
+import org.broadinstitute.gatk.queue.library.ipf.vcf.VCFExtractIntervals
 import scala.collection.JavaConversions._
-import org.broadinstitute.sting.utils.text.XReadLines
+import org.broadinstitute.gatk.utils.text.XReadLines
 import java.io.PrintStream
-import org.broadinstitute.sting.queue.extensions.gatk.SelectVariants
+import org.broadinstitute.gatk.queue.extensions.gatk.SelectVariants
 
 /**
  * Created by IntelliJ IDEA.

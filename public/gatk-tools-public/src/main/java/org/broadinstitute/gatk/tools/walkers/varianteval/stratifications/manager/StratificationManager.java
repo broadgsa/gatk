@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager;
+package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -74,7 +74,7 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
         // cache the size, and check for a bad state
         this.size = root.size();
         if ( this.size == 0 )
-            throw new ReviewedStingException("Size == 0 in StratificationManager");
+            throw new ReviewedGATKException("Size == 0 in StratificationManager");
 
         // prepare the assocated data vectors mapping from key -> data
         this.valuesByKey = new ArrayList<V>(size());
@@ -109,7 +109,7 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
             final Collection<Object> states = first.getAllStates();
             
             if ( states.isEmpty() )
-                throw new ReviewedStingException("State " + first + " is empty!");
+                throw new ReviewedGATKException("State " + first + " is empty!");
             
             final LinkedHashMap<Object, StratNode<K>> subNodes = new LinkedHashMap<Object, StratNode<K>>(states.size());
             for ( final Object state : states ) {
@@ -147,13 +147,13 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
         // do a last sanity check that no key has null value after assigning
         for ( List<Object> stateValues : stratifierValuesByKey )
             if ( stateValues == null )
-                throw new ReviewedStingException("Found a null state value set that's null");
+                throw new ReviewedGATKException("Found a null state value set that's null");
     }
 
     private void assignStratifierValuesByKey(final StratNode<K> node, final LinkedList<Object> states) {
         if ( node.isLeaf() ) { // we're here!
             if ( states.isEmpty() )
-                throw new ReviewedStingException("Found a leaf node with an empty state values vector");
+                throw new ReviewedGATKException("Found a leaf node with an empty state values vector");
             stratifierValuesByKey.set(node.getKey(), Collections.unmodifiableList(new ArrayList<Object>(states)));
         } else {
             for ( Map.Entry<Object, StratNode<K>> entry : node.getSubnodes().entrySet() ) {
@@ -299,37 +299,37 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
 
     @Override
     public boolean containsValue(final Object o) {
-        throw new ReviewedStingException("containsValue() not implemented for StratificationManager");
+        throw new ReviewedGATKException("containsValue() not implemented for StratificationManager");
     }
 
     @Override
     public V put(final List<Object> objects, final V v) {
-        throw new ReviewedStingException("put() not implemented for StratificationManager");
+        throw new ReviewedGATKException("put() not implemented for StratificationManager");
     }
 
     @Override
     public V remove(final Object o) {
-        throw new ReviewedStingException("remove() not implemented for StratificationManager");
+        throw new ReviewedGATKException("remove() not implemented for StratificationManager");
     }
 
     @Override
     public void putAll(final Map<? extends List<Object>, ? extends V> map) {
-        throw new ReviewedStingException("clear() not implemented for StratificationManager");
+        throw new ReviewedGATKException("clear() not implemented for StratificationManager");
     }
 
     @Override
     public void clear() {
-        throw new ReviewedStingException("clear() not implemented for StratificationManager");
+        throw new ReviewedGATKException("clear() not implemented for StratificationManager");
     }
 
     @Override
     public Set<List<Object>> keySet() {
-        throw new ReviewedStingException("Not yet implemented");
+        throw new ReviewedGATKException("Not yet implemented");
     }
 
     @Override
     public Set<Entry<List<Object>, V>> entrySet() {
-        throw new ReviewedStingException("Not yet implemented");
+        throw new ReviewedGATKException("Not yet implemented");
     }
 
     // -------------------------------------------------------------------------------------
@@ -387,16 +387,16 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
                                                      final Map<Object, Object> remappedStates) {
         // make sure the mapping is reasonable
         if ( ! newStratifier.getAllStates().containsAll(remappedStates.values()) )
-            throw new ReviewedStingException("combineStrats: remapped states contains states not found in newStratifer state set");
+            throw new ReviewedGATKException("combineStrats: remapped states contains states not found in newStratifer state set");
 
         if ( ! remappedStates.keySet().containsAll(stratifierToReplace.getAllStates()) )
-            throw new ReviewedStingException("combineStrats: remapped states missing mapping for some states");
+            throw new ReviewedGATKException("combineStrats: remapped states missing mapping for some states");
 
         // the new strats are the old ones with the single replacement
         final List<K> newStrats = new ArrayList<K>(getStratifiers());
         final int stratOffset = newStrats.indexOf(stratifierToReplace);
         if ( stratOffset == -1 )
-            throw new ReviewedStingException("Could not find strat to replace " + stratifierToReplace + " in existing strats " + newStrats);
+            throw new ReviewedGATKException("Could not find strat to replace " + stratifierToReplace + " in existing strats " + newStrats);
         newStrats.set(stratOffset, newStratifier);
 
         // create an empty but fully initialized new manager
@@ -412,7 +412,7 @@ public class StratificationManager<K extends Stratifier, V> implements Map<List<
 
             // look up the new key given the new state
             final int combinedKey = combined.getKey(newStates);
-            if ( combinedKey == -1 ) throw new ReviewedStingException("Couldn't find key for states: " + Utils.join(",", newStates));
+            if ( combinedKey == -1 ) throw new ReviewedGATKException("Couldn't find key for states: " + Utils.join(",", newStates));
 
             // combine the old value with whatever new value is in combined already
             final V combinedValue = combiner.combine(combined.get(combinedKey), get(key));

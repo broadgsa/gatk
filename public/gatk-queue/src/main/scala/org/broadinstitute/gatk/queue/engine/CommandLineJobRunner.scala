@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
 import java.io.File
-import org.broadinstitute.sting.queue.util.Logging
-import org.broadinstitute.sting.utils.io.IOUtils
+import org.broadinstitute.gatk.queue.util.Logging
+import org.broadinstitute.gatk.utils.io.IOUtils
 
 /**
  * Runs a command line function.

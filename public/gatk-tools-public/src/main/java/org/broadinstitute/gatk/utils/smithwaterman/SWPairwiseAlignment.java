@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.smithwaterman;
+package org.broadinstitute.gatk.utils.smithwaterman;
 
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 
 import java.util.*;
 
@@ -577,7 +577,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
                     }
                     break;
                 default:
-                    throw new StingException("Unexpected Cigar element:" + e.getOperator());
+                    throw new GATKException("Unexpected Cigar element:" + e.getOperator());
             }
         }
         for ( ; i < ref.length; i++ ) bref.append((char)ref[i]);

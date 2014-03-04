@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.interval;
+package org.broadinstitute.gatk.utils.interval;
 
 /**
  * set operators for combining lists of intervals

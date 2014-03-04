@@ -23,4 +23,4 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue;
+package org.broadinstitute.gatk.queue;

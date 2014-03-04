@@ -23,18 +23,18 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.refdata;
+package org.broadinstitute.gatk.engine.refdata;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.iterators.PushbackIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -193,7 +193,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
      */
      public RODRecordList next() {
          if ( ! next_is_allowed )
-             throw new ReviewedStingException("Illegal use of iterator: Can not advance iterator with next() after seek-forward query of length > 1");
+             throw new ReviewedGATKException("Illegal use of iterator: Can not advance iterator with next() after seek-forward query of length > 1");
 
          curr_position++;
  //        curr_query_end = -1;
@@ -243,7 +243,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
              r = it.next(); // we got here only if we do need next record, time to load it for real
 
              int stop = r.getLocation().getStop();
-             if ( stop < curr_position ) throw new ReviewedStingException("DEBUG: encountered contig that should have been loaded earlier"); // this should never happen
+             if ( stop < curr_position ) throw new ReviewedGATKException("DEBUG: encountered contig that should have been loaded earlier"); // this should never happen
              if ( stop > max_position ) max_position = stop; // max_position keeps the rightmost stop position across all loaded records
              records.add(r);
          }
@@ -323,14 +323,14 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
 
         if ( interval.isBefore(parser.createOverEntireContig(curr_contig)) &&
              !(interval.getStart() == 0 && interval.getStop() == 0 && interval.getContig().equals(curr_contig)) ) // This criteria is syntactic sugar for 'seek to right before curr_contig'
-            throw new ReviewedStingException("Out of order query: query contig "+interval.getContig()+" is located before "+
+            throw new ReviewedGATKException("Out of order query: query contig "+interval.getContig()+" is located before "+
                                      "the iterator's current contig");
         if ( interval.getContig().equals(curr_contig) ) {
             if ( interval.getStart() < curr_position )
-                throw new ReviewedStingException("Out of order query: query position "+interval +" is located before "+
+                throw new ReviewedGATKException("Out of order query: query position "+interval +" is located before "+
                         "the iterator's current position "+curr_contig + ":" + curr_position);
             if ( interval.getStop() < curr_query_end )
-                throw new ReviewedStingException("Unsupported querying sequence: current query interval " +
+                throw new ReviewedGATKException("Unsupported querying sequence: current query interval " +
                         interval+" ends before the end of previous query interval ("+curr_query_end+")");
         }
 

@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.genotyper;
+package org.broadinstitute.gatk.utils.genotyper;
 
 
 import com.google.java.contract.Ensures;
-import org.broadinstitute.sting.gatk.downsampling.AlleleBiasedDownsamplingUtils;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.downsampling.AlleleBiasedDownsamplingUtils;
+import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import htsjdk.variant.variantcontext.Allele;
 
 import java.util.*;
@@ -321,7 +321,7 @@ public class PerReadAlleleLikelihoodMap {
      *
      * Goes through each read in this map, and if it is poorly modelled removes it from the map.
      *
-     * @see #readIsPoorlyModelled(org.broadinstitute.sting.utils.sam.GATKSAMRecord, java.util.Collection, double)
+     * @see #readIsPoorlyModelled(org.broadinstitute.gatk.utils.sam.GATKSAMRecord, java.util.Collection, double)
      * for more information about the poorly modelled test.
      *
      * @param maxErrorRatePerBase see equivalent parameter in #readIsPoorlyModelled

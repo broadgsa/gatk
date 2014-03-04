@@ -23,20 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.stubs;
+package org.broadinstitute.gatk.engine.io.stubs;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.ProgressLoggerInterface;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.utils.baq.BAQ;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -49,7 +49,7 @@ import java.util.List;
  * @author mhanna
  * @version 0.1
  */
-public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWriter {
+public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter {
     /**
      * Engine to use for collecting attributes for the output SAM file.
      */
@@ -189,7 +189,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setCompressionLevel( Integer compressionLevel ) {
         if(writeStarted)
-            throw new ReviewedStingException("Attempted to change the compression level of a file with alignments already in it.");
+            throw new ReviewedGATKException("Attempted to change the compression level of a file with alignments already in it.");
         this.compressionLevel = compressionLevel;
     }
 
@@ -243,7 +243,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setPresorted(boolean presorted) {
         if(writeStarted)
-            throw new ReviewedStingException("Attempted to change the presorted state of a file with alignments already in it.");
+            throw new ReviewedGATKException("Attempted to change the presorted state of a file with alignments already in it.");
         this.presorted = presorted;
     }
 
@@ -261,7 +261,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setMaxRecordsInRam(int maxRecordsInRam) {
         if(writeStarted)
-            throw new ReviewedStingException("Attempted to change the max records in RAM of a file with alignments already in it.");
+            throw new ReviewedGATKException("Attempted to change the max records in RAM of a file with alignments already in it.");
         this.maxRecordsInRam = maxRecordsInRam;
     }
 
@@ -279,7 +279,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void writeHeader(SAMFileHeader header) {
         if(writeStarted)
-            throw new ReviewedStingException("Attempted to change the header of a file with alignments already in it.");
+            throw new ReviewedGATKException("Attempted to change the header of a file with alignments already in it.");
         this.headerOverride = header;
     }
 

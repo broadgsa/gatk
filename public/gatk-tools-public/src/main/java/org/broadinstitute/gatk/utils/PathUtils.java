@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import org.apache.commons.io.comparator.LastModifiedFileComparator;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -145,7 +145,7 @@ public class PathUtils {
         }
 
         if (dir.listFiles() == null) {
-            throw new ReviewedStingException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
+            throw new ReviewedGATKException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
         }
     }
 

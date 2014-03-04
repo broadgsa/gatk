@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -286,7 +286,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             List<GenomeLoc> lociInContig = new LinkedList<GenomeLoc>();
             for(GenomeLoc locus: loci) {
                 if (!GenomeLoc.isUnmapped(locus) && dataSource.getHeader().getSequence(locus.getContig()) == null)
-                    throw new ReviewedStingException("BAM file(s) do not have the contig: " + locus.getContig() + ". You are probably using a different reference than the one this file was aligned with");
+                    throw new ReviewedGATKException("BAM file(s) do not have the contig: " + locus.getContig() + ". You are probably using a different reference than the one this file was aligned with");
 
                 if (!GenomeLoc.isUnmapped(locus) && dataSource.getHeader().getSequence(locus.getContig()).getSequenceIndex() == lastReferenceSequenceLoaded)
                     lociInContig.add(locus);

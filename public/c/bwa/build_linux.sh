@@ -1,6 +1,7 @@
 #!/bin/sh
-export BWA_HOME="/humgen/gsa-scr1/hanna/src/bio-bwa/bwa"
-export JAVA_INCLUDE="/broad/tools/Linux/x86_64/pkgs/jdk_1.6.0_12/include -I/broad/tools/Linux/x86_64/pkgs/jdk_1.6.0_12/include/linux"
+export BWA_HOME="${PWD}/bwasvn47"
+export JAVA_INCLUDE="${JAVA_HOME}/include"
+export JAVA_PLATFORM_INCLUDE="${JAVA_HOME}/include/linux"
 export TARGET_LIB="libbwa.so"
 export EXTRA_LIBS="-lc -lz -lstdc++ -lpthread"
 export LIBTOOL_COMMAND="g++ -shared -Wl,-soname,libbwa.so"

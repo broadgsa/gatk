@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.codecs.sampileup;
+package org.broadinstitute.gatk.utils.codecs.sampileup;
 
 import htsjdk.tribble.AsciiFeatureCodec;
 import htsjdk.tribble.exception.CodecLineParsingException;
@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.broadinstitute.sting.utils.codecs.sampileup.SAMPileupFeature.VariantType;
+import static org.broadinstitute.gatk.utils.codecs.sampileup.SAMPileupFeature.VariantType;
 
 /**
  * Decoder for SAM pileup data.

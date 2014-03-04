@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager;
+package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -64,6 +64,6 @@ class StratNodeIterator<T extends Stratifier> implements Iterator<StratNode<T>> 
 
     @Override
     public void remove() {
-        throw new ReviewedStingException("Cannot remove from StratNode iterator");
+        throw new ReviewedGATKException("Cannot remove from StratNode iterator");
     }
 }

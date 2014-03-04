@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.commons.math.distribution.ExponentialDistribution;
 import org.apache.commons.math.distribution.ExponentialDistributionImpl;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -190,7 +190,7 @@ public class MathUtils {
             if ( num == 0 && denom == 0) {
                 return 0.0;
             } else {
-                throw new ReviewedStingException(String.format("The denominator of a ratio cannot be zero or less than zero: %d/%d",num,denom));
+                throw new ReviewedGATKException(String.format("The denominator of a ratio cannot be zero or less than zero: %d/%d",num,denom));
             }
         }
     }
@@ -202,7 +202,7 @@ public class MathUtils {
             if ( num == 0L && denom == 0L ) {
                 return 0.0;
             } else {
-                throw new ReviewedStingException(String.format("The denominator of a ratio cannot be zero or less than zero: %d/%d",num,denom));
+                throw new ReviewedGATKException(String.format("The denominator of a ratio cannot be zero or less than zero: %d/%d",num,denom));
             }
         }
     }
@@ -1104,7 +1104,7 @@ public class MathUtils {
      */
     public static double logDotProduct(final double [] x, final double[] y) {
         if (x.length != y.length)
-            throw new ReviewedStingException("BUG: Vectors of different lengths");
+            throw new ReviewedGATKException("BUG: Vectors of different lengths");
 
         double tmpVec[] = new double[x.length];
 
@@ -1438,7 +1438,7 @@ public class MathUtils {
      */
     public static double[] vectorSum(final double[]x, final double[] y) {
         if (x.length != y.length)
-            throw new ReviewedStingException("BUG: Lengths of x and y must be the same");
+            throw new ReviewedGATKException("BUG: Lengths of x and y must be the same");
 
         double[] result = new double[x.length];
         for (int k=0; k <x.length; k++)
@@ -1455,7 +1455,7 @@ public class MathUtils {
      */
     public static int[] vectorDiff(final int[]x, final int[] y) {
         if (x.length != y.length)
-            throw new ReviewedStingException("BUG: Lengths of x and y must be the same");
+            throw new ReviewedGATKException("BUG: Lengths of x and y must be the same");
 
         int[] result = new int[x.length];
         for (int k=0; k <x.length; k++)

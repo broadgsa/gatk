@@ -23,12 +23,12 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.traversals;
+package org.broadinstitute.gatk.engine.traversals;
 
-import org.broadinstitute.sting.gatk.downsampling.Downsampler;
-import org.broadinstitute.sting.gatk.downsampling.ReservoirDownsampler;
-import org.broadinstitute.sting.utils.sam.AlignmentStartComparator;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.downsampling.Downsampler;
+import org.broadinstitute.gatk.engine.downsampling.ReservoirDownsampler;
+import org.broadinstitute.gatk.utils.sam.AlignmentStartComparator;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
 import java.util.Collections;

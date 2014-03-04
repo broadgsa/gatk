@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.filters;
+package org.broadinstitute.gatk.engine.filters;
 
 import htsjdk.samtools.filter.SamRecordFilter;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.CloserUtil;
-import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.gatk.engine.ReadMetrics;
 
 import java.util.*;
 
@@ -147,4 +147,4 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
 
         return null;
     }
-}
+}

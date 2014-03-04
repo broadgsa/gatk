@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.readutils;
+package org.broadinstitute.gatk.tools.walkers.readutils;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
-import org.broadinstitute.sting.utils.sam.ArtificialStingSAMFileWriter;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.sam.ArtificialReadsTraversal;
+import org.broadinstitute.gatk.utils.sam.ArtificialGATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -84,16 +84,16 @@ public class PrintReadsUnitTest extends BaseTest {
     private ReferenceContext bases = null;
     //private ReferenceContext ref = new ReferenceContext()
 
-    org.broadinstitute.sting.gatk.walkers.readutils.PrintReads walker;
-    ArtificialStingSAMFileWriter writer;
+    org.broadinstitute.gatk.tools.walkers.readutils.PrintReads walker;
+    ArtificialGATKSAMFileWriter writer;
 
     @BeforeMethod
     public void before() {
         trav = new ArtificialReadsTraversal();
         readTotal = ( ( trav.endingChr - trav.startingChr ) + 1 ) * trav.readsPerChr + trav.unMappedReads;
 
-        walker = new org.broadinstitute.sting.gatk.walkers.readutils.PrintReads();
-        writer = new ArtificialStingSAMFileWriter();
+        walker = new org.broadinstitute.gatk.tools.walkers.readutils.PrintReads();
+        writer = new ArtificialGATKSAMFileWriter();
         walker.initialize();
     }
 

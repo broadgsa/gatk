@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa.c;
+package org.broadinstitute.gatk.engine.alignment.bwa.c;
 
 /**
  * Models a BWA path.

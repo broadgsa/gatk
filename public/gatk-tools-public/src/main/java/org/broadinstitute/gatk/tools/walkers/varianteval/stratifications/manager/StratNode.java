@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager;
+package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -79,7 +79,7 @@ class StratNode<T extends Stratifier> implements Iterable<StratNode<T>> {
     @Requires("key >= 0")
     public void setKey(final int key) {
         if ( ! isLeaf() )
-            throw new ReviewedStingException("Cannot set key of non-leaf node");
+            throw new ReviewedGATKException("Cannot set key of non-leaf node");
         this.key = key;
     }
 
@@ -115,7 +115,7 @@ class StratNode<T extends Stratifier> implements Iterable<StratNode<T>> {
                 // loop over all of the states at this offset
                 final StratNode<T> subnode = subnodes.get(state);
                 if ( subnode == null )
-                    throw new ReviewedStingException("Couldn't find state for " + state + " at node " + this);
+                    throw new ReviewedGATKException("Couldn't find state for " + state + " at node " + this);
                 else
                     subnode.find(multipleStates, offset+1, keys);
             }
@@ -125,7 +125,7 @@ class StratNode<T extends Stratifier> implements Iterable<StratNode<T>> {
     @Ensures("result >= 0")
     public int getKey() {
         if ( ! isLeaf() )
-            throw new ReviewedStingException("Cannot get key of non-leaf node");
+            throw new ReviewedGATKException("Cannot get key of non-leaf node");
         else
             return key;
     }

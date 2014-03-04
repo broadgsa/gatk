@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.text;
+package org.broadinstitute.gatk.utils.text;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -34,7 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 public class TextFormattingUtilsUnitTest extends BaseTest {
-    @Test(expectedExceptions = ReviewedStingException.class)
+    @Test(expectedExceptions = ReviewedGATKException.class)
     public void testSplitWhiteSpaceNullLine() {
         TextFormattingUtils.splitWhiteSpace(null);
     }
@@ -49,7 +49,7 @@ public class TextFormattingUtilsUnitTest extends BaseTest {
         Assert.assertEquals(TextFormattingUtils.splitWhiteSpace("\tfoo\tbar\tbaz\t"), new String[]{"foo", "bar", "baz"});
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class)
+    @Test(expectedExceptions = ReviewedGATKException.class)
     public void testGetWordStartsNullLine() {
         TextFormattingUtils.getWordStarts(null);
     }
@@ -64,12 +64,12 @@ public class TextFormattingUtilsUnitTest extends BaseTest {
         Assert.assertEquals(TextFormattingUtils.getWordStarts("\tfoo\tbar\tbaz\t"), Arrays.asList(1, 5, 9));
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class)
+    @Test(expectedExceptions = ReviewedGATKException.class)
     public void testSplitFixedWidthNullLine() {
         TextFormattingUtils.splitFixedWidth(null, Collections.<Integer>emptyList());
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class)
+    @Test(expectedExceptions = ReviewedGATKException.class)
     public void testSplitFixedWidthNullColumnStarts() {
         TextFormattingUtils.splitFixedWidth("foo bar baz", null);
     }

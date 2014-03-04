@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.smithwaterman;
+package org.broadinstitute.gatk.utils.smithwaterman;
 
 /**
  * Handy named collection of common Smith-waterman parameter sets

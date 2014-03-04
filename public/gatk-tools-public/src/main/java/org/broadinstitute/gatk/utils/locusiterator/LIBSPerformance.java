@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.gatk.utils.locusiterator;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
@@ -31,17 +31,17 @@ import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.commandline.Input;
+import org.broadinstitute.gatk.engine.ReadProperties;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMRecordIterator;
+import org.broadinstitute.gatk.utils.*;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -82,7 +82,7 @@ public class LIBSPerformance extends CommandLineProgram {
             rawIterator = reader.query(loc.getContig(), loc.getStart(), loc.getStop(), false);
         }
 
-        final GATKSAMIterator iterator = new GATKSAMIterator(rawIterator);
+        final GATKSAMRecordIterator iterator = new GATKSAMRecordIterator(rawIterator);
 
         final Set<String> samples = new HashSet<String>();
         for ( final SAMReadGroupRecord rg : reader.getFileHeader().getReadGroups() )
@@ -156,8 +156,8 @@ public class LIBSPerformance extends CommandLineProgram {
 //                        case NEW_LIBS:
 //                        {
 //                            final List<GATKSAMRecord> reads = Collections.nCopies(30, read);
-//                            final org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState libs =
-//                                    new org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState(
+//                            final org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState libs =
+//                                    new org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState(
 //                                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
 //                                            LocusIteratorByStateBaseTest.createTestReadProperties(),
 //                                            genomeLocParser,

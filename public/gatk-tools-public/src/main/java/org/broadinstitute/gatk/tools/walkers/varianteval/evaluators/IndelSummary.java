@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
+package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -198,7 +198,7 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
 
                     // ins : del ratios
                     final int alleleSize = alt.length() - eval.getReference().length();
-                    if ( alleleSize == 0 ) throw new ReviewedStingException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
+                    if ( alleleSize == 0 ) throw new ReviewedGATKException("Allele size not expected to be zero for indel: alt = " + alt + " ref = " + eval.getReference());
                     if ( alleleSize > 0 ) n_insertions++;
                     if ( alleleSize < 0 ) n_deletions++;
 
@@ -206,7 +206,7 @@ public class IndelSummary extends VariantEvaluator implements StandardEval {
                     if ( eval.getAttributeAsString("SNPEFF_GENE_BIOTYPE", "missing").equals("protein_coding") ) {
                         final String effect = eval.getAttributeAsString("SNPEFF_EFFECT", "missing");
                         if ( effect.equals("missing") ) 
-                            throw new ReviewedStingException("Saw SNPEFF_GENE_BIOTYPE but unexpected no SNPEFF_EFFECT at " + eval);
+                            throw new ReviewedGATKException("Saw SNPEFF_GENE_BIOTYPE but unexpected no SNPEFF_EFFECT at " + eval);
                         if ( effect.equals("FRAME_SHIFT") )
                             n_coding_indels_frameshifting++;
                         else if ( effect.startsWith("CODON") )

@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.stubs;
+package org.broadinstitute.gatk.engine.io.stubs;
 
-import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.commandline.*;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -77,7 +77,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(source.isRequired() || !source.defaultsToStdout())
-            throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
+            throw new ReviewedGATKException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         OutputStreamStub stub = new OutputStreamStub(defaultOutputStream);
         engine.addOutput(stub);
         return createInstanceOfClass((Class)type,stub);

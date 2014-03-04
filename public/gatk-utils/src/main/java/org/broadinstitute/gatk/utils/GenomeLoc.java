@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.SAMFileHeader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.Serializable;
 import java.util.*;
@@ -165,15 +165,15 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
             "that != null",
             "isUnmapped(this) == isUnmapped(that)"})
     @Ensures("result != null")
-    public GenomeLoc merge( GenomeLoc that ) throws ReviewedStingException {
+    public GenomeLoc merge( GenomeLoc that ) throws ReviewedGATKException {
         if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
             if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
-                throw new ReviewedStingException("Tried to merge a mapped and an unmapped genome loc");
+                throw new ReviewedGATKException("Tried to merge a mapped and an unmapped genome loc");
             return UNMAPPED;
         }
 
         if (!(this.contiguousP(that))) {
-            throw new ReviewedStingException("The two genome loc's need to be contiguous");
+            throw new ReviewedGATKException("The two genome loc's need to be contiguous");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
@@ -187,13 +187,13 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      */
     @Requires({"that != null", "isUnmapped(this) == isUnmapped(that)"})
     @Ensures("result != null")
-    public GenomeLoc endpointSpan(GenomeLoc that) throws ReviewedStingException {
+    public GenomeLoc endpointSpan(GenomeLoc that) throws ReviewedGATKException {
         if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
-            throw new ReviewedStingException("Cannot get endpoint span for unmerged genome locs");
+            throw new ReviewedGATKException("Cannot get endpoint span for unmerged genome locs");
         }
 
         if ( ! this.getContig().equals(that.getContig()) ) {
-            throw new ReviewedStingException("Cannot get endpoint span for genome locs on different contigs");
+            throw new ReviewedGATKException("Cannot get endpoint span for genome locs on different contigs");
         }
 
         return new GenomeLoc(getContig(),this.contigIndex,Math.min(getStart(),that.getStart()),Math.max(getStop(),that.getStop()));
@@ -206,7 +206,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      */
     public GenomeLoc[] split(final int splitPoint) {
         if(splitPoint < getStart() || splitPoint > getStop())
-            throw new ReviewedStingException(String.format("Unable to split contig %s at split point %d; split point is not contained in region.",this,splitPoint));
+            throw new ReviewedGATKException(String.format("Unable to split contig %s at split point %d; split point is not contained in region.",this,splitPoint));
         return new GenomeLoc[] { new GenomeLoc(getContig(),contigIndex,getStart(),splitPoint-1), new GenomeLoc(getContig(),contigIndex,splitPoint,getStop()) };
     }
 
@@ -214,15 +214,15 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
 
     @Requires("that != null")
     @Ensures("result != null")
-    public GenomeLoc intersect( GenomeLoc that ) throws ReviewedStingException {
+    public GenomeLoc intersect( GenomeLoc that ) throws ReviewedGATKException {
         if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
             if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
-                throw new ReviewedStingException("Tried to intersect a mapped and an unmapped genome loc");
+                throw new ReviewedGATKException("Tried to intersect a mapped and an unmapped genome loc");
             return UNMAPPED;
         }
 
         if (!(this.overlapsP(that))) {
-            throw new ReviewedStingException("GenomeLoc::intersect(): The two genome loc's need to overlap");
+            throw new ReviewedGATKException("GenomeLoc::intersect(): The two genome loc's need to overlap");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
@@ -234,12 +234,12 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     public final List<GenomeLoc> subtract( final GenomeLoc that ) {
         if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
             if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
-                throw new ReviewedStingException("Tried to intersect a mapped and an unmapped genome loc");
+                throw new ReviewedGATKException("Tried to intersect a mapped and an unmapped genome loc");
             return Arrays.asList(UNMAPPED);
         }
 
         if (!(this.overlapsP(that))) {
-            throw new ReviewedStingException("GenomeLoc::minus(): The two genome loc's need to overlap");
+            throw new ReviewedGATKException("GenomeLoc::minus(): The two genome loc's need to overlap");
         }
 
         if (equals(that)) {
@@ -587,11 +587,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     @Requires("a != null && b != null")
     public static <T extends GenomeLoc> GenomeLoc merge(final T a, final T b) {
         if ( isUnmapped(a) || isUnmapped(b) ) {
-            throw new ReviewedStingException("Tried to merge unmapped genome locs");
+            throw new ReviewedGATKException("Tried to merge unmapped genome locs");
         }
 
         if ( !(a.contiguousP(b)) ) {
-            throw new ReviewedStingException("The two genome locs need to be contiguous");
+            throw new ReviewedGATKException("The two genome locs need to be contiguous");
         }
 
         return new GenomeLoc(a.getContig(), a.contigIndex, Math.min(a.getStart(), b.getStart()), Math.max(a.getStop(), b.getStop()));
@@ -609,12 +609,12 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
 
         for ( GenomeLoc loc : sortedLocs ) {
             if ( loc.isUnmapped() )
-                throw new ReviewedStingException("Tried to merge unmapped genome locs");
+                throw new ReviewedGATKException("Tried to merge unmapped genome locs");
 
             if ( result == null )
                 result = loc;
             else if ( !result.contiguousP(loc) )
-                throw new ReviewedStingException("The genome locs need to be contiguous");
+                throw new ReviewedGATKException("The genome locs need to be contiguous");
             else
                 result = merge(result, loc);
         }

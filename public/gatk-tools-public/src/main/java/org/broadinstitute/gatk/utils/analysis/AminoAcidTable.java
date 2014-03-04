@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.analysis;
+package org.broadinstitute.gatk.utils.analysis;
 
 import java.util.HashMap;
 

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 
@@ -45,7 +45,7 @@ import java.util.NoSuchElementException;
 /**
  * A placeholder for an iterator with no data.
  */
-public class NullSAMIterator implements StingSAMIterator {
+public class NullSAMIterator implements GATKSAMIterator {
     public NullSAMIterator() {}
 
     public Iterator<SAMRecord> iterator() { return this; }
@@ -53,5 +53,5 @@ public class NullSAMIterator implements StingSAMIterator {
 
     public boolean hasNext() { return false; }
     public SAMRecord next() { throw new NoSuchElementException("No next element is available."); }
-    public void remove() { throw new UnsupportedOperationException("Cannot remove from a StingSAMIterator"); }
+    public void remove() { throw new UnsupportedOperationException("Cannot remove from a GATKSAMIterator"); }
 }

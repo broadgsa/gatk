@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.io;
+package org.broadinstitute.gatk.utils.io;
 
 import java.io.File;
 

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.pairhmm;
+package org.broadinstitute.gatk.utils.pairhmm;
 
 import com.google.java.contract.Requires;
 

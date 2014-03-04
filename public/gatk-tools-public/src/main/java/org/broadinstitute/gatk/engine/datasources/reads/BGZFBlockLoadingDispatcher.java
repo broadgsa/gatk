@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -77,7 +77,7 @@ public class BGZFBlockLoadingDispatcher {
                     inputQueue.wait();
                 }
                 catch(InterruptedException ex) {
-                    throw new ReviewedStingException("Interrupt occurred waiting for next block reader work item");
+                    throw new ReviewedGATKException("Interrupt occurred waiting for next block reader work item");
                 }
             }
             return inputQueue.poll();

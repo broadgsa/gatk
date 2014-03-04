@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.library.clf.vcf
+package org.broadinstitute.gatk.queue.library.clf.vcf
 
 import java.io.File
-import org.broadinstitute.sting.commandline.{Argument, Output, Input}
-import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.utils.commandline.{Argument, Output, Input}
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
 
 class VCFExtractIntervals(inVCF: File, outList: File, passOnly: Boolean ) extends CommandLineFunction {
   def this(vcf: File, list: File ) = this(vcf,list,false)

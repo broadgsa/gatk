@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
 import org.jgrapht.traverse.TopologicalOrderIterator
 import org.jgrapht.graph.SimpleDirectedGraph
@@ -32,14 +32,14 @@ import org.jgrapht.alg.CycleDetector
 import org.jgrapht.EdgeFactory
 import org.jgrapht.ext.DOTExporter
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
-import org.broadinstitute.sting.queue.QException
-import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
+import org.broadinstitute.gatk.queue.QException
+import org.broadinstitute.gatk.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
 import org.apache.commons.lang.StringUtils
-import org.broadinstitute.sting.queue.util._
+import org.broadinstitute.gatk.queue.util._
 import collection.immutable.{TreeSet, TreeMap}
-import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
+import org.broadinstitute.gatk.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
 import java.util.Date
-import org.broadinstitute.sting.utils.Utils
+import org.broadinstitute.gatk.utils.Utils
 import org.apache.commons.io.{FilenameUtils, FileUtils, IOUtils}
 import java.io.{OutputStreamWriter, File}
 
@@ -136,7 +136,7 @@ class QGraph extends Logging {
   def run() {
     runningLock.synchronized {
       if (running) {
-        org.broadinstitute.sting.utils.io.IOUtils.checkTempDir(settings.qSettings.tempDirectory)
+        org.broadinstitute.gatk.utils.io.IOUtils.checkTempDir(settings.qSettings.tempDirectory)
         fillGraph()
         val isReady = numMissingValues == 0
 
@@ -1149,10 +1149,10 @@ class QGraph extends Logging {
     else
       settings.qSettings.runName + ".jobreport.txt"
 
-    val reportFile = org.broadinstitute.sting.utils.io.IOUtils.absolute(settings.qSettings.runDirectory, jobStringName)
+    val reportFile = org.broadinstitute.gatk.utils.io.IOUtils.absolute(settings.qSettings.runDirectory, jobStringName)
 
     val pdfFile = if ( settings.run )
-      Some(org.broadinstitute.sting.utils.io.IOUtils.absolute(settings.qSettings.runDirectory, FilenameUtils.removeExtension(jobStringName) + ".pdf"))
+      Some(org.broadinstitute.gatk.utils.io.IOUtils.absolute(settings.qSettings.runDirectory, FilenameUtils.removeExtension(jobStringName) + ".pdf"))
     else
       None
 

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting;
+package org.broadinstitute.gatk.utils;
 
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Level;
@@ -32,12 +32,12 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.crypt.CryptUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.io.IOUtils;
-import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.commandline.CommandLineUtils;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.crypt.CryptUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -82,7 +82,7 @@ import java.util.*;
  */
 @SuppressWarnings("unchecked")
 public abstract class BaseTest {
-    /** our log, which we want to capture anything from org.broadinstitute.sting */
+    /** our log, which we want to capture anything from org.broadinstitute.gatk */
     public static final Logger logger = CommandLineUtils.getStingLogger();
 
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
@@ -292,7 +292,7 @@ public abstract class BaseTest {
             file.deleteOnExit();
             return file;
         } catch (IOException ex) {
-            throw new ReviewedStingException("Cannot create temp file: " + ex.getMessage(), ex);
+            throw new ReviewedGATKException("Cannot create temp file: " + ex.getMessage(), ex);
         }
     }
 

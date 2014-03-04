@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -64,7 +64,7 @@ public class VerifyingSamIteratorUnitTest {
         SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(samFileHeader,"read2",getContig(0).getSequenceIndex(),2,10);
         List<SAMRecord> reads = Arrays.asList(read1,read2);
 
-        VerifyingSamIterator iterator = new VerifyingSamIterator(StingSAMIteratorAdapter.adapt(reads.iterator()));
+        VerifyingSamIterator iterator = new VerifyingSamIterator(GATKSAMIteratorAdapter.adapt(reads.iterator()));
 
         Assert.assertTrue(iterator.hasNext(),"Insufficient reads");
         Assert.assertSame(iterator.next(),read1,"Incorrect read in read 1 position");
@@ -79,7 +79,7 @@ public class VerifyingSamIteratorUnitTest {
         SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(samFileHeader,"read2",getContig(1).getSequenceIndex(),1,10);
         List<SAMRecord> reads = Arrays.asList(read1,read2);
 
-        VerifyingSamIterator iterator = new VerifyingSamIterator(StingSAMIteratorAdapter.adapt(reads.iterator()));
+        VerifyingSamIterator iterator = new VerifyingSamIterator(GATKSAMIteratorAdapter.adapt(reads.iterator()));
 
         Assert.assertTrue(iterator.hasNext(),"Insufficient reads");
         Assert.assertSame(iterator.next(),read1,"Incorrect read in read 1 position");
@@ -94,7 +94,7 @@ public class VerifyingSamIteratorUnitTest {
         SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(samFileHeader,"read2",getContig(0).getSequenceIndex(),1,10);
         List<SAMRecord> reads = Arrays.asList(read1,read2);
 
-        VerifyingSamIterator iterator = new VerifyingSamIterator(StingSAMIteratorAdapter.adapt(reads.iterator()));
+        VerifyingSamIterator iterator = new VerifyingSamIterator(GATKSAMIteratorAdapter.adapt(reads.iterator()));
 
         Assert.assertTrue(iterator.hasNext(),"Insufficient reads");
         Assert.assertSame(iterator.next(),read1,"Incorrect read in read 1 position");
@@ -112,7 +112,7 @@ public class VerifyingSamIteratorUnitTest {
         read1.setReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
         List<SAMRecord> reads = Arrays.asList(read1,read2);
 
-        VerifyingSamIterator iterator = new VerifyingSamIterator(StingSAMIteratorAdapter.adapt(reads.iterator()));
+        VerifyingSamIterator iterator = new VerifyingSamIterator(GATKSAMIteratorAdapter.adapt(reads.iterator()));
 
         Assert.assertTrue(iterator.hasNext(),"Insufficient reads");
         Assert.assertSame(iterator.next(),read1,"Incorrect read in read 1 position");

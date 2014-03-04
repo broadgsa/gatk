@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.shell
+package org.broadinstitute.gatk.queue.engine.shell
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.CommandLineJobManager
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.engine.CommandLineJobManager
 
 class ShellJobManager extends CommandLineJobManager[ShellJobRunner] {
   def runnerType = classOf[ShellJobRunner]

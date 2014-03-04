@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
+package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
-import org.broadinstitute.sting.utils.DeprecatedToolChecks;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.DeprecatedToolChecks;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.util.*;
 

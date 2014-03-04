@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io;
+package org.broadinstitute.gatk.engine.io;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
@@ -35,7 +35,7 @@ import htsjdk.samtools.SAMFileWriter;
  * @author mhanna
  * @version 0.1
  */
-public interface StingSAMFileWriter extends SAMFileWriter {
+public interface GATKSAMFileWriter extends SAMFileWriter {
     /**
      * Writes the given custom header to SAM file output.
      * @param header The header to write.

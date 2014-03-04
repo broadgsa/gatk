@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.qc;
+package org.broadinstitute.gatk.tools.walkers.qc;
 
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 
 import java.util.Collections;
 

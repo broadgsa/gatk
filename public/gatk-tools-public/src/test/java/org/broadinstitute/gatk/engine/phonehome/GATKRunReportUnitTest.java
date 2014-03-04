@@ -23,24 +23,24 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.phonehome;
+package org.broadinstitute.gatk.engine.phonehome;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
-import org.broadinstitute.sting.gatk.walkers.qc.CountRODs;
-import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.ActiveRegionWalker;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.tools.walkers.qc.CountLoci;
+import org.broadinstitute.gatk.tools.walkers.qc.CountRODs;
+import org.broadinstitute.gatk.tools.walkers.qc.CountReads;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.activeregion.ActiveRegion;
+import org.broadinstitute.gatk.utils.activeregion.ActivityProfileState;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
@@ -116,7 +116,7 @@ public class GATKRunReportUnitTest extends BaseTest {
 
         final Exception noException = null;
         final Exception javaException = new IllegalArgumentException("javaException");
-        final Exception stingException = new ReviewedStingException("StingException");
+        final Exception stingException = new ReviewedGATKException("GATKException");
         final Exception userException = new UserException("userException");
 
         final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();

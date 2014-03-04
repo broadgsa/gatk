@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.gatk.utils.threading;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
-import org.broadinstitute.sting.utils.AutoFormattingTime;
+import org.broadinstitute.gatk.utils.AutoFormattingTime;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;

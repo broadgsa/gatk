@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 
 /**
  * An iterator which does post-processing of a read, including potentially wrapping
@@ -36,7 +36,7 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
  * @author mhanna
  * @version 0.1
  */
-public class ReadFormattingIterator implements StingSAMIterator {
+public class ReadFormattingIterator implements GATKSAMIterator {
     /**
      * Logger.
      */
@@ -45,7 +45,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
     /**
      * Iterator to which to pass
      */
-    private StingSAMIterator wrappedIterator;
+    private GATKSAMIterator wrappedIterator;
 
     /**
      * True if original base qualities should be used.
@@ -64,7 +64,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
      * @param useOriginalBaseQualities true if original base qualities should be used
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.  
      */
-    public ReadFormattingIterator(StingSAMIterator wrappedIterator, boolean useOriginalBaseQualities, byte defaultBaseQualities) {
+    public ReadFormattingIterator(GATKSAMIterator wrappedIterator, boolean useOriginalBaseQualities, byte defaultBaseQualities) {
         this.wrappedIterator = wrappedIterator;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
         this.defaultBaseQualities = defaultBaseQualities;
@@ -76,7 +76,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
      * reset the iterator.
      * @return An iterator through the current data stream.
      */
-    public StingSAMIterator iterator() {
+    public GATKSAMIterator iterator() {
         // NOTE: this iterator doesn't perform any kind of reset operation; it just returns itself.
         //       can we do something better?  Do we really have to provide support for the Iterable interface?
         return this;

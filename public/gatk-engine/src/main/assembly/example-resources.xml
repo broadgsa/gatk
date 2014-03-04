@@ -6,7 +6,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
-            <directory>${project.build.sourceDirectory}/org/broadinstitute/sting/gatk/walkers/qc</directory>
+            <directory>${project.build.sourceDirectory}/org/broadinstitute/gatk/gatk/walkers/qc</directory>
             <outputDirectory>.</outputDirectory>
             <includes>
                 <include>Pileup.java</include>
@@ -16,7 +16,7 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.build.sourceDirectory}/org/broadinstitute/sting/gatk/walkers/readutils</directory>
+            <directory>${project.build.sourceDirectory}/org/broadinstitute/gatk/gatk/walkers/readutils</directory>
             <outputDirectory>.</outputDirectory>
             <includes>
                 <include>PrintReads.java</include>

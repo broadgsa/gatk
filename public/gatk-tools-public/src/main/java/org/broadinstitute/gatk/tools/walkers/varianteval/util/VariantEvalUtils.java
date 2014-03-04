@@ -23,22 +23,22 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.util;
+package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
-import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.StandardEval;
-import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.RequiredStratification;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.StandardStratification;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.commandline.RodBinding;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.VariantEval;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.StandardEval;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.RequiredStratification;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.StandardStratification;
+import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
 import htsjdk.variant.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.variantcontext.VariantContextUtils;
@@ -130,9 +130,9 @@ public class VariantEvalUtils {
 
                     strats.add(vs);
                 } catch (InstantiationException e) {
-                    throw new StingException("Unable to instantiate stratification module '" + c.getSimpleName() + "'");
+                    throw new GATKException("Unable to instantiate stratification module '" + c.getSimpleName() + "'");
                 } catch (IllegalAccessException e) {
-                    throw new StingException("Illegal access error when trying to instantiate stratification module '" + c.getSimpleName() + "'");
+                    throw new GATKException("Illegal access error when trying to instantiate stratification module '" + c.getSimpleName() + "'");
                 }
             }
         }

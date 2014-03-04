@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
+package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
+import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 
@@ -152,7 +152,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     nSymbolic++;
                     break;
                 default:
-                    throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
+                    throw new ReviewedGATKException("Unexpected VariantContext type " + vc1.getType());
             }
         }
 
@@ -200,7 +200,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 case UNAVAILABLE:
                     break;
                 default:
-                    throw new ReviewedStingException("BUG: Unexpected genotype type: " + g);
+                    throw new ReviewedGATKException("BUG: Unexpected genotype type: " + g);
             }
         }
     }

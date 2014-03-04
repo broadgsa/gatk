@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.annotator;
+package org.broadinstitute.gatk.tools.walkers.annotator;
 
-import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.commandline.RodBinding;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocParser;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -48,7 +48,7 @@ public final class VariantOverlapAnnotator {
     /**
      * Create a new VariantOverlapAnnotator without overall bindings
      *
-     * @see #VariantOverlapAnnotator(org.broadinstitute.sting.commandline.RodBinding, java.util.Map, org.broadinstitute.sting.utils.GenomeLocParser)
+     * @see #VariantOverlapAnnotator(org.broadinstitute.gatk.utils.commandline.RodBinding, java.util.Map, org.broadinstitute.gatk.utils.GenomeLocParser)
      */
     public VariantOverlapAnnotator(RodBinding<VariantContext> dbSNPBinding, GenomeLocParser genomeLocParser) {
         this(dbSNPBinding, Collections.<RodBinding<VariantContext>, String>emptyMap(), genomeLocParser);

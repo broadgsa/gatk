@@ -23,22 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.qc;
+package org.broadinstitute.gatk.tools.walkers.qc;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
-import org.broadinstitute.sting.gatk.walkers.RefWalker;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.Input;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.walkers.NanoSchedulable;
+import org.broadinstitute.gatk.engine.walkers.RefWalker;
+import org.broadinstitute.gatk.engine.walkers.TreeReducible;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 
 /**
  * A walker that simply throws errors.  Allows us to test that the engine is behaving as expected with error handling
@@ -94,8 +93,8 @@ public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeRed
             throw new UserException("UserException");
         } else if ( exceptionToThrow.equals("NullPointerException") ) {
             throw new NullPointerException();
-        } else if ( exceptionToThrow.equals("ReviewedStingException") ) {
-            throw new ReviewedStingException("ReviewedStingException");
+        } else if ( exceptionToThrow.equals("ReviewedGATKException") ) {
+            throw new ReviewedGATKException("ReviewedGATKException");
         } else if ( exceptionToThrow.equals("SamError1") ) {
             throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_1);
         } else if ( exceptionToThrow.equals("SamError2") ) {

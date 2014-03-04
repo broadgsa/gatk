@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.datasources.providers.LocusShardDataProvider;
+import org.broadinstitute.gatk.engine.datasources.providers.ShardDataProvider;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -184,7 +184,7 @@ public abstract class Accumulator {
          */
         public void accumulate( ShardDataProvider provider, Object result ) {
             if(!(provider instanceof LocusShardDataProvider))
-                throw new ReviewedStingException("Unable to reduce by interval on reads traversals at this time.");
+                throw new ReviewedGATKException("Unable to reduce by interval on reads traversals at this time.");
 
             GenomeLoc location = ((LocusShardDataProvider)provider).getLocus();
 

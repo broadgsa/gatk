@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.phonehome;
+package org.broadinstitute.gatk.engine.phonehome;
 
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
 

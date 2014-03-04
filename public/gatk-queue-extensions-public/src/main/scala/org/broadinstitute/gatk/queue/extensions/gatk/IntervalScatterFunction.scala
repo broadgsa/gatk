@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk
+package org.broadinstitute.gatk.queue.extensions.gatk
 
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.interval.IntervalUtils
-import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.gatk.utils.interval.IntervalUtils
+import org.broadinstitute.gatk.queue.function.InProcessFunction
 
 /**
  * An interval scatter function.

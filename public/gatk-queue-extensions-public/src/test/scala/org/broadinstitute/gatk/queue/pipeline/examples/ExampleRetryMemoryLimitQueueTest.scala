@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.gatk.queue.pipeline.examples
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
-import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.gatk.queue.pipeline.{QueueTest, QueueTestSpec}
+import org.broadinstitute.gatk.utils.BaseTest
 
 class ExampleRetryMemoryLimitQueueTest {
 
@@ -37,7 +37,7 @@ class ExampleRetryMemoryLimitQueueTest {
     val spec = new QueueTestSpec
     spec.name = "RetryMemoryLimit"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleRetryMemoryLimit.scala",
+      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleRetryMemoryLimit.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -retry 1").mkString

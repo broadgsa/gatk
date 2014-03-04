@@ -26,7 +26,7 @@
 package htsjdk.samtools;
 
 import htsjdk.samtools.util.PeekableIterator;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -151,7 +151,7 @@ public class GATKBAMFileSpan extends BAMFileSpan {
         List<Chunk> chunks = getChunks();
         for ( int i = 1; i < chunks.size(); i++ ) {
             if ( chunks.get(i).getChunkStart() < chunks.get(i-1).getChunkEnd() ) {
-                throw new ReviewedStingException(String.format("Chunk list is unsorted; chunk %s is before chunk %s", chunks.get(i-1), chunks.get(i)));
+                throw new ReviewedGATKException(String.format("Chunk list is unsorted; chunk %s is before chunk %s", chunks.get(i-1), chunks.get(i)));
 
             }
         }

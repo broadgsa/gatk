@@ -23,21 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.gatk.engine;
 
 import picard.PicardException;
 import htsjdk.samtools.SAMException;
 import htsjdk.tribble.TribbleException;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.ArgumentCollection;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.sting.gatk.walkers.Attribution;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.*;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.engine.walkers.Attribution;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.*;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.util.*;
 
@@ -113,7 +113,7 @@ public class CommandLineGATK extends CommandLineExecutable {
             //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
         } catch(PicardException e) {
-            // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedStingExceptions?
+            // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedGATKExceptions?
             exitSystemWithError(e);
         } catch (SAMException e) {
             checkForMaskedUserErrors(e);
@@ -179,12 +179,12 @@ public class CommandLineGATK extends CommandLineExecutable {
     }
 
     public static String getVersionNumber() {
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
-        return headerInfo.containsKey("org.broadinstitute.sting.gatk.version") ? headerInfo.getString("org.broadinstitute.sting.gatk.version") : "<unknown>";
+        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
+        return headerInfo.containsKey("org.broadinstitute.gatk.tools.version") ? headerInfo.getString("org.broadinstitute.gatk.tools.version") : "<unknown>";
     }
 
     public static String getBuildTime() {
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
         return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
     }
 

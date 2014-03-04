@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.runtime;
+package org.broadinstitute.gatk.utils.runtime;
 
 public class ProcessOutput {
     private final int exitValue;

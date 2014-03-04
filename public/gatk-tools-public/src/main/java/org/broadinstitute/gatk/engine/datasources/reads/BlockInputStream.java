@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.util.BlockCompressedInputStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -131,7 +131,7 @@ public class BlockInputStream extends InputStream {
                 validatingInputStream = null;
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to validate against Picard input stream",ex);
+            throw new ReviewedGATKException("Unable to validate against Picard input stream",ex);
         }
     }
 
@@ -150,7 +150,7 @@ public class BlockInputStream extends InputStream {
         }
 
 //        if(validatingInputStream != null && filePointer != validatingInputStream.getFilePointer())
-//            throw new ReviewedStingException(String.format("Position of input stream is invalid; expected (block address, block offset) = (%d,%d), got (%d,%d)",
+//            throw new ReviewedGATKException(String.format("Position of input stream is invalid; expected (block address, block offset) = (%d,%d), got (%d,%d)",
 //                    BlockCompressedFilePointerUtil.getBlockAddress(validatingInputStream.getFilePointer()),BlockCompressedFilePointerUtil.getBlockOffset(validatingInputStream.getFilePointer()),
 //                    BlockCompressedFilePointerUtil.getBlockAddress(filePointer),BlockCompressedFilePointerUtil.getBlockOffset(filePointer)));
 
@@ -203,7 +203,7 @@ public class BlockInputStream extends InputStream {
                 validatingInputStream.seek(makeFilePointer(accessPlan.getBlockAddress(),0));
             }
             catch(IOException ex) {
-                throw new ReviewedStingException("Unable to validate against Picard input stream",ex);
+                throw new ReviewedGATKException("Unable to validate against Picard input stream",ex);
             }
         }
 
@@ -271,7 +271,7 @@ public class BlockInputStream extends InputStream {
                     validatingInputStream.seek(currentFilePointer);
 
                     if(!Arrays.equals(validBytes,currentBytes))
-                        throw new ReviewedStingException(String.format("Bytes being inserted into BlockInputStream %s are incorrect",this));
+                        throw new ReviewedGATKException(String.format("Bytes being inserted into BlockInputStream %s are incorrect",this));
                 }
 
                 compactBuffer();
@@ -329,7 +329,7 @@ public class BlockInputStream extends InputStream {
     private void checkForErrors() {
         synchronized(lock) {
             if(error != null) {
-                ReviewedStingException toThrow = new ReviewedStingException(String.format("Thread %s, BlockInputStream %s: Unable to retrieve BAM data from disk",Thread.currentThread().getId(),this),error);
+                ReviewedGATKException toThrow = new ReviewedGATKException(String.format("Thread %s, BlockInputStream %s: Unable to retrieve BAM data from disk",Thread.currentThread().getId(),this),error);
                 toThrow.setStackTrace(error.getStackTrace());
                 throw toThrow;
             }
@@ -392,11 +392,11 @@ public class BlockInputStream extends InputStream {
 //                validatingInputStream.read(validBytes,offset,length);
 //                for(int i = offset; i < offset+length; i++) {
 //                    if(bytes[i] != validBytes[i])
-//                        throw new ReviewedStingException(String.format("Thread %s: blockInputStream %s attempting to return wrong set of bytes; mismatch at offset %d",Thread.currentThread().getId(),this,i));
+//                        throw new ReviewedGATKException(String.format("Thread %s: blockInputStream %s attempting to return wrong set of bytes; mismatch at offset %d",Thread.currentThread().getId(),this,i));
 //                }
 //            }
 //            catch(IOException ex) {
-//                throw new ReviewedStingException("Unable to validate against Picard input stream",ex);
+//                throw new ReviewedGATKException("Unable to validate against Picard input stream",ex);
 //            }
 //        }
 
@@ -414,7 +414,7 @@ public class BlockInputStream extends InputStream {
                 validatingInputStream.close();
             }
             catch(IOException ex) {
-                throw new ReviewedStingException("Unable to validate against Picard input stream",ex);
+                throw new ReviewedGATKException("Unable to validate against Picard input stream",ex);
             }
         }
     }
@@ -432,7 +432,7 @@ public class BlockInputStream extends InputStream {
                     lock.wait();
                 }
                 catch(InterruptedException ex) {
-                    throw new ReviewedStingException("Interrupt occurred waiting for buffer to fill",ex);
+                    throw new ReviewedGATKException("Interrupt occurred waiting for buffer to fill",ex);
                 }
             }
         }

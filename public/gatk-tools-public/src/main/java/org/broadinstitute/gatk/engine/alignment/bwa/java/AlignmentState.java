@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa.java;
+package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
 /**
  * The state of a given base in the alignment.

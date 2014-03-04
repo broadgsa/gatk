@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa.java;
+package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.alignment.bwa.BWAAligner;
-import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
-import org.broadinstitute.sting.alignment.reference.bwt.*;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.engine.alignment.Alignment;
+import org.broadinstitute.gatk.engine.alignment.bwa.BWAAligner;
+import org.broadinstitute.gatk.engine.alignment.bwa.BWAConfiguration;
+import org.broadinstitute.gatk.engine.alignment.reference.bwt.*;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.Utils;
 
 import java.io.File;
 import java.util.ArrayList;

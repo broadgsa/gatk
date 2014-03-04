@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.gatk.utils.Utils;
 
 /**
  * Specifies that a value was missing when attempting to populate an argument.

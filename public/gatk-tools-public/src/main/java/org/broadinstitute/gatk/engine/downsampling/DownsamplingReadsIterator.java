@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.downsampling;
+package org.broadinstitute.gatk.engine.downsampling;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,14 +34,14 @@ import java.util.NoSuchElementException;
 
 
 /**
- * StingSAMIterator wrapper around our generic reads downsampler interface. Converts the push-style
+ * GATKSAMIterator wrapper around our generic reads downsampler interface. Converts the push-style
  * downsampler interface to a pull model.
  *
  * @author David Roazen
  */
-public class DownsamplingReadsIterator implements StingSAMIterator {
+public class DownsamplingReadsIterator implements GATKSAMIterator {
 
-    private StingSAMIterator nestedSAMIterator;
+    private GATKSAMIterator nestedSAMIterator;
     private ReadsDownsampler<SAMRecord> downsampler;
     private Collection<SAMRecord> downsampledReadsCache;
     private SAMRecord nextRead = null;
@@ -51,7 +51,7 @@ public class DownsamplingReadsIterator implements StingSAMIterator {
      * @param iter wrapped iterator from which this iterator will pull reads
      * @param downsampler downsampler through which the reads will be fed
      */
-    public DownsamplingReadsIterator( StingSAMIterator iter, ReadsDownsampler<SAMRecord> downsampler ) {
+    public DownsamplingReadsIterator( GATKSAMIterator iter, ReadsDownsampler<SAMRecord> downsampler ) {
         nestedSAMIterator = iter;
         this.downsampler = downsampler;
 

@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads;
+package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.Bin;
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -91,7 +91,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
      */
     public BAMSchedule(final SAMDataSource dataSource, final List<GenomeLoc> intervals) {
         if(intervals.isEmpty())
-            throw new ReviewedStingException("Tried to write schedule for empty interval list.");
+            throw new ReviewedGATKException("Tried to write schedule for empty interval list.");
 
         referenceSequence = dataSource.getHeader().getSequence(intervals.get(0).getContig()).getSequenceIndex();
 
@@ -206,7 +206,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
      * @param e
      * @return
      */
-    private final StingException makeIOFailureException(final boolean wasWriting, final String message, final Exception e) {
+    private final GATKException makeIOFailureException(final boolean wasWriting, final String message, final Exception e) {
         if ( wasWriting ) {
             if ( e == null )
                 return new UserException.CouldNotCreateOutputFile(scheduleFile, message);
@@ -412,7 +412,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
             // Make sure we read in a complete bin header:
             if ( binHeaderBytesRead < INT_SIZE_IN_BYTES * 3 ) {
-                throw new ReviewedStingException(String.format("Unable to read a complete bin header from BAM schedule file %s for BAM file %s. " +
+                throw new ReviewedGATKException(String.format("Unable to read a complete bin header from BAM schedule file %s for BAM file %s. " +
                                                                "The BAM schedule file is likely incomplete/corrupt.",
                                                                scheduleFile.getAbsolutePath(), reader.getSamFilePath()));
             }
@@ -433,7 +433,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             chunkData.limit(numChunks*LONG_SIZE_IN_BYTES*2);
             long bytesRead = read(chunkData);
             if(bytesRead != numChunks*LONG_SIZE_IN_BYTES*2)
-                throw new ReviewedStingException("Unable to read all chunks from file");
+                throw new ReviewedGATKException("Unable to read all chunks from file");
 
             // Prepare for reading.
             chunkData.flip();
@@ -507,7 +507,7 @@ class BAMScheduleEntry {
         final int otherSize = other.fileSpans.size();
         fileSpans.putAll(other.fileSpans);
         if(fileSpans.size() != thisSize+otherSize)
-            throw new ReviewedStingException("Unable to handle overlaps when merging BAM schedule entries.");
+            throw new ReviewedGATKException("Unable to handle overlaps when merging BAM schedule entries.");
     }
 
     /**

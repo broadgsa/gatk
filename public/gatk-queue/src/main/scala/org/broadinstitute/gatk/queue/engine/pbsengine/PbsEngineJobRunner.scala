@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.pbsengine
+package org.broadinstitute.gatk.queue.engine.pbsengine
 
-import org.broadinstitute.sting.queue.util.Logging
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.drmaa.DrmaaJobRunner
+import org.broadinstitute.gatk.queue.util.Logging
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.engine.drmaa.DrmaaJobRunner
 import org.ggf.drmaa.Session
 
 /**

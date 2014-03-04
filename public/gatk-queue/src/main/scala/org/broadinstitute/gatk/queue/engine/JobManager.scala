@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.gatk.queue.engine
 
-import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.gatk.queue.function.QFunction
 
 /**
  * Creates and stops JobRunners

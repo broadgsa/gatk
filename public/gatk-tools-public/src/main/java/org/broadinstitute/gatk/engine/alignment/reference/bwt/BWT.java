@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.reference.bwt;
+package org.broadinstitute.gatk.engine.alignment.reference.bwt;
 
-import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.alignment.reference.packing.PackUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 /**
  * Represents the Burrows-Wheeler Transform of a reference sequence.
@@ -149,7 +149,7 @@ public class BWT {
      */
     protected byte getBase(long index) {
         if(index == inverseSA0)
-            throw new ReviewedStingException(String.format("Base at index %d does not have a text representation",index));
+            throw new ReviewedGATKException(String.format("Base at index %d does not have a text representation",index));
 
         SequenceBlock block = getSequenceBlock(index);
         int position = getSequencePosition(index);

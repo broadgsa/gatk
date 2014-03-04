@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.smithwaterman;
+package org.broadinstitute.gatk.utils.smithwaterman;
 
 /**
  * Holds the core Smith-Waterman alignment parameters of

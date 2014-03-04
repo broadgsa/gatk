@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.io.storage;
+package org.broadinstitute.gatk.engine.io.storage;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.ProgressLoggerInterface;
 import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.SimplifyingSAMFileWriter;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.SimplifyingSAMFileWriter;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;

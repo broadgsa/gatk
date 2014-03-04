@@ -3,27 +3,25 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-aggregator</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-aggregator</artifactId>
         <version>3.2-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
-    <artifactId>queue-framework</artifactId>
+    <artifactId>gatk-queue</artifactId>
     <packaging>jar</packaging>
-    <name>Queue Framework</name>
+    <name>GATK Queue</name>
 
     <properties>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
-        <gatk.extensions.sources>${project.build.directory}/generated-sources/gatk-extensions</gatk.extensions.sources>
-        <sting.generate-gatk-extensions.skipped>false</sting.generate-gatk-extensions.skipped>
-        <sting.packagetests.artifactId>queue-package</sting.packagetests.artifactId>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk.packagetests.artifactId>gatk-queue-package-distribution</gatk.packagetests.artifactId>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-framework</artifactId>
+            <artifactId>gatk-tools-public</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -46,103 +44,18 @@
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
         </dependency>
-        <!--
-        extgen dependency only applies to the exec:exec,
-        not the artifact, but don't know another way to include
-        the artifact *only* in the <classpath/> of exec.
-        See https://jira.codehaus.org/browse/MEXEC-111
 
-        Perhaps extgen should be wrapped in a maven plugin?
-        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-queue-extgen</artifactId>
-            <version>${project.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <!--
-        NOTE: Because exec-maven-plugin is used, this aggregator dependency
-        will cause mvn compile to not work. Use mvn test-compile for now.
-
-        See:
-          http://stackoverflow.com/questions/4786881/why-is-test-jar-dependency-required-for-mvn-compile
-          http://jira.codehaus.org/browse/MEXEC-91
-        -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-framework</artifactId>
+            <artifactId>gatk-tools-public</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!--
-            See note above about exec plugin breaking mvn compile
-            -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>generate-gatk-extensions</id>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <skip>${sting.generate-gatk-extensions.skipped}</skip>
-                            <executable>java</executable>
-                            <arguments>
-                                <argument>-classpath</argument>
-                                <classpath />
-                                <argument>org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator</argument>
-                                <argument>-l</argument>
-                                <argument>WARN</argument>
-                                <argument>-outDir</argument>
-                                <argument>${gatk.extensions.sources}</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>add-gatk-extensions</id>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <sources>
-                                <source>${gatk.extensions.sources}</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>example-resources</id>
-                        <phase>${sting.generate-resources.phase}</phase>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.scala-tools</groupId>
                 <artifactId>maven-scala-plugin</artifactId>
@@ -207,36 +120,12 @@
 
     <profiles>
         <profile>
-            <id>protected</id>
+            <id>private-testdata</id>
             <activation>
                 <file>
-                    <exists>${basedir}/../../protected/gatk-protected/pom.xml</exists>
+                    <exists>${basedir}/../../private/pom.xml</exists>
                 </file>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>gatk-protected</artifactId>
-                    <version>${project.version}</version>
-                    <optional>true</optional>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>private</id>
-            <activation>
-                <file>
-                    <exists>${basedir}/../../private/gatk-private/pom.xml</exists>
-                </file>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>gatk-private</artifactId>
-                    <version>${project.version}</version>
-                    <optional>true</optional>
-                </dependency>
-            </dependencies>
             <build>
                 <plugins>
                     <!-- TODO: All tests require access to private. For now. -->

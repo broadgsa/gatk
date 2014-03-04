@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.gatk.queue.extensions.picard
 
 import java.io.File
-import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
+import org.broadinstitute.gatk.queue.function.JavaCommandLineFunction
 import htsjdk.samtools.SAMFileReader.ValidationStringency
 import htsjdk.samtools.SAMFileHeader.SortOrder
 

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.tools;
+package org.broadinstitute.gatk.tools;
 
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
@@ -32,19 +32,19 @@ import org.apache.log4j.Level;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureReader;
 import htsjdk.tribble.index.IndexCreator;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
-import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.Input;
+import org.broadinstitute.gatk.utils.commandline.Output;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.collections.Pair;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
@@ -87,7 +87,7 @@ import java.util.*;
  *
  * <h3>Example</h3>
  * <pre>
- * java -cp GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants \
+ * java -cp GenomeAnalysisTK.jar org.broadinstitute.gatk.tools.CatVariants \
  *    -R ref.fasta \
  *    -V input1.vcf \
  *    -V input2.vcf \
@@ -134,7 +134,7 @@ public class CatVariants extends CommandLineProgram {
      * print usage information
      */
     private static void printUsage() {
-        System.err.println("Usage: java -cp target/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants --reference <reference> --variant <input VCF or BCF file; can specify --variant multiple times> --outputFile <outputFile> [--assumeSorted]");
+        System.err.println("Usage: java -cp target/GenomeAnalysisTK.jar org.broadinstitute.gatk.tools.CatVariants --reference <reference> --variant <input VCF or BCF file; can specify --variant multiple times> --outputFile <outputFile> [--assumeSorted]");
         System.err.println("    The output file must be of the same type as all input files.");
         System.err.println("    If the input files are already sorted, then indicate that with --assumeSorted to improve performance.");
     }

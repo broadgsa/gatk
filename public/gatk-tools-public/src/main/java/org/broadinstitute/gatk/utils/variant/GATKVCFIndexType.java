@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.variant;
+package org.broadinstitute.gatk.utils.variant;
 
-import org.broadinstitute.sting.commandline.EnumerationArgumentDefault;
+import org.broadinstitute.gatk.utils.commandline.EnumerationArgumentDefault;
 
 /**
  * Choose the Tribble indexing strategy

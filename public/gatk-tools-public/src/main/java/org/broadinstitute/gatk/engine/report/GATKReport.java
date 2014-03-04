@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.report;
+package org.broadinstitute.gatk.engine.report;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.*;
 import java.util.Collection;
@@ -167,7 +167,7 @@ public class GATKReport {
     public GATKReportTable getTable(String tableName) {
         GATKReportTable table = tables.get(tableName);
         if (table == null)
-            throw new ReviewedStingException("Table is not in GATKReport: " + tableName);
+            throw new ReviewedGATKException("Table is not in GATKReport: " + tableName);
         return table;
     }
 
@@ -195,7 +195,7 @@ public class GATKReport {
     public void concat(GATKReport input) {
 
         if ( !isSameFormat(input) ) {
-            throw new ReviewedStingException("Failed to combine GATKReport, format doesn't match!");
+            throw new ReviewedGATKException("Failed to combine GATKReport, format doesn't match!");
         }
 
         for ( Map.Entry<String, GATKReportTable> table : tables.entrySet() ) {
@@ -340,11 +340,11 @@ public class GATKReport {
     public void addRow(final Object... values) {
         // Must be a simple report
         if ( tables.size() != 1 )
-            throw new ReviewedStingException("Cannot write a row to a complex GATK Report");
+            throw new ReviewedGATKException("Cannot write a row to a complex GATK Report");
 
         GATKReportTable table = tables.firstEntry().getValue();
         if ( table.getNumColumns() != values.length )
-            throw new ReviewedStingException("The number of arguments in writeRow (" + values.length + ") must match the number of columns in the table (" + table.getNumColumns() + ")" );
+            throw new ReviewedGATKException("The number of arguments in writeRow (" + values.length + ") must match the number of columns in the table (" + table.getNumColumns() + ")" );
 
         final int rowIndex = table.getNumRows();
         for ( int i = 0; i < values.length; i++ )
@@ -360,11 +360,11 @@ public class GATKReport {
      */
     public void addRowList(final List<Object> values) {
         if ( tables.size() != 1 )
-            throw new ReviewedStingException("Cannot write a row to a complex GATK Report");
+            throw new ReviewedGATKException("Cannot write a row to a complex GATK Report");
 
         GATKReportTable table = tables.firstEntry().getValue();
         if ( table.getNumColumns() != values.size() )
-            throw new ReviewedStingException("The number of arguments in writeRow() must match the number of columns in the table");
+            throw new ReviewedGATKException("The number of arguments in writeRow() must match the number of columns in the table");
 
         final int rowIndex = table.getNumRows();
         int idx = 0;

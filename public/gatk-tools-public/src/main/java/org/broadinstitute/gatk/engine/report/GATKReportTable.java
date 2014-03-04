@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.report;
+package org.broadinstitute.gatk.engine.report;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -105,7 +105,7 @@ public class GATKReportTable {
                     tableData = reader.readLine().split(SEPARATOR);
                     tableNameData = reader.readLine().split(SEPARATOR);
                 } catch (IOException e) {
-                    throw new ReviewedStingException(COULD_NOT_READ_HEADER + e.getMessage());
+                    throw new ReviewedGATKException(COULD_NOT_READ_HEADER + e.getMessage());
                 }
 
                 // parse the header fields
@@ -132,7 +132,7 @@ public class GATKReportTable {
                 try {
                     columnLine = reader.readLine();
                 } catch (IOException e) {
-                    throw new ReviewedStingException(COULD_NOT_READ_COLUMN_NAMES);
+                    throw new ReviewedGATKException(COULD_NOT_READ_COLUMN_NAMES);
                 }
 
                 final List<Integer> columnStarts = TextFormattingUtils.getWordStarts(columnLine);
@@ -161,18 +161,18 @@ public class GATKReportTable {
                         }
                     }
                 } catch (IOException e) {
-                    throw new ReviewedStingException(COULD_NOT_READ_DATA_LINE + e.getMessage());
+                    throw new ReviewedGATKException(COULD_NOT_READ_DATA_LINE + e.getMessage());
                 }
 
                 try {
                     reader.readLine();
                 } catch (IOException e) {
-                    throw new ReviewedStingException(COULD_NOT_READ_EMPTY_LINE + e.getMessage());
+                    throw new ReviewedGATKException(COULD_NOT_READ_EMPTY_LINE + e.getMessage());
                 }
             break;
 
             default:
-                throw new ReviewedStingException(OLD_GATK_TABLE_VERSION);
+                throw new ReviewedGATKException(OLD_GATK_TABLE_VERSION);
         }
     }
 
@@ -197,11 +197,11 @@ public class GATKReportTable {
      */
     public GATKReportTable(final String tableName, final String tableDescription, final int numColumns, final TableSortingWay sortingWay) {
         if ( !isValidName(tableName) ) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
+            throw new ReviewedGATKException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
         }
 
         if ( !isValidDescription(tableDescription) ) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable description of '" + tableDescription + "'.  GATKReportTable descriptions must not contain newlines.");
+            throw new ReviewedGATKException("Attempted to set a GATKReportTable description of '" + tableDescription + "'.  GATKReportTable descriptions must not contain newlines.");
         }
 
         this.tableName = tableName;
@@ -333,7 +333,7 @@ public class GATKReportTable {
      */
     private void verifyEntry(final int rowIndex, final int colIndex) {
         if ( rowIndex < 0 || colIndex < 0 || colIndex >= getNumColumns() )
-            throw new ReviewedStingException("attempted to access a cell that does not exist in table '" + tableName + "'");
+            throw new ReviewedGATKException("attempted to access a cell that does not exist in table '" + tableName + "'");
     }
 
     /**
@@ -394,7 +394,7 @@ public class GATKReportTable {
             underlyingData.get(rowIndex)[colIndex] = value;
             column.updateFormatting(value);
         } else {
-            throw new ReviewedStingException(String.format("Tried to add an object of type: %s to a column of type: %s", GATKReportDataType.fromObject(value).name(), column.getDataType().name()));
+            throw new ReviewedGATKException(String.format("Tried to add an object of type: %s to a column of type: %s", GATKReportDataType.fromObject(value).name(), column.getDataType().name()));
         }
     }
 
@@ -431,7 +431,7 @@ public class GATKReportTable {
         } else {
             Object obj = get(rowID, columnName);
             if ( !(obj instanceof Integer) )
-                throw new ReviewedStingException("Attempting to increment a value in a cell that is not an integer");
+                throw new ReviewedGATKException("Attempting to increment a value in a cell that is not an integer");
             prevValue = (Integer)obj;
         }
 
@@ -602,13 +602,13 @@ public class GATKReportTable {
              case SORT_BY_ROW:
                  // make sure that there are exactly the correct number of ID mappings
                  if ( rowIdToIndex.size() != underlyingData.size() )
-                     throw new ReviewedStingException("There isn't a 1-to-1 mapping from row ID to index; this can happen when rows are not created consistently");
+                     throw new ReviewedGATKException("There isn't a 1-to-1 mapping from row ID to index; this can happen when rows are not created consistently");
 
                  final TreeMap<Object, Integer> sortedMap;
                  try {
                      sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
                  } catch (ClassCastException e) {
-                     throw new ReviewedStingException("Unable to sort the rows based on the row IDs because the ID Objects are of different types");
+                     throw new ReviewedGATKException("Unable to sort the rows based on the row IDs because the ID Objects are of different types");
                  }
                  for ( final Map.Entry<Object, Integer> rowKey : sortedMap.entrySet() )
                      writeRow(out, underlyingData.get(rowKey.getValue()));
@@ -672,7 +672,7 @@ public class GATKReportTable {
      */
     public void concat(final GATKReportTable table) {
         if ( !isSameFormat(table) )
-            throw new ReviewedStingException("Error trying to concatenate tables with different formats");
+            throw new ReviewedGATKException("Error trying to concatenate tables with different formats");
 
         // add the data
         underlyingData.addAll(table.underlyingData);

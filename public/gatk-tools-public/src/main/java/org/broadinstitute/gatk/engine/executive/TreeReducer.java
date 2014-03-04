@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.walkers.TreeReducible;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -106,11 +106,11 @@ public class TreeReducer implements Callable {
         }
         catch( InterruptedException ex ) {
             microScheduler.notifyOfTraversalError(ex);
-            throw new ReviewedStingException("Hierarchical reduce interrupted", ex);
+            throw new ReviewedGATKException("Hierarchical reduce interrupted", ex);
         }
         catch( ExecutionException ex ) {
             microScheduler.notifyOfTraversalError(ex);
-            throw new ReviewedStingException("Hierarchical reduce failed", ex);
+            throw new ReviewedGATKException("Hierarchical reduce failed", ex);
         }
 
         final long endTime = System.currentTimeMillis();

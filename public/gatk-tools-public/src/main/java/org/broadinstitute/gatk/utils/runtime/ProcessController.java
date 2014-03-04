@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.runtime;
+package org.broadinstitute.gatk.utils.runtime;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -170,7 +170,7 @@ public class ProcessController {
             String message = String.format("Unable to start command: %s\nReason: %s",
                     StringUtils.join(builder.command(), " "),
                     e.getMessage());
-            throw new ReviewedStingException(message);
+            throw new ReviewedGATKException(message);
         }
 
         int exitCode;
@@ -208,7 +208,7 @@ public class ProcessController {
                                 inputStream = System.in;
                                 break;
                             default:
-                                throw new ReviewedStingException("Unexpected stream location: " + location);
+                                throw new ReviewedGATKException("Unexpected stream location: " + location);
                         }
                         try {
                             IOUtils.copy(inputStream, stdinStream);
@@ -219,7 +219,7 @@ public class ProcessController {
                     }
                     stdinStream.flush();
                 } catch (IOException e) {
-                    throw new ReviewedStingException("Error writing to stdin on command: " + StringUtils.join(builder.command(), " "), e);
+                    throw new ReviewedGATKException("Error writing to stdin on command: " + StringUtils.join(builder.command(), " "), e);
                 }
             }
 
@@ -228,9 +228,9 @@ public class ProcessController {
                 process.getOutputStream().close();
                 process.waitFor();
             } catch (IOException e) {
-                throw new ReviewedStingException("Unable to close stdin on command: " + StringUtils.join(builder.command(), " "), e);
+                throw new ReviewedGATKException("Unable to close stdin on command: " + StringUtils.join(builder.command(), " "), e);
             } catch (InterruptedException e) {
-                throw new ReviewedStingException("Process interrupted", e);
+                throw new ReviewedGATKException("Process interrupted", e);
             } finally {
                 while (!destroyed && stdout == null || stderr == null) {
                     synchronized (fromCapture) {

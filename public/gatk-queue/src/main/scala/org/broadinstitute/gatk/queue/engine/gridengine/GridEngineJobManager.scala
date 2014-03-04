@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.engine.gridengine
+package org.broadinstitute.gatk.queue.engine.gridengine
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.queue.engine.drmaa.DrmaaJobManager
+import org.broadinstitute.gatk.queue.function.CommandLineFunction
+import org.broadinstitute.gatk.queue.engine.drmaa.DrmaaJobManager
 
 class GridEngineJobManager extends DrmaaJobManager {
   override def create(function: CommandLineFunction) = new GridEngineJobRunner(session, function)

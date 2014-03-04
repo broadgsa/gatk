@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.runtime;
+package org.broadinstitute.gatk.utils.runtime;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.io.HardThresholdingOutputStream;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.io.HardThresholdingOutputStream;
 
 import java.io.*;
 import java.util.EnumMap;
@@ -92,7 +92,7 @@ public class CapturedStreamOutput extends StreamOutput {
                     outputStream = standardStream;
                     break;
                 default:
-                    throw new ReviewedStingException("Unexpected stream location: " + location);
+                    throw new ReviewedGATKException("Unexpected stream location: " + location);
             }
             this.outputStreams.put(location, outputStream);
         }

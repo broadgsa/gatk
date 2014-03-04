@@ -23,19 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.gatk.utils.commandline;
 
 import com.google.java.contract.Requires;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.ApplicationDetails;
-import org.broadinstitute.sting.utils.help.HelpFormatter;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.classloader.JVMUtils;
+import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.ApplicationDetails;
+import org.broadinstitute.gatk.utils.help.HelpFormatter;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +44,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 
 /**
- * A parser for Sting command-line arguments.
+ * A parser for command-line arguments.
  */
 public class ParsingEngine {
 
@@ -98,7 +98,7 @@ public class ParsingEngine {
             new PluginManager<ParsingEngineArgumentProvider>(ParsingEngineArgumentProvider.class);
 
     /**
-     * our log, which we want to capture anything from org.broadinstitute.sting
+     * our log, which we want to capture anything from org.broadinstitute.gatk
      */
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
@@ -453,7 +453,7 @@ public class ParsingEngine {
         // Grab the first argument definition and report that one as the failure.  Theoretically, we should notify of all failures.
         List<ArgumentDefinition> definitions = argumentSource.createArgumentDefinitions();
         if(definitions.size() < 1)
-            throw new ReviewedStingException("Internal error.  Argument source creates no definitions.");
+            throw new ReviewedGATKException("Internal error.  Argument source creates no definitions.");
         ArgumentDefinition definition = definitions.get(0);
         throw new UserException.DeprecatedArgument(definition.fullName,definition.doc);
     }
@@ -479,7 +479,7 @@ public class ParsingEngine {
 
         // Abort if no home is found for the object.
         if( targets.size() == 0 )
-            throw new ReviewedStingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
+            throw new ReviewedGATKException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
             Object value;

@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.alignment.bwa.java;
+package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.*;
-import org.broadinstitute.sting.alignment.Aligner;
-import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.alignment.Aligner;
+import org.broadinstitute.gatk.engine.alignment.Alignment;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -85,7 +85,7 @@ public class AlignerTestHarness {
                 alignmentCleaned = (SAMRecord)read.clone();
             }
             catch( CloneNotSupportedException ex ) {
-                throw new ReviewedStingException("SAMRecord clone not supported", ex);
+                throw new ReviewedGATKException("SAMRecord clone not supported", ex);
             }
 
             if( alignmentCleaned.getReadNegativeStrandFlag() )
@@ -101,7 +101,7 @@ public class AlignerTestHarness {
 
             Iterable<Alignment[]> alignments = aligner.getAllAlignments(alignmentCleaned.getReadBases());
             if(!alignments.iterator().hasNext() ) {
-                //throw new StingException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
+                //throw new GATKException(String.format("Unable to align read %s to reference; count = %d",read.getReadName(),count));
                 System.out.printf("Unable to align read %s to reference; count = %d%n",read.getReadName(),count);
                 failures++;
             }
@@ -151,7 +151,7 @@ public class AlignerTestHarness {
                     }
                 }
 
-                //throw new StingException(String.format("Read %s was placed at incorrect location; count = %d%n",read.getReadName(),count));                
+                //throw new GATKException(String.format("Read %s was placed at incorrect location; count = %d%n",read.getReadName(),count));                
             }
 
 

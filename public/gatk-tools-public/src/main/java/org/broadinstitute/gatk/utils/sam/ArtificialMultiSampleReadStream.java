@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.sam;
+package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SamFileHeaderMerger;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.engine.iterators.GATKSAMIteratorAdapter;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
 
@@ -48,7 +48,7 @@ public class ArtificialMultiSampleReadStream implements Iterable<SAMRecord> {
 
     public ArtificialMultiSampleReadStream( Collection<ArtificialSingleSampleReadStream> perSampleArtificialReadStreams ) {
         if ( perSampleArtificialReadStreams == null || perSampleArtificialReadStreams.isEmpty() ) {
-            throw new ReviewedStingException("Can't create an ArtificialMultiSampleReadStream out of 0 ArtificialSingleSampleReadStreams");
+            throw new ReviewedGATKException("Can't create an ArtificialMultiSampleReadStream out of 0 ArtificialSingleSampleReadStreams");
         }
 
         this.perSampleArtificialReadStreams = perSampleArtificialReadStreams;
@@ -61,11 +61,11 @@ public class ArtificialMultiSampleReadStream implements Iterable<SAMRecord> {
         return mergingIterator;
     }
 
-    public StingSAMIterator getStingSAMIterator() {
+    public GATKSAMIterator getGATKSAMIterator() {
         // lazy initialization to prevent reads from being created until they're needed
         initialize();
 
-        return StingSAMIteratorAdapter.adapt(mergingIterator);
+        return GATKSAMIteratorAdapter.adapt(mergingIterator);
     }
 
     private void initialize() {

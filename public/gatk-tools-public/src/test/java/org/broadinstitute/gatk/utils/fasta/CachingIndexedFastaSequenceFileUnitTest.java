@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.fasta;
+package org.broadinstitute.gatk.utils.fasta;
 
 
 // the imports for unit testing.
@@ -34,8 +34,8 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Priority;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

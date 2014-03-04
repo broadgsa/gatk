@@ -23,23 +23,23 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.executive;
+package org.broadinstitute.gatk.engine.executive;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.tribble.TribbleException;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.ThreadGroupOutputTracker;
-import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
+import org.broadinstitute.gatk.engine.datasources.reads.Shard;
+import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.engine.io.ThreadGroupOutputTracker;
+import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.engine.walkers.TreeReducible;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.MultiThreadedErrorTracker;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -181,13 +181,13 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         try {
             result = reduceTree.getResult().get();
             notifyTraversalDone(walker,result);
-        } catch (ReviewedStingException ex) {
+        } catch (ReviewedGATKException ex) {
             throw ex;
         } catch ( ExecutionException ex ) {
             // the thread died and we are failing to get the result, rethrow it as a runtime exception
             throw notifyOfTraversalError(ex.getCause());
         } catch (Exception ex) {
-            throw new ReviewedStingException("Unable to retrieve result", ex);
+            throw new ReviewedGATKException("Unable to retrieve result", ex);
         }
 
         // do final cleanup operations
@@ -326,7 +326,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                     // Specifically catch Tribble I/O exceptions and rethrow them as Reviewed.  We don't expect
                     // any issues here because we created the Tribble output file mere moments ago and expect it to
                     // be completely valid.
-                    throw new ReviewedStingException("Unable to merge temporary Tribble output file.",ex);
+                    throw new ReviewedGATKException("Unable to merge temporary Tribble output file.",ex);
                 }
             }
         }

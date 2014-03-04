@@ -23,4 +23,4 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.datasources.reads.utilities;
+package org.broadinstitute.gatk.engine.datasources.reads.utilities;

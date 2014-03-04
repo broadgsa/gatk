@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.classloader;
+package org.broadinstitute.gatk.utils.classloader;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.filters.FilterManager;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.WalkerManager;
+import org.broadinstitute.gatk.engine.filters.FilterManager;
+import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ConfigurationBuilder;
@@ -209,7 +209,7 @@ public class PluginManager<PluginType> {
                   method.setAccessible(true);
               method.invoke(ClassLoader.getSystemClassLoader(), url);
           } catch (Exception e) {
-              throw new ReviewedStingException("Error adding url to the current classloader.", e);
+              throw new ReviewedGATKException("Error adding url to the current classloader.", e);
           }
       }
     }

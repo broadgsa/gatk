@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.crypt;
+package org.broadinstitute.gatk.utils.crypt;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -59,7 +59,7 @@ public class CryptUtilsUnitTest extends BaseTest {
         };
     }
 
-    @Test( dataProvider = "InvalidKeyPairSettings", expectedExceptions = ReviewedStingException.class )
+    @Test( dataProvider = "InvalidKeyPairSettings", expectedExceptions = ReviewedGATKException.class )
     public void testGenerateKeyPairWithInvalidSettings( int keyLength, String encryptionAlgorithm, String randomNumberGenerationAlgorithm ) {
         KeyPair keyPair = CryptUtils.generateKeyPair(keyLength, encryptionAlgorithm, randomNumberGenerationAlgorithm);
     }

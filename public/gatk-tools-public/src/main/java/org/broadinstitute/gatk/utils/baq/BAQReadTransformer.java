@@ -23,17 +23,17 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.baq;
+package org.broadinstitute.gatk.utils.baq;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.gatk.walkers.BAQMode;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.WalkerManager;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.engine.walkers.BAQMode;
+import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 /**
  * Applies Heng's BAQ calculation to a stream of incoming reads
@@ -53,7 +53,7 @@ public class BAQReadTransformer extends ReadTransformer {
         baqHMM = new BAQ(engine.getArguments().BAQGOP);
 
         if ( qmode == BAQ.QualityMode.DONT_MODIFY )
-            throw new ReviewedStingException("BUG: shouldn't create BAQ transformer with quality mode DONT_MODIFY");
+            throw new ReviewedGATKException("BUG: shouldn't create BAQ transformer with quality mode DONT_MODIFY");
 
         if ( mode.ApplicationTime() == ReadTransformer.ApplicationTime.FORBIDDEN && enabled() )
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + cmode + " was requested.");

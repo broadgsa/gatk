@@ -23,12 +23,12 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.queue.extensions.gatk;
+package org.broadinstitute.gatk.queue.extensions.gatk;
 
 import htsjdk.samtools.filter.SamRecordFilter;
-import org.broadinstitute.sting.commandline.ParsingEngine;
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.gatk.utils.commandline.ParsingEngine;
+import org.broadinstitute.gatk.engine.WalkerManager;
+import org.broadinstitute.gatk.engine.walkers.Walker;
 
 import java.util.ArrayList;
 import java.util.List;

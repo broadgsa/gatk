@@ -23,9 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -67,7 +67,7 @@ public class HeapSizeMonitor {
             monitorThread.join();
         }
         catch(InterruptedException ex) {
-            throw new ReviewedStingException("Unable to connect to monitor thread");
+            throw new ReviewedGATKException("Unable to connect to monitor thread");
         }
         monitorThread = null;        
     }
@@ -99,7 +99,7 @@ public class HeapSizeMonitor {
                     Thread.sleep(monitorFrequencyMillis);
                 }
                 catch(InterruptedException ex) {
-                    throw new ReviewedStingException("Unable to continue monitoring heap consumption",ex);
+                    throw new ReviewedGATKException("Unable to continue monitoring heap consumption",ex);
                 }
             }
         }

@@ -23,16 +23,16 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.clipping;
+package org.broadinstitute.gatk.utils.clipping;
 
 import com.google.java.contract.Requires;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.recalibration.EventType;
-import org.broadinstitute.sting.utils.sam.CigarUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.recalibration.EventType;
+import org.broadinstitute.gatk.utils.sam.CigarUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -538,25 +538,25 @@ public class ReadClipper {
         // Determine the read coordinate to start and stop hard clipping
         if (refStart < 0) {
             if (refStop < 0)
-                throw new ReviewedStingException("Only one of refStart or refStop must be < 0, not both (" + refStart + ", " + refStop + ")");
+                throw new ReviewedGATKException("Only one of refStart or refStop must be < 0, not both (" + refStart + ", " + refStop + ")");
             start = 0;
             stop = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStop, ReadUtils.ClippingTail.LEFT_TAIL);
         }
         else {
             if (refStop >= 0)
-                throw new ReviewedStingException("Either refStart or refStop must be < 0 (" + refStart + ", " + refStop + ")");
+                throw new ReviewedGATKException("Either refStart or refStop must be < 0 (" + refStart + ", " + refStop + ")");
             start = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
             stop = read.getReadLength() - 1;
         }
 
         if (start < 0 || stop > read.getReadLength() - 1)
-            throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
+            throw new ReviewedGATKException("Trying to clip before the start or after the end of a read");
 
         if ( start > stop )
-            throw new ReviewedStingException(String.format("START (%d) > (%d) STOP -- this should never happen, please check read: %s (CIGAR: %s)", start, stop, read, read.getCigarString()));
+            throw new ReviewedGATKException(String.format("START (%d) > (%d) STOP -- this should never happen, please check read: %s (CIGAR: %s)", start, stop, read, read.getCigarString()));
 
         if ( start > 0 && stop < read.getReadLength() - 1)
-            throw new ReviewedStingException(String.format("Trying to clip the middle of the read: start %d, stop %d, cigar: %s", start, stop, read.getCigarString()));
+            throw new ReviewedGATKException(String.format("Trying to clip the middle of the read: start %d, stop %d, cigar: %s", start, stop, read.getCigarString()));
 
         this.addOp(new ClippingOp(start, stop));
         GATKSAMRecord clippedRead = clipRead(ClippingRepresentation.HARDCLIP_BASES);

@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
+package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.VariantEval;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.VariantContext;
 
 public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
@@ -119,7 +119,7 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
      * @param other a VariantEvaluator of the same type of this object
      */
     public void combine(final VariantEvaluator other) {
-        throw new ReviewedStingException(getSimpleName() + " doesn't support combining results, sorry");
+        throw new ReviewedGATKException(getSimpleName() + " doesn't support combining results, sorry");
     }
 
     /**

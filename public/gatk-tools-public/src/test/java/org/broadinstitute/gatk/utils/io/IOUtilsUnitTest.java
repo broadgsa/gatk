@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.io;
+package org.broadinstitute.gatk.utils.io;
 
 import org.apache.commons.io.FileUtils;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -35,9 +35,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -212,8 +212,8 @@ public class IOUtilsUnitTest extends BaseTest {
     public void testMissingRelativeFile() throws IOException {
         File temp = createTempFile("temp.", ".properties");
         try {
-            // Looking for /org/broadinstitute/sting/utils/file/StingText.properties
-            IOUtils.writeResource(new Resource("StingText.properties", IOUtils.class), temp);
+            // Looking for /org/broadinstitute/gatk/utils/file/GATKText.properties
+            IOUtils.writeResource(new Resource("GATKText.properties", IOUtils.class), temp);
         } finally {
             FileUtils.deleteQuietly(temp);
         }
@@ -288,12 +288,12 @@ public class IOUtilsUnitTest extends BaseTest {
         IOUtils.readFileIntoByteArray(nonExistentFile);
     }
 
-    @Test( expectedExceptions = ReviewedStingException.class )
+    @Test( expectedExceptions = ReviewedGATKException.class )
     public void testReadNullStreamIntoByteArray() {
         IOUtils.readStreamIntoByteArray(null);
     }
 
-    @Test( expectedExceptions = ReviewedStingException.class )
+    @Test( expectedExceptions = ReviewedGATKException.class )
     public void testReadStreamIntoByteArrayInvalidBufferSize() throws Exception {
         IOUtils.readStreamIntoByteArray(new FileInputStream(createTempFile("testReadStreamIntoByteArrayInvalidBufferSize", "tmp")),
                                         -1);
@@ -304,12 +304,12 @@ public class IOUtilsUnitTest extends BaseTest {
         IOUtils.writeByteArrayToFile(new byte[]{0}, new File("/dev/foo/bar"));
     }
 
-    @Test( expectedExceptions = ReviewedStingException.class )
+    @Test( expectedExceptions = ReviewedGATKException.class )
     public void testWriteNullByteArrayToFile() {
         IOUtils.writeByteArrayToFile(null, createTempFile("testWriteNullByteArrayToFile", "tmp"));
     }
 
-    @Test( expectedExceptions = ReviewedStingException.class )
+    @Test( expectedExceptions = ReviewedGATKException.class )
     public void testWriteByteArrayToNullStream() {
         IOUtils.writeByteArrayToStream(new byte[]{0}, null);
     }
