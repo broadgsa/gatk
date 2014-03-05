@@ -609,7 +609,6 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packageintegrationtests.skipped>${sting.packageintegrationtests.skipped}</sting.packageintegrationtests.skipped>
-                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/integration/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>
@@ -628,7 +627,6 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packagepipelinetests.skipped>${sting.packagepipelinetests.skipped}</sting.packagepipelinetests.skipped>
-                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/pipeline/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>
@@ -647,7 +645,6 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packagelargescaletests.skipped>${sting.packagelargescaletests.skipped}</sting.packagelargescaletests.skipped>
-                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/largescale/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>
@@ -666,7 +663,6 @@
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
                                     <sting.packageknowledgebasetests.skipped>${sting.packageknowledgebasetests.skipped}</sting.packageknowledgebasetests.skipped>
-                                    <failsafe.summaryFile>${project.build.directory}/failsafe-reports/knowledgebase/failsafe-summary-${it.test}.xml</failsafe.summaryFile>
                                 </properties>
                             </configuration>
                         </execution>

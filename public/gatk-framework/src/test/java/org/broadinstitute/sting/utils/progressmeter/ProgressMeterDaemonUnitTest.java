@@ -92,7 +92,7 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
         Assert.assertTrue( meter.getRuntimeInNanosecondsUpdatedPeriodically() > currentTime, "Updating the periodic runtime failed" );
     }
 
-    @Test(dataProvider = "PollingData", invocationCount = 10, successPercentage = 90)
+    @Test(dataProvider = "PollingData", invocationCount = 10, successPercentage = 90, enabled = false)
     public void testProgressMeterDaemon(final long poll, final int ticks) throws InterruptedException {
         final TestingProgressMeter meter = new TestingProgressMeter(poll);
         final ProgressMeterDaemon daemon = meter.getProgressMeterDaemon();

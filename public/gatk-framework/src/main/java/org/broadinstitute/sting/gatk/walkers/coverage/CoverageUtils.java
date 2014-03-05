@@ -217,12 +217,12 @@ public class CoverageUtils {
 
     private static void updateCounts(int[] counts, PileupElement e) {
         if ( e.isDeletion() ) {
-            counts[BaseUtils.Base.D.ordinal()] += e.getRepresentativeCount();
+            counts[BaseUtils.Base.D.ordinal()]++;
         } else if ( BaseUtils.basesAreEqual(BaseUtils.Base.N.base, e.getBase()) ) {
-            counts[BaseUtils.Base.N.ordinal()] += e.getRepresentativeCount();
+            counts[BaseUtils.Base.N.ordinal()]++;
         } else {
             try {
-                counts[BaseUtils.simpleBaseToBaseIndex(e.getBase())] += e.getRepresentativeCount();
+                counts[BaseUtils.simpleBaseToBaseIndex(e.getBase())]++;
             } catch (ArrayIndexOutOfBoundsException exc) {
                 throw new ReviewedStingException("Expected a simple base, but actually received"+(char)e.getBase());
             }

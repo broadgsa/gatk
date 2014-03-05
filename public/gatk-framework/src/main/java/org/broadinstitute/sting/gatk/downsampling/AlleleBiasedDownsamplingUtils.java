@@ -65,18 +65,14 @@ public class AlleleBiasedDownsamplingUtils {
             alleleStratifiedElements[i] = new PileupElementList();
 
         // start by stratifying the reads by the alleles they represent at this position
-        boolean sawReducedRead = false;
         for ( final PileupElement pe : pileup ) {
-            if ( pe.getRead().isReducedRead() )
-                sawReducedRead = true;
-
             final int baseIndex = BaseUtils.simpleBaseToBaseIndex(pe.getBase());
             if ( baseIndex != -1 )
                 alleleStratifiedElements[baseIndex].add(pe);
         }
 
         // make a listing of allele counts and calculate the total count
-        final int[] alleleCounts = calculateAlleleCounts(alleleStratifiedElements, sawReducedRead);
+        final int[] alleleCounts = calculateAlleleCounts(alleleStratifiedElements);
         final int totalAlleleCount = (int)MathUtils.sum(alleleCounts);
 
         // do smart down-sampling
@@ -106,18 +102,12 @@ public class AlleleBiasedDownsamplingUtils {
      * Calculates actual allele counts for each allele (which can be different than the list size when reduced reads are present)
      *
      * @param alleleStratifiedElements       pileup elements stratified by allele
-     * @param sawReducedRead                 is at least one read a reduced read?
      * @return non-null int array representing allele counts
      */
-    private static int[] calculateAlleleCounts(final PileupElementList[] alleleStratifiedElements, final boolean sawReducedRead) {
+    private static int[] calculateAlleleCounts(final PileupElementList[] alleleStratifiedElements) {
         final int[] alleleCounts = new int[alleleStratifiedElements.length];
         for ( int i = 0; i < alleleStratifiedElements.length; i++ ) {
-            if ( !sawReducedRead ) {
-                alleleCounts[i] = alleleStratifiedElements[i].size();
-            } else {
-                for ( final PileupElement pe : alleleStratifiedElements[i] )
-                    alleleCounts[i] += pe.getRepresentativeCount();
-            }
+            alleleCounts[i] = alleleStratifiedElements[i].size();
         }
         return alleleCounts;
     }
@@ -211,24 +201,7 @@ public class AlleleBiasedDownsamplingUtils {
 
         int currentBitSetIndex = 0;
         for ( final PileupElement element : elements ) {
-
-            final int representativeCount = element.getRepresentativeCount();
-
-            // if it's a reduced read, we need to be smart about how we down-sample
-            if ( representativeCount > 1 ) {
-                // count how many bits are set over the span represented by this read
-                int setBits = 0;
-                for ( int i = 0; i < representativeCount; i++ )
-                    setBits += itemsToRemove.get(currentBitSetIndex++) ? 1 : 0;
-
-                // remove that count from the count of the reduced read
-                if ( setBits == representativeCount )
-                    elementsToRemove.add(element);
-                else
-                    element.adjustRepresentativeCount(-1 * setBits);
-            }
-            // otherwise it's trivial: remove if the corresponding bit is set
-            else if ( itemsToRemove.get(currentBitSetIndex++) ) {
+            if ( itemsToRemove.get(currentBitSetIndex++) ) {
                 elementsToRemove.add(element);
             }
         }
@@ -255,7 +228,6 @@ public class AlleleBiasedDownsamplingUtils {
         alleles.remove(Allele.NO_CALL);    // ignore the no-call bin
         final int numAlleles = alleles.size();
 
-        // TODO -- if we ever decide to make this work for reduced reads, this will need to use the representative counts instead
         final int[] alleleCounts = new int[numAlleles];
         for ( int i = 0; i < numAlleles; i++ )
             alleleCounts[i] = alleleReadMap.get(alleles.get(i)).size();
@@ -302,9 +274,6 @@ public class AlleleBiasedDownsamplingUtils {
 
         int currentBitSetIndex = 0;
         for ( final GATKSAMRecord read : reads ) {
-            if ( read.isReducedRead() )
-                throw new IllegalStateException("Allele-biased downsampling of reduced reads has not been implemented for a list of GATKSAMRecords");
-
             if ( itemsToRemove.get(currentBitSetIndex++) )
                 elementsToRemove.add(read);
         }

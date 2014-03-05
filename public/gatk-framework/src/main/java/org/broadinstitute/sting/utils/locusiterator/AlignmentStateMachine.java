@@ -124,15 +124,6 @@ public class AlignmentStateMachine {
     }
 
     /**
-     * Is our read a reduced read?
-     *
-     * @return true if the read we encapsulate is a reduced read, otherwise false
-     */
-    public boolean isReducedRead() {
-        return read.isReducedRead();
-    }
-
-    /**
      * Is this the left edge state?  I.e., one that is before or after the current read?
      * @return true if this state is an edge state, false otherwise
      */

@@ -210,4 +210,21 @@ public class SAMDataSourceUnitTest extends BaseTest {
         List<SAMProgramRecord> doRemoveProgramRecords = data.getHeader().getProgramRecords();
         assertTrue(doRemoveProgramRecords.isEmpty(), "testRemoveProgramRecords: program records not cleared when removeProgramRecords = true");
     }
+
+    @Test(expectedExceptions = UserException.class)
+    public void testFailOnReducedReads() {
+        readers.add(new SAMReaderID(new File(privateTestDir + "old.reduced.bam"), new Tags()));
+
+        SAMDataSource data = new SAMDataSource(readers,
+                new ThreadAllocation(),
+                null,
+                genomeLocParser,
+                false,
+                SAMFileReader.ValidationStringency.SILENT,
+                null,
+                null,
+                new ValidationExclusion(),
+                new ArrayList<ReadFilter>(),
+                false);
+    }
 }

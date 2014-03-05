@@ -25,9 +25,6 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
-import org.broadinstitute.sting.utils.locusiterator.AlignmentStateMachine;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-
 import java.util.Collection;
 import java.util.List;
 
@@ -159,14 +156,6 @@ public abstract class Downsampler<T> {
      * @return true if the item should not be subject to elimination during downsampling, otherwise false
      */
     protected boolean doNotDiscardItem( final Object item ) {
-        // Use getClass() rather than instanceof for performance reasons. Ugly but fast.
-        if ( item.getClass() == GATKSAMRecord.class ) {
-            return ((GATKSAMRecord)item).isReducedRead();
-        }
-        else if ( item.getClass() == AlignmentStateMachine.class ) {
-            return ((AlignmentStateMachine)item).isReducedRead();
-        }
-
         return false;
     }
 }

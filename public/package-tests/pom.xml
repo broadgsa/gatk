@@ -24,7 +24,6 @@
         <sting.packagepipelinetests.skipped>true</sting.packagepipelinetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
         <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
-        <failsafe.summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary.xml</failsafe.summaryFile>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -149,7 +148,6 @@
                             <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
                             <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
-                            <summaryFile>${failsafe.summaryFile}</summaryFile>
                         </configuration>
                         <executions>
                             <execution>
