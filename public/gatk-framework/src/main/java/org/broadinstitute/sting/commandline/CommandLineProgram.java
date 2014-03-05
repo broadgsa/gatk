@@ -277,19 +277,19 @@ public abstract class CommandLineProgram {
         Level par;
         if (logging_level.toUpperCase().equals("DEBUG")) {
             par = Level.DEBUG;
-        } else if (logging_level.toUpperCase().equals("ERROR")) {
-            par = Level.ERROR;
-        } else if (logging_level.toUpperCase().equals("FATAL")) {
-            par = Level.FATAL;
         } else if (logging_level.toUpperCase().equals("INFO")) {
             par = Level.INFO;
         } else if (logging_level.toUpperCase().equals("WARN")) {
             par = Level.WARN;
+        } else if (logging_level.toUpperCase().equals("ERROR")) {
+            par = Level.ERROR;
+        } else if (logging_level.toUpperCase().equals("FATAL")) {
+            par = Level.FATAL;
         } else if (logging_level.toUpperCase().equals("OFF")) {
             par = Level.OFF;
         } else {
             // we don't understand the logging level, let's get out of here
-            throw new ArgumentException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
+            throw new ArgumentException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (DEBUG, INFO, WARN, ERROR, FATAL, OFF)");
         }
 
         Logger.getRootLogger().setLevel(par);
