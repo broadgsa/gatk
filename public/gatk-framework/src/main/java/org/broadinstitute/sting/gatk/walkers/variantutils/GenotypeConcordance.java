@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -213,6 +210,16 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
     @Argument(shortName="moltenize",fullName="moltenize",doc="Molten rather than tabular output")
     public boolean moltenize = false;
 
+    /**
+     * Print sites where genotypes are mismatched between callsets along with annotations giving the genotype of each callset
+     * Outputs directly to System.out.  Super classy.
+     *
+     * NOTE: doesn't currently differentiate between samples, so there may be repeats
+     */
+    @Hidden
+    @Argument(shortName="sites", fullName = "printInterestingSites", required=false)
+    protected boolean printSites = false;
+
     @Output
     PrintStream out;
 
@@ -244,7 +251,7 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
         evalSamples = evalHeader.getGenotypeSamples();
         VCFHeader compHeader = headerMap.get(compBinding.getName());
         compSamples = compHeader.getGenotypeSamples();
-        return new ConcordanceMetrics(evalHeader,compHeader);
+        return new ConcordanceMetrics(evalHeader,compHeader, printSites);
     }
 
 
@@ -347,8 +354,10 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
     }
 
     public ConcordanceMetrics reduce(List<Pair<VariantContext,VariantContext>> evalCompList, ConcordanceMetrics metrics) {
-        for ( Pair<VariantContext,VariantContext> evalComp : evalCompList)
+        for ( Pair<VariantContext,VariantContext> evalComp : evalCompList){
             metrics.update(evalComp.getFirst(),evalComp.getSecond());
+
+        }
         return metrics;
     }
 
