@@ -173,7 +173,7 @@ public class CommandLineUtils {
         }
         // Extracted from BasicConfigurator.configure(), but only applied to the Sting logger.
         Logger.getRootLogger().addAppender(new ConsoleAppender(
-                    new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));
+                    new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN), ConsoleAppender.SYSTEM_ERR));
     }
 
     /**
