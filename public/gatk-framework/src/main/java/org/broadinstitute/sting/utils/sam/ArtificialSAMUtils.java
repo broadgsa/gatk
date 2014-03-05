@@ -325,31 +325,6 @@ public class ArtificialSAMUtils {
     }
 
     /**
-     * Create an artificial reduced read based on the parameters.  The cigar string will be *M, where * is the
-     * length of the read. The base counts specified in the baseCounts array will be stored fully encoded in
-     * the RR attribute.
-     *
-     * @param header         the SAM header to associate the read with
-     * @param name           the name of the read
-     * @param refIndex       the reference index, i.e. what chromosome to associate it with
-     * @param alignmentStart where to start the alignment
-     * @param length         the length of the read
-     * @param baseCounts     reduced base counts to encode in the RR attribute; length must match the read length
-     * @return the artificial reduced read
-     */
-    public static GATKSAMRecord createArtificialReducedRead( final SAMFileHeader header,
-                                                             final String name,
-                                                             final int refIndex,
-                                                             final int alignmentStart,
-                                                             final int length,
-                                                             final int[] baseCounts ) {
-        final GATKSAMRecord read = createArtificialRead(header, name, refIndex, alignmentStart, length);
-        read.setReducedReadCounts(baseCounts);
-        read.setReducedReadCountsTag();
-        return read;
-    }
-
-    /**
      * Create a collection of identical artificial reads based on the parameters.  The cigar string for each
      * read will be *M, where * is the length of the read.
      *

@@ -412,22 +412,6 @@ public class ReadClipperUnitTest extends BaseTest {
     }
 
     @Test(enabled = !DEBUG)
-    public void testHardClipReducedRead() {
-        GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar("10M");
-        final int[] counts = new int[read.getReadLength()];
-        for ( int i = 0; i < counts.length; i++ ) counts[i] = i;
-        read.setReducedReadCounts(counts);
-        int alnStart = read.getAlignmentStart();
-        int alnEnd = read.getAlignmentEnd();
-        int readLength = read.getReadLength();
-        for (int i = 0; i < readLength / 2; i++) {
-            GATKSAMRecord clippedRead = ReadClipper.hardClipBothEndsByReferenceCoordinates(read, alnStart + i, alnEnd - i);
-            final int[] expectedReducedCounts = Arrays.copyOfRange(counts, i + 1, readLength - i - 1);
-            Assert.assertEquals(clippedRead.getReducedReadCounts(), expectedReducedCounts);
-        }
-    }
-
-    @Test(enabled = !DEBUG)
     public void testRevertEntirelySoftclippedReads() {
         GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar("2H1S3H");
         GATKSAMRecord clippedRead = ReadClipper.revertSoftClippedBases(read);

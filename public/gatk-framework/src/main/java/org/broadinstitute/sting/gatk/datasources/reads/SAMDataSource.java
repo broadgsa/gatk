@@ -31,7 +31,6 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -48,10 +47,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -327,6 +324,8 @@ public class SAMDataSource {
         // and read group id (merged) -> read group id (original) mappings.
         for(SAMReaderID id: readerIDs) {
             SAMFileReader reader = readers.getReader(id);
+            checkForReducedBamFile(reader.getFileHeader());
+
             ReadGroupMapping mappingToMerged = new ReadGroupMapping();
 
             List<SAMReadGroupRecord> readGroups = reader.getFileHeader().getReadGroups();
@@ -350,6 +349,16 @@ public class SAMDataSource {
         }
 
         resourcePool.releaseReaders(readers);
+    }
+
+    /**
+     * Checks whether the provided SAM header if from a reduced bam file.
+     * @param header the SAM header for a given file
+     * @throws UserException if the header is from a reduced bam
+     */
+    private void checkForReducedBamFile(final SAMFileHeader header) {
+        if ( header.getProgramRecord("GATK ReduceReads") != null )
+            throw new UserException("The GATK no longer supports running off of BAMs produced by ReduceReads");
     }
 
     public void close() {

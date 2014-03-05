@@ -124,16 +124,10 @@ public class AlleleBiasedDownsamplingUtilsUnitTest extends BaseTest {
 
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
 
-        for ( final int originalNormalCount : Arrays.asList(0, 1, 2, 10, 1000) ) {
-            for ( final int originalReducedCount : Arrays.asList(0, 1, 2, 10, 100) ) {
-                for ( final int indexToPutReducedRead : Arrays.asList(0, 2, originalNormalCount) ) {
-                    if ( originalReducedCount == 0 || indexToPutReducedRead > originalNormalCount )
-                        continue;
-                    for ( final int toRemove : Arrays.asList(0, 1, 2, 10, 1000) ) {
-                        if ( toRemove <= originalNormalCount + originalReducedCount )
-                            tests.add(new Object[]{header, originalNormalCount, originalReducedCount, indexToPutReducedRead, toRemove});
-                    }
-                }
+        for ( final int originalCount : Arrays.asList(1, 2, 10, 1000) ) {
+            for ( final int toRemove : Arrays.asList(0, 1, 2, 10, 1000) ) {
+                if ( toRemove <= originalCount )
+                    tests.add(new Object[]{header, originalCount, toRemove});
             }
         }
 
@@ -141,27 +135,17 @@ public class AlleleBiasedDownsamplingUtilsUnitTest extends BaseTest {
     }
 
     @Test(dataProvider = "BiasedDownsamplingTest")
-    public void testBiasedDownsampling(final SAMFileHeader header, final int originalNormalCount, final int originalReducedCount, final int indexToPutReducedRead, final int toRemove) {
+    public void testBiasedDownsampling(final SAMFileHeader header, final int originalCount, final int toRemove) {
 
-        final LinkedList<PileupElement> elements = new LinkedList<PileupElement>();
-        for ( int i = 0; i < originalNormalCount; i++ ) {
+        final LinkedList<PileupElement> elements = new LinkedList<>();
+        for ( int i = 0; i < originalCount; i++ ) {
             final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, 1);
             elements.add(new PileupElement(read, 0, new CigarElement(1, CigarOperator.M), 0, 0));
         }
-        if ( originalReducedCount > 0 ) {
-            final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, 1);
-            read.setReducedReadCountsTag(new int[]{originalReducedCount});
-            elements.add(indexToPutReducedRead, new PileupElement(read, 0, new CigarElement(1, CigarOperator.M), 0, 0));
-        }
 
-        final List<PileupElement> result = AlleleBiasedDownsamplingUtils.downsampleElements(elements, originalNormalCount + originalReducedCount, toRemove);
-        int pileupCount = 0;
-        for ( final PileupElement pe : elements ) // reduced reads may have gotten modified
-            pileupCount += pe.getRepresentativeCount();
-        for ( final PileupElement pe : result )
-            pileupCount -= pe.getRepresentativeCount();
+        final List<PileupElement> result = AlleleBiasedDownsamplingUtils.downsampleElements(elements, originalCount, toRemove);
 
-        Assert.assertEquals(pileupCount, originalNormalCount + originalReducedCount - toRemove);
+        Assert.assertEquals(result.size(), toRemove);
     }
 
     @Test

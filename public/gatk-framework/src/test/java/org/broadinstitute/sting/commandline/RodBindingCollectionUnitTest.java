@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -103,6 +104,27 @@ public class RodBindingCollectionUnitTest extends BaseTest {
 
         final RodBinding binding = bindings.iterator().next();
         Assert.assertEquals(parsingEngine.getTags(binding), mytags);
+    }
+
+    @Test(expectedExceptions = UserException.BadArgumentValue.class)
+    public void testDuplicateEntriesInFile() throws IOException {
+
+        final File testFile = File.createTempFile("RodBindingCollectionUnitTest.variantListWithDuplicates", ".list");
+        testFile.deleteOnExit();
+        final FileWriter writer = new FileWriter(testFile);
+        writer.write(testVCFFileName + "\n");
+        writer.write(testVCFFileName + "\n");
+        writer.close();
+
+        ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
+    }
+
+    @Test(expectedExceptions = UserException.BadArgumentValue.class)
+    public void testValidateEmptyFile() throws IOException {
+        final File testFile = File.createTempFile("RodBindingCollectionUnitTest.emptyVCFList", ".list");
+        testFile.deleteOnExit();
+
+        ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
     }
 
     @Test
