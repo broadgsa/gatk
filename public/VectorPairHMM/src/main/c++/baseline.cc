@@ -153,9 +153,9 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log)
     *before_last_log = result;
 
 #ifndef USE_STACK_ALLOCATION
-  delete common_pointer_buffer;
+  delete[] common_pointer_buffer;
   //if(locally_allocated)
-  delete common_buffer;
+  delete[] common_buffer;
 #endif
 
   return result;
