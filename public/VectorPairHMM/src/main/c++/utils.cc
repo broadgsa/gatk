@@ -461,12 +461,12 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
       }
       for(unsigned i=0;i<tc_vector.size();++i)
       {
-	delete tc_vector[i].rs;
-	delete tc_vector[i].hap;
-	delete tc_vector[i].q;
-	delete tc_vector[i].i;
-	delete tc_vector[i].d;
-	delete tc_vector[i].c;
+	delete[] tc_vector[i].rs;
+	delete[] tc_vector[i].hap;
+	delete[] tc_vector[i].q;
+	delete[] tc_vector[i].i;
+	delete[] tc_vector[i].d;
+	delete[] tc_vector[i].c;
       }
       results_vec.clear();
       tc_vector.clear();

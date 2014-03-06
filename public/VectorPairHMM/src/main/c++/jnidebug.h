@@ -40,8 +40,8 @@ class DataHolder
 
 #define FREE_MATRIX(X)								\
   for(int i=0;i<m_paddedMaxReadLength;++i)					\
-    delete X[i];								\
-  delete X;
+    delete[] X[i];								\
+  delete[] X;
 
   public:
     DataHolder() { m_is_initialized = false; }
@@ -53,7 +53,7 @@ class DataHolder
 	FREE_MATRIX(m_insertionMatrix); 
 	FREE_MATRIX(m_deletionMatrix); 
 	FREE_MATRIX(m_prior);
-	delete m_transition;
+	delete[] m_transition;
       }
       
       m_readMaxLength = readMaxLength;

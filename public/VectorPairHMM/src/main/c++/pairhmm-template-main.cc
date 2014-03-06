@@ -100,7 +100,7 @@ int main()
         aggregateTimeWrite += (getCurrClk() - lastClk) ;
     }
 
-    delete tc;
+    delete[] tc;
     printf("AVX Read Time: %.2f\n", aggregateTimeRead);
     printf("AVX Compute Time: %.2f\n", aggregateTimeCompute);
     printf("AVX Write Time: %.2f\n", aggregateTimeWrite);
