@@ -59,26 +59,28 @@ bool is_avx_supported()
 
 bool is_sse41_supported()
 {
-  int ecx = 0, edx = 0, ebx = 0;
-  __asm__("cpuid"
-      : "=b" (ebx),
-      "=c" (ecx),
-      "=d" (edx)
-      : "a" (1)
-      );
-  return ((ecx >> 19)&1) == 1;
+  return  (_may_i_use_cpu_feature(_FEATURE_SSE4_1) > 0);
+  //int ecx = 0, edx = 0, ebx = 0;
+  //__asm__("cpuid"
+      //: "=b" (ebx),
+      //"=c" (ecx),
+      //"=d" (edx)
+      //: "a" (1)
+      //);
+  //return ((ecx >> 19)&1) == 1;
 }
 
 bool is_sse42_supported()
 {
-  int ecx = 0, edx = 0, ebx = 0;
-  __asm__("cpuid"
-      : "=b" (ebx),
-      "=c" (ecx),
-      "=d" (edx)
-      : "a" (1)
-      );
-  return ((ecx >> 20)&1) == 1;
+  return  (_may_i_use_cpu_feature(_FEATURE_SSE4_2) > 0);
+  //int ecx = 0, edx = 0, ebx = 0;
+  //__asm__("cpuid"
+      //: "=b" (ebx),
+      //"=c" (ecx),
+      //"=d" (edx)
+      //: "a" (1)
+      //);
+  //return ((ecx >> 20)&1) == 1;
 }
 
 uint64_t get_machine_capabilities()
