@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.broadinstitute</groupId>
+    <artifactId>variant</artifactId>
+    <version>1.107.1683</version>
+    <name>variant</name>
+    <dependencies>
+        <dependency>
+            <groupId>org.broad</groupId>
+            <artifactId>tribble</artifactId>
+            <version>1.107.1683</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf</groupId>
+            <artifactId>sam</artifactId>
+            <version>1.107.1683</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-jexl</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+        <!-- TODO: This artifact is only in the Sting local repo, not in central, yet. -->
+        <dependency>
+            <groupId>com.google.code.cofoja</groupId>
+            <artifactId>cofoja</artifactId>
+            <version>1.0-r139</version>
+        </dependency>
+    </dependencies>
+</project>
