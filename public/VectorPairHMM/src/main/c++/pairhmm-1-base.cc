@@ -33,6 +33,7 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+  cout << "AVX supported? " << _may_i_use_cpu_feature(_FEATURE_AVX) << endl ;
 #define BATCH_SIZE 10000
   if(argc < 2)
   {
