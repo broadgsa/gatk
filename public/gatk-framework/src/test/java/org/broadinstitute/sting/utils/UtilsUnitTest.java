@@ -236,4 +236,23 @@ public class UtilsUnitTest extends BaseTest {
     public void testTrim(final String s, final int frontTrim, final int backTrim) {
         Assert.assertEquals(s.length() - frontTrim - backTrim, Utils.trimArray(s.getBytes(), frontTrim, backTrim).length);
     }
+
+    @Test(dataProvider = "equalRange", enabled = true)
+    public void testEqualRange(final byte[] array1, final byte[] array2, final int offset1, final int offset2, final int length, final boolean expected) {
+        Assert.assertEquals(Utils.equalRange(array1,offset1,array2,offset2,length),expected);
+        Assert.assertTrue(Utils.equalRange(array1,offset1,array1,offset1,length));
+        Assert.assertTrue(Utils.equalRange(array2,offset2,array2,offset2,length));
+
+    }
+
+    @DataProvider(name = "equalRangeData")
+    public Object[][] equalRangeData() {
+        return new Object[][] {
+                new Object[] { new byte[0] , new byte[0], 0, 0, 0, true},
+                new Object[]  {      "ABCF".getBytes(), "BC".getBytes(), 1,0,2, true },
+                new Object[]  { "ABCF".getBytes(), "".getBytes(), 1,0,0, true },
+                new Object[]  { "ABCF".getBytes(), "ACBF".getBytes(), 0,0, 4, false}
+        };
+
+    }
 }

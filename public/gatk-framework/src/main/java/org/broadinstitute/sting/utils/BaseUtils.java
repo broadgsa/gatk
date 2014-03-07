@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
@@ -589,4 +590,26 @@ public class BaseUtils {
                 throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
         }
     }
+
+
+    /**
+     * Lexicographical sorting of base arrays {@link Comparator}.
+     */
+    public static final Comparator<byte[]> BASES_COMPARATOR = new Comparator<byte[]> (){
+
+        @Override
+        public int compare(final byte[] o1,final byte[] o2) {
+            final int minLength = Math.min(o1.length,o2.length);
+            for (int i = 0; i < minLength; i++) {
+                final int cmp = Byte.compare(o1[i],o2[i]);
+                if (cmp != 0) return cmp;
+            }
+            if (o1.length == o2.length)
+                return 0;
+            else if (o1.length == minLength)
+                return -1;
+            else
+                return 1;
+        }
+    };
 }

@@ -852,4 +852,34 @@ public class Utils {
 
         return lst;
     }
+
+    /**
+     * Compares sections from to byte arrays to verify whether they contain the same values.
+     *
+     * @param left first array to compare.
+     * @param leftOffset first position of the first array to compare.
+     * @param right second array to compare.
+     * @param rightOffset first position of the second array to compare.
+     * @param length number of positions to compare.
+     *
+     * @throws IllegalArgumentException if <ul>
+     *     <li>either {@code left} or {@code right} is {@code null} or</li>
+     *     <li>any off the offset or length combine point outside any of the two arrays</li>
+     * </ul>
+     * @return {@code true} iff {@code length} is 0 or all the bytes in both ranges are the same two-by-two.
+     */
+    public static boolean equalRange(final byte[] left, final int leftOffset, byte[] right, final int rightOffset, final int length) {
+        if (left == null) throw new IllegalArgumentException("left cannot be null");
+        if (right == null) throw new IllegalArgumentException("right cannot be null");
+        if (length < 0) throw new IllegalArgumentException("the length cannot be negative");
+        if (leftOffset < 0) throw new IllegalArgumentException("left offset cannot be negative");
+        if (leftOffset + length > left.length) throw new IllegalArgumentException("length goes beyond end of left array");
+        if (rightOffset < 0) throw new IllegalArgumentException("right offset cannot be negative");
+        if (rightOffset + length > right.length) throw new IllegalArgumentException("length goes beyond end of right array");
+
+        for (int i = 0; i < length; i++)
+            if (left[leftOffset + i] != right[rightOffset + i])
+                return false;
+        return true;
+    }
 }
