@@ -73,20 +73,15 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   }
 }
 
-//Since the list of haplotypes against which the reads are evaluated in PairHMM is the same for a region,
-//transfer the list only once
-vector<pair<jbyteArray, jbyte*> > g_haplotypeBasesArrayVector;
-vector<unsigned> g_haplotypeBasesLengths;
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes
-  (JNIEnv * env, jobject thisObject, jint numHaplotypes, jobjectArray haplotypeDataArray)
+JNIEXPORT void JNICALL initializeHaplotypes
+  (JNIEnv * env, jobject& thisObject, jint numHaplotypes, jobjectArray& haplotypeDataArray,
+   vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector, vector<unsigned>& haplotypeBasesLengths)
 {
   jboolean is_copy = JNI_FALSE;
-  //To ensure, GET_BYTE_ARRAY_ELEMENTS is invoked only once for each haplotype, store bytearrays in a vector
-  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
   haplotypeBasesArrayVector.clear();
-  g_haplotypeBasesLengths.clear();
+  haplotypeBasesLengths.clear();
   haplotypeBasesArrayVector.resize(numHaplotypes);
-  g_haplotypeBasesLengths.resize(numHaplotypes);
+  haplotypeBasesLengths.resize(numHaplotypes);
   jsize haplotypeBasesLength = 0;
   for(unsigned j=0;j<numHaplotypes;++j)
   {
@@ -111,7 +106,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
     cout << "JNI haplotype length "<<haplotypeBasesLength<<"\n";
 #endif
     haplotypeBasesArrayVector[j] = make_pair(haplotypeBasesGlobalRef, haplotypeBasesArray);
-    g_haplotypeBasesLengths[j] = haplotypeBasesLength;
+    haplotypeBasesLengths[j] = haplotypeBasesLength;
 #ifdef DEBUG3
     for(unsigned k=0;k<haplotypeBasesLength;++k)
       g_load_time_initializer.debug_dump("haplotype_bases_jni.txt",to_string((int)haplotypeBasesArray[k]),true);
@@ -123,15 +118,45 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   }
 }
 
+JNIEXPORT void JNICALL releaseHaplotypes(JNIEnv * env, jobject thisObject,
+    vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector, vector<unsigned>& haplotypeBasesLengths
+    )
+{
+  //Now release haplotype arrays
+  for(int j=haplotypeBasesArrayVector.size()-1;j>=0;--j)	//note the order - reverse of GET
+  {
+    RELEASE_BYTE_ARRAY_ELEMENTS(haplotypeBasesArrayVector[j].first, haplotypeBasesArrayVector[j].second, JNI_RO_RELEASE_MODE);
+    env->DeleteGlobalRef(haplotypeBasesArrayVector[j].first);	//free the global reference
+  }
+  haplotypeBasesArrayVector.clear();
+  haplotypeBasesLengths.clear(); 
+}
+
+
+vector<pair<jbyteArray, jbyte*> > g_haplotypeBasesArrayVector;
+vector<unsigned> g_haplotypeBasesLengths;
+//Since the list of haplotypes against which the reads are evaluated in PairHMM is the same for a region,
+//transfer the list only once
+//Works only for ST case as the haplotype data is stored in global variables
+JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes
+  (JNIEnv * env, jobject thisObject, jint numHaplotypes, jobjectArray haplotypeDataArray)
+{
+#ifdef SINGLE_THREADED_ONLY
+  //To ensure, GET_BYTE_ARRAY_ELEMENTS is invoked only once for each haplotype, store bytearrays in a vector
+  initializeHaplotypes(env, thisObject, numHaplotypes, haplotypeDataArray, g_haplotypeBasesArrayVector, g_haplotypeBasesLengths);
+#endif
+}
+
+
 //Create a vector of testcases for computation - copy the references to bytearrays read/readQuals etc into the appropriate
 //testcase struct
 inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector
   (JNIEnv* env, jint numReads, jint numHaplotypes, jobjectArray& readDataArray,
-   vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector, vector<testcase>& tc_array)
+   vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector,
+   vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector, vector<unsigned>& haplotypeBasesLengths,
+   vector<testcase>& tc_array)
 {
   jboolean is_copy = JNI_FALSE;
-  //haplotype vector from earlier store - note the reference to vector, not copying
-  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
   unsigned tc_idx = 0;
   for(unsigned i=0;i<numReads;++i)
   {
@@ -188,7 +213,7 @@ inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_Vector
 #endif
     for(unsigned j=0;j<numHaplotypes;++j)
     {
-      jsize haplotypeLength = (jsize)g_haplotypeBasesLengths[j];
+      jsize haplotypeLength = (jsize)haplotypeBasesLengths[j];
       jbyte* haplotypeBasesArray = haplotypeBasesArrayVector[j].second;
       tc_array[tc_idx].rslen = (int)readLength;
       tc_array[tc_idx].haplen = (int)haplotypeLength;
@@ -292,9 +317,21 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #ifdef DO_PROFILING
   get_time(&start_time);
 #endif
+
+#ifdef SINGLE_THREADED_ONLY
+  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
+  vector<unsigned>& haplotypeBasesLengths = g_haplotypeBasesLengths;
+#else
+  vector<pair<jbyteArray, jbyte*> > l_haplotypeBasesArrayVector;
+  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = l_haplotypeBasesArrayVector;
+  vector<unsigned> l_haplotypeBasesLengths;
+  vector<unsigned>& haplotypeBasesLengths = l_haplotypeBasesLengths;
+  initializeHaplotypes(env, thisObject, numHaplotypes, haplotypeDataArray, haplotypeBasesArrayVector, haplotypeBasesLengths);
+#endif
   //Copy byte array references from Java memory into vector of testcase structs
   Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector(env,
-      numReads, numHaplotypes, readDataArray, readBasesArrayVector, tc_array);
+      numReads, numHaplotypes, readDataArray, readBasesArrayVector, haplotypeBasesArrayVector, haplotypeBasesLengths, tc_array);
+
 #ifdef DO_PROFILING
   g_load_time_initializer.m_data_transfer_time += diff_time(start_time);
 #endif
@@ -306,7 +343,6 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   assert(env->GetArrayLength(likelihoodArray) == numTestCases);
 #endif
 #ifdef DO_WARMUP        //ignore - only for crazy profiling
-  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
   for(unsigned i=0;i<haplotypeBasesArrayVector.size();++i)
   {
     unsigned curr_size = env->GetArrayLength(haplotypeBasesArrayVector[i].first);
@@ -331,7 +367,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #ifdef DO_PROFILING
   g_load_time_initializer.m_compute_time += diff_time(start_time);
 #endif
-#ifdef DEBUG
+#ifdef DUMP_COMPUTE_VALUES
   for(unsigned tc_idx=0;tc_idx<numTestCases;++tc_idx)
     g_load_time_initializer.debug_dump("return_values_jni.txt",to_string(likelihoodDoubleArray[tc_idx]),true);
 #endif
@@ -340,6 +376,10 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #endif
   RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0); //release mode 0, copy back results to Java memory (if copy made)
   Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays(env, readBasesArrayVector);
+#ifndef SINGLE_THREADED_ONLY
+  releaseHaplotypes(env, thisObject, haplotypeBasesArrayVector, haplotypeBasesLengths);
+#endif
+
 #ifdef DO_PROFILING
   g_load_time_initializer.m_data_transfer_time += diff_time(start_time);
   g_load_time_initializer.update_stat(NUM_REGIONS_IDX, 1);
@@ -353,19 +393,13 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #endif
 }
 
-//Release haplotypes at the end of a region
+//If single threaded, release haplotypes at the end of a region
 JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniFinalizeRegion
   (JNIEnv * env, jobject thisObject)
 {
-  vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector = g_haplotypeBasesArrayVector;
-  //Now release haplotype arrays
-  for(int j=haplotypeBasesArrayVector.size()-1;j>=0;--j)	//note the order - reverse of GET
-  {
-    RELEASE_BYTE_ARRAY_ELEMENTS(haplotypeBasesArrayVector[j].first, haplotypeBasesArrayVector[j].second, JNI_RO_RELEASE_MODE);
-    env->DeleteGlobalRef(haplotypeBasesArrayVector[j].first);	//free the global reference
-  }
-  haplotypeBasesArrayVector.clear();
-  g_haplotypeBasesLengths.clear(); 
+#ifdef SINGLE_THREADED_ONLY
+  releaseHaplotypes(env, thisObject, g_haplotypeBasesArrayVector, g_haplotypeBasesLengths);
+#endif
 }
 
 
@@ -375,7 +409,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 #ifdef DO_PROFILING
   g_load_time_initializer.print_profiling();
 #endif
-#ifdef DEBUG
+#ifdef DUMP_COMPUTE_VALUES
   g_load_time_initializer.debug_close();
 #endif
 }

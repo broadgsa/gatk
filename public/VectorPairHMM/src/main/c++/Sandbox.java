@@ -87,20 +87,21 @@ public class Sandbox {
     }
 
     private native void jniInitializeHaplotypes(final int numHaplotypes,  JNIHaplotypeDataHolderClass[] haplotypeDataArray);
+    private JNIHaplotypeDataHolderClass[] mHaplotypeDataArray = null;
     
     //Used to transfer data to JNI
     //Since the haplotypes are the same for all calls to computeLikelihoods within a region, transfer the haplotypes only once to the JNI per region
     public void initialize(final List<JNIHaplotypeDataHolderClass> haplotypes) {
         int numHaplotypes = haplotypes.size();
-        JNIHaplotypeDataHolderClass[] haplotypeDataArray = new JNIHaplotypeDataHolderClass[numHaplotypes];
+        mHaplotypeDataArray = new JNIHaplotypeDataHolderClass[numHaplotypes];
         int idx = 0;
         for(final JNIHaplotypeDataHolderClass currHaplotype : haplotypes)
         {
-            haplotypeDataArray[idx] = new JNIHaplotypeDataHolderClass();
-            haplotypeDataArray[idx].haplotypeBases = currHaplotype.haplotypeBases;
+            mHaplotypeDataArray[idx] = new JNIHaplotypeDataHolderClass();
+            mHaplotypeDataArray[idx].haplotypeBases = currHaplotype.haplotypeBases;
             ++idx;
         }
-        jniInitializeHaplotypes(numHaplotypes, haplotypeDataArray);
+        jniInitializeHaplotypes(numHaplotypes, mHaplotypeDataArray);
     }
     /**
      * Tell JNI to release arrays - really important if native code is directly accessing Java memory, if not
@@ -144,7 +145,7 @@ public class Sandbox {
       //for(reads)
       //   for(haplotypes)
       //       compute_full_prob()
-      jniComputeLikelihoods(readListSize, numHaplotypes, readDataArray, null, mLikelihoodArray, 12);
+      jniComputeLikelihoods(readListSize, numHaplotypes, readDataArray, mHaplotypeDataArray, mLikelihoodArray, 12);
 
       computeTime += (System.nanoTime() - startTime);
     }

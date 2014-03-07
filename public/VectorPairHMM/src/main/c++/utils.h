@@ -68,7 +68,7 @@ void do_compute(char* filename, bool use_old_read_testcase=true, unsigned chunk_
 
 //#define DO_WARMUP
 //#define DO_REPEAT_PROFILING
-//#define DUMP_COMPUTE_VALUES 1
+/*#define DUMP_COMPUTE_VALUES 1*/
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
 

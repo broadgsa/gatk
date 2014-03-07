@@ -22,10 +22,6 @@
 *THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
-//#define DEBUG 1
-//#define DEBUG0_1 1
-//#define DEBUG3 1
 #include "headers.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"

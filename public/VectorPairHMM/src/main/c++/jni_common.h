@@ -26,10 +26,12 @@
 #ifndef JNI_COMMON_H
 #define JNI_COMMON_H
 
+/*#define SINGLE_THREADED_ONLY 1*/
 #include <jni.h>
 /*#define ENABLE_ASSERTIONS 1*/
+#ifdef SINGLE_THREADED_ONLY
 #define DO_PROFILING 1
-/*#define DEBUG 1*/
+#endif
 /*#define DEBUG0_1 1*/
 /*#define DEBUG3 1*/
 /*#define DUMP_TO_SANDBOX 1*/
