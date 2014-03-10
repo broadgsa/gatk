@@ -58,16 +58,27 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(fullName="out1", shortName="o1", doc="File #1 to which variants should be written", required=true)
+    @Output(fullName="out1", shortName="o1", doc="File #1 to which variants should be written", required=false, exclusiveOf = "splitToManyFiles")
     protected VariantContextWriter vcfWriter1 = null;
 
-    @Output(fullName="out2", shortName="o2", doc="File #2 to which variants should be written", required=true)
+    @Output(fullName="out2", shortName="o2", doc="File #2 to which variants should be written", required=false, exclusiveOf = "splitToManyFiles")
     // there's a reported bug in the GATK where we can't have 2 @Output writers
     protected File file2 = null;
     protected VariantContextWriter vcfWriter2 = null;
 
     @Argument(fullName="fractionToOut1", shortName="fraction", doc="Fraction of records to be placed in out1 (must be 0 >= fraction <= 1); all other records are placed in out2", required=false)
     protected double fraction = 0.5;
+
+    @Argument(fullName="splitToManyFiles", shortName = "splitToMany", doc="split (with uniform distribution) to more than 2 files. numOfFiles and baseOutputName parameters are required", required = false)
+    protected boolean splitToMany = false;
+
+    @Argument(fullName = "numOfOutputVCFFiles", shortName = "N", doc = "number of output VCF files. Only works with SplitToMany = true", required = false, maxRecommendedValue = 20, minValue = 2)
+    protected int numOfFiles = -1;
+
+    @Argument(fullName = "prefixForAllOutputFileNames", shortName = "baseOutputName", doc = "the name of the output VCF file will be: <baseOutputName>.split.<number>.vcf. Required with SplitToMany option", required = false)
+    protected String baseFileName = null;
+
+    private VariantContextWriter[] writers = null;
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -76,15 +87,37 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         if ( fraction < 0.0 || fraction > 1.0 )
             throw new UserException.BadArgumentValue("fractionToOut1", "this value needs to be a number between 0 and 1");
 
+        if (splitToMany){
+            if (numOfFiles < 2)
+                throw new UserException.BadArgumentValue("numOfFiles", "this value must be greater than 2 when using the splitToMany option");
+            if (baseFileName == null)
+                throw new UserException.BadArgumentValue("baseFileName", "this value cannot be null (unprovided) when using the splitToMany option");
+        }
+        else{
+            if(vcfWriter1 == null || vcfWriter2 == null)
+                throw new UserException.BadArgumentValue("out1 or out2", "this value cannot be null (unprovided) unless you are using the splitToMany option");
+        }
+
         // setup the header info
         final List<String> inputNames = Arrays.asList(variantCollection.variants.getName());
-        Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames);
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        final Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames);
+        final Set<VCFHeaderLine> hInfo = new HashSet<>();
         hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit(), inputNames));
 
-        vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
-        vcfWriter2 = VariantContextWriterFactory.create(file2, getMasterSequenceDictionary());
-        vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
+
+        if(splitToMany){
+            writers = new VariantContextWriter[numOfFiles];
+            for(int i = 0; i<writers.length; i++){
+                writers[i] = VariantContextWriterFactory.create(new File(baseFileName+".split."+i+".vcf"), getMasterSequenceDictionary());
+                writers[i].writeHeader(new VCFHeader(hInfo,samples));
+            }
+
+        }
+        else {
+            vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
+            vcfWriter2 = VariantContextWriterFactory.create(file2, getMasterSequenceDictionary());
+            vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
+        }
     }
 
     /**
@@ -95,17 +128,23 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
      * @param  context   alignment info
      * @return 1 if the record was printed to the output file, 0 if otherwise
      */
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public Integer map(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
-        for ( VariantContext vc : vcs ) {
-            double random = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
-            if ( random < fraction )
-                vcfWriter1.add(vc);
-            else
-                vcfWriter2.add(vc);
+        final Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
+        for ( final VariantContext vc : vcs ) {
+            final double random = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
+            if(splitToMany){
+                final int index = (int)(numOfFiles * random);
+                writers[index].add(vc);
+            }
+            else{
+                if ( random < fraction )
+                    vcfWriter1.add(vc);
+                else
+                    vcfWriter2.add(vc);
+            }
         }
 
         return 1;
@@ -113,10 +152,14 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(Integer value, Integer sum) { return value + sum; }
+    public Integer reduce(final Integer value, final Integer sum) { return value + sum; }
 
-    public void onTraversalDone(Integer result) {
+    public void onTraversalDone(final Integer result) {
         logger.info(result + " records processed.");
-        vcfWriter2.close();
+        if(splitToMany)
+            for(final VariantContextWriter writer: writers)
+                writer.close();
+        else
+            vcfWriter2.close();
     }
 }
