@@ -35,7 +35,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.util.*;
 
-public class JnaSessionPipelineTest extends BaseTest {
+public class JnaSessionQueueTest extends BaseTest {
     private String implementation = null;
     private static final SessionFactory factory = new JnaSessionFactory();
 
@@ -52,15 +52,15 @@ public class JnaSessionPipelineTest extends BaseTest {
 
     @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
-        if ( ! pipelineTestRunModeIsSet ) {
-            throw new SkipException("Skipping testSubmitEcho because we are in pipeline test dry run mode");
+        if ( ! queueTestRunModeIsSet ) {
+            throw new SkipException("Skipping testSubmitEcho because we are in queue test dry run mode");
         }
 
         if (implementation.contains("LSF")) {
             System.err.println("    ***********************************************************");
             System.err.println("   *************************************************************");
             System.err.println("   ****                                                     ****");
-            System.err.println("  ****  Skipping JnaSessionPipelineTest.testSubmitEcho()     ****");
+            System.err.println("  ****  Skipping JnaSessionQueueTest.testSubmitEcho()        ****");
             System.err.println("  ****      Are you using the dotkit .combined_LSF_SGE?      ****");
             System.err.println("   ****                                                     ****");
             System.err.println("   *************************************************************");
@@ -68,7 +68,7 @@ public class JnaSessionPipelineTest extends BaseTest {
             throw new SkipException("Skipping testSubmitEcho because correct DRMAA implementation not found");
         }
 
-        File outFile = tryCreateNetworkTempFile("JnaSessionPipelineTest.out");
+        File outFile = tryCreateNetworkTempFile("JnaSessionQueueTest.out");
         Session session = factory.getSession();
         session.init(null);
         try {

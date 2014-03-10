@@ -26,21 +26,22 @@
 package org.broadinstitute.sting.queue.pipeline.examples
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
+import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
 import org.broadinstitute.sting.BaseTest
 
-class ExampleCountLociPipelineTest {
-  @Test(timeOut=36000000)
-  def testCountLoci() {
-    val testOut = "count.out"
-    val spec = new PipelineTestSpec
-    spec.name = "countloci"
+class ExampleRetryMemoryLimitQueueTest {
+
+  // This test is currently disabled due to unexplained intermittent failures (see GSA-943)
+  @Test(timeOut=36000000,enabled = false)
+  def testRetryMemoryLimit() {
+    val spec = new QueueTestSpec
+    spec.name = "RetryMemoryLimit"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountLoci.scala",
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleRetryMemoryLimit.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
-      " -o " + testOut).mkString
-    spec.fileMD5s += testOut -> "ade93df31a6150321c1067e749cae9be"
-    PipelineTest.executeTest(spec)
+      " -retry 1").mkString
+    spec.jobRunners = QueueTest.allJobRunners
+    QueueTest.executeTest(spec)
   }
 }

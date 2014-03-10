@@ -26,18 +26,21 @@
 package org.broadinstitute.sting.queue.pipeline.examples
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
+import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
 import org.broadinstitute.sting.BaseTest
 
-class ExampleCountReadsPipelineTest {
+class ExampleCountLociQueueTest {
   @Test(timeOut=36000000)
-  def testCountReads() {
-    val spec = new PipelineTestSpec
-    spec.name = "countreads"
+  def testCountLoci() {
+    val testOut = "count.out"
+    val spec = new QueueTestSpec
+    spec.name = "countloci"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountReads.scala",
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountLoci.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
-      " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
-    PipelineTest.executeTest(spec)
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -o " + testOut).mkString
+    spec.fileMD5s += testOut -> "ade93df31a6150321c1067e749cae9be"
+    QueueTest.executeTest(spec)
   }
 }

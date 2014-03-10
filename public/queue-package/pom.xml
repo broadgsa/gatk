@@ -144,9 +144,9 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>pipeline-tests</id>
+                        <id>queue-tests</id>
                         <configuration>
-                            <skip>${sting.serialpipelinetests.skipped}</skip>
+                            <skip>${sting.serialqueuetests.skipped}</skip>
                             <dependenciesToScan>
                                 <scan>org.broadinstitute.sting:.*</scan>
                             </dependenciesToScan>

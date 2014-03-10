@@ -26,13 +26,13 @@
 package org.broadinstitute.sting.queue.pipeline.examples
 
 import org.testng.annotations.{DataProvider, Test}
-import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
+import org.broadinstitute.sting.queue.pipeline.{QueueTest, QueueTestSpec}
 import org.broadinstitute.sting.BaseTest
 
-class ExampleUnifiedGenotyperPipelineTest {
+class ExampleUnifiedGenotyperQueueTest {
   @Test(timeOut=36000000)
   def testUnifiedGenotyper() {
-    val spec = new PipelineTestSpec
+    val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
@@ -40,8 +40,8 @@ class ExampleUnifiedGenotyperPipelineTest {
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -filter QD",
       " -filterExpression 'QD < 2.0'").mkString
-    spec.jobRunners = PipelineTest.allJobRunners
-    PipelineTest.executeTest(spec)
+    spec.jobRunners = QueueTest.allJobRunners
+    QueueTest.executeTest(spec)
   }
 
   @DataProvider(name = "ugIntervals")
@@ -54,7 +54,7 @@ class ExampleUnifiedGenotyperPipelineTest {
 
   @Test(dataProvider = "ugIntervals", timeOut=36000000)
   def testUnifiedGenotyperWithIntervals(intervalsName: String, intervalsPath: String) {
-    val spec = new PipelineTestSpec
+    val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_with_" + intervalsName
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
@@ -62,20 +62,20 @@ class ExampleUnifiedGenotyperPipelineTest {
       " -R " + BaseTest.hg18Reference,
       " -L " + intervalsPath).mkString
     spec.jobRunners = Seq("Lsf706")
-    PipelineTest.executeTest(spec)
+    QueueTest.executeTest(spec)
   }
 
   @Test(timeOut=36000000)
   def testUnifiedGenotyperNoGCOpt() {
-    val spec = new PipelineTestSpec
+    val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_no_gc_opt"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -noGCOpt").mkString
-    spec.jobRunners = PipelineTest.allJobRunners
-    PipelineTest.executeTest(spec)
+    spec.jobRunners = QueueTest.allJobRunners
+    QueueTest.executeTest(spec)
   }
 
   @DataProvider(name="resMemReqParams")
@@ -83,7 +83,7 @@ class ExampleUnifiedGenotyperPipelineTest {
 
   @Test(dataProvider = "resMemReqParams", timeOut=36000000)
   def testUnifiedGenotyperResMemReqParam(reqParam: String) {
-    val spec = new PipelineTestSpec
+    val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_" + reqParam
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
@@ -91,21 +91,21 @@ class ExampleUnifiedGenotyperPipelineTest {
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -resMemReqParam " + reqParam).mkString
     spec.jobRunners = Seq("GridEngine")
-    PipelineTest.executeTest(spec)
+    QueueTest.executeTest(spec)
   }
 
   @Test(timeOut=36000000)
   def testUnifiedGenotyperLogDirectory() {
-    val spec = new PipelineTestSpec
+    val spec = new QueueTestSpec
     spec.name = "unifiedgenotyper_with_log_directory"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -logDir exampleUGLogDir").mkString
-    spec.jobRunners = PipelineTest.allJobRunners
+    spec.jobRunners = QueueTest.allJobRunners
     spec.expectedFilePaths :+= "exampleUGLogDir/exampleBAM.unfiltered.vcf.out"
     spec.expectedFilePaths :+= "exampleUGLogDir/exampleBAM.unfiltered.eval.out"
-    PipelineTest.executeTest(spec)
+    QueueTest.executeTest(spec)
   }
 }

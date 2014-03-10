@@ -39,12 +39,12 @@ import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.*;
 import java.io.File;
 
 /**
- * Really unit tests, but these test will only run on systems with LSF setup.
+ * Really unit tests, but these tests will only run on systems with LSF set up.
  */
-public class LibBatPipelineTest extends BaseTest {
+public class LibBatQueueTest extends BaseTest {
     @BeforeClass
     public void initLibBat() {
-        Assert.assertFalse(LibBat.lsb_init("LibBatPipelineTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
+        Assert.assertFalse(LibBat.lsb_init("LibBatQueueTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
     }
 
     @Test
@@ -94,19 +94,19 @@ public class LibBatPipelineTest extends BaseTest {
 
     @Test
     public void testSubmitEcho() throws Exception {
-        if ( ! pipelineTestRunModeIsSet ) {
-            throw new SkipException("Skipping testSubmitEcho because we are in pipeline test dry run mode");
+        if ( ! queueTestRunModeIsSet ) {
+            throw new SkipException("Skipping testSubmitEcho because we are in queue test dry run mode");
         }
 
         String queue = "hour";
-        File outFile = tryCreateNetworkTempFile("LibBatPipelineTest.out");
+        File outFile = tryCreateNetworkTempFile("LibBatQueueTest.out");
 
         submit req = new submit();
 
         for (int i = 0; i < LibLsf.LSF_RLIM_NLIMITS; i++)
             req.rLimits[i] = LibLsf.DEFAULT_RLIMIT;
 
-        req.projectName = "LibBatPipelineTest";
+        req.projectName = "LibBatQueueTest";
         req.options |= LibBat.SUB_PROJECT_NAME;
 
         req.queue = queue;
