@@ -57,6 +57,10 @@ public abstract class PairHMM {
         ORIGINAL,
         /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
         LOGLESS_CACHING,
+        /* Optimized AVX implementation of LOGLESS_CACHING called through JNI */
+        VECTOR_LOGLESS_CACHING,
+        /* Debugging for vector implementation of LOGLESS_CACHING */
+        DEBUG_VECTOR_LOGLESS_CACHING,
         /* Logless caching PairHMM that stores computations in 1D arrays instead of matrices, and which proceeds diagonally over the (read x haplotype) intersection matrix */
         ARRAY_LOGLESS
     }
@@ -69,6 +73,14 @@ public abstract class PairHMM {
     // only used for debugging purposes
     protected boolean doNotUseTristateCorrection = false;
     protected void doNotUseTristateCorrection() { doNotUseTristateCorrection = true; }
+
+    //debug array
+    protected double[] mLikelihoodArray;
+
+    //profiling information
+    protected static final boolean doProfiling = true;
+    protected long computeTime = 0;
+    protected long startTime = 0;
 
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
@@ -93,6 +105,26 @@ public abstract class PairHMM {
 
         constantsAreInitialized = false;
         initialized = true;
+    }
+
+    /**
+     * Called at the end of PairHMM for a region - mostly used by the JNI implementations
+     */
+    public void finalizeRegion()
+    {
+        ;
+    }
+
+    /**
+     * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
+     * This function is used by the JNI implementations to transfer all data once to the native code
+     * @param haplotypes the list of haplotypes
+     * @param perSampleReadList map from sample name to list of reads
+     * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
+     * @param readMaxLength the max length of reads we want to use with this PairHMM
+     */
+    public void initialize( final List<Haplotype> haplotypes, final Map<String, List<GATKSAMRecord>> perSampleReadList, final int readMaxLength, final int haplotypeMaxLength ) {
+        initialize(readMaxLength, haplotypeMaxLength); 
     }
 
     protected int findMaxReadLength(final List<GATKSAMRecord> reads) {
@@ -125,6 +157,8 @@ public abstract class PairHMM {
      *          said read coming from the said haplotype under the provided error model
      */
     public PerReadAlleleLikelihoodMap computeLikelihoods(final List<GATKSAMRecord> reads, final Map<Allele, Haplotype> alleleHaplotypeMap, final Map<GATKSAMRecord, byte[]> GCPArrayMap) {
+        if(doProfiling)
+            startTime = System.nanoTime();
 
         // (re)initialize the pairHMM only if necessary
         final int readMaxLength = findMaxReadLength(reads);
@@ -132,6 +166,8 @@ public abstract class PairHMM {
         if (!initialized || readMaxLength > maxReadLength || haplotypeMaxLength > maxHaplotypeLength) { initialize(readMaxLength, haplotypeMaxLength); }
 
         final PerReadAlleleLikelihoodMap likelihoodMap = new PerReadAlleleLikelihoodMap();
+        mLikelihoodArray = new double[reads.size()*alleleHaplotypeMap.size()];
+        int idx = 0;
         for(GATKSAMRecord read : reads){
             final byte[] readBases = read.getReadBases();
             final byte[] readQuals = read.getBaseQualities();
@@ -144,12 +180,16 @@ public abstract class PairHMM {
             boolean isFirstHaplotype = true;
             Allele currentAllele = null;
             double log10l;
-            for (final Allele allele : alleleHaplotypeMap.keySet()){
-                final Haplotype haplotype = alleleHaplotypeMap.get(allele);
+            //for (final Allele allele : alleleHaplotypeMap.keySet()){
+            for (Map.Entry<Allele,Haplotype> currEntry : alleleHaplotypeMap.entrySet()){
+              //final Haplotype haplotype = alleleHaplotypeMap.get(allele);
+                final Allele allele = currEntry.getKey();
+                final Haplotype haplotype = currEntry.getValue();
                 final byte[] nextHaplotypeBases = haplotype.getBases();
                 if (currentHaplotypeBases != null) {
                      log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
                             readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, nextHaplotypeBases);
+                    mLikelihoodArray[idx++] = log10l;
                     likelihoodMap.add(read, currentAllele, log10l);
                 }
                 // update the current haplotype
@@ -163,8 +203,11 @@ public abstract class PairHMM {
                 log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
                         readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, null);
                 likelihoodMap.add(read, currentAllele, log10l);
+                mLikelihoodArray[idx++] = log10l;
             }
         }
+        if(doProfiling)
+            computeTime += (System.nanoTime() - startTime);
         return likelihoodMap;
     }
 
@@ -269,5 +312,18 @@ public abstract class PairHMM {
         }
 
         return Math.min(haplotype1.length, haplotype2.length);
+    }
+
+    /**
+     * Return the results of the computeLikelihoods function
+     */
+    public double[] getLikelihoodArray() { return mLikelihoodArray; }
+    /**
+     * Called at the end of the program to close files, print profiling information etc 
+     */
+    public void close()
+    {
+        if(doProfiling)
+            System.out.println("Total compute time in PairHMM computeLikelihoods() : "+(computeTime*1e-9));
     }
 }
