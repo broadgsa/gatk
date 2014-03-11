@@ -41,7 +41,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-public class LibDrmaaPipelineTest extends BaseTest {
+public class LibDrmaaQueueTest extends BaseTest {
     private String implementation = null;
 
     @Test
@@ -88,7 +88,7 @@ public class LibDrmaaPipelineTest extends BaseTest {
 
     @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
-        if ( ! pipelineTestRunModeIsSet ) {
+        if ( ! queueTestRunModeIsSet ) {
             throw new SkipException("Skipping testSubmitEcho because we are in pipeline test dry run mode");
         }
 
@@ -96,7 +96,7 @@ public class LibDrmaaPipelineTest extends BaseTest {
             System.err.println("    *********************************************************");
             System.err.println("   ***********************************************************");
             System.err.println("   ****                                                   ****");
-            System.err.println("  ****  Skipping LibDrmaaPipelineTest.testSubmitEcho()     ****");
+            System.err.println("  ****  Skipping LibDrmaaQueueTest.testSubmitEcho()        ****");
             System.err.println("  ****     Are you using the dotkit .combined_LSF_SGE?     ****");
             System.err.println("   ****                                                   ****");
             System.err.println("   ***********************************************************");
@@ -107,7 +107,7 @@ public class LibDrmaaPipelineTest extends BaseTest {
         Memory error = new Memory(LibDrmaa.DRMAA_ERROR_STRING_BUFFER);
         int errnum;
 
-        File outFile = tryCreateNetworkTempFile("LibDrmaaPipelineTest.out");
+    File outFile = tryCreateNetworkTempFile("LibDrmaaQueueTest.out");
 
         errnum = LibDrmaa.drmaa_init(null, error, LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN);
 

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.queue.pipeline
 
-class PipelineTestSpec(var name: String = null) {
+class QueueTestSpec(var name: String = null) {
 
   /** The arguments to pass to the Queue test, ex: "-S scala/qscript/examples/HelloWorld.scala" */
   var args: String = _
@@ -40,7 +40,7 @@ class PipelineTestSpec(var name: String = null) {
   var fileMD5s = Map.empty[String, String]
 
   /** VariantEval validations to run on a VCF after the pipeline has completed. */
-  var evalSpec: PipelineTestEvalSpec = _
+  var evalSpec: QueueTestEvalSpec = _
 
   /** Expected exception from the test. */
   var expectedException: Class[_ <: Exception] = null

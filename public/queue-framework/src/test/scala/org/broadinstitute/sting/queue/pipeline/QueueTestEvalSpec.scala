@@ -28,7 +28,7 @@ package org.broadinstitute.sting.queue.pipeline
 /**
  * Data validations to evaluate on a GATKReport.
  */
-class PipelineTestEvalSpec {
+class QueueTestEvalSpec {
   /** Eval modules to output. */
   var evalReport: String = _
 

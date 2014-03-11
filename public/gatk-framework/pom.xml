@@ -86,7 +86,7 @@
                         <id>package-knowledgebasetests</id>
                     </execution>
                     <execution>
-                        <id>package-pipelinetests</id>
+                        <id>package-queuetests</id>
                     </execution>
                 </executions>
             </plugin>

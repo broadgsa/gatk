@@ -39,13 +39,13 @@ import org.broadinstitute.sting.gatk.report.GATKReport
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
 
-object PipelineTest extends BaseTest with Logging {
+object QueueTest extends BaseTest with Logging {
 
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
   private val md5DB = new MD5DB()
 
   /**
-   * All the job runners configured to run PipelineTests at The Broad.
+   * All the job runners configured to run QueueTests at The Broad.
    */
   final val allJobRunners = Seq("Lsf706", "GridEngine", "Shell")
 
@@ -56,15 +56,15 @@ object PipelineTest extends BaseTest with Logging {
 
   /**
    * Returns the top level output path to this test.
-   * @param testName The name of the test passed to PipelineTest.executeTest()
+   * @param testName The name of the test passed to QueueTest.executeTest()
    * @param jobRunner The name of the job manager to run the jobs.
    * @return the top level output path to this test.
    */
-  def testDir(testName: String, jobRunner: String) = "pipelinetests/%s/%s/".format(testName, jobRunner)
+  def testDir(testName: String, jobRunner: String) = "queuetests/%s/%s/".format(testName, jobRunner)
 
   /**
    * Returns the directory where relative output files will be written for this test.
-   * @param testName The name of the test passed to PipelineTest.executeTest()
+   * @param testName The name of the test passed to QueueTest.executeTest()
    * @param jobRunner The name of the job manager to run the jobs.
    * @return the directory where relative output files will be written for this test.
    */
@@ -72,44 +72,44 @@ object PipelineTest extends BaseTest with Logging {
 
   /**
    * Returns the directory where temp files will be written for this test.
-   * @param testName The name of the test passed to PipelineTest.executeTest()
+   * @param testName The name of the test passed to QueueTest.executeTest()
    * @param jobRunner The name of the job manager to run the jobs.
    * @return the directory where temp files will be written for this test.
    */
   private def tempDir(testName: String, jobRunner: String) = testDir(testName, jobRunner) + "temp/"
 
   /**
-   * Runs the pipelineTest.
-   * @param pipelineTest test to run.
+   * Runs the queueTest.
+   * @param queueTest test to run.
    */
-  def executeTest(pipelineTest: PipelineTestSpec) {
-    var jobRunners = pipelineTest.jobRunners
+  def executeTest(queueTest: QueueTestSpec) {
+    var jobRunners = queueTest.jobRunners
     if (jobRunners == null)
       jobRunners = defaultJobRunners
-    jobRunners.foreach(executeTest(pipelineTest, _))
+    jobRunners.foreach(executeTest(queueTest, _))
   }
 
   /**
-   * Runs the pipelineTest.
-   * @param pipelineTest test to run.
+   * Runs the queueTest.
+   * @param queueTest test to run.
    * @param jobRunner The name of the job manager to run the jobs.
    */
-  def executeTest(pipelineTest: PipelineTestSpec, jobRunner: String) {
+  def executeTest(queueTest: QueueTestSpec, jobRunner: String) {
     // Reset the order of functions added to the graph.
     QScript.resetAddOrder()
 
-    val name = pipelineTest.name
+    val name = queueTest.name
     if (name == null)
-      Assert.fail("PipelineTestSpec.name is null")
+      Assert.fail("QueueTestSpec.name is null")
     println(Utils.dupString('-', 80))
-    executeTest(name, pipelineTest.args, pipelineTest.jobQueue, pipelineTest.expectedException, jobRunner)
-    if (BaseTest.pipelineTestRunModeIsSet) {
-      assertMatchingMD5s(name, pipelineTest.fileMD5s.map{case (file, md5) => new File(runDir(name, jobRunner), file) -> md5}, pipelineTest.parameterize)
-      if (pipelineTest.evalSpec != null)
-        validateEval(name, pipelineTest.evalSpec, jobRunner)
-      for (path <- pipelineTest.expectedFilePaths)
+    executeTest(name, queueTest.args, queueTest.jobQueue, queueTest.expectedException, jobRunner)
+    if (BaseTest.queueTestRunModeIsSet) {
+      assertMatchingMD5s(name, queueTest.fileMD5s.map{case (file, md5) => new File(runDir(name, jobRunner), file) -> md5}, queueTest.parameterize)
+      if (queueTest.evalSpec != null)
+        validateEval(name, queueTest.evalSpec, jobRunner)
+      for (path <- queueTest.expectedFilePaths)
         assertPathExists(runDir(name, jobRunner), path)
-      for (path <- pipelineTest.unexpectedFilePaths)
+      for (path <- queueTest.unexpectedFilePaths)
         assertPathDoesNotExist(runDir(name, jobRunner), path)
       println("  => %s PASSED (%s)".format(name, jobRunner))
     }
@@ -128,7 +128,7 @@ object PipelineTest extends BaseTest with Logging {
       Assert.fail("%d of %d MD5s did not match".format(failed, fileMD5s.size))
   }
 
-  private def validateEval(name: String, evalSpec: PipelineTestEvalSpec, jobRunner: String) {
+  private def validateEval(name: String, evalSpec: QueueTestEvalSpec, jobRunner: String) {
     // write the report to the shared validation data location
     val formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
     val reportLocation = "%s%s/%s/validation.%s.eval".format(validationReportsDataLocation, jobRunner, name, formatter.format(new Date))
@@ -176,7 +176,7 @@ object PipelineTest extends BaseTest with Logging {
     if (jobQueue != null)
       command = Utils.appendArray(command, "-jobQueue", jobQueue)
 
-    if (BaseTest.pipelineTestRunModeIsSet)
+    if (BaseTest.queueTestRunModeIsSet)
       command = Utils.appendArray(command, "-run")
 
     // run the executable

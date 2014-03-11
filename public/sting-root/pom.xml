@@ -31,10 +31,10 @@
         <sting.committests.skipped>true</sting.committests.skipped>
         <sting.unittests.skipped>${sting.committests.skipped}</sting.unittests.skipped>
         <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
-        <sting.pipelinetests.skipped>${sting.committests.skipped}</sting.pipelinetests.skipped>
+        <sting.queuetests.skipped>${sting.committests.skipped}</sting.queuetests.skipped>
         <sting.largescaletests.skipped>true</sting.largescaletests.skipped>
         <sting.knowledgebasetests.skipped>true</sting.knowledgebasetests.skipped>
-        <sting.pipelinetests.run>false</sting.pipelinetests.run>
+        <sting.queuetests.run>false</sting.queuetests.run>
         <scala.maxmemory>1g</scala.maxmemory>
         <test.maxmemory>4g</test.maxmemory>
         <java.gc.threads>4</java.gc.threads>
@@ -412,7 +412,7 @@
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
                             <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <pipeline.run>${sting.pipelinetests.run}</pipeline.run>
+                            <queuetest.run>${sting.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -435,19 +435,19 @@
                             </configuration>
                         </execution>
                         <execution>
-                            <id>pipeline-tests</id>
+                            <id>queue-tests</id>
                             <goals>
                                 <goal>integration-test</goal>
                                 <goal>verify</goal>
                             </goals>
-                            <!-- run pipeline dry run tests -->
+                            <!-- run queue dry run tests -->
                             <configuration>
-                                <!-- TODO: Re-enable pipeline tests by default? -->
-                                <skip>${sting.pipelinetests.skipped}</skip>
-                                <reportsDirectory>${project.build.directory}/failsafe-reports/pipeline/${it.test}</reportsDirectory>
-                                <summaryFile>${project.build.directory}/failsafe-reports/pipeline/failsafe-summary-${it.test}.xml</summaryFile>
+                                <!-- TODO: Re-enable queue tests by default? -->
+                                <skip>${sting.queuetests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/queuetest/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/queuetest/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
-                                    <include>**/*PipelineTest.class</include>
+                                    <include>**/*QueueTest.class</include>
                                 </includes>
                             </configuration>
                         </execution>

@@ -21,7 +21,7 @@
         <sting.basedir>${project.basedir}/../..</sting.basedir>
         <sting.packageunittests.skipped>true</sting.packageunittests.skipped>
         <sting.packageintegrationtests.skipped>true</sting.packageintegrationtests.skipped>
-        <sting.packagepipelinetests.skipped>true</sting.packagepipelinetests.skipped>
+        <sting.packagequeuetests.skipped>true</sting.packagequeuetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
         <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
     </properties>
@@ -161,13 +161,13 @@
                                 </configuration>
                             </execution>
                             <execution>
-                                <id>pipeline-tests</id>
+                                <id>queue-tests</id>
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
-                                <!-- run pipeline dry run tests -->
+                                <!-- run queue dry run tests -->
                                 <configuration>
-                                    <skip>${sting.packagepipelinetests.skipped}</skip>
+                                    <skip>${sting.packagequeuetests.skipped}</skip>
                                 </configuration>
                             </execution>
                             <execution>
