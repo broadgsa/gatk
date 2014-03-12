@@ -1537,6 +1537,9 @@ public class MathUtils {
     * @param N - the number of elements to draw
     */
     public static <T> List<T> randomSample(final List<T> list, final int N) {
+        if (list.isEmpty() ) {
+            return list;
+        }
         return sliceListByIndices(sampleIndicesWithReplacement(list.size(),N),list);
     }
 
