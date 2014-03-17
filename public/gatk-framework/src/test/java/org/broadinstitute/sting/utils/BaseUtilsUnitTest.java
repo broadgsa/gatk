@@ -26,9 +26,16 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.testng.Assert;
-import org.testng.annotations.Test;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Random;
 
 
 public class BaseUtilsUnitTest extends BaseTest {
@@ -122,5 +129,51 @@ public class BaseUtilsUnitTest extends BaseTest {
         String rcObs = BaseUtils.simpleReverseComplement(fw);
 
         Assert.assertTrue(rcObs.equals(rcExp));
+    }
+
+    @Test(dataProvider="baseComparatorData")
+    public void testBaseComparator(final Collection<byte[]> basesToSort) {
+        final ArrayList<byte[]> sorted = new ArrayList<>(basesToSort);
+        Collections.sort(sorted, BaseUtils.BASES_COMPARATOR);
+        for (int i = 0; i < sorted.size(); i++)   {
+            Assert.assertEquals(BaseUtils.BASES_COMPARATOR.compare(sorted.get(i),sorted.get(i)),0);
+            final String iString = new String(sorted.get(i));
+            for (int j = i; j < sorted.size(); j++) {
+                final String jString = new String(sorted.get(j));
+                if (iString.compareTo(jString) == 0)
+                    Assert.assertEquals(BaseUtils.BASES_COMPARATOR.compare(sorted.get(i),sorted.get(j)),0);
+                else
+                    Assert.assertTrue(BaseUtils.BASES_COMPARATOR.compare(sorted.get(i),sorted.get(j)) * iString.compareTo(jString) > 0);
+                Assert.assertTrue(BaseUtils.BASES_COMPARATOR.compare(sorted.get(i),sorted.get(j)) <= 0);
+            }
+        }
+    }
+
+    @DataProvider(name="baseComparatorData")
+    public Object[][] baseComparatorData() {
+        final int testCount = 10;
+        final int testSizeAverage = 10;
+        final int testSizeDeviation = 10;
+        final int haplotypeSizeAverage = 100;
+        final int haplotypeSizeDeviation = 100;
+
+        final Object[][] result = new Object[testCount][];
+
+        GenomeAnalysisEngine.resetRandomGenerator();
+        final Random rnd = GenomeAnalysisEngine.getRandomGenerator();
+
+        for (int i = 0; i < testCount; i++) {
+            final int size = (int) Math.max(0,rnd.nextDouble() * testSizeDeviation + testSizeAverage);
+            final ArrayList<byte[]> bases = new ArrayList<>(size);
+            for (int j = 0; j < size; j++) {
+                final int jSize = (int) Math.max(0,rnd.nextDouble() * haplotypeSizeDeviation + haplotypeSizeAverage);
+                final byte[] b = new byte[jSize];
+                for (int k = 0; k < jSize; k++)
+                    b[k] = BaseUtils.baseIndexToSimpleBase(rnd.nextInt(4));
+                bases.add(b);
+            }
+            result[i] = new Object[] { bases };
+        }
+        return result;
     }
 }

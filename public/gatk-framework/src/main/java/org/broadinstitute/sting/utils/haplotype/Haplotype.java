@@ -49,7 +49,7 @@ public class Haplotype extends Allele {
     private EventMap eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
-    private double score = 0;
+    private double score = Double.NaN;
 
     /**
      * Main constructor
@@ -301,7 +301,7 @@ public class Haplotype extends Allele {
      * @return a double, where higher values are better
      */
     public double getScore() {
-        return this.isReference() ? Double.MAX_VALUE : score;
+        return score;
     }
 
     /**
@@ -312,7 +312,7 @@ public class Haplotype extends Allele {
      * @param score a double, where higher values are better
      */
     public void setScore(double score) {
-        this.score = this.isReference() ? Double.MAX_VALUE : score;
+        this.score = score;
     }
 
     /**
