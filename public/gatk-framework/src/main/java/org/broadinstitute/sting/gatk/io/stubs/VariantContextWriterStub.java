@@ -205,7 +205,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
 
         if ( doNotWriteGenotypes ) options.add(Options.DO_NOT_WRITE_GENOTYPES);
         if ( engine.lenientVCFProcessing() ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
-        if ( indexOnTheFly && ! isCompressed() ) options.add(Options.INDEX_ON_THE_FLY);
+        if ( indexOnTheFly) options.add(Options.INDEX_ON_THE_FLY);
 
         if ( forceBCF || (getOutputFile() != null && VariantContextWriterFactory.isBCFOutput(getOutputFile())) )
             options.add(Options.FORCE_BCF);

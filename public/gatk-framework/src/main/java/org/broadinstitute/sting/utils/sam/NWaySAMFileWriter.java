@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
+import net.sf.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.utils.Utils;
@@ -173,5 +174,12 @@ public class NWaySAMFileWriter implements SAMFileWriter {
 
     public void close() {
         for ( SAMFileWriter w : writerMap.values() ) w.close();
+    }
+
+    @Override
+    public void setProgressLogger(final ProgressLoggerInterface logger) {
+        for (final SAMFileWriter writer: writerMap.values()) {
+            writer.setProgressLogger(logger);
+        }
     }
 }
