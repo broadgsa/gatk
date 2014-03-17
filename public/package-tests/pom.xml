@@ -50,13 +50,15 @@
 
         <!--
         gatk-framework test-jar added for BaseTest
+
+        TODO: Currently the <exclusion> isn't working 100%, so switched to using additionalClasspathElements
+
         TODO: Uncomment below to use the explicitly bad "exclude *" to really test correct packaging,
         TODO: until we can separate BaseTest and other utilities into their own sting-test-utils artifact.
         TODO: We only want the classes in the packaged jars tested, not the classes within the dependency jars too.
         See also:
           http://stackoverflow.com/questions/547805/how-to-exclude-all-transitive-dependencies-of-a-maven-dependency
           http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
-        -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>gatk-framework</artifactId>
@@ -72,6 +74,7 @@
             </exclusions>
 
         </dependency>
+        -->
 
         <dependency>
             <groupId>org.testng</groupId>
@@ -111,6 +114,10 @@
                             <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
                             <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
+                            <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${sting.basedir}/public/gatk-framework/target/gatk-framework-${project.version}-tests.jar</additionalClasspathElement>
+                            </additionalClasspathElements>
                         </configuration>
                         <executions>
                             <execution>
@@ -148,6 +155,10 @@
                             <workingDirectory>${sting.packagetests.basedir}</workingDirectory>
                             <classesDirectory>${project.build.outputDirectory}/ignored_by_package_test</classesDirectory>
                             <testClassesDirectory>${sting.packagetests.testClasses}</testClassesDirectory>
+                            <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${sting.basedir}/public/gatk-framework/target/gatk-framework-${project.version}-tests.jar</additionalClasspathElement>
+                            </additionalClasspathElements>
                         </configuration>
                         <executions>
                             <execution>
