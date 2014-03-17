@@ -337,15 +337,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "Global Qscore Bayesian prior to use for BQSR", required = false)
     public double globalQScorePrior = -1.0;
 
-    /**
-     * It is absolutely not recommended practice to run base quality score recalibration on BAM files that have been
-     * processed with ReduceReads. By default, the GATK will error out if it detects that you are trying to recalibrate
-     * a reduced BAM file. However, this flag allows you to disable the warning and proceed anyway. For the sake of your
-     * data, please only use this option if you really know what you are doing.
-     */
-    @Advanced
-    @Argument(fullName = "allow_bqsr_on_reduced_bams_despite_repeated_warnings", shortName="allowBqsrOnReducedBams", doc="Ignore all warnings about how it's a really bad idea to run BQSR on a reduced BAM file (AT YOUR OWN RISK!)", required = false)
-    public boolean ALLOW_BQSR_ON_REDUCED_BAMS = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //
