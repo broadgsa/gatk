@@ -24,7 +24,7 @@
 
 
 #include "headers.h"
-#include "template.h"
+#include "common_data_structure.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
 using namespace std;
@@ -48,17 +48,8 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log)
   //a straightforward array of pointers ensures that all data lies 'close' in memory, increasing
   //the chance of being stored together in the cache. Also, prefetchers can learn memory access
   //patterns for 2D arrays, not possible for array of pointers
-  //bool locally_allocated = false;
   //NUMBER* common_buffer = 0;
   NUMBER* common_buffer = new NUMBER[3*ROWS*COLS + ROWS*6];
-  //unsigned curr_size = sizeof(NUMBER)*(3*ROWS*COLS + ROWS*6);
-  //if(true)
-  //{
-  //common_buffer = new NUMBER[3*ROWS*COLS + ROWS*6];
-  //locally_allocated = true;
-  //}
-  //else
-  //common_buffer = (NUMBER*)(g_load_time_initializer.get_buffer()); 
   //pointers to within the allocated buffer
   NUMBER** common_pointer_buffer = new NUMBER*[4*ROWS];
   NUMBER* ptr = common_buffer;
@@ -154,7 +145,6 @@ NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log)
 
 #ifndef USE_STACK_ALLOCATION
   delete[] common_pointer_buffer;
-  //if(locally_allocated)
   delete[] common_buffer;
 #endif
 

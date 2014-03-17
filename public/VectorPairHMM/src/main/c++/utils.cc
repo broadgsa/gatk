@@ -22,11 +22,8 @@
 *THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
 #include "headers.h"
-#include "template.h"
 #include "utils.h"
-#include "vector_defs.h"
 #include "LoadTimeInitializer.h"
 using namespace std;
 
@@ -36,51 +33,107 @@ uint8_t ConvertChar::conversionTable[255];
 float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
 double (*g_compute_full_prob_double)(testcase *tc, double* before_last_log) = 0;
 //Static members in ContextBase
+template<>
 bool ContextBase<double>::staticMembersInitializedFlag = false;
-double ContextBase<double>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE];
-double ContextBase<double>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1];
+template<>
+double ContextBase<double>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE] = { };
+template<>
+double ContextBase<double>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1] = { };
+template<>
 bool ContextBase<float>::staticMembersInitializedFlag = false;
-float ContextBase<float>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE];
-float ContextBase<float>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1];
+template<>
+float ContextBase<float>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE] = { };
+template<>
+float ContextBase<float>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1] = { };
 
+
+bool search_file_for_string(string filename, string search_string)
+{
+  ifstream fptr;
+  fptr.open(filename.c_str(),ios::in);
+  if(fptr.is_open())
+  {
+    string buffer;
+    buffer.clear();
+    buffer.resize(4096);
+    bool retvalue = false;
+    while(!fptr.eof())
+    {
+      fptr.getline(&(buffer[0]), 4096);
+      if(buffer.find(search_string) != string::npos)    //found string
+      {
+        retvalue = true;
+        break;
+      }
+    }
+    buffer.clear();
+    fptr.close();
+    return retvalue;
+  }
+  else
+    return false;
+}
+
+bool is_cpuid_ecx_bit_set(int eax, int bitidx)
+{
+  int ecx = 0, edx = 0, ebx = 0;
+  __asm__ ("cpuid"
+      :"=b" (ebx),
+      "=c" (ecx),
+      "=d" (edx)
+      :"a" (eax)
+      );
+  return (((ecx >> bitidx)&1) == 1);
+}
 
 bool is_avx_supported()
 {
-  return  (_may_i_use_cpu_feature(_FEATURE_AVX) > 0);
-  //int ecx = 0, edx = 0, ebx = 0;
-  //__asm__("cpuid"
-      //: "=b" (ebx),
-      //"=c" (ecx),
-      //"=d" (edx)
-      //: "a" (1)
-      //);
-  //return ((ecx >> 28)&1) == 1;
+#ifdef __INTEL_COMPILER
+  bool use_avx = _may_i_use_cpu_feature(_FEATURE_AVX);
+  if(use_avx)
+    return true;
+  else
+  {
+    //check if core supports AVX, but kernel does not and print info message
+    if(!is_cpuid_ecx_bit_set(1, 28))  //core does not support AVX
+      return false;
+    //else fall through to end of function
+  }
+#else
+  if(!__builtin_cpu_supports("avx"))  //core does not support AVX
+    return false;
+  else
+  {
+    //core supports AVX, check if kernel supports
+    if(search_file_for_string("/proc/cpuinfo","avx"))
+      return true;
+    //else fall through to end of function
+
+  }
+#endif  //__INTEL_COMPILER
+  clog << "INFO: Your CPU supports AVX vector instructions, but your kernel does not. Try upgrading to a kernel that supports AVX.\n";
+  clog << "INFO: Your program will run correctly, but slower than the AVX version\n";
+  return false;
 }
 
 bool is_sse41_supported()
 {
+#ifdef __INTEL_COMPILER
   return  (_may_i_use_cpu_feature(_FEATURE_SSE4_1) > 0);
-  //int ecx = 0, edx = 0, ebx = 0;
-  //__asm__("cpuid"
-      //: "=b" (ebx),
-      //"=c" (ecx),
-      //"=d" (edx)
-      //: "a" (1)
-      //);
-  //return ((ecx >> 19)&1) == 1;
+#else
+  return  __builtin_cpu_supports("sse4.1");
+#endif
+  //return is_cpuid_ecx_bit_set(1, 19);
 }
 
 bool is_sse42_supported()
 {
+#ifdef __INTEL_COMPILER
   return  (_may_i_use_cpu_feature(_FEATURE_SSE4_2) > 0);
-  //int ecx = 0, edx = 0, ebx = 0;
-  //__asm__("cpuid"
-      //: "=b" (ebx),
-      //"=c" (ecx),
-      //"=d" (edx)
-      //: "a" (1)
-      //);
-  //return ((ecx >> 20)&1) == 1;
+#else
+  return  __builtin_cpu_supports("sse4.2");
+#endif
+  //return is_cpuid_ecx_bit_set(1, 20);
 }
 
 uint64_t get_machine_capabilities()
@@ -154,10 +207,14 @@ int read_testcase(testcase *tc, FILE* ifp)
 
 	tc->haplen = strlen(tc->hap);
 	tc->rslen = strlen(tc->rs);
-        assert(strlen(q) == tc->rslen);
-        assert(strlen(i) == tc->rslen);
-        assert(strlen(d) == tc->rslen);
-        assert(strlen(c) == tc->rslen);
+        assert(strlen(q) == (size_t)tc->rslen);
+        assert(strlen(i) == (size_t)tc->rslen);
+        assert(strlen(d) == (size_t)tc->rslen);
+        assert(strlen(c) == (size_t)tc->rslen);
+
+        g_load_time_initializer.update_stat(READ_LENGTH_IDX, tc->rslen); 
+        g_load_time_initializer.update_stat(HAPLOTYPE_LENGTH_IDX, tc->haplen);
+        g_load_time_initializer.update_stat(PRODUCT_READ_LENGTH_HAPLOTYPE_LENGTH_IDX, tc->haplen*tc->rslen);
 	//assert(tc->rslen < MROWS);
         //tc->ihap = (int *) malloc(tc->haplen*sizeof(int));
         //tc->irs = (int *) malloc(tc->rslen*sizeof(int));
@@ -279,15 +336,15 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   tc->c = new char[tc->rslen];
   //cout << "Lengths "<<tc->haplen <<" "<<tc->rslen<<"\n";
   memcpy(tc->rs, tokens[1].c_str(),tokens[1].size());
-  assert(tokens.size() == 2 + 4*(tc->rslen));
+  assert(tokens.size() == (size_t)(2 + 4*(tc->rslen)));
   //assert(tc->rslen < MROWS);
-  for(unsigned j=0;j<tc->rslen;++j)
+  for(int j=0;j<tc->rslen;++j)
     tc->q[j] = (char)convToInt(tokens[2+0*tc->rslen+j]);
-  for(unsigned j=0;j<tc->rslen;++j)
+  for(int j=0;j<tc->rslen;++j)
     tc->i[j] = (char)convToInt(tokens[2+1*tc->rslen+j]);
-  for(unsigned j=0;j<tc->rslen;++j)
+  for(int j=0;j<tc->rslen;++j)
     tc->d[j] = (char)convToInt(tokens[2+2*tc->rslen+j]);
-  for(unsigned j=0;j<tc->rslen;++j)
+  for(int j=0;j<tc->rslen;++j)
     tc->c[j] = (char)convToInt(tokens[2+3*tc->rslen+j]);
  
   if(reformat)
@@ -297,16 +354,16 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
     assert(ofptr.is_open());
     ofptr << tokens[0] << " ";
     ofptr << tokens[1] << " ";
-    for(unsigned j=0;j<tc->rslen;++j)
+    for(int j=0;j<tc->rslen;++j)
       ofptr << ((char)(tc->q[j]+33));
     ofptr << " ";
-    for(unsigned j=0;j<tc->rslen;++j)
+    for(int j=0;j<tc->rslen;++j)
       ofptr << ((char)(tc->i[j]+33));
     ofptr << " ";
-    for(unsigned j=0;j<tc->rslen;++j)
+    for(int j=0;j<tc->rslen;++j)
       ofptr << ((char)(tc->d[j]+33));
     ofptr << " ";
-    for(unsigned j=0;j<tc->rslen;++j)
+    for(int j=0;j<tc->rslen;++j)
       ofptr << ((char)(tc->c[j]+33));
     ofptr << " 0 false\n";
 
@@ -363,6 +420,10 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
     ifptr.open(filename);
     assert(ifptr.is_open());
   }
+#ifdef PRINT_PER_INTERVAL_TIMINGS
+  ofstream times_fptr;
+  times_fptr.open("native_timed_intervals.csv",ios::out);
+#endif
   vector<testcase> tc_vector;
   tc_vector.clear();
   testcase tc;
@@ -377,11 +438,11 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
   uint32_t no_kernel_mask = (1 << 17);    //bit 16 user mode, bit 17 kernel mode
   PAPI_num_counters();
   int events[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
-  char* eventnames[NUM_PAPI_COUNTERS]=  { "cycles", "itlb_walk_cycles", "dtlb_load_walk_cycles", "dtlb_store_walk_cycles" };
+  char* eventnames[NUM_PAPI_COUNTERS]=  { "cycles", "l1_pending_miss", "lfb_hit", "l2_hit" };
   assert(PAPI_event_name_to_code("UNHALTED_REFERENCE_CYCLES:u=1:k=1",&(events[0])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("ITLB_MISSES:WALK_DURATION",   &(events[1])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("DTLB_LOAD_MISSES:WALK_DURATION",   &(events[2])) == PAPI_OK);
-  assert(PAPI_event_name_to_code("DTLB_STORE_MISSES:WALK_DURATION",   &(events[3])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("L1D_PEND_MISS:OCCURRENCES",   &(events[1])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("MEM_LOAD_UOPS_RETIRED:HIT_LFB",   &(events[2])) == PAPI_OK);
+  assert(PAPI_event_name_to_code("MEM_LOAD_UOPS_RETIRED:L2_HIT",   &(events[3])) == PAPI_OK);
   long long values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
   long long accum_values[NUM_PAPI_COUNTERS] = { 0, 0, 0, 0 };
 #endif
@@ -398,6 +459,9 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
       baseline_results_vec.clear();
       results_vec.resize(tc_vector.size());
       baseline_results_vec.resize(tc_vector.size());
+      g_load_time_initializer.update_stat(NUM_TESTCASES_IDX, tc_vector.size()); 
+      g_load_time_initializer.update_stat(NUM_READS_IDX, tc_vector.size()); 
+      g_load_time_initializer.update_stat(NUM_HAPLOTYPES_IDX, tc_vector.size()); 
       struct timespec start_time;
 #ifdef USE_PAPI
       assert(PAPI_start_counters(events, NUM_PAPI_COUNTERS) == PAPI_OK);
@@ -429,7 +493,11 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
 #ifdef USE_PAPI
       assert(PAPI_stop_counters(values, NUM_PAPI_COUNTERS) == PAPI_OK);
 #endif
-      vector_compute_time +=  diff_time(start_time);
+      uint64_t curr_interval = diff_time(start_time);
+#ifdef PRINT_PER_INTERVAL_TIMINGS
+      times_fptr << curr_interval << "\n";
+#endif
+      vector_compute_time +=  curr_interval;
 #ifdef USE_PAPI
       for(unsigned k=0;k<NUM_PAPI_COUNTERS;++k)
         accum_values[k] += values[k];
@@ -488,9 +556,12 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
   for(unsigned i=0;i<NUM_PAPI_COUNTERS;++i)
     cout << eventnames[i] << " : "<<accum_values[i]<<"\n";
 #endif
-
+#ifdef PRINT_PER_INTERVAL_TIMINGS
+  times_fptr.close();
+#endif
   if(use_old_read_testcase)
     fclose(fptr);
   else
     ifptr.close();
+  g_load_time_initializer.print_profiling();
 }

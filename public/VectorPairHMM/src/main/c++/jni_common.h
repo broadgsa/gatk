@@ -37,7 +37,7 @@
 /*#define DUMP_TO_SANDBOX 1*/
 
 
-#define DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY 1
+/*#define DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY 1*/
 
 #ifdef DIRECT_ACCESS_TO_JAVA_HEAP_MEMORY
 //Gets direct access to Java arrays
