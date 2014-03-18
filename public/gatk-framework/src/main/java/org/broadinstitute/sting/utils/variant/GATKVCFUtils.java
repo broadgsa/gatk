@@ -194,14 +194,13 @@ public class GATKVCFUtils {
     public static IndexCreator getIndexCreator(GATKVCFIndexType type, int parameter, File outFile) {
         IndexCreator idxCreator;
         switch (type) {
-            case DYNAMIC_SEEK: idxCreator = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME); break;
-            case DYNAMIC_SIZE: idxCreator = new DynamicIndexCreator(IndexFactory.IndexBalanceApproach.FOR_SIZE); break;
-            case LINEAR: idxCreator = new LinearIndexCreator(); break;
-            case INTERVAL: idxCreator = new IntervalIndexCreator(); break;
+            case DYNAMIC_SEEK: idxCreator = new DynamicIndexCreator(outFile, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME); break;
+            case DYNAMIC_SIZE: idxCreator = new DynamicIndexCreator(outFile, IndexFactory.IndexBalanceApproach.FOR_SIZE); break;
+            case LINEAR: idxCreator = new LinearIndexCreator(outFile, parameter); break;
+            case INTERVAL: idxCreator = new IntervalIndexCreator(outFile, parameter); break;
             default: throw new IllegalArgumentException("Unknown IndexCreator type: " + type);
         }
 
-        idxCreator.initialize(outFile, parameter);
         return idxCreator;
     }
 

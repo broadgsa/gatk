@@ -25,21 +25,29 @@
 
 package org.broadinstitute.sting.gatk.walkers.fasta;
 
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.variant.variantcontext.Genotype;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -88,53 +96,94 @@ import java.util.List;
 public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
 
     /**
-     * Variants from these input files are used by this tool to construct an alternate reference.
+     * Variants from this input file are used by this tool to construct an alternate reference.
      */
-    @Input(fullName = "variant", shortName = "V", doc="variants to model", required=false)
-    public List<RodBinding<VariantContext>> variants = Collections.emptyList();
+    @ArgumentCollection
+    protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * Snps from this file are used as a mask when constructing the alternate reference.
+     * Snps from this file are used as a mask (inserting N's in the sequence) when constructing the alternate reference
+     * (regardless of whether they overlap a variant site).
      */
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
-    public RodBinding<VariantContext> snpmask;
+    protected RodBinding<VariantContext> snpmask;
+
+    /**
+     * This option works only for VCFs with genotypes for exactly one sample; anything else will generate an error.
+     * Non-diploid (or non-called) genotypes are ignored.
+     */
+    @Argument(fullName="useIUPAC", shortName="useIUPAC", doc = "If specified, heterozygous SNP sites will be output using IUPAC codes", required=false)
+    protected boolean useIUPACcodes = false;
+    private String iupacSample = null;
 
     private int deletionBasesRemaining = 0;
 
-    public Pair<GenomeLoc, String> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    @Override
+    public void initialize() {
+        super.initialize();
+        if ( useIUPACcodes ) {
+            final List<String> rodName = Arrays.asList(variantCollection.variants.getName());
+            final Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
+            if ( samples.size() != 1 )
+                throw new UserException.BadInput("the --useIUPAC option works only on VCF files with genotypes for exactly one sample, but the input file has " + samples.size() + " samples");
+            iupacSample = samples.iterator().next();
+        }
+    }
+
+    @Override
+    public Pair<GenomeLoc, String> map(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
 
         if (deletionBasesRemaining > 0) {
             deletionBasesRemaining--;
-            return new Pair<GenomeLoc, String>(context.getLocation(), "");
+            return new Pair<>(context.getLocation(), "");
         }
 
-        String refBase = String.valueOf((char)ref.getBase());
+        final String refBase = String.valueOf((char)ref.getBase());
 
         // Check to see if we have a called snp
-        for ( VariantContext vc : tracker.getValues(variants, ref.getLocus()) ) {
+        for ( final VariantContext vc : tracker.getValues(variantCollection.variants, ref.getLocus()) ) {
             if ( vc.isFiltered() )
                 continue;
 
             if ( vc.isSimpleDeletion()) {
                 deletionBasesRemaining = vc.getReference().length() - 1;
                 // delete the next n bases, not this one
-                return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
+                return new Pair<>(context.getLocation(), refBase);
             } else if ( vc.isSimpleInsertion()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
+                return new Pair<>(context.getLocation(), vc.getAlternateAllele(0).toString());
             } else if (vc.isSNP()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
+                final String base = useIUPACcodes ? getIUPACbase(vc.getGenotype(iupacSample), refBase) : vc.getAlternateAllele(0).toString();
+                return new Pair<>(context.getLocation(), base);
             }
         }
 
         // if we don't have a called site, and we have a mask at this site, mask it
-        for ( VariantContext vc : tracker.getValues(snpmask) ) {
+        for ( final VariantContext vc : tracker.getValues(snpmask) ) {
             if ( vc.isSNP()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), "N");
+                return new Pair<>(context.getLocation(), "N");
             }
         }
 
-
         // if we got here then we're just ref
-        return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
+        return new Pair<>(context.getLocation(), refBase);
+    }
+
+    /**
+     * Returns the IUPAC encoding for the given genotype or the reference base if not possible
+     *
+     * @param genotype  the genotype to encode
+     * @param ref       the reference base
+     * @return non-null, non-empty String
+     */
+    private String getIUPACbase(final Genotype genotype, final String ref) {
+        if ( genotype == null )
+            throw new IllegalStateException("The genotype is null for sample " + iupacSample);
+
+        if ( !genotype.isHet() )
+            return genotype.isHom() ? genotype.getAllele(0).getBaseString() : ref;
+
+        final byte allele1 = genotype.getAllele(0).getBases()[0];
+        final byte allele2 = genotype.getAllele(1).getBases()[0];
+        return new String(new byte[] {BaseUtils.basesToIUPAC(allele1, allele2)});
     }
 }

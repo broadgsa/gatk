@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
@@ -282,6 +283,36 @@ public class BaseUtils {
                 bases[0] = bases[1] = 'N';
         }
         return bases;
+    }
+
+    /**
+     * Converts a pair of bases to their IUPAC ambiguity code
+     *
+     * @param base1  1st base
+     * @param base2  2nd base
+     * @return byte
+     */
+    static public byte basesToIUPAC(final byte base1, final byte base2) {
+        // ensure that the bases come in order
+        if ( base2 < base1 )
+            return basesToIUPAC(base2, base1);
+
+        // ensure that the bases are regular ones
+        if ( !isRegularBase(base1) || !isRegularBase(base2) )
+            return Base.N.base;
+
+        // IUPAC codes are not needed if the bases are identical
+        if ( basesAreEqual(base1, base2) )
+            return base1;
+
+        if ( base1 == Base.A.base )
+            return (byte)(base2 == Base.C.base ? 'M' : (base2 == Base.G.base ? 'R' : 'W'));
+
+        if ( base1 == Base.C.base )
+            return (byte)(base2 == Base.G.base ? 'S' : 'Y');
+
+        // the only possibility left is G/T
+        return 'K';
     }
 
     /**
@@ -559,4 +590,26 @@ public class BaseUtils {
                 throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
         }
     }
+
+
+    /**
+     * Lexicographical sorting of base arrays {@link Comparator}.
+     */
+    public static final Comparator<byte[]> BASES_COMPARATOR = new Comparator<byte[]> (){
+
+        @Override
+        public int compare(final byte[] o1,final byte[] o2) {
+            final int minLength = Math.min(o1.length,o2.length);
+            for (int i = 0; i < minLength; i++) {
+                final int cmp = Byte.compare(o1[i],o2[i]);
+                if (cmp != 0) return cmp;
+            }
+            if (o1.length == o2.length)
+                return 0;
+            else if (o1.length == minLength)
+                return -1;
+            else
+                return 1;
+        }
+    };
 }

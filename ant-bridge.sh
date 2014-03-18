@@ -103,14 +103,14 @@ for arg in "${@}" ; do
             mvn_args="${mvn_args} -Dsting.packagetests.enabled=true"
             mvn_args="${mvn_args} -Dsting.packagecommittests.skipped=false"
 
-        # TODO: This runs only the pipeline tests (full, non-dry run), but not the commit tests for Queue.
+        # TODO: This runs only the queue tests (full, non-dry run), but not the commit tests for Queue.
         elif [[ "${arg}" == "queuefull.binary.release.tests" ]] ; then
             local_repo="sitetemprepo"
             mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
             mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo}"
             mvn_args="${mvn_args} -Dsting.packagetests.enabled=true"
-            mvn_args="${mvn_args} -Dsting.packagepipelinetests.skipped=false"
-            mvn_args="${mvn_args} -Dsting.pipelinetests.run=true"
+            mvn_args="${mvn_args} -Dsting.packagequeuetests.skipped=false"
+            mvn_args="${mvn_args} -Dsting.queuetests.run=true"
 
         elif [[ "${arg}" == "committests" ]] ; then
             mvn_args="verify -Dsting.committests.skipped=false"
@@ -130,11 +130,11 @@ for arg in "${@}" ; do
         elif [[ "${arg}" == "knowledgebasetest" ]] ; then
             mvn_args="verify -Dsting.knowledgebasetests.skipped=false"
 
-        elif [[ "${arg}" == "pipelinetest" ]] ; then
-            mvn_args="verify -Dsting.pipelinetests.skipped=false"
+        elif [[ "${arg}" == "queuetest" ]] ; then
+            mvn_args="verify -Dsting.queuetests.skipped=false"
 
-        elif [[ "${arg}" == "pipelinetestrun" ]] ; then
-            mvn_args="verify -Dsting.pipelinetests.skipped=false -Dsting.pipelinetests.run=true"
+        elif [[ "${arg}" == "queuetestrun" ]] ; then
+            mvn_args="verify -Dsting.queuetests.skipped=false -Dsting.queuetests.run=true"
 
         elif [[ "${arg}" == "fasttest" ]] ; then
             mvn_args="verify -Dsting.committests.skipped=false -pl private/gatk-private -am -Dresource.bundle.skip=true"

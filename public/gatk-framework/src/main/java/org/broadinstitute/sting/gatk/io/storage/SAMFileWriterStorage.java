@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
+import net.sf.samtools.util.ProgressLoggerInterface;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
@@ -149,4 +150,8 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         return writer;
     }
 
+    @Override
+    public void setProgressLogger(final ProgressLoggerInterface logger) {
+        writer.setProgressLogger(logger);
+    }
 }

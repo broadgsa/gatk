@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-aggregator</artifactId>
-        <version>3.0</version>
+        <version>3.1</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -66,6 +66,11 @@
         <dependency>
             <groupId>net.sf.snpeff</groupId>
             <artifactId>snpeff</artifactId>
+        </dependency>
+        <!-- Workaround - depend on commons-httpclient to prevent shade from eliminating IgnoreCookiesSpec class -->
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
         </dependency>
         <!-- Required for binary-dist assembly, excluded by shade -->
         <dependency>
@@ -144,9 +149,9 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>pipeline-tests</id>
+                        <id>queue-tests</id>
                         <configuration>
-                            <skip>${sting.serialpipelinetests.skipped}</skip>
+                            <skip>${sting.serialqueuetests.skipped}</skip>
                             <dependenciesToScan>
                                 <scan>org.broadinstitute.sting:.*</scan>
                             </dependenciesToScan>

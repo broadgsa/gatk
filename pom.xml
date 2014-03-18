@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-root</artifactId>
-        <version>3.0</version>
+        <version>3.1</version>
         <relativePath>public/sting-root</relativePath>
     </parent>
 
@@ -48,7 +48,7 @@
         <sting.packagecommittests.skipped>true</sting.packagecommittests.skipped>
         <sting.packageunittests.skipped>${sting.packagecommittests.skipped}</sting.packageunittests.skipped>
         <sting.packageintegrationtests.skipped>${sting.packagecommittests.skipped}</sting.packageintegrationtests.skipped>
-        <sting.packagepipelinetests.skipped>${sting.packagecommittests.skipped}</sting.packagepipelinetests.skipped>
+        <sting.packagequeuetests.skipped>${sting.packagecommittests.skipped}</sting.packagequeuetests.skipped>
         <sting.packagelargescaletests.skipped>true</sting.packagelargescaletests.skipped>
         <sting.packageknowledgebasetests.skipped>true</sting.packageknowledgebasetests.skipped>
 
@@ -62,7 +62,7 @@
         <sting.serialcommittests.skipped>true</sting.serialcommittests.skipped>
         <sting.serialunittests.skipped>${sting.serialcommittests.skipped}</sting.serialunittests.skipped>
         <sting.serialintegrationtests.skipped>${sting.serialcommittests.skipped}</sting.serialintegrationtests.skipped>
-        <sting.serialpipelinetests.skipped>${sting.serialcommittests.skipped}</sting.serialpipelinetests.skipped>
+        <sting.serialqueuetests.skipped>${sting.serialcommittests.skipped}</sting.serialqueuetests.skipped>
         <sting.seriallargescaletests.skipped>true</sting.seriallargescaletests.skipped>
         <sting.serialknowledgebasetests.skipped>true</sting.serialknowledgebasetests.skipped>
     </properties>
@@ -340,6 +340,18 @@
                                         <exclude>org.broadinstitute.sting:*:tar.bz2:example-resources</exclude>
                                     </excludes>
                                 </artifactSet>
+                                <filters>
+                                    <!--
+                                    NOTE: Removing cofoja's annotation service to allow "javac -cp GenomeAnalysisTK.jar ..." without
+                                    needing an additional -proc:none argument. Using *:* to catch shaded GATK in Queue package.
+                                    -->
+                                    <filter>
+                                        <artifact>*:*</artifact>
+                                        <excludes>
+                                            <exclude>META-INF/services/javax.annotation.processing.Processor</exclude>
+                                        </excludes>
+                                    </filter>
+                                </filters>
                                 <transformers>
                                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                         <manifestEntries>
@@ -561,7 +573,7 @@
                             <sting.packagetests.artifactId>${sting.packagetests.artifactId}</sting.packagetests.artifactId>
                             <sting.packagetests.testClasses>${project.build.testOutputDirectory}</sting.packagetests.testClasses>
                             <sting.packagetests.basedir>${project.basedir}</sting.packagetests.basedir>
-                            <sting.pipelinetests.run>${sting.pipelinetests.run}</sting.pipelinetests.run>
+                            <sting.queuetests.run>${sting.queuetests.run}</sting.queuetests.run>
                             <maven.surefire.debug>${maven.surefire.debug}</maven.surefire.debug>
                             <maven.failsafe.debug>${maven.failsafe.debug}</maven.failsafe.debug>
                         </properties>
@@ -613,7 +625,7 @@
                             </configuration>
                         </execution>
                         <execution>
-                            <id>package-pipelinetests</id>
+                            <id>package-queuetests</id>
                             <goals>
                                 <goal>integration-test</goal>
                                 <goal>verify</goal>
@@ -622,11 +634,11 @@
                                 <goals>
                                     <goal>verify</goal>
                                 </goals>
-                                <reportsDirectory>${project.build.directory}/invoker-reports/pipeline/${it.test}</reportsDirectory>
-                                <skipInvocation>${sting.packagepipelinetests.skipped}</skipInvocation>
+                                <reportsDirectory>${project.build.directory}/invoker-reports/queuetest/${it.test}</reportsDirectory>
+                                <skipInvocation>${sting.packagequeuetests.skipped}</skipInvocation>
                                 <properties>
                                     <integrationtests.profile.enabled>true</integrationtests.profile.enabled>
-                                    <sting.packagepipelinetests.skipped>${sting.packagepipelinetests.skipped}</sting.packagepipelinetests.skipped>
+                                    <sting.packagequeuetests.skipped>${sting.packagequeuetests.skipped}</sting.packagequeuetests.skipped>
                                 </properties>
                             </configuration>
                         </execution>

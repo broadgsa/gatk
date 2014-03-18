@@ -12,7 +12,7 @@
 
     <groupId>org.broadinstitute.sting</groupId>
     <artifactId>sting-root</artifactId>
-    <version>3.0</version>
+    <version>3.1</version>
     <packaging>pom</packaging>
     <name>Sting Root</name>
 
@@ -31,10 +31,10 @@
         <sting.committests.skipped>true</sting.committests.skipped>
         <sting.unittests.skipped>${sting.committests.skipped}</sting.unittests.skipped>
         <sting.integrationtests.skipped>${sting.committests.skipped}</sting.integrationtests.skipped>
-        <sting.pipelinetests.skipped>${sting.committests.skipped}</sting.pipelinetests.skipped>
+        <sting.queuetests.skipped>${sting.committests.skipped}</sting.queuetests.skipped>
         <sting.largescaletests.skipped>true</sting.largescaletests.skipped>
         <sting.knowledgebasetests.skipped>true</sting.knowledgebasetests.skipped>
-        <sting.pipelinetests.run>false</sting.pipelinetests.run>
+        <sting.queuetests.run>false</sting.queuetests.run>
         <scala.maxmemory>1g</scala.maxmemory>
         <test.maxmemory>4g</test.maxmemory>
         <java.gc.threads>4</java.gc.threads>
@@ -43,7 +43,7 @@
         <test.args>-Xmx${test.maxmemory} -XX:+UseParallelOldGC -XX:ParallelGCThreads=${java.gc.threads} -XX:GCTimeLimit=${java.gc.timeLimit} -XX:GCHeapFreeLimit=${java.gc.heapFreeLimit}</test.args>
 
         <!-- Version numbers for picard sam-jdk. Usually kept in sync. -->
-        <picard.public.version>1.107.1683</picard.public.version>
+        <picard.public.version>1.109.1722</picard.public.version>
         <sam.version>${picard.public.version}</sam.version>
         <picard.version>${picard.public.version}</picard.version>
         <variant.version>${picard.public.version}</variant.version>
@@ -187,6 +187,11 @@
                 <groupId>commons-collections</groupId>
                 <artifactId>commons-collections</artifactId>
                 <version>3.2.1</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-httpclient</groupId>
+                <artifactId>commons-httpclient</artifactId>
+                <version>3.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -335,7 +340,11 @@
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>2.4</version>
                 </plugin>
-
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>1.3.1</version>
+                </plugin>
                 <!--
                 surefire/failsafe configurations are global, even across poms
                 not directly aggregated, for example package-tests/pom.xml
@@ -408,7 +417,7 @@
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
                             <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <pipeline.run>${sting.pipelinetests.run}</pipeline.run>
+                            <queuetest.run>${sting.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -431,19 +440,19 @@
                             </configuration>
                         </execution>
                         <execution>
-                            <id>pipeline-tests</id>
+                            <id>queue-tests</id>
                             <goals>
                                 <goal>integration-test</goal>
                                 <goal>verify</goal>
                             </goals>
-                            <!-- run pipeline dry run tests -->
+                            <!-- run queue dry run tests -->
                             <configuration>
-                                <!-- TODO: Re-enable pipeline tests by default? -->
-                                <skip>${sting.pipelinetests.skipped}</skip>
-                                <reportsDirectory>${project.build.directory}/failsafe-reports/pipeline/${it.test}</reportsDirectory>
-                                <summaryFile>${project.build.directory}/failsafe-reports/pipeline/failsafe-summary-${it.test}.xml</summaryFile>
+                                <!-- TODO: Re-enable queue tests by default? -->
+                                <skip>${sting.queuetests.skipped}</skip>
+                                <reportsDirectory>${project.build.directory}/failsafe-reports/queuetest/${it.test}</reportsDirectory>
+                                <summaryFile>${project.build.directory}/failsafe-reports/queuetest/failsafe-summary-${it.test}.xml</summaryFile>
                                 <includes>
-                                    <include>**/*PipelineTest.class</include>
+                                    <include>**/*QueueTest.class</include>
                                 </includes>
                             </configuration>
                         </execution>

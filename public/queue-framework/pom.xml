@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-aggregator</artifactId>
-        <version>3.0</version>
+        <version>3.1</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -198,7 +198,7 @@
                         <id>package-knowledgebasetests</id>
                     </execution>
                     <execution>
-                        <id>package-pipelinetests</id>
+                        <id>package-queuetests</id>
                     </execution>
                 </executions>
             </plugin>

@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
@@ -312,5 +313,13 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void close() {
         outputTracker.getStorage(this).close();    
+    }
+
+    /**
+     * @throws java.lang.UnsupportedOperationException No progress logging in this implementation.
+     */
+    @Override
+    public void setProgressLogger(final ProgressLoggerInterface logger) {
+        throw new UnsupportedOperationException("Progress logging not supported");
     }
 }

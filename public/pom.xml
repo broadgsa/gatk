@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-root</artifactId>
-        <version>3.0</version>
+        <version>3.1</version>
         <relativePath>sting-root</relativePath>
     </parent>
 
@@ -19,7 +19,7 @@
         <module>sting-utils</module>
         <module>gatk-framework</module>
         <module>gatk-package</module>
- <!--       <module>external-example</module>  -->
+        <!--       <module>external-example</module>  -->
         <!-- queue optionally enabled as profiles -->
     </modules>
 
