@@ -12,7 +12,7 @@
 
     <groupId>org.broadinstitute.sting</groupId>
     <artifactId>sting-root</artifactId>
-    <version>3.1-SNAPSHOT</version>
+    <version>3.1</version>
     <packaging>pom</packaging>
     <name>Sting Root</name>
 
