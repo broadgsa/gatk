@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.sting</groupId>
         <artifactId>sting-aggregator</artifactId>
-        <version>3.1</version>
+        <version>3.2-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
