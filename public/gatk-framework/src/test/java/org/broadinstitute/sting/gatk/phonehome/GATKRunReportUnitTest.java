@@ -60,7 +60,7 @@ import java.util.List;
 import java.util.Properties;
 
 public class GATKRunReportUnitTest extends BaseTest {
-/*    private final static boolean DEBUG = false;
+    private final static boolean DEBUG = false;
     private static final long S3_PUT_TIMEOUT_IN_MILLISECONDS_FOR_TESTING = 30 * 1000;
     private static final String AWS_DOWNLOADER_CREDENTIALS_PROPERTIES_FILE = privateTestDir + "phonehome/awsDownloaderCredentials.properties";
 
@@ -306,5 +306,5 @@ public class GATKRunReportUnitTest extends BaseTest {
         public Integer reduce(Integer value, Integer sum) {
             return 0;
         }
-    }  */
+    }
 }
