@@ -326,6 +326,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             if ( mergedVC == null )
                 continue;
 
+            if ( mergedVC.hasAllele(GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE) )
+                throw new UserException("CombineVariants should not be used to merge gVCFs produced by the HaplotypeCaller; use CombineGVCFs instead");
+
             final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(builder, false);
