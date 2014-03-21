@@ -209,11 +209,11 @@ public final class FragmentUtils {
     }
 
     /**
-     * Merge two overlapping reads from the same fragment into a single super read, if possible
+     * Fix two overlapping reads from the same fragment by adjusting base qualities, if possible
      *
      * firstRead and secondRead must be part of the same fragment (though this isn't checked).  Looks
-     * at the bases and alignment, and tries its best to create a meaningful synthetic single super read
-     * that represents the entire sequenced fragment.
+     * at the bases and alignment, and tries its best to create adjusted base qualities so that the observations
+     * are not treated independently.
      *
      * Assumes that firstRead starts before secondRead (according to their soft clipped starts)
      *
@@ -228,7 +228,7 @@ public final class FragmentUtils {
         if ( ! clippedFirstRead.getReadName().equals(clippedSecondRead.getReadName()) ) throw new IllegalArgumentException("attempting to merge two reads with different names " + clippedFirstRead + " and " + clippedSecondRead);
 
         // don't adjust fragments that do not overlap
-        if ( clippedFirstRead.getAlignmentEnd() < clippedSecondRead.getAlignmentStart() || clippedFirstRead.getReferenceIndex() != clippedSecondRead.getReferenceIndex() )
+        if ( clippedFirstRead.getAlignmentEnd() < clippedSecondRead.getAlignmentStart() || !clippedFirstRead.getReferenceIndex().equals(clippedSecondRead.getReferenceIndex()) )
             return;
 
         final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(clippedFirstRead, clippedSecondRead.getAlignmentStart());
