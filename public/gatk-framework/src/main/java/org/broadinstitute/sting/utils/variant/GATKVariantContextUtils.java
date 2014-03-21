@@ -1921,10 +1921,6 @@ public class GATKVariantContextUtils {
         final HashMap<VariantContext.Type, List<VariantContext>> mappedVCs = new HashMap<>();
         for ( final VariantContext vc : VCs ) {
             VariantContext.Type vcType = vc.getType();
-            if( vc.hasAllele(NON_REF_SYMBOLIC_ALLELE) ) {
-                if( vc.getAlternateAlleles().size() > 1 ) { throw new IllegalStateException("Reference records should not have more than one alternate allele"); }
-                vcType = VariantContext.Type.NO_VARIATION;
-            }
 
             // look at previous variant contexts of different type. If:
             // a) otherVC has alleles which are subset of vc, remove otherVC from its list and add otherVC to vc's list
