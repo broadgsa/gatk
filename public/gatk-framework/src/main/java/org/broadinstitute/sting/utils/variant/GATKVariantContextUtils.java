@@ -44,7 +44,8 @@ public class GATKVariantContextUtils {
 
     private static Logger logger = Logger.getLogger(GATKVariantContextUtils.class);
 
-    public static final int DEFAULT_PLOIDY = 2;
+    public static final int DEFAULT_PLOIDY = HomoSapiens.DEFAULT_PLOIDY;
+
     public static final double SUM_GL_THRESH_NOCALL = -0.1; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
     public final static List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
@@ -55,6 +56,34 @@ public class GATKVariantContextUtils {
     public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_INTERSECTION = "Intersection";
+
+    /**
+     * Checks whether a variant-context overlaps with a region.
+     *
+     * <p>
+     *     No event overlaps an unmapped region.
+     * </p>
+     *
+     * @param variantContext variant-context to test the overlap with.
+     * @param region region to test the overlap with.
+     *
+     * @throws IllegalArgumentException if either region or event is {@code null}.
+     *
+     * @return {@code true} if there is an overlap between the event described and the active region provided.
+     */
+    public static boolean overlapsRegion(final VariantContext variantContext, final GenomeLoc region) {
+        if (region == null) throw new IllegalArgumentException("the active region provided cannot be null");
+        if (variantContext == null) throw new IllegalArgumentException("the variant context provided cannot be null");
+        if (region.isUnmapped())
+            return false;
+        if (variantContext.getEnd() < region.getStart())
+            return false;
+        if (variantContext.getStart() > region.getStop())
+            return false;
+        if (!variantContext.getChr().equals(region.getContig()))
+            return false;
+        return true;
+    }
 
     public enum GenotypeMergeType {
         /**

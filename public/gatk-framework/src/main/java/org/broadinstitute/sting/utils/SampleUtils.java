@@ -101,7 +101,7 @@ public class SampleUtils {
      * @return the set of unique samples
      */
     public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
-        Set<String> samples = new LinkedHashSet<String>();
+        Set<String> samples = new LinkedHashSet<>();
 
         for ( VCFHeader header : GATKVCFUtils.getVCFHeadersFromRods(toolkit, rodNames).values() )
             samples.addAll(header.getGenotypeSamples());
