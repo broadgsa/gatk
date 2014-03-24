@@ -1095,10 +1095,13 @@ public class GATKVariantContextUtils {
             mergeRefConfidenceGenotypes(genotypes, vc, remappedAlleles, allelesList);
 
             // special case DP (add it up) for all events
-            if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
+            if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) ) {
                 depth += vc.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0);
-            else if ( vc.getNSamples() == 1 && vc.getGenotype(0).hasExtendedAttribute("MIN_DP") ) // handle the gVCF case from the HaplotypeCaller
-                depth += vc.getGenotype(0).getAttributeAsInt("MIN_DP", 0);
+            } else { // handle the gVCF case from the HaplotypeCaller
+                for( final Genotype gt : vc.getGenotypes() ) {
+                    depth += (gt.hasExtendedAttribute("MIN_DP") ? Integer.parseInt((String)gt.getAnyAttribute("MIN_DP")) : (gt.hasDP() ? gt.getDP() : 0));
+                }
+            }
 
             if ( loc.getStart() != vc.getStart() )
                 continue;
