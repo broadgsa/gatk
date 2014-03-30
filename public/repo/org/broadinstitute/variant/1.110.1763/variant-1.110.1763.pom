@@ -3,18 +3,18 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.broadinstitute</groupId>
     <artifactId>variant</artifactId>
-    <version>1.109.1722</version>
+    <version>1.110.1763</version>
     <name>variant</name>
     <dependencies>
         <dependency>
             <groupId>org.broad</groupId>
             <artifactId>tribble</artifactId>
-            <version>1.109.1722</version>
+            <version>1.110.1763</version>
         </dependency>
         <dependency>
             <groupId>net.sf</groupId>
             <artifactId>sam</artifactId>
-            <version>1.109.1722</version>
+            <version>1.110.1763</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
