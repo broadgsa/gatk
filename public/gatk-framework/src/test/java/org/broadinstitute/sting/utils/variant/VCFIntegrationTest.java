@@ -25,13 +25,17 @@
 
 package org.broadinstitute.sting.utils.variant;
 
+import org.broad.tribble.Tribble;
 import org.broad.tribble.index.AbstractIndex;
 import org.broad.tribble.index.ChrIndex;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.interval.IntervalTreeIndex;
 import org.broad.tribble.index.linear.LinearIndex;
+import org.broad.tribble.index.tabix.TabixIndex;
+import org.broad.tribble.util.TabixUtils;
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.testng.Assert;
 import org.testng.TestException;
@@ -216,7 +220,7 @@ public class VCFIntegrationTest extends WalkerTest {
         spec.disableShadowBCF();
 
         File outVCF = executeTest(name, spec).first.get(0);
-        File outIdx = new File(outVCF.getAbsolutePath() + ".idx");
+        File outIdx = new File(outVCF.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION);
 
         final Index actualIndex = IndexFactory.loadIndex(outIdx.getAbsolutePath());
         final Index expectedIndex = testSpec.getIndex(outVCF);
@@ -272,4 +276,58 @@ public class VCFIntegrationTest extends WalkerTest {
         LinkedHashMap<String, ChrIndex> chrIndices = (LinkedHashMap<String, ChrIndex>) f.get(index);
         return chrIndices.get(chr);
     }
+
+    //
+    //
+    // Block-Compressed Tabix Index Tests
+    //
+    //
+
+    private class BlockCompressedIndexCreatorTest extends TestDataProvider {
+        private final String extension;
+
+        private BlockCompressedIndexCreatorTest(String extension) {
+            super(BlockCompressedIndexCreatorTest.class);
+
+            this.extension = extension;
+        }
+
+        public String toString() {
+            return String.format("File extension %s", extension);
+        }
+    }
+
+    @DataProvider(name = "BlockCompressedIndexDataProvider")
+    public Object[][] blockCompressedIndexCreatorData() {
+        for (String suffix : VCFWriterArgumentTypeDescriptor.SUPPORTED_ZIPPED_SUFFIXES)
+            new BlockCompressedIndexCreatorTest(".vcf" + suffix);
+
+        return TestDataProvider.getTests(BlockCompressedIndexCreatorTest.class);
+    }
+
+    @Test(dataProvider = "BlockCompressedIndexDataProvider")
+    public void testBlockCompressedIndexCreation(BlockCompressedIndexCreatorTest testSpec) throws NoSuchFieldException, IllegalAccessException {
+
+        final String commandLine = " -T SelectVariants" +
+                " -R " + b37KGReference +
+                " --no_cmdline_in_header" +
+                " -L 20" +
+                " -V " + b37_NA12878_OMNI;
+        final String name = "testBlockCompressedIndexCreation: " + testSpec.toString();
+
+        File outVCF = createTempFile("testBlockCompressedIndexCreation", testSpec.extension);
+        final WalkerTestSpec spec = new WalkerTestSpec(commandLine, 1, Arrays.asList(""));
+        spec.disableShadowBCF();
+        spec.setOutputFileLocation(outVCF);
+
+        executeTest(name, spec);
+
+        File outTribbleIdx = new File(outVCF.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION);
+        Assert.assertFalse(outTribbleIdx.exists(), "testBlockCompressedIndexCreation: Want Tabix index but Tribble index exists: " + outTribbleIdx);
+
+        File outTabixIdx = new File(outVCF.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION);
+        final Index actualIndex = IndexFactory.loadIndex(outTabixIdx.toString());
+        Assert.assertTrue(actualIndex instanceof TabixIndex, "testBlockCompressedIndexCreation: Want Tabix index but index is not Tabix: " + outTabixIdx);
+    }
+
 }

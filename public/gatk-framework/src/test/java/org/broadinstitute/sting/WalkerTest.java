@@ -29,6 +29,8 @@ import org.apache.commons.lang.StringUtils;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
+import org.broad.tribble.index.tabix.TabixFormat;
+import org.broad.tribble.util.TabixUtils;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -314,8 +316,9 @@ public class WalkerTest extends BaseTest {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
             File fl = createTempFile(String.format("walktest.tmp_param.%d", i), ext);
 
-            // Mark corresponding *.idx for deletion on exit as well just in case an index is created for the temp file:
-            new File(fl.getAbsolutePath() + ".idx").deleteOnExit();
+            // Mark corresponding indices for deletion on exit as well just in case an index is created for the temp file:
+            new File(fl.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION).deleteOnExit();
+            new File(fl.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION).deleteOnExit();
 
             tmpFiles.add(fl);
         }

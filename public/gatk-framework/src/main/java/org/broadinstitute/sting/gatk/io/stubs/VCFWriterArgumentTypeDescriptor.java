@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -48,15 +49,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public static final String NO_HEADER_ARG_NAME = "no_cmdline_in_header";
     public static final String SITES_ONLY_ARG_NAME = "sites_only";
     public static final String FORCE_BCF = "bcf";
-    public static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
-
-    //
-    // static list of zipped suffixes supported by this system.
-    //
-    static {
-        SUPPORTED_ZIPPED_SUFFIXES.add(".gz");
-        SUPPORTED_ZIPPED_SUFFIXES.add(".gzip");
-    }
+    public static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES =
+            new HashSet<>(Arrays.asList(VariantContextWriterFactory.BLOCK_COMPRESSED_EXTENSIONS));
 
     /**
      * The engine into which output stubs should be fed.

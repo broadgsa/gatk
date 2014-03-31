@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.utils.variant;
 
+import net.sf.samtools.SAMSequenceDictionary;
+import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
@@ -33,12 +35,15 @@ import org.broad.tribble.index.IndexCreator;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.index.interval.IntervalIndexCreator;
 import org.broad.tribble.index.linear.LinearIndexCreator;
+import org.broad.tribble.index.tabix.TabixFormat;
+import org.broad.tribble.index.tabix.TabixIndexCreator;
 import org.broad.tribble.readers.LineIterator;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.vcf.*;
@@ -59,6 +64,7 @@ public class GATKVCFUtils {
      */
     private GATKVCFUtils() { }
 
+    public static final Logger logger = Logger.getLogger(GATKVCFUtils.class);
     public final static String GATK_COMMAND_LINE_KEY = "GATKCommandLine";
 
     public final static GATKVCFIndexType DEFAULT_INDEX_TYPE = GATKVCFIndexType.DYNAMIC_SEEK;  // by default, optimize for seek time.  All indices prior to Nov 2013 used this type.
@@ -192,6 +198,28 @@ public class GATKVCFUtils {
      * @return
      */
     public static IndexCreator getIndexCreator(GATKVCFIndexType type, int parameter, File outFile) {
+        return getIndexCreator(type, parameter, outFile, null);
+    }
+
+    /**
+     * Create and return an IndexCreator
+     * @param type
+     * @param parameter
+     * @param outFile
+     * @param sequenceDictionary
+     * @return
+     */
+    public static IndexCreator getIndexCreator(GATKVCFIndexType type, int parameter, File outFile, SAMSequenceDictionary sequenceDictionary) {
+        if (VCFWriterArgumentTypeDescriptor.isCompressed(outFile.toString())) {
+            if (type != GATKVCFUtils.DEFAULT_INDEX_TYPE || parameter != GATKVCFUtils.DEFAULT_INDEX_PARAMETER)
+                logger.warn("Creating Tabix index for " + outFile + ", ignoring user-specified index type and parameter");
+
+            if (sequenceDictionary == null)
+                return new TabixIndexCreator(TabixFormat.VCF);
+            else
+                return new TabixIndexCreator(sequenceDictionary, TabixFormat.VCF);
+        }
+
         IndexCreator idxCreator;
         switch (type) {
             case DYNAMIC_SEEK: idxCreator = new DynamicIndexCreator(outFile, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME); break;
