@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>net.sf</groupId>
     <artifactId>sam</artifactId>
-    <version>1.110.1763</version>
+    <version>1.110.1773</version>
     <name>sam-jdk</name>
     <dependencies>
         <dependency>
