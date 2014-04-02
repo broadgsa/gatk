@@ -55,6 +55,7 @@ abstract class N2MemoryPairHMM extends PairHMM {
      * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
      * @param readMaxLength the max length of reads we want to use with this PairHMM
      */
+    @Override
     public void initialize( final int readMaxLength, final int haplotypeMaxLength ) {
         super.initialize(readMaxLength, haplotypeMaxLength);
 
