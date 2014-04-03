@@ -109,11 +109,10 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
     protected RodBinding<VariantContext> snpmask;
 
     /**
-     * This option works only for VCFs with genotypes for exactly one sample; anything else will generate an error.
+     * This option will generate an error if the specified sample does not exist in the VCF.
      * Non-diploid (or non-called) genotypes are ignored.
      */
-    @Argument(fullName="useIUPAC", shortName="useIUPAC", doc = "If specified, heterozygous SNP sites will be output using IUPAC codes", required=false)
-    protected boolean useIUPACcodes = false;
+    @Argument(fullName="use_IUPAC_sample", shortName="IUPAC", doc = "If specified, heterozygous SNP sites will be output using IUPAC ambiguity codes given the genotypes for this sample", required=false)
     private String iupacSample = null;
 
     private int deletionBasesRemaining = 0;
@@ -121,12 +120,11 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
     @Override
     public void initialize() {
         super.initialize();
-        if ( useIUPACcodes ) {
+        if ( iupacSample != null ) {
             final List<String> rodName = Arrays.asList(variantCollection.variants.getName());
             final Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
-            if ( samples.size() != 1 )
-                throw new UserException.BadInput("the --useIUPAC option works only on VCF files with genotypes for exactly one sample, but the input file has " + samples.size() + " samples");
-            iupacSample = samples.iterator().next();
+            if ( !samples.contains(iupacSample) )
+                throw new UserException.BadInput("the IUPAC sample specified is not present in the provided VCF file");
         }
     }
 
@@ -152,7 +150,7 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
             } else if ( vc.isSimpleInsertion()) {
                 return new Pair<>(context.getLocation(), vc.getAlternateAllele(0).toString());
             } else if (vc.isSNP()) {
-                final String base = useIUPACcodes ? getIUPACbase(vc.getGenotype(iupacSample), refBase) : vc.getAlternateAllele(0).toString();
+                final String base = (iupacSample != null) ? getIUPACbase(vc.getGenotype(iupacSample), refBase) : vc.getAlternateAllele(0).toString();
                 return new Pair<>(context.getLocation(), base);
             }
         }
