@@ -68,48 +68,61 @@ import java.util.*;
  *  <h3>Output</h3>
  *  <p>
  *  Genotype Concordance writes a GATK report to the specified file (via -o), consisting of multiple tables of counts
- *  and proportions. These tables are constructed on a per-sample basis, and include counts of EVAL vs COMP genotype states, and the
- *  number of times the alternate alleles between the EVAL and COMP sample did not match up.
+ *  and proportions. These tables are constructed on a per-sample basis, and include counts of EVAL vs COMP genotype
+ *  states.
+ *  </p>
+ *  <h4>Tables</h4>
+ *  <p>
+ *  Headers for the (non-moltenized -- see below) GenotypeConcordance counts and proportions tables give the genotype of
+ *  the COMP callset followed by the genotype of the EVAL callset. For example the value corresponding to HOM_REF_HET
+ *  reflects variants called HOM_REF in the COMP callset and HET in the EVAL callset. Variants for which the alternate
+ *  alleles between the EVAL and COMP sample did not match are excluded from genotype comparisons and given in the
+ *  "Mismatching_Alleles" field.
+ *  </p>
+ *  <p>
+ *  It may be informative to reshape rows of the GenotypeConcordance counts and proportions tables into separate row-major tables
+ *  where the columns indicate the COMP genotype and the rows indicate the EVAL genotype for easy comparison between the
+ *  two callsets. This can be done with a command similar to d <- matrix(sampleRow,nrow=6,byrow=T) in R where sampleRow is the 36-value row corresponding to the sample of interest, excluding "Mismatching_Alleles".
+ *  In Excel this can be accomplished using the OFFSET function.
+ *  </p>
+ *  <ul>
+ *      <li><i>GenotypeConcordance_CompProportions</i>: Gives the proportion of variants in each category normalized to the total number of called genotypes in the COMP callset</li>
+ *      <li><i>GenotypeConcordance_Counts</i>: Gives the counts for number of genotypes in each category</li>
+ *      <li><i>GenotypeConcordance_EvalProportions</i>: Gives the proportion of genotypes in each category normalized to the total number of called genotypes in the EVAL callset</li>
+ *      <li><i>GenotypeConcordance_Summary</i>: Summary statistics for the sum of all samples and each sample individually. See below for definitions.</li>
+ *      <li><i>SiteConcordance_Summary</i>: Gives comparison counts of called genotypes and their alleles between the two callsets. See below for definitions.</li>
+ *  </ul>
  *  </p>
  *
  *  <h4>Term and metrics definitions</h4>
  * <p>
  * <ul>
- *          <li>HET: heterozygous</li>
- *          <li>HOM_REF: homozygous reference</li>
- *          <li>HOM_VAR: homozygous variant</li>
- *          <li>MIXED: something like ./1</li>
- *          <li>ALLELES_MATCH: counts of calls at the same site where the alleles match</li>
- *          <li>ALLELES_DO_NOT_MATCH: counts of calls at the same location with different alleles, such as the eval set calling a 'G' alternate allele, and the comp set calling a 'T' alternate allele</li>
- *          <li>EVAL_ONLY: counts of sites present only in the EVAL set, not in the COMP set</li>
- *          <li>TRUTH_ONLY: counts of sites present only in the COMP set, not in the EVAL set</li>
- *          <li>Non-Reference_Discrepancy (NRD): genotype concordance excluding concordant reference sites</li>
- *          <li>Non-Reference_Sensitivity (NRS): sensitivity of the EVAL calls to polymorphic calls in the COMP set, calculated by (# true positive)/(# true polymorphic)</li>
- *          <li>Overall_Genotype_Concordance: overall concordance calculated by (# concordant genotypes)/(# genotypes)</li>
+ *          <li><i>GenotypeConcordance_CompProportions</i>, <i>GenotypeConcordance_Counts</i>, and <i>GenotypeConcordance_EvalProportions</i></li>
+ *          <ul>
+ *               <li>NO_CALL: reported genotype is ./., indicating not enough data to call</li>
+ *               <li>HET: heterozygous</li>
+ *               <li>HOM_REF: homozygous reference</li>
+ *               <li>HOM_VAR: homozygous variant</li>
+ *               <li>UNAVAILABLE: variant is not called in this callset</li>
+ *               <li>MIXED: something like ./1</li>
+ *          </ul>
+ *          <li><i>GenotypeConcordance_Summary<i></li>
+ *          <ul>
+ *               <li>Non-Reference_Sensitivity (NRS): sensitivity of the EVAL calls to polymorphic calls in the COMP set, calculated by (# true positive)/(# true polymorphic)</li>
+ *               <li>Non-Reference_Discrepancy (NRD): genotype discordance excluding concordant reference sites, calculated by (# discordant sites)/(total excluding # HOM_REF_HOM_REF) = 1.0-(# HOM_VAR_HOM_VAR + # HET_HET)/(total excluding # HOM_REF_HOM_REF)</li>
+ *               <li>Overall_Genotype_Concordance: overall concordance calculated by (# concordant genotypes)/(# genotypes)</li>
+ *          </ul>
+ *          <li><i>SiteConcordance_Summary</i></li>
+ *          <ul>
+ *               <li>ALLELES_MATCH: counts of calls at the same site where the alleles match</li>
+ *               <li>ALLELES_DO_NOT_MATCH: counts of calls at the same location with different alleles, such as the EVAL set calling a 'G' alternate allele, and the comp set calling a 'T' alternate allele</li>
+ *               <li>EVAL_SUBSET_TRUTH: (multi-alleleic sites only) ALT alleles for EVAL are a subset of ALT alleles for COMP. See also below.</li>
+ *               <li>EVAL_SUPERSET_TRUTH: (multi-allelic sites only) ALT alleles for COMP are a subset of ALT alleles for EVAL. See also below.</li>
+ *               <li>EVAL_ONLY: counts of sites present only in the EVAL set, not in the COMP set</li>
+ *               <li>TRUTH_ONLY: counts of sites present only in the COMP set, not in the EVAL set</li>
+ *          </ul>
  * </ul>
  * </p>
- *
- *  <h4>Moltenized tables</h4>
- *
- * <p>These tables may be optionally moltenized via the -moltenize argument. That is, the standard table
- *
- *  <pre>
- *  Sample   NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR   (...)
- *  NA12878       0.003        0.001            0.000        (...)
- *  NA12891       0.005        0.000            0.000        (...)
- *  </pre>
- *
- *  would instead be displayed
- *
- * <pre>
- *  NA12878  NO_CALL_HOM_REF   0.003
- *  NA12878  NO_CALL_HET       0.001
- *  NA12878  NO_CALL_HOM_VAR   0.000
- *  NA12891  NO_CALL_HOM_REF   0.005
- *  NA12891  NO_CALL_HET       0.000
- *  NA12891  NO_CALL_HOM_VAR   0.000
- *  (...)
- *  </pre>
  *
  * <h4>Site-level allelic concordance</h4>
  *
@@ -158,6 +171,27 @@ import java.util.*;
  *  in which case all records are used. There is currently no way to assess concordance metrics on filtered sites
  *  exclusively. SelectVariants can be used to extract filtered sites, and VariantFiltration used to un-filter them.
  *
+ * <h4>Moltenized tables</h4>
+ *
+ * <p>These tables may be optionally moltenized via the -moltenize argument. That is, the standard table
+ *
+ *  <pre>
+ *  Sample   NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR   (...)
+ *  NA12878       0.003        0.001            0.000        (...)
+ *  NA12891       0.005        0.000            0.000        (...)
+ *  </pre>
+ *
+ *  would instead be displayed
+ *
+ * <pre>
+ *  NA12878  NO_CALL_HOM_REF   0.003
+ *  NA12878  NO_CALL_HET       0.001
+ *  NA12878  NO_CALL_HOM_VAR   0.000
+ *  NA12891  NO_CALL_HOM_REF   0.005
+ *  NA12891  NO_CALL_HET       0.000
+ *  NA12891  NO_CALL_HOM_VAR   0.000
+ *  (...)
+ *  </pre>
 
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
