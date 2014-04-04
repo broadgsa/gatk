@@ -26,26 +26,26 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.variant.vcf.VCFConstants;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.vcf.VCFConstants;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -54,11 +54,35 @@ import java.util.Set;
  * <p>
  * ValidateVariants is a GATK tool that takes a VCF file and validates much of the information inside it.
  * In addition to standard adherence to the VCF specification, this tool performs extra checks to make ensure
- * the information contained within the file is correct.  Checks include the correctness of the reference base(s),
- * accuracy of AC & AN values, tests against rsIDs when a dbSNP file is provided, and that all alternate alleles
- * are present in at least one sample.
+ * the information contained within the file is correct.  Checks include:
+ * </>p>
+ * <ul>
  *
- * If you are looking simply to test the adherence to the VCF specification, use --validationType NONE.
+ *   <li>the correctness of the reference base(s), [--validationType REF]</li>
+ *   <li>accuracy of AC & AN values, [--validationType CHR_COUNTS]</li>
+ *   <li>tests against rsIDs when a dbSNP file is provided, [--validationType IDS]</li>
+ *   <li>and that all alternate alleles are present in at least one sample. [--validationType ALLELES]</li>
+ * </ul>
+ *
+ * </p>
+ *
+ * <p>
+ *     By default it will apply all the strict validations unless you indicate which one you want to perform
+ *     using --validationType as indicated above.
+ *     You can request this explicitly using --validationType ALL but this is not necessary.
+ * </p>
+ *
+ * <p>
+ *     If you are looking simply to test the adherence to the VCF specification, use --validationType NONE.
+ * </p>
+ *
+ * <p>
+ *     If you want to perform all strict validations but a few you can list the ones to exclude adding
+ *     as many '--validationTypeToExclude TYPE_ID' to the command line as needed.
+ *     This is only possible when the validation type is the default 'ALL'.
+ *     An attempt to combine --validationTypeToExclude with
+ *     any other validation type will result in an error.
+ * </p>
  *
  * <h3>Input</h3>
  * <p>
@@ -86,11 +110,46 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     public enum ValidationType {
-        ALL, REF, IDS, ALLELES, CHR_COUNTS, NONE
+        /**
+         * Perform all extra-strict tests listed bellow.
+         */
+        ALL,
+
+        /**
+         * Check whether the reported reference base in the VCF is the same as the corresponding base in the
+         * actual reference.
+         */
+        REF,
+
+        /**
+         * Checks whether the variant IDs exists, only relevant if the user indicates a DBSNP vcf file (see {@link #dbsnp}).
+         */
+        IDS,
+
+        /**
+         * Check whether all alternative alleles participate in a genotype call of at least on sample.
+         */
+        ALLELES,
+
+        /**
+         * Check that the AN and AC annotations are consistent with the number of calls, alleles and then number these
+         * are called across samples.
+         */
+        CHR_COUNTS,
+
+        /**
+         * Do not perform any extra-strict VCF content validation. Notice however that mis-formatted VCF would be reported
+         * as an error (e.g. garbled VCF file, mismatch between format fields and genotype fields number, wrong data types,
+         *  or reference to non-existing alternative alleles.
+         */
+        NONE
     }
 
     @Argument(fullName = "validationType", shortName = "type", doc = "which validation type to run", required = false)
     protected ValidationType type = ValidationType.ALL;
+
+    @Argument(fullName = "validationTypeToExclude", shortName = "Xtype", doc = "which validation type to exclude from a full strict validation", required = false)
+    protected List<ValidationType> excludeTypes = new ArrayList<>();
 
     /**
      * By default, even filtered records are validated.
@@ -156,23 +215,8 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         }
 
         try {
-            switch( type ) {
-                case ALL:
-                    vc.extraStrictValidation(reportedRefAllele, observedRefAllele, rsIDs);
-                    break;
-                case REF:
-                    vc.validateReferenceBases(reportedRefAllele, observedRefAllele);
-                    break;
-                case IDS:
-                    vc.validateRSIDs(rsIDs);
-                    break;
-                case ALLELES:
-                    vc.validateAlternateAlleles();
-                    break;
-                case CHR_COUNTS:
-                    vc.validateChromosomeCounts();
-                    break;
-            }
+            for (final ValidationType t : calculateValidationTypesToApply(type,excludeTypes))
+                applyValidationType(vc, reportedRefAllele, observedRefAllele, rsIDs, t);
         } catch (TribbleException e) {
             if ( WARN_ON_ERROR ) {
                 numErrors++;
@@ -180,6 +224,58 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
             } else {
                 throw new UserException.FailsStrictValidation(file, e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Given the validation type and exclusion type, calculate the final set of type to validate.
+     * @param type the validation type.
+     * @param excludeType types to exclude.
+     *
+     * @throws UserException.BadArgumentValue if the user combines any validation type except 'ALL' and some exclude types.
+     *
+     * @return never {@code null} but perhaps an empty set.
+     */
+    private Collection<ValidationType> calculateValidationTypesToApply(final ValidationType type, final List<ValidationType> excludeType) {
+        final Set<ValidationType> excludeTypeSet = new LinkedHashSet<>(excludeType);
+        if (type == ValidationType.ALL) {
+            if (excludeTypeSet.size() == 0)
+                return Collections.singleton(ValidationType.ALL);
+            else {
+                if (excludeTypeSet.remove(ValidationType.NONE))
+                    logger.warn("found NONE in the --validationTypeToExclude list; does not have any effect");
+                if (excludeTypeSet.contains(ValidationType.ALL))
+                    logger.warn("found ALL in the --validationTypeToExclude list. Perhaps you want to simply use --validationType NONE instead?");
+
+                final Set<ValidationType> result = new LinkedHashSet<>(Arrays.asList(ValidationType.values()));
+                result.remove(ValidationType.ALL);
+                result.remove(ValidationType.NONE);
+                result.removeAll(excludeTypeSet);
+                return result;
+            }
+        } else if (excludeTypeSet.size() != 0)
+            throw new UserException.BadArgumentValue("--validationTypeToExclude","you can use --validationTypeToExclude ONLY in combination with the default --validationType ALL");
+        else
+            return Collections.singleton(type);
+    }
+
+    private void applyValidationType(VariantContext vc, Allele reportedRefAllele, Allele observedRefAllele, Set<String> rsIDs, ValidationType t) {
+        switch( t ) {
+            case ALL:
+                vc.extraStrictValidation(reportedRefAllele, observedRefAllele, rsIDs);
+                break;
+            case REF:
+                vc.validateReferenceBases(reportedRefAllele, observedRefAllele);
+                break;
+            case IDS:
+                vc.validateRSIDs(rsIDs);
+                break;
+            case ALLELES:
+                vc.validateAlternateAlleles();
+                break;
+            case CHR_COUNTS:
+                vc.validateChromosomeCounts();
+                break;
         }
     }
 }
