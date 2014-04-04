@@ -155,6 +155,15 @@ public class SAMDataSource {
     private final ThreadAllocation threadAllocation;
 
     /**
+     * Static set of unsupported programs that create bam files.
+     * The key is the PG record ID and the value is the name of the tool that created it
+     */
+    private static Map<String, String> unsupportedPGs = new HashMap<>();
+    static {
+        unsupportedPGs.put("GATK ReduceReads", "ReduceReads");
+    }
+
+    /**
      * Create a new SAM data source given the supplied read metadata.
      *
      * For testing purposes
@@ -324,7 +333,6 @@ public class SAMDataSource {
         // and read group id (merged) -> read group id (original) mappings.
         for(SAMReaderID id: readerIDs) {
             SAMFileReader reader = readers.getReader(id);
-            checkForReducedBamFile(reader.getFileHeader());
 
             ReadGroupMapping mappingToMerged = new ReadGroupMapping();
 
@@ -356,9 +364,11 @@ public class SAMDataSource {
      * @param header the SAM header for a given file
      * @throws UserException if the header is from a reduced bam
      */
-    private void checkForReducedBamFile(final SAMFileHeader header) {
-        if ( header.getProgramRecord("GATK ReduceReads") != null )
-            throw new UserException("The GATK no longer supports running off of BAMs produced by ReduceReads");
+    private void checkForUnsupportedBamFile(final SAMFileHeader header) {
+        for ( final SAMProgramRecord PGrecord : header.getProgramRecords() ) {
+            if ( unsupportedPGs.containsKey(PGrecord.getId()) )
+                throw new UserException("The GATK no longer supports running off of BAMs produced by " + unsupportedPGs.get(PGrecord.getId()));
+        }
     }
 
     public void close() {
@@ -836,6 +846,8 @@ public class SAMDataSource {
             long lastTick = timer.currentTime();
             for(final SAMReaderID readerID: readerIDs) {
                 final ReaderInitializer init = new ReaderInitializer(readerID).call();
+
+                checkForUnsupportedBamFile(init.reader.getFileHeader());
 
                 if (removeProgramRecords) {
                     init.reader.getFileHeader().setProgramRecords(new ArrayList<SAMProgramRecord>());

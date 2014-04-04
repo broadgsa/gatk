@@ -227,4 +227,26 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 new ArrayList<ReadFilter>(),
                 false);
     }
+
+    @Test(expectedExceptions = UserException.class)
+    public void testFailOnReducedReadsRemovingProgramRecords() {
+        readers.add(new SAMReaderID(new File(privateTestDir + "old.reduced.bam"), new Tags()));
+
+        SAMDataSource data = new SAMDataSource(readers,
+                new ThreadAllocation(),
+                null,
+                genomeLocParser,
+                false,
+                SAMFileReader.ValidationStringency.SILENT,
+                null,
+                null,
+                new ValidationExclusion(),
+                new ArrayList<ReadFilter>(),
+                Collections.<ReadTransformer>emptyList(),
+                false,
+                (byte) -1,
+                true,
+                false,
+                null);
+    }
 }
