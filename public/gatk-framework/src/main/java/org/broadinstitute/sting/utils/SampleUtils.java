@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -280,7 +281,7 @@ public class SampleUtils {
                         samplesFromFiles.add(line);
                     }
                 } catch (FileNotFoundException e) {
-                    // ignore exception
+                    throw new UserException.CouldNotReadInputFile(file, e);
                 }
             }
         }
