@@ -49,6 +49,7 @@ import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
 
 /**
@@ -86,6 +87,9 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
     // make any file lock acquisition calls on the index files.
     private final boolean disableAutoIndexCreation;
 
+    // Map of file name -> new sample name used when performing on-the-fly sample renaming
+    private final Map<String, String> sampleRenameMap;
+
     /**
      * Construct an RMDTrackerBuilder, allowing the user to define tracks to build after-the-fact.  This is generally
      * used when walkers want to directly manage the ROD system for whatever reason.  Before using this constructor,
@@ -96,16 +100,19 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param disableAutoIndexCreation Do not auto-create index files, and do not use file locking when accessing index files.
      *                                 UNSAFE in general (because it causes us not to lock index files before reading them) --
      *                                 suitable only for test suite use.
+     * @param sampleRenameMap Map of file name -> new sample name used when performing on-the-fly sample renaming
      */
     public RMDTrackBuilder(final SAMSequenceDictionary dict,
                            final GenomeLocParser genomeLocParser,
                            final ValidationExclusion.TYPE validationExclusionType,
-                           final boolean disableAutoIndexCreation) {
+                           final boolean disableAutoIndexCreation,
+                           final Map<String, String> sampleRenameMap) {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
         this.featureManager = new FeatureManager(GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
         this.disableAutoIndexCreation = disableAutoIndexCreation;
+        this.sampleRenameMap = sampleRenameMap;
     }
 
     /**
@@ -139,7 +146,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         else
             pair = getFeatureSource(descriptor, name, inputFile, fileDescriptor.getStorageType());
         if (pair == null) throw new UserException.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
-        return new RMDTrack(descriptor.getCodecClass(), name, inputFile, pair.first, pair.second, genomeLocParser, createCodec(descriptor, name));
+        return new RMDTrack(descriptor.getCodecClass(), name, inputFile, pair.first, pair.second, genomeLocParser, createCodec(descriptor, name, inputFile));
     }
 
     /**
@@ -173,7 +180,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         try {
             final File indexFile = null;//new File(inputFile.getAbsoluteFile() + TabixUtils.STANDARD_INDEX_EXTENSION);
             final SAMSequenceDictionary dict = null; //TabixUtils.getSequenceDictionary(indexFile);
-            return new Pair<>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name)), dict);
+            return new Pair<>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name, inputFile)), dict);
         } catch (TribbleException e) {
             throw new UserException(e.getMessage(), e);
         }
@@ -183,10 +190,15 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * add a name to the codec, if it takes one
      * @param descriptor the class to create a codec for
      * @param name the name to assign this codec
+     * @param inputFile input file that we will be decoding
      * @return the feature codec itself
      */
-    private FeatureCodec createCodec(FeatureManager.FeatureDescriptor descriptor, String name) {
-        return featureManager.createCodec(descriptor, name, genomeLocParser);
+    private FeatureCodec createCodec(final FeatureManager.FeatureDescriptor descriptor, final String name, final File inputFile) {
+        // The remappedSampleName will be null if either no on-the-fly sample renaming was requested,
+        // or the user's sample rename map file didn't contain an entry for this file:
+        final String remappedSampleName = sampleRenameMap != null ? sampleRenameMap.get(inputFile.getAbsolutePath()) : null;
+
+        return featureManager.createCodec(descriptor, name, genomeLocParser, remappedSampleName);
     }
 
     /**
@@ -210,7 +222,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
 
         if(canBeIndexed) {
             try {
-                Index index = loadIndex(inputFile, createCodec(descriptor, name));
+                Index index = loadIndex(inputFile, createCodec(descriptor, name, inputFile));
                 try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
                 catch (ReviewedStingException e) { }
 
@@ -232,7 +244,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                     sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
                 }
 
-                featureSource = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name), index);
+                featureSource = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name, inputFile), index);
             }
             catch (TribbleException e) {
                 throw new UserException(e.getMessage());
@@ -242,7 +254,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
             }
         }
         else {
-            featureSource = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name), false);
+            featureSource = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name, inputFile), false);
         }
 
         return new Pair<AbstractFeatureReader,SAMSequenceDictionary>(featureSource,sequenceDictionary);

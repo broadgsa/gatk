@@ -28,20 +28,33 @@ package org.broadinstitute.sting.gatk;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.readers.LineIterator;
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.ErrorThrowing;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
@@ -504,6 +517,91 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         executeTest("testOnTheFlySampleRenamingVerifyWalkerSeesNewSamplesInReads", spec);
     }
 
+    @Test
+    public void testOnTheFlySampleRenamingSingleSampleVCF() throws IOException {
+        final File sampleRenameMapFile = createTestSampleRenameMapFile(
+                Arrays.asList(privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf  newSampleForNA12878"));
+
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T CombineVariants" +
+                " -R " + b37KGReference +
+                " -V " + privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf" +
+                " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
+                " -o %s",
+                1,
+                Arrays.asList("")); // No MD5s -- we will inspect the output file manually
+
+        final File outputVCF = executeTest("testOnTheFlySampleRenamingSingleSampleVCF", spec).first.get(0);
+        verifySampleRenaming(outputVCF, "newSampleForNA12878");
+    }
+
+    private void verifySampleRenaming( final File outputVCF, final String newSampleName ) throws IOException {
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> headerAndVCIter = GATKVCFUtils.readAllVCs(outputVCF, new VCFCodec());
+        final VCFHeader header = headerAndVCIter.getFirst();
+        final GATKVCFUtils.VCIterable<LineIterator> iter = headerAndVCIter.getSecond();
+
+        // Verify that sample renaming occurred at both the header and record levels (checking only the first 10 records):
+
+        Assert.assertEquals(header.getGenotypeSamples().size(), 1, "Wrong number of samples in output vcf header");
+        Assert.assertEquals(header.getGenotypeSamples().get(0), newSampleName, "Wrong sample name in output vcf header");
+
+        int recordCount = 0;
+        while ( iter.hasNext() && recordCount < 10 ) {
+            final VariantContext vcfRecord = iter.next();
+            Assert.assertEquals(vcfRecord.getSampleNames().size(), 1, "Wrong number of samples in output vcf record");
+            Assert.assertEquals(vcfRecord.getSampleNames().iterator().next(), newSampleName, "Wrong sample name in output vcf record");
+            recordCount++;
+        }
+    }
+
+    @Test
+    public void testOnTheFlySampleRenamingVerifyWalkerSeesNewSamplesInVCFRecords() throws Exception {
+        final File sampleRenameMapFile = createTestSampleRenameMapFile(
+                Arrays.asList(privateTestDir + "samplerenametest_single_sample_gvcf.vcf    FOOSAMPLE"));
+
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T OnTheFlySampleRenamingVerifyingRodWalker" +
+                " -R " + hg19Reference +
+                " -V " + privateTestDir + "samplerenametest_single_sample_gvcf.vcf" +
+                " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
+                " --expectedSampleName FOOSAMPLE" +
+                " -o %s",
+                1,
+                Arrays.asList("")); // No MD5s -- custom walker will throw an exception if there's a problem
+
+        executeTest("testOnTheFlySampleRenamingVerifyWalkerSeesNewSamplesInVCFRecords", spec);
+    }
+
+    @Test
+    public void testOnTheFlySampleRenamingMultiSampleVCF() throws Exception {
+        final File sampleRenameMapFile = createTestSampleRenameMapFile(
+                Arrays.asList(privateTestDir + "vcf/vcfWithGenotypes.vcf  badSample"));
+
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T CombineVariants" +
+                " -R " + b37KGReference +
+                " -V " + privateTestDir + "vcf/vcfWithGenotypes.vcf" +
+                " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
+                " -o %s",
+                1,
+                UserException.class); // expecting a UserException here
+
+        executeTest("testOnTheFlySampleRenamingMultiSampleVCF", spec);
+    }
+
+    @Test
+    public void testOnTheFlySampleRenamingSitesOnlyVCF() throws Exception {
+        final File sampleRenameMapFile = createTestSampleRenameMapFile(
+                Arrays.asList(privateTestDir + "vcf/vcfWithoutGenotypes.vcf  badSample"));
+
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T CombineVariants" +
+                " -R " + b37KGReference +
+                " -V " + privateTestDir + "vcf/vcfWithoutGenotypes.vcf" +
+                " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
+                " -o %s",
+                1,
+                UserException.class); // expecting a UserException here
+
+        executeTest("testOnTheFlySampleRenamingSitesOnlyVCF", spec);
+    }
+
     private File createTestSampleRenameMapFile( final List<String> contents ) throws IOException {
         final File mapFile = createTempFile("TestSampleRenameMapFile", ".tmp");
         final PrintWriter writer = new PrintWriter(mapFile);
@@ -531,5 +629,44 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         public Integer reduceInit() { return 0; }
         public Integer reduce(Integer value, Integer sum) { return value + sum; }
+    }
+
+    public static class OnTheFlySampleRenamingVerifyingRodWalker extends RodWalker<Integer, Integer> {
+        @Argument(fullName = "expectedSampleName", shortName = "expectedSampleName", doc = "", required = true)
+        String expectedSampleName = null;
+
+        @Output
+        PrintStream out;
+
+        @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+        public RodBinding<VariantContext> variants;
+
+        public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
+            if ( tracker == null ) {
+                return 0;
+            }
+
+            for ( final VariantContext vc : tracker.getValues(variants, context.getLocation()) ) {
+                if ( vc.getSampleNames().size() != 1 ) {
+                    throw new IllegalStateException("Encountered a vcf record with num samples != 1");
+                }
+
+                final String actualSampleName = vc.getSampleNames().iterator().next();
+                if ( ! expectedSampleName.equals(actualSampleName)) {
+                    throw new IllegalStateException(String.format("Encountered vcf record with wrong sample name. Expected %s found %s",
+                                                                  expectedSampleName, actualSampleName));
+                }
+            }
+
+            return 1;
+        }
+
+        public Integer reduceInit() {
+            return 0;
+        }
+
+        public Integer reduce(Integer counter, Integer sum) {
+            return counter + sum;
+        }
     }
 }

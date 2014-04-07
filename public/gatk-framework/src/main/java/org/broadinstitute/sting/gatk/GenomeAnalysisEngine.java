@@ -758,13 +758,18 @@ public class GenomeAnalysisEngine {
         validateSuppliedReads();
         initializeReadTransformers(walker);
 
-        readsDataSource = createReadsDataSource(argCollection,genomeLocParser,referenceDataSource.getReference());
+        final Map<String, String> sampleRenameMap = argCollection.sampleRenameMappingFile != null ?
+                                                    loadSampleRenameMap(argCollection.sampleRenameMappingFile) :
+                                                    null;
+
+        readsDataSource = createReadsDataSource(argCollection,genomeLocParser,referenceDataSource.getReference(), sampleRenameMap);
 
         for (ReadFilter filter : filters)
             filter.initialize(this);
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
-        rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
+        rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),
+                                                        genomeLocParser,argCollection.unsafe,sampleRenameMap);
     }
 
     /**
@@ -846,7 +851,8 @@ public class GenomeAnalysisEngine {
      * @param refReader reader
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource createReadsDataSource(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
+    private SAMDataSource createReadsDataSource(final GATKArgumentCollection argCollection, final GenomeLocParser genomeLocParser,
+                                                final IndexedFastaSequenceFile refReader, final Map<String, String> sampleRenameMap) {
         DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when
@@ -864,10 +870,6 @@ public class GenomeAnalysisEngine {
             removeProgramRecords = false;
 
         final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
-
-        final Map<SAMReaderID, String> sampleRenameMap = argCollection.sampleRenameMappingFile != null ?
-                                                         loadSampleRenameMap(argCollection.sampleRenameMappingFile) :
-                                                         null;
 
         return new SAMDataSource(
                 samReaderIDs,
@@ -892,19 +894,19 @@ public class GenomeAnalysisEngine {
      * Loads a user-provided sample rename map file for use in on-the-fly sample renaming into an in-memory
      * HashMap. This file must consist of lines with two whitespace-separated fields:
      *
-     * absolute_path_to_bam_file    new_sample_name
+     * absolute_path_to_file    new_sample_name
      *
-     * The engine will verify that each bam file contains reads from only one sample when the on-the-fly sample
-     * renaming feature is being used.
+     * The engine will verify that each file contains data from only one sample when the on-the-fly sample
+     * renaming feature is being used. Note that this feature works only with bam and vcf files.
      *
      * @param sampleRenameMapFile sample rename map file from which to load data
-     * @return a HashMap containing the contents of the map file, with the keys being the bam file paths and
+     * @return a HashMap containing the contents of the map file, with the keys being the input file paths and
      *         the values being the new sample names.
      */
-    protected Map<SAMReaderID, String> loadSampleRenameMap( final File sampleRenameMapFile ) {
-        logger.info("Renaming samples from BAM files on-the-fly using mapping file " + sampleRenameMapFile.getAbsolutePath());
+    protected Map<String, String> loadSampleRenameMap( final File sampleRenameMapFile ) {
+        logger.info("Renaming samples from input files on-the-fly using mapping file " + sampleRenameMapFile.getAbsolutePath());
 
-        final Map<SAMReaderID, String> sampleRenameMap = new HashMap<>((int)sampleRenameMapFile.length() / 50);
+        final Map<String, String> sampleRenameMap = new HashMap<>((int)sampleRenameMapFile.length() / 50);
 
         try {
             for ( final String line : new XReadLines(sampleRenameMapFile) ) {
@@ -916,21 +918,21 @@ public class GenomeAnalysisEngine {
                                                                         tokens.length, line));
                 }
 
-                final File bamFile = new File(tokens[0]);
+                final File inputFile = new File(tokens[0]);
                 final String newSampleName = tokens[1];
 
-                if ( ! bamFile.isAbsolute() ) {
-                    throw new UserException.MalformedFile(sampleRenameMapFile, "Bam file path not absolute at line: " + line);
+                if ( ! inputFile.isAbsolute() ) {
+                    throw new UserException.MalformedFile(sampleRenameMapFile, "Input file path not absolute at line: " + line);
                 }
 
-                final SAMReaderID bamID = new SAMReaderID(bamFile, new Tags());
+                final String inputFilePath = inputFile.getAbsolutePath();
 
-                if ( sampleRenameMap.containsKey(bamID) ) {
+                if ( sampleRenameMap.containsKey(inputFilePath) ) {
                     throw new UserException.MalformedFile(sampleRenameMapFile,
-                                                          String.format("Bam file %s appears more than once", bamFile.getAbsolutePath()));
+                                                          String.format("Input file %s appears more than once", inputFilePath));
                 }
 
-                sampleRenameMap.put(bamID, newSampleName);
+                sampleRenameMap.put(inputFilePath, newSampleName);
             }
         }
         catch ( FileNotFoundException e ) {
@@ -958,15 +960,18 @@ public class GenomeAnalysisEngine {
      * @param sequenceDictionary GATK-wide sequnce dictionary to use for validation.
      * @param genomeLocParser to use when creating and validating GenomeLocs.
      * @param validationExclusionType potentially indicate which validations to include / exclude.
+     * @param sampleRenameMap map of file -> new sample name used when doing on-the-fly sample renaming
      *
      * @return A list of reference-ordered data sources.
      */
-    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(Collection<RMDTriplet> referenceMetaDataFiles,
-                                                                            SAMSequenceDictionary sequenceDictionary,
-                                                                            GenomeLocParser genomeLocParser,
-                                                                            ValidationExclusion.TYPE validationExclusionType) {
+    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(final Collection<RMDTriplet> referenceMetaDataFiles,
+                                                                            final SAMSequenceDictionary sequenceDictionary,
+                                                                            final GenomeLocParser genomeLocParser,
+                                                                            final ValidationExclusion.TYPE validationExclusionType,
+                                                                            final Map<String, String> sampleRenameMap) {
         final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType,
-                                                            getArguments().disableAutoIndexCreationAndLockingWhenReadingRods);
+                                                            getArguments().disableAutoIndexCreationAndLockingWhenReadingRods,
+                                                            sampleRenameMap);
 
         final List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)

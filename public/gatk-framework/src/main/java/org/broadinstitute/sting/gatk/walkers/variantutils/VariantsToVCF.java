@@ -195,7 +195,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                           getToolkit().getGenomeLocParser(),
                                                           getToolkit().getArguments().unsafe,
-                                                          getToolkit().getArguments().disableAutoIndexCreationAndLockingWhenReadingRods);
+                                                          getToolkit().getArguments().disableAutoIndexCreationAndLockingWhenReadingRods,
+                                                          null);
             dbsnpIterator = builder.createInstanceOfTrack(VCFCodec.class, new File(dbsnp.dbsnp.getSource())).getIterator();
             // Note that we should really use some sort of seekable iterator here so that the search doesn't take forever
             // (but it's complicated because the hapmap location doesn't match the dbsnp location, so we don't know where to seek to)

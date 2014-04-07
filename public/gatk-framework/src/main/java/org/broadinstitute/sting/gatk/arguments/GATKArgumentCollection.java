@@ -359,14 +359,18 @@ public class GATKArgumentCollection {
      */
     @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Keep program records in the SAM header", required = false)
     public boolean keepProgramRecords = false;
+
     /**
-     * This option requires that each BAM file listed in the mapping file have only a single sample specified in its header
-     * (though there may be multiple read groups for that sample). Each line of the mapping file must contain the absolute
-     * path to a BAM file, followed by whitespace, followed by the new sample name for that BAM file.
+     * On-the-fly sample renaming works only with single-sample BAM and VCF files. Each line of the mapping file must
+     * contain the absolute path to a BAM or VCF file, followed by whitespace, followed by the new sample name for that
+     * BAM or VCF file. The engine will verify at runtime that each BAM/VCF targeted for sample renaming has only
+     * a single sample specified in its header (though, in the case of BAM files, there may be multiple read groups for
+     * that sample).
      */
     @Advanced
     @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file", doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file", required = false)
     public File sampleRenameMappingFile = null;
+
     /**
      * For expert users only who know what they are doing. We do not support usage of this argument, so we may refuse to help you if you use it and something goes wrong.
      */

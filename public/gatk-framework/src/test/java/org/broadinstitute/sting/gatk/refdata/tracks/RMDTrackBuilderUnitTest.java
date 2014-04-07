@@ -71,7 +71,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         // We have to disable auto-index creation/locking in the RMDTrackBuilder for tests,
         // as the lock acquisition calls were intermittently hanging on our farm. This unfortunately
         // means that we can't include tests for the auto-index creation feature.
-        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true);
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true,null);
     }
 
     @Test

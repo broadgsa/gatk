@@ -128,7 +128,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
                                                                          "/foo/bar/second.bam        newSample2",
                                                                          "/foo/bar2/third.bam newSample3"));
         final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
-        final Map<SAMReaderID, String> renameMap = engine.loadSampleRenameMap(mapFile);
+        final Map<String, String> renameMap = engine.loadSampleRenameMap(mapFile);
 
         Assert.assertEquals(renameMap.size(), 3, "Sample rename map was wrong size after loading from file");
 
@@ -137,8 +137,8 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
             final String expectedKey = expectedResultsIterator.next();
             final String expectedValue = expectedResultsIterator.next();
 
-            Assert.assertNotNull(renameMap.get(new SAMReaderID(expectedKey, new Tags())), String.format("Entry for %s not found in sample rename map", expectedKey));
-            Assert.assertEquals(renameMap.get(new SAMReaderID(expectedKey, new Tags())), expectedValue, "Wrong value in sample rename map for " + expectedKey);
+            Assert.assertNotNull(renameMap.get(expectedKey), String.format("Entry for %s not found in sample rename map", expectedKey));
+            Assert.assertEquals(renameMap.get(expectedKey), expectedValue, "Wrong value in sample rename map for " + expectedKey);
         }
     }
 
@@ -166,7 +166,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         logger.info("Executing test " + testName);
 
         final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
-        final Map<SAMReaderID, String> renameMap = engine.loadSampleRenameMap(mapFile);
+        final Map<String, String> renameMap = engine.loadSampleRenameMap(mapFile);
     }
 
     private File createTestSampleRenameMapFile( final List<String> contents ) throws IOException {
