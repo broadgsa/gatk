@@ -166,7 +166,10 @@ public class ProcessController {
             }
             running.add(this);
         } catch (IOException e) {
-            throw new ReviewedStingException("Unable to start command: " + StringUtils.join(builder.command(), " "));
+            String message = String.format("Unable to start command: %s\nReason: %s",
+                    StringUtils.join(builder.command(), " "),
+                    e.getMessage());
+            throw new ReviewedStingException(message);
         }
 
         int exitCode;
