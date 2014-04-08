@@ -132,9 +132,9 @@ public class SAMDataSource {
     private final Map<SAMReaderID,ReadGroupMapping> originalToMergedReadGroupMappings = new HashMap<SAMReaderID,ReadGroupMapping>();
 
     /**
-     * Mapping from bam file ID to new sample name. Used only when doing on-the-fly sample renaming.
+     * Mapping from input file path to new sample name. Used only when doing on-the-fly sample renaming.
      */
-    private Map<SAMReaderID, String> sampleRenameMap = null;
+    private Map<String, String> sampleRenameMap = null;
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(SAMDataSource.class);
@@ -253,7 +253,7 @@ public class SAMDataSource {
             byte defaultBaseQualities,
             boolean removeProgramRecords,
             final boolean keepReadsInLIBS,
-            final Map<SAMReaderID, String> sampleRenameMap) {
+            final Map<String, String> sampleRenameMap) {
 
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
@@ -879,7 +879,7 @@ public class SAMDataSource {
 
                 // The remappedSampleName will be null if either no on-the-fly sample renaming was requested,
                 // or the user's sample rename map file didn't contain an entry for this bam file:
-                final String remappedSampleName = sampleRenameMap != null ? sampleRenameMap.get(readerID) : null;
+                final String remappedSampleName = sampleRenameMap != null ? sampleRenameMap.get(readerID.getSamFilePath()) : null;
 
                 // If we've been asked to rename the sample for this bam file, do so now. We'll check to
                 // make sure this bam only contains reads from one sample before proceeding.

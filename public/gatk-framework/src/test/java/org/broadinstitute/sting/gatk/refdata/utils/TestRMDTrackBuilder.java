@@ -46,7 +46,7 @@ public class TestRMDTrackBuilder extends RMDTrackBuilder {
 
     public TestRMDTrackBuilder(SAMSequenceDictionary dict, GenomeLocParser genomeLocParser) {
         // disable auto-index creation/locking in the RMDTrackBuilder for tests
-        super(dict, genomeLocParser, null, true);
+        super(dict, genomeLocParser, null, true, null);
         this.genomeLocParser = genomeLocParser;
     }
 
@@ -55,7 +55,7 @@ public class TestRMDTrackBuilder extends RMDTrackBuilder {
         String name = fileDescriptor.getName();
         File inputFile = new File(fileDescriptor.getFile());
         FeatureManager.FeatureDescriptor descriptor = getFeatureManager().getByTriplet(fileDescriptor);
-        FeatureCodec codec = getFeatureManager().createCodec(descriptor, name, genomeLocParser);
+        FeatureCodec codec = getFeatureManager().createCodec(descriptor, name, genomeLocParser, null);
         TestFeatureReader featureReader;
         Index index;
         try {

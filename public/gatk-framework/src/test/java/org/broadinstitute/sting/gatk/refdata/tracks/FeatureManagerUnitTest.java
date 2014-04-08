@@ -153,7 +153,7 @@ public class FeatureManagerUnitTest extends BaseTest {
         FeatureManager.FeatureDescriptor descriptor = manager.getByName("vcf");
         Assert.assertNotNull(descriptor, "Couldn't find VCF feature descriptor!");
 
-        FeatureCodec c = manager.createCodec(descriptor, "foo", genomeLocParser);
+        FeatureCodec c = manager.createCodec(descriptor, "foo", genomeLocParser, null);
         Assert.assertNotNull(c, "Couldn't create codec");
         Assert.assertEquals(c.getClass(), descriptor.getCodecClass());
         Assert.assertEquals(c.getFeatureType(), descriptor.getFeatureClass());

@@ -97,7 +97,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
         triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE,new Tags());
         // disable auto-index creation/locking in the RMDTrackBuilder for tests
-        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true);
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true,null);
     }
 
     @Test

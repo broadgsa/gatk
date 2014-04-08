@@ -252,18 +252,28 @@ public class FeatureManager  {
      *
      * @param descriptor FeatureDescriptor of the Tribble FeatureCodec we want to create
      * @param name the name to assign this codec
+     * @param genomeLocParser GenomeLocParser for ReferenceDependentFeatureCodecs
+     * @param remappedSampleName replacement sample name for single-sample vcfs, or null if we're not performing
+     *                           sample name remapping
      * @return the feature codec itself
      */
     @Requires({"descriptor != null", "name != null", "genomeLocParser != null"})
     @Ensures("result != null")
-    public FeatureCodec createCodec(FeatureDescriptor descriptor, String name, GenomeLocParser genomeLocParser) {
+    public FeatureCodec createCodec(final FeatureDescriptor descriptor, final String name, final GenomeLocParser genomeLocParser,
+                                    final String remappedSampleName) {
         FeatureCodec codex = pluginManager.createByType(descriptor.getCodecClass());
         if ( codex instanceof NameAwareCodec )
             ((NameAwareCodec)codex).setName(name);
         if ( codex instanceof ReferenceDependentFeatureCodec )
             ((ReferenceDependentFeatureCodec)codex).setGenomeLocParser(genomeLocParser);
-        if ( codex instanceof AbstractVCFCodec && lenientVCFProcessing )
-            ((AbstractVCFCodec)codex).disableOnTheFlyModifications();
+        if ( codex instanceof AbstractVCFCodec ) {
+            if ( lenientVCFProcessing ) {
+                ((AbstractVCFCodec)codex).disableOnTheFlyModifications();
+            }
+            if ( remappedSampleName != null ) {
+                ((AbstractVCFCodec)codex).setRemappedSampleName(remappedSampleName);
+            }
+        }
 
         return codex;
     }

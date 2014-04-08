@@ -85,7 +85,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq);
         // disable auto-index creation/locking in the RMDTrackBuilder for tests
-        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true);
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true,null);
     }
 
     /**
