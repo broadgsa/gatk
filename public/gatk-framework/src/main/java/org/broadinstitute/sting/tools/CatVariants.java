@@ -53,7 +53,6 @@ import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFact
 import java.io.*;
 import java.util.*;
 
-
 /**
  *
  * Concatenates VCF files of non-overlapped genome intervals, all with the same set of samples
@@ -73,13 +72,12 @@ import java.util.*;
  * <h3>Input</h3>
  * <p>
  * One or more variant sets to combine. They should be of non-overlapping genome intervals and with the same samples (in the same order).
- * The input files should be 'name.vcf' or 'name.VCF' or 'name.bcf' or 'name.BCF'.
  * If the files are ordered according to the appearance of intervals in the ref genome, then one can use the -assumeSorted flag.
  * </p>
  *
  * <h3>Output</h3>
  * <p>
- * A combined VCF. The output file should be 'name.vcf' or 'name.VCF'.
+ * A combined VCF or BCF. The output file should have the same extension as the input(s).
  * <\p>
  *
  * <h3>Important note</h3>
@@ -113,17 +111,17 @@ public class CatVariants extends CommandLineProgram {
      * The VCF or BCF files to merge together
      *
      * CatVariants can take any number of -V arguments on the command line.  Each -V argument
-     * will be included in the final merged output VCF. The order of arguments does not matter, but it runs more
+     * will be included in the final merged output VCF/BCF. The order of arguments does not matter, but it runs more
      * efficiently if they are sorted based on the intervals and the assumeSorted argument is used.
      *
      */
-    @Input(fullName="variant", shortName="V", doc="Input VCF file/s named <name>.vcf or <name>.bcf", required = true)
+    @Input(fullName="variant", shortName="V", doc="Input VCF file/s", required = true)
     private List<File> variant = null;
 
-    @Output(fullName = "outputFile", shortName = "out", doc = "output file name <name>.vcf or <name>.bcf", required = true)
+    @Output(fullName = "outputFile", shortName = "out", doc = "output file", required = true)
     private File outputFile = null;
 
-    @Argument(fullName = "assumeSorted", shortName = "assumeSorted", doc = "assumeSorted should be true if he input files are already sorted (based on the position of the variants", required = false)
+    @Argument(fullName = "assumeSorted", shortName = "assumeSorted", doc = "assumeSorted should be true if the input files are already sorted (based on the position of the variants)", required = false)
     private Boolean assumeSorted = false;
 
     @Argument(fullName = "variant_index_type", doc = "which type of IndexCreator to use for VCF/BCF indices", required = false)
@@ -137,19 +135,69 @@ public class CatVariants extends CommandLineProgram {
      */
     private static void printUsage() {
         System.err.println("Usage: java -cp target/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants --reference <reference> --variant <input VCF or BCF file; can specify --variant multiple times> --outputFile <outputFile> [--assumeSorted]");
-        System.err.println("    The input file(s) can be of type: VCF (must end in .vcf or .VCF) or");
-        System.err.println("                                      BCF2 (must end in .bcf or .BCF).");
-        System.err.println("    Output file must be of type vcf or bcf (must end in .vcf or .bcf).");
+        System.err.println("    The output file must be of the same type as all input files.");
         System.err.println("    If the input files are already sorted, then indicate that with --assumeSorted to improve performance.");
+    }
+
+    private enum FileType {
+        VCF,
+        BCF,
+        BLOCK_COMPRESSED_VCF,
+        INVALID
+    }
+
+    private FileType fileExtensionCheck(File inFile, File outFile) {
+        final String inFileName = inFile.toString().toLowerCase();
+        final String outFileName = outFile.toString().toLowerCase();
+
+        FileType inFileType = FileType.INVALID;
+
+        if (inFileName.endsWith(".vcf")) {
+            inFileType = FileType.VCF;
+            if (outFileName.endsWith(".vcf"))
+                return inFileType;
+        }
+
+        if (inFileName.endsWith(".bcf")) {
+            inFileType = FileType.BCF;
+            if (outFileName.endsWith(".bcf"))
+                return inFileType;
+        }
+
+        for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
+            if (inFileName.endsWith(".vcf" + extension)) {
+                inFileType = FileType.BLOCK_COMPRESSED_VCF;
+                if (outFileName.endsWith(".vcf" + extension))
+                    return inFileType;
+            }
+        }
+
+        if (inFileType == FileType.INVALID)
+            System.err.println(String.format("File extension for input file %s is not valid for CatVariants", inFile));
+        else
+            System.err.println(String.format("File extension mismatch between input %s and output %s", inFile, outFile));
+
+        printUsage();
+        return FileType.INVALID;
+    }
+
+    private FeatureReader<VariantContext> getFeatureReader(final FileType fileType, final File file) {
+        FeatureReader<VariantContext> reader = null;
+        switch(fileType) {
+            case VCF:
+            case BLOCK_COMPRESSED_VCF:
+                // getFeatureReader will handle both block-compressed and plain text VCFs
+                reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
+                break;
+            case BCF:
+                reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new BCF2Codec(), false);
+                break;
+        }
+        return reader;
     }
 
     @Override
     protected int execute() throws Exception {
-        //if(help){
-        //    printUsage();
-        //    return 1;
-        //}
-
         BasicConfigurator.configure();
         logger.setLevel(Level.INFO);
 
@@ -162,37 +210,27 @@ public class CatVariants extends CommandLineProgram {
 
         Comparator<Pair<Integer,File>> positionComparator = new PositionComparator();
 
-
-        //PriorityQueue<Pair<Integer,FeatureReader<VariantContext>>> queue =
-        //        new PriorityQueue<Pair<Integer,FeatureReader<VariantContext>>>(2000, comparator);
         Queue<Pair<Integer,File>> priorityQueue;
-        if(assumeSorted)
-            priorityQueue = new LinkedList<Pair<Integer,File>>();
+        if (assumeSorted)
+            priorityQueue = new LinkedList<>();
         else
-            priorityQueue = new PriorityQueue<Pair<Integer,File>>(10000, positionComparator);
+            priorityQueue = new PriorityQueue<>(10000, positionComparator);
 
-        Iterator<File> files = variant.iterator();
-        File file;
-        while (files.hasNext())   {
-            file = files.next();
-            if (!(file.getName().endsWith(".vcf") || file.getName().endsWith(".VCF") || file.getName().endsWith(".bcf") || file.getName().endsWith(".BCF"))){
-                System.err.println("File " + file.getAbsolutePath() + " should be <name>.vcf or <name>.bcf");
-                printUsage();
+        FileType fileType = FileType.INVALID;
+        for (File file : variant) {
+            // if it returns a valid type, it will be the same for all files
+            fileType = fileExtensionCheck(file, outputFile);
+            if (fileType == FileType.INVALID)
                 return 1;
-            }
+
             if (assumeSorted){
-                priorityQueue.add(new Pair<Integer, File>(0,file));
+                priorityQueue.add(new Pair<>(0,file));
             }
             else{
                 if (!file.exists()) {
                     throw new UserException(String.format("File %s doesn't exist",file.getAbsolutePath()));
                 }
-                FeatureReader<VariantContext> reader;
-                boolean useVCF = (file.getName().endsWith(".vcf") || file.getName().endsWith(".VCF"));
-                if(useVCF)
-                    reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
-                else
-                    reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new BCF2Codec(), false);
+                FeatureReader<VariantContext> reader = getFeatureReader(fileType, file);
                 Iterator<VariantContext> it = reader.iterator();
                 if(!it.hasNext()){
                     System.err.println(String.format("File %s is empty. This file will be ignored",file.getAbsolutePath()));
@@ -201,14 +239,9 @@ public class CatVariants extends CommandLineProgram {
                 VariantContext vc = it.next();
                 int firstPosition = vc.getStart();
                 reader.close();
-                //queue.add(new Pair<Integer, FeatureReader<VariantContext>>(firstPosition,reader));
-                priorityQueue.add(new Pair<Integer, File>(firstPosition,file));
+                priorityQueue.add(new Pair<>(firstPosition,file));
             }
 
-        }
-
-        if (!(outputFile.getName().endsWith(".vcf") || outputFile.getName().endsWith(".VCF"))){
-            throw new UserException(String.format("Output file %s should be <name>.vcf", outputFile));
         }
 
         FileOutputStream outputStream = new FileOutputStream(outputFile);
@@ -217,21 +250,14 @@ public class CatVariants extends CommandLineProgram {
         final VariantContextWriter outputWriter = VariantContextWriterFactory.create(outputFile, outputStream, ref.getSequenceDictionary(), idxCreator, options);
 
         boolean firstFile = true;
-        int count =0;
-        //while(!queue.isEmpty()){
+        int count = 0;
         while(!priorityQueue.isEmpty() ){
             count++;
-            //FeatureReader<VariantContext> reader = queue.remove().getSecond();
-            file = priorityQueue.remove().getSecond();
+            File file = priorityQueue.remove().getSecond();
             if (!file.exists()) {
                 throw new UserException(String.format("File %s doesn't exist",file.getAbsolutePath()));
             }
-            FeatureReader<VariantContext> reader;
-            boolean useVCF = (file.getName().endsWith(".vcf") || file.getName().endsWith(".VCF"));
-            if(useVCF)
-                reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
-            else
-                reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new BCF2Codec(), false);
+            FeatureReader<VariantContext> reader = getFeatureReader(fileType, file);
 
             if(count%10 ==0)
                 System.out.print(count);
@@ -255,12 +281,10 @@ public class CatVariants extends CommandLineProgram {
         }
         System.out.println();
 
-        outputStream.close();
         outputWriter.close();
 
         return 0;
     }
-
 
     public static void main(String[] args){
         try {
@@ -286,5 +310,4 @@ public class CatVariants extends CommandLineProgram {
             return startPositionP1 < startPositionP2 ? -1 : 1 ;
         }
     }
-
 }
