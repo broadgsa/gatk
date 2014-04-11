@@ -34,6 +34,7 @@ import org.broad.tribble.index.interval.IntervalTreeIndex;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.index.tabix.TabixIndex;
 import org.broad.tribble.util.TabixUtils;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.variant.vcf.VCFCodec;
@@ -328,6 +329,50 @@ public class VCFIntegrationTest extends WalkerTest {
         File outTabixIdx = new File(outVCF.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION);
         final Index actualIndex = IndexFactory.loadIndex(outTabixIdx.toString());
         Assert.assertTrue(actualIndex instanceof TabixIndex, "testBlockCompressedIndexCreation: Want Tabix index but index is not Tabix: " + outTabixIdx);
+    }
+
+    //
+    //
+    // Block-Compressed Input Tests
+    //
+    //
+
+    private class BlockCompressedInputTest extends TestDataProvider {
+        private final String extension;
+
+        private BlockCompressedInputTest(String extension) {
+            super(BlockCompressedInputTest.class);
+
+            this.extension = extension;
+        }
+
+        public String toString() {
+            return String.format("File extension %s", extension);
+        }
+    }
+
+    @DataProvider(name = "BlockCompressedInputDataProvider")
+    public Object[][] blockCompressedInputData() {
+        for (String suffix : VCFWriterArgumentTypeDescriptor.SUPPORTED_ZIPPED_SUFFIXES)
+            new BlockCompressedInputTest(".vcf" + suffix);
+
+        return TestDataProvider.getTests(BlockCompressedInputTest.class);
+    }
+
+    @Test(dataProvider = "BlockCompressedInputDataProvider")
+    public void testBlockCompressedInput(BlockCompressedInputTest testSpec) {
+
+        File inputFile = new File(BaseTest.privateTestDir, "block_compressed_input_test" + testSpec.extension);
+        final String commandLine = " -T SelectVariants" +
+                " -R " + b37KGReference +
+                " --no_cmdline_in_header" +
+                " -V " + inputFile +
+                " -o %s ";
+        final String name = "testBlockCompressedInput: " + testSpec.toString();
+
+        final WalkerTestSpec spec = new WalkerTestSpec(commandLine, 1, Arrays.asList("3b60668bd973e43783d0406de80d2ed2"));
+
+        executeTest(name, spec);
     }
 
 }
