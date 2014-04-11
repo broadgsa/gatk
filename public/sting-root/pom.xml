@@ -43,7 +43,7 @@
         <test.args>-Xmx${test.maxmemory} -XX:+UseParallelOldGC -XX:ParallelGCThreads=${java.gc.threads} -XX:GCTimeLimit=${java.gc.timeLimit} -XX:GCHeapFreeLimit=${java.gc.heapFreeLimit}</test.args>
 
         <!-- Version numbers for picard sam-jdk. Usually kept in sync. -->
-        <picard.public.version>1.111.1902</picard.public.version>
+        <picard.public.version>1.111.1920</picard.public.version>
         <sam.version>${picard.public.version}</sam.version>
         <picard.version>${picard.public.version}</picard.version>
         <variant.version>${picard.public.version}</variant.version>
