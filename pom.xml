@@ -191,7 +191,7 @@
                                 <maxmemory>2g</maxmemory>
                                 <useStandardDocletOptions>false</useStandardDocletOptions>
                                 <quiet>true</quiet>
-                                <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} -out ${project.build.outputDirectory}/${resource.bundle.path}</additionalparam>
+                                <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} -out "${project.build.outputDirectory}/${resource.bundle.path}"</additionalparam>
                             </configuration>
                         </execution>
                     </executions>
