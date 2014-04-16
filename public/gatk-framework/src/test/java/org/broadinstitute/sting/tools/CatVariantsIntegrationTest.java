@@ -26,13 +26,13 @@
 package org.broadinstitute.sting.tools;
 
 import org.apache.commons.lang.StringUtils;
+import org.broad.tribble.AbstractFeatureReader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.MD5DB;
 import org.broadinstitute.sting.MD5Mismatch;
 import org.broadinstitute.sting.utils.runtime.ProcessController;
 import org.broadinstitute.sting.utils.runtime.ProcessSettings;
 import org.broadinstitute.sting.utils.runtime.RuntimeUtils;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -75,7 +75,7 @@ public class CatVariantsIntegrationTest {
         new CatVariantsTestProvider("CatVariantsTest1.vcf", "CatVariantsTest2.vcf", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
         new CatVariantsTestProvider("CatVariantsTest1.bcf", "CatVariantsTest2.bcf", BaseTest.createTempFile("CatVariantsTest", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
 
-        for (String extension : VariantContextWriterFactory.BLOCK_COMPRESSED_EXTENSIONS)
+        for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
             new CatVariantsTestProvider("CatVariantsTest1.vcf" + extension, "CatVariantsTest2.vcf" + extension, BaseTest.createTempFile("CatVariantsTest", ".vcf" + extension), "33f728ac5c70ce2994f3619a27f47088");
 
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
+import org.broad.tribble.AbstractFeatureReader;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
@@ -49,8 +50,6 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public static final String NO_HEADER_ARG_NAME = "no_cmdline_in_header";
     public static final String SITES_ONLY_ARG_NAME = "sites_only";
     public static final String FORCE_BCF = "bcf";
-    public static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES =
-            new HashSet<>(Arrays.asList(VariantContextWriterFactory.BLOCK_COMPRESSED_EXTENSIONS));
 
     /**
      * The engine into which output stubs should be fed.
@@ -223,19 +222,6 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @return true if the file will be compressed.
      */
     public static boolean isCompressed(String writerFileName) {
-        return writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName));
+        return writerFileName != null && AbstractFeatureReader.hasBlockCompressedExtension(writerFileName);
     }
-
-    /**
-     * Returns a lower-cased version of the suffix of the provided file.
-     * @param fileName the file name.  Must not be null.
-     * @return lower-cased version of the file suffix.  Will not be null.
-     */
-    private static String getFileSuffix(String fileName) {
-        int indexOfLastDot = fileName.lastIndexOf(".");
-        if ( indexOfLastDot == -1 )
-            return "";
-        return fileName.substring(indexOfLastDot).toLowerCase();
-    }
-
 }

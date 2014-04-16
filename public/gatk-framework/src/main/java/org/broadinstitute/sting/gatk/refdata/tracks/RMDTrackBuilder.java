@@ -37,6 +37,7 @@ import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -141,7 +142,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
 
         // return a feature reader track
         Pair<AbstractFeatureReader, SAMSequenceDictionary> pair;
-        if (inputFile.getAbsolutePath().endsWith(".gz"))
+        if (VCFWriterArgumentTypeDescriptor.isCompressed(inputFile.toString()))
             pair = createTabixIndexedFeatureSource(descriptor, name, inputFile);
         else
             pair = getFeatureSource(descriptor, name, inputFile, fileDescriptor.getStorageType());
@@ -178,9 +179,8 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         // we might not know the index type, try loading with the default reader constructor
         logger.debug("Attempting to load " + inputFile + " as a tabix indexed file without validating it");
         try {
-            final File indexFile = null;//new File(inputFile.getAbsoluteFile() + TabixUtils.STANDARD_INDEX_EXTENSION);
-            final SAMSequenceDictionary dict = null; //TabixUtils.getSequenceDictionary(indexFile);
-            return new Pair<>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name, inputFile)), dict);
+            // getFeatureReader will detect that it's Tabix
+            return new Pair<>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name, inputFile)), null);
         } catch (TribbleException e) {
             throw new UserException(e.getMessage(), e);
         }

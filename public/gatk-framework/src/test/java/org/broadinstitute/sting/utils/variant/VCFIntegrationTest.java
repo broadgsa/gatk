@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.variant;
 
+import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.AbstractIndex;
 import org.broad.tribble.index.ChrIndex;
@@ -36,7 +37,6 @@ import org.broad.tribble.index.tabix.TabixIndex;
 import org.broad.tribble.util.TabixUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.testng.Assert;
 import org.testng.TestException;
@@ -46,7 +46,6 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -300,8 +299,8 @@ public class VCFIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "BlockCompressedIndexDataProvider")
     public Object[][] blockCompressedIndexCreatorData() {
-        for (String suffix : VCFWriterArgumentTypeDescriptor.SUPPORTED_ZIPPED_SUFFIXES)
-            new BlockCompressedIndexCreatorTest(".vcf" + suffix);
+        for (final String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
+            new BlockCompressedIndexCreatorTest(".vcf" + extension);
 
         return TestDataProvider.getTests(BlockCompressedIndexCreatorTest.class);
     }
@@ -353,8 +352,8 @@ public class VCFIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "BlockCompressedInputDataProvider")
     public Object[][] blockCompressedInputData() {
-        for (String suffix : VCFWriterArgumentTypeDescriptor.SUPPORTED_ZIPPED_SUFFIXES)
-            new BlockCompressedInputTest(".vcf" + suffix);
+        for (final String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
+            new BlockCompressedInputTest(".vcf" + extension);
 
         return TestDataProvider.getTests(BlockCompressedInputTest.class);
     }
