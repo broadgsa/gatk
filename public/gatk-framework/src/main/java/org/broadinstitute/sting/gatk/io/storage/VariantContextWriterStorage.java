@@ -131,7 +131,6 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
         }
 
-        // The GATK/Tribble can't currently index block-compressed files on the fly.  Disable OTF indexing even if the user explicitly asked for it.
         EnumSet<Options> options = stub.getWriterOptions(indexOnTheFly);
         VariantContextWriter writer = VariantContextWriterFactory.create(file, this.stream, stub.getMasterSequenceDictionary(), stub.getIndexCreator(), options);
 

@@ -40,7 +40,6 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.MD5DB;
 import org.broadinstitute.sting.MD5Mismatch;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.runtime.*;
 
 public class LoggingIntegrationTest {
@@ -100,36 +99,19 @@ public class LoggingIntegrationTest {
         // output argument
 
         ProcessSettings ps = new ProcessSettings(cfg.getCmdLine(false).split("\\s+"));
-        execAndCheck(pc, ps);
+        pc.execAndCheck(ps);
         String output_argument_md5 = md5db.calculateFileMD5(cfg.argumentOutputFile);
 
         // pipe to stdout
 
         ps = new ProcessSettings(cfg.getCmdLine(true).split("\\s+"));
         ps.setStdoutSettings(new OutputStreamSettings(cfg.pipedOutputFile));
-        execAndCheck(pc, ps);
+        pc.execAndCheck(ps);
 
         MD5DB.MD5Match result = md5db.testFileMD5("LoggingIntegrationTest", "LoggingIntegrationTest", cfg.pipedOutputFile, output_argument_md5, false);
         if(result.failed) {
             final MD5Mismatch failure = new MD5Mismatch(result.actualMD5, result.expectedMD5, result.diffEngineOutput);
             Assert.fail(failure.toString());
-        }
-    }
-
-    /**
-     * Execute a process, and throw an IOException if the exit code is nonzero
-     *
-     * @param pc
-     * @param ps
-     * @throws IOException
-     */
-    private void execAndCheck(ProcessController pc, ProcessSettings ps) throws IOException {
-        ProcessOutput po = pc.exec(ps);
-        if (po.getExitValue() != 0) {
-            String message = String.format("Process exited with %d\nCommand Line: %s",
-                    po.getExitValue(),
-                    Utils.join(" ", ps.getCommand()));
-            throw new IOException(message);
         }
     }
 }

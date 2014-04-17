@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.variant;
 
+import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.AbstractIndex;
 import org.broad.tribble.index.ChrIndex;
@@ -34,8 +35,8 @@ import org.broad.tribble.index.interval.IntervalTreeIndex;
 import org.broad.tribble.index.linear.LinearIndex;
 import org.broad.tribble.index.tabix.TabixIndex;
 import org.broad.tribble.util.TabixUtils;
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.testng.Assert;
 import org.testng.TestException;
@@ -45,7 +46,6 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -299,8 +299,8 @@ public class VCFIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "BlockCompressedIndexDataProvider")
     public Object[][] blockCompressedIndexCreatorData() {
-        for (String suffix : VCFWriterArgumentTypeDescriptor.SUPPORTED_ZIPPED_SUFFIXES)
-            new BlockCompressedIndexCreatorTest(".vcf" + suffix);
+        for (final String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
+            new BlockCompressedIndexCreatorTest(".vcf" + extension);
 
         return TestDataProvider.getTests(BlockCompressedIndexCreatorTest.class);
     }
@@ -328,6 +328,50 @@ public class VCFIntegrationTest extends WalkerTest {
         File outTabixIdx = new File(outVCF.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION);
         final Index actualIndex = IndexFactory.loadIndex(outTabixIdx.toString());
         Assert.assertTrue(actualIndex instanceof TabixIndex, "testBlockCompressedIndexCreation: Want Tabix index but index is not Tabix: " + outTabixIdx);
+    }
+
+    //
+    //
+    // Block-Compressed Input Tests
+    //
+    //
+
+    private class BlockCompressedInputTest extends TestDataProvider {
+        private final String extension;
+
+        private BlockCompressedInputTest(String extension) {
+            super(BlockCompressedInputTest.class);
+
+            this.extension = extension;
+        }
+
+        public String toString() {
+            return String.format("File extension %s", extension);
+        }
+    }
+
+    @DataProvider(name = "BlockCompressedInputDataProvider")
+    public Object[][] blockCompressedInputData() {
+        for (final String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
+            new BlockCompressedInputTest(".vcf" + extension);
+
+        return TestDataProvider.getTests(BlockCompressedInputTest.class);
+    }
+
+    @Test(dataProvider = "BlockCompressedInputDataProvider")
+    public void testBlockCompressedInput(BlockCompressedInputTest testSpec) {
+
+        File inputFile = new File(BaseTest.privateTestDir, "block_compressed_input_test" + testSpec.extension);
+        final String commandLine = " -T SelectVariants" +
+                " -R " + b37KGReference +
+                " --no_cmdline_in_header" +
+                " -V " + inputFile +
+                " -o %s ";
+        final String name = "testBlockCompressedInput: " + testSpec.toString();
+
+        final WalkerTestSpec spec = new WalkerTestSpec(commandLine, 1, Arrays.asList("3b60668bd973e43783d0406de80d2ed2"));
+
+        executeTest(name, spec);
     }
 
 }
