@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Random;
 
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
@@ -551,6 +552,62 @@ public class BaseUtils {
      */
     static public int getRandomBaseIndex() {
         return getRandomBaseIndex(-1);
+    }
+
+    /**
+     * Return random bases.
+     *
+     * @param length base count and length of returned array.
+     *
+     * @throws IllegalArgumentException if {@code length} is less than 0.
+     *
+     * @return never {@code null}
+     */
+    @SuppressWarnings("unused")
+    public static byte[] getRandomBases(final int length) {
+        if (length < 0)
+            throw new IllegalArgumentException("length must zero or greater");
+        final byte[] result = new byte[length];
+        fillWithRandomBases(result);
+        return result;
+    }
+
+    /**
+     * Fills an array with random bases.
+     *
+     * @param dest the array to fill.
+     *
+     * @throws IllegalArgumentException if {@code result} is {@code null}.
+     */
+    public static void fillWithRandomBases(final byte[] dest) {
+        fillWithRandomBases(dest,0,dest.length);
+    }
+
+    /**
+     * Fill an array section with random bases.
+     *
+     * @param dest array to fill.
+     * @param fromIndex first index to be filled (inclusive).
+     * @param toIndex index after last to be filled (exclusive).
+     *
+     * @throws IllegalArgumentException if {@code dest} is {@code null},
+     *              {@code fromIndex} or {@code toIndex} is negative,
+     *              {@code fromIndex} or {@code toIndex} are greater than {@code dest} length,
+     *              or {@code fromIndex} greater than {@code toIndex}.
+     */
+    public static void fillWithRandomBases(final byte[] dest, final int fromIndex, final int toIndex) {
+        final Random rnd = GenomeAnalysisEngine.getRandomGenerator();
+        if (dest == null)
+            throw new IllegalArgumentException("the dest array cannot be null");
+        if (fromIndex > toIndex)
+            throw new IllegalArgumentException("fromIndex cannot be larger than toIndex");
+        if (fromIndex < 0)
+            throw new IllegalArgumentException("both indexes must be positive");
+        if (toIndex > dest.length)
+            throw new IllegalArgumentException("both indexes must be less or equal to the destination array length");
+
+        for (int i = fromIndex; i < toIndex; i++)
+            dest[i] = baseIndexToSimpleBase(rnd.nextInt(4));
     }
 
     /**

@@ -28,11 +28,11 @@ package org.broadinstitute.sting.utils.variant;
 /**
  * <i>Homo sapiens</i> genome constants.
  *
- * <p>NOTE: reference to this constants is a indication that your code is (human) species assumption dependant.</p>
+ * <p>NOTE: reference to these constants is an indication that your code is (human) species assumption dependant.</p>
  *
  * @author Valentin Ruano-Rubio &lt;valentin@broadinstitute.org&gt;
  */
-public class HomoSapiens {
+public class HomoSapiensConstants {
 
     /**
      * Standard heterozygous rate for SNP variation.
