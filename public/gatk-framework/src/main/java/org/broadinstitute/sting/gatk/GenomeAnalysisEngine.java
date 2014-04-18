@@ -64,6 +64,7 @@ import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.recalibration.BQSRArgumentSet;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
+import org.broadinstitute.variant.vcf.VCFConstants;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -892,7 +893,8 @@ public class GenomeAnalysisEngine {
 
     /**
      * Loads a user-provided sample rename map file for use in on-the-fly sample renaming into an in-memory
-     * HashMap. This file must consist of lines with two whitespace-separated fields:
+     * HashMap. This file must consist of lines with two whitespace-separated fields, the second of which
+     * may contain whitespace:
      *
      * absolute_path_to_file    new_sample_name
      *
@@ -910,7 +912,7 @@ public class GenomeAnalysisEngine {
 
         try {
             for ( final String line : new XReadLines(sampleRenameMapFile) ) {
-                final String[] tokens = line.split("\\s+");
+                final String[] tokens = line.split("\\s+", 2);
 
                 if ( tokens.length != 2 ) {
                     throw new UserException.MalformedFile(sampleRenameMapFile,
@@ -919,7 +921,16 @@ public class GenomeAnalysisEngine {
                 }
 
                 final File inputFile = new File(tokens[0]);
-                final String newSampleName = tokens[1];
+                final String newSampleName = tokens[1].trim();
+
+                if (newSampleName.contains(VCFConstants.FIELD_SEPARATOR)) {
+                    throw new UserException.MalformedFile(sampleRenameMapFile, String.format(
+                            "Encountered illegal sample name; sample names may not include the VCF field delimiter (%s).  Sample name: %s; line: %s",
+                            VCFConstants.FIELD_SEPARATOR,
+                            newSampleName,
+                            line
+                    ));
+                }
 
                 if ( ! inputFile.isAbsolute() ) {
                     throw new UserException.MalformedFile(sampleRenameMapFile, "Input file path not absolute at line: " + line);

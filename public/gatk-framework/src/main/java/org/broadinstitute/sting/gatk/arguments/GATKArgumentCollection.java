@@ -363,9 +363,10 @@ public class GATKArgumentCollection {
     /**
      * On-the-fly sample renaming works only with single-sample BAM and VCF files. Each line of the mapping file must
      * contain the absolute path to a BAM or VCF file, followed by whitespace, followed by the new sample name for that
-     * BAM or VCF file. The engine will verify at runtime that each BAM/VCF targeted for sample renaming has only
-     * a single sample specified in its header (though, in the case of BAM files, there may be multiple read groups for
-     * that sample).
+     * BAM or VCF file. The sample name may contain non-tab whitespace, but leading or trailing whitespace will be 
+     * ignored. The engine will verify at runtime that each BAM/VCF targeted for sample renaming has only a single 
+     * sample specified in its header (though, in the case of BAM files, there may be multiple read groups for that 
+     * sample).
      */
     @Advanced
     @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file", doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file", required = false)
