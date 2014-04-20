@@ -30,12 +30,15 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.variant.variantcontext.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class GATKVariantContextUtilsUnitTest extends BaseTest {
@@ -47,8 +50,10 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     Allele Anoref;
     Allele GT;
 
+    private GenomeLocParser genomeLocParser;
+
     @BeforeSuite
-    public void setup() {
+    public void setup() throws IOException {
         // alleles
         Aref = Allele.create("A", true);
         Cref = Allele.create("C", true);
@@ -61,6 +66,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         ATref = Allele.create("AT",true);
         Anoref = Allele.create("A",false);
         GT = Allele.create("GT",false);
+        genomeLocParser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(new File(hg18Reference)));
     }
 
     private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, int... pls) {
@@ -1736,6 +1742,77 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
             }
         }
         return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider="overlapWithData")
+    public void testOverlapsWith(final VariantContext vc, final GenomeLoc genomeLoc) {
+        final boolean expected;
+
+        if (genomeLoc.isUnmapped())
+            expected = false;
+        else if (vc.getStart() > genomeLoc.getStop())
+            expected = false;
+        else if (vc.getEnd() < genomeLoc.getStart())
+            expected = false;
+        else if (!vc.getChr().equals(genomeLoc.getContig()))
+            expected = false;
+        else
+            expected = true;
+
+        Assert.assertEquals(GATKVariantContextUtils.overlapsRegion(vc, genomeLoc), expected);
+    }
+
+
+    private final String[] OVERLAP_WITH_CHROMOSOMES =  { "chr1", "chr20" };
+    private final int[] OVERLAP_WITH_EVENT_SIZES =  { -10, -1, 0, 1, 10 }; // 0 == SNP , -X xbp deletion, +X xbp insertion.
+    private final int[] OVERLAP_WITH_EVENT_STARTS = { 10000000, 10000001,
+                                                      10000005, 10000010,
+                                                      10000009, 10000011,
+                                                      20000000 };
+
+    @DataProvider(name="overlapWithData")
+    public Object[][] overlapWithData() {
+
+        final int totalLocations = OVERLAP_WITH_CHROMOSOMES.length * OVERLAP_WITH_EVENT_SIZES.length * OVERLAP_WITH_EVENT_STARTS.length + 1;
+        final int totalEvents = OVERLAP_WITH_CHROMOSOMES.length * OVERLAP_WITH_EVENT_SIZES.length * OVERLAP_WITH_EVENT_STARTS.length;
+        final GenomeLoc[] locs = new GenomeLoc[totalLocations];
+        final VariantContext[] events = new VariantContext[totalEvents];
+
+        generateAllLocationsAndVariantContextCombinations(OVERLAP_WITH_CHROMOSOMES, OVERLAP_WITH_EVENT_SIZES,
+                OVERLAP_WITH_EVENT_STARTS, locs, events);
+
+        return generateAllParameterCombinationsForOverlapWithData(locs, events);
+    }
+
+    private Object[][] generateAllParameterCombinationsForOverlapWithData(GenomeLoc[] locs, VariantContext[] events) {
+        final List<Object[]> result = new LinkedList<>();
+        for (final GenomeLoc loc : locs)
+            for (final VariantContext event : events)
+               result.add(new Object[] { event , loc });
+
+        return result.toArray(new Object[result.size()][]);
+    }
+
+    private void generateAllLocationsAndVariantContextCombinations(final String[] chrs, final int[] eventSizes,
+                                                                   final int[] eventStarts, final GenomeLoc[] locs,
+                                                                   final VariantContext[] events) {
+        int nextIndex = 0;
+        for (final String chr : chrs )
+            for (final int size : eventSizes )
+                for (final int starts : eventStarts ) {
+                    locs[nextIndex] = genomeLocParser.createGenomeLoc(chr,starts,starts + Math.max(0,size));
+                    events[nextIndex++] = new VariantContextBuilder().source("test").loc(chr,starts,starts + Math.max(0,size)).alleles(Arrays.asList(
+                            Allele.create(randomBases(size <= 0 ? 1 : size + 1, true), true), Allele.create(randomBases(size < 0 ? -size + 1 : 1, false), false))).make();
+                }
+
+        locs[nextIndex++]  = GenomeLoc.UNMAPPED;
+    }
+
+    private byte[] randomBases(final int length, final boolean reference) {
+        final byte[] bases = new byte[length];
+        bases[0] = (byte) (reference  ? 'A' : 'C');
+        BaseUtils.fillWithRandomBases(bases, 1, bases.length);
+        return bases;
     }
 }
 

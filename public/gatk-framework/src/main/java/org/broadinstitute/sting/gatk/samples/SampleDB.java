@@ -119,7 +119,7 @@ public class SampleDB {
     }
 
     public Set<Sample> getSamples() {
-        return new HashSet<Sample>(samples.values());
+        return new LinkedHashSet<>(samples.values());
     }
 
     public Collection<String> getSampleNames() {

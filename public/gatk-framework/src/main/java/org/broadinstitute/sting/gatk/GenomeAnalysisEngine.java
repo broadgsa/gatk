@@ -106,7 +106,7 @@ public class GenomeAnalysisEngine {
     /**
      * Accessor for sample metadata
      */
-    private SampleDB sampleDB = null;
+    private SampleDB sampleDB = new SampleDB();
 
     /**
      * Accessor for sharded reference-ordered data.
