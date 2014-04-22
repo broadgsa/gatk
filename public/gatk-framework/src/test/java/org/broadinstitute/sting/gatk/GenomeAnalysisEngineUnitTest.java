@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
@@ -126,13 +125,21 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
     public void testLoadWellFormedSampleRenameMapFile() throws IOException {
         final File mapFile = createTestSampleRenameMapFile(Arrays.asList("/foo/bar/first.bam    newSample1",
                                                                          "/foo/bar/second.bam        newSample2",
-                                                                         "/foo/bar2/third.bam newSample3"));
+                                                                         "/foo/bar2/third.bam newSample3",
+                                                                         "/foo/bar2/fourth.bam new sample    4",
+                                                                         "/foo/bar2/fifth.bam     new   sample     5    "));
         final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         final Map<String, String> renameMap = engine.loadSampleRenameMap(mapFile);
 
-        Assert.assertEquals(renameMap.size(), 3, "Sample rename map was wrong size after loading from file");
+        Assert.assertEquals(renameMap.size(), 5, "Sample rename map was wrong size after loading from file");
 
-        final Iterator<String> expectedResultsIterator = Arrays.asList("/foo/bar/first.bam", "newSample1", "/foo/bar/second.bam", "newSample2", "/foo/bar2/third.bam", "newSample3").iterator();
+        final Iterator<String> expectedResultsIterator = Arrays.asList(
+                        "/foo/bar/first.bam",   "newSample1", 
+                        "/foo/bar/second.bam",  "newSample2", 
+                        "/foo/bar2/third.bam",  "newSample3",
+                        "/foo/bar2/fourth.bam", "new sample    4",
+                        "/foo/bar2/fifth.bam",  "new   sample     5"
+        ).iterator();
         while ( expectedResultsIterator.hasNext() ) {
             final String expectedKey = expectedResultsIterator.next();
             final String expectedValue = expectedResultsIterator.next();
@@ -148,16 +155,15 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
 
         tests.add(new Object[]{"testLoadSampleRenameMapFileNonExistentFile",
                                new File("/foo/bar/nonexistent")});
-        tests.add(new Object[]{"testLoadSampleRenameMapFileMalformedLine1",
+        tests.add(new Object[]{"testLoadSampleRenameMapFileMalformedLine",
                                createTestSampleRenameMapFile(Arrays.asList("/path/to/foo.bam"))});
-        tests.add(new Object[]{"testLoadSampleRenameMapFileMalformedLine2",
-                               createTestSampleRenameMapFile(Arrays.asList("/path/to/foo.bam newSample extraField"))});
         tests.add(new Object[]{"testLoadSampleRenameMapFileNonAbsoluteBamPath",
                                createTestSampleRenameMapFile(Arrays.asList("relative/path/to/foo.bam newSample"))});
         tests.add(new Object[]{"testLoadSampleRenameMapFileDuplicateBamPath",
                                createTestSampleRenameMapFile(Arrays.asList("/path/to/dupe.bam newSample1",
                                                                            "/path/to/dupe.bam newSample2"))});
-
+        tests.add(new Object[]{"testLoadSampleRenameMapFileTabInSampleName",
+                               createTestSampleRenameMapFile(Arrays.asList("/path/to/stuff.bam some wonky\tsample   "))});
         return tests.toArray(new Object[][]{});
     }
 
