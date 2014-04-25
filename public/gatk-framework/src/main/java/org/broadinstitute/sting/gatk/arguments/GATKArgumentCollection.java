@@ -236,6 +236,19 @@ public class GATKArgumentCollection {
 
     // --------------------------------------------------------------------------------------------------------------
     //
+    // refactor NDN cigar string arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    /**
+     * This flag tells GATK to refactor cigar string with NDN elements to one element. It intended primarily for use in
+     * a RNAseq pipeline since the problem might come up when using RNAseq aligner such as Tophat2 with provided transcriptoms.
+     * You should only use this if you know that your reads have that problem.
+     */
+    @Argument(fullName = "refactor_NDN_cigar_string", shortName = "fixNDN", doc = "refactor cigar string with NDN elements to one element", required = false)
+    public boolean REFACTOR_NDN_CIGAR_READS = false;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
     // quality encoding checking arguments
     //
     // --------------------------------------------------------------------------------------------------------------
