@@ -888,7 +888,8 @@ public class GenomeAnalysisEngine {
                 argCollection.defaultBaseQualities,
                 removeProgramRecords,
                 keepReadsInLIBS,
-                sampleRenameMap);
+                sampleRenameMap,
+                argCollection.intervalArguments.intervalMerging);
     }
 
     /**

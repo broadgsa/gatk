@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
@@ -51,6 +52,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
     private GenomeLocSortedSet loci;
     private PeekableIterator<GenomeLoc> locusIterator;
     private GenomeLoc currentLocus;
+    private IntervalMergingRule intervalMergingRule;
 
     /*
      * Creates BAMScheduler using contigs from the given BAM data source.
@@ -59,27 +61,28 @@ public class BAMScheduler implements Iterator<FilePointer> {
      * @return non-null BAM scheduler
      */
     public static BAMScheduler createOverMappedReads(final SAMDataSource dataSource) {
-        final BAMScheduler scheduler = new BAMScheduler(dataSource);
+        final BAMScheduler scheduler = new BAMScheduler(dataSource, IntervalMergingRule.ALL);
         final GenomeLocSortedSet intervals = GenomeLocSortedSet.createSetFromSequenceDictionary(dataSource.getHeader().getSequenceDictionary());
         scheduler.populateFilteredIntervalList(intervals);
         return scheduler;
     }
 
     public static BAMScheduler createOverAllReads(final SAMDataSource dataSource, final GenomeLocParser parser) {
-        BAMScheduler scheduler = new BAMScheduler(dataSource);
+        BAMScheduler scheduler = new BAMScheduler(dataSource, IntervalMergingRule.ALL);
         scheduler.populateUnfilteredIntervalList(parser);
         return scheduler;
     }
 
-    public static BAMScheduler createOverIntervals(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
-        BAMScheduler scheduler = new BAMScheduler(dataSource);
+    public static BAMScheduler createOverIntervals(final SAMDataSource dataSource, final IntervalMergingRule mergeRule, final GenomeLocSortedSet loci) {
+        BAMScheduler scheduler = new BAMScheduler(dataSource, mergeRule);
         scheduler.populateFilteredIntervalList(loci);
         return scheduler;
     }
 
 
-    private BAMScheduler(final SAMDataSource dataSource) {
+    private BAMScheduler(final SAMDataSource dataSource, final IntervalMergingRule mergeRule) {
         this.dataSource = dataSource;
+        this.intervalMergingRule = mergeRule;
         for(SAMReaderID reader: dataSource.getReaderIDs()) {
             GATKBAMIndex index = dataSource.getIndex(reader);
             if(index != null)
@@ -124,7 +127,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
      * @return A file pointer over the specified region.
      */
     private FilePointer generatePointerOverEntireFileset() {
-        FilePointer filePointer = new FilePointer();
+        FilePointer filePointer = new FilePointer(intervalMergingRule);
 
         // This is a "monolithic" FilePointer representing all regions in all files we will ever visit, and is
         // the only FilePointer we will create. This allows us to have this FilePointer represent regions from
@@ -165,14 +168,14 @@ public class BAMScheduler implements Iterator<FilePointer> {
         while(nextFilePointer == null && currentLocus != null) {
             // special case handling of the unmapped shard.
             if(currentLocus == GenomeLoc.UNMAPPED) {
-                nextFilePointer = new FilePointer(GenomeLoc.UNMAPPED);
+                nextFilePointer = new FilePointer(intervalMergingRule, GenomeLoc.UNMAPPED);
                 for(SAMReaderID id: dataSource.getReaderIDs())
                     nextFilePointer.addFileSpans(id,createSpanToEndOfFile(indexFiles.get(id).getStartOfLastLinearBin()));
                 currentLocus = null;
                 continue;
             }
 
-            nextFilePointer = new FilePointer();
+            nextFilePointer = new FilePointer(intervalMergingRule);
 
             int coveredRegionStart = 1;
             int coveredRegionStop = Integer.MAX_VALUE;

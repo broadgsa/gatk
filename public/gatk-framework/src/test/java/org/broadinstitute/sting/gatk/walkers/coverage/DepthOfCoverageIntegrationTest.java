@@ -120,6 +120,28 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         execute("testNoCoverageDueToFiltering",spec);
     }
 
+    @Test
+    public void testAdjacentIntervals() {
+        String[] intervals = {"chr1:1-999", "chr1:1000-65536", "chr1:65537-80000", "chr1:80001-81000"};
+        String[] bams = {publicTestDir+"exampleBAM.bam"};
+
+        String cmd = buildRootCmd(exampleFASTA, new ArrayList<String>(Arrays.asList(bams)), new ArrayList<String>(Arrays.asList(intervals))) + " -im OVERLAPPING_ONLY";
+        WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
+
+        File baseOutputFile = WalkerTest.createTempFile("depthofcoverageadjinterval", ".tmp");
+        spec.setOutputFileLocation(baseOutputFile);
+
+        spec.addAuxFile("84b95d62f53e28919d1b5286558a1cae", baseOutputFile);
+        spec.addAuxFile("e445d4529dd3e3caa486ab8f5ec63e49", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
+        spec.addAuxFile("b69c89ba8b0c393b735616c2bc3aea76", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
+        spec.addAuxFile("788988dac6119a02de2c8d4dfb06b727", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
+        spec.addAuxFile("3769ed40ab3ccd2ed94a9dc05cc2bc2f", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
+        spec.addAuxFile("1281605e022d7462fbbcd14de53d1ca3", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
+        spec.addAuxFile("4b41d6ff88aa2662697cb7e4b5346cb8", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+
+        execute("testAdjacentIntervals", spec);
+    }
+
     public void testRefNHandling(boolean includeNs, final String md5) {
         String command = "-R " + b37KGReference + " -L 20:26,319,565-26,319,575 -I " + validationDataLocation + "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam -T DepthOfCoverage -baseCounts --omitIntervalStatistics --omitLocusTable --omitPerSampleStats -o %s";
         if ( includeNs ) command += " --includeRefNSites";

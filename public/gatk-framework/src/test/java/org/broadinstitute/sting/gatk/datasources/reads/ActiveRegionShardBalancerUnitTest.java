@@ -31,6 +31,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -82,7 +83,7 @@ public class ActiveRegionShardBalancerUnitTest extends BaseTest {
                 end = myEnd;
                 final GenomeLoc loc = genomeLocParser.createGenomeLoc(record.getSequenceName(), i, myEnd);
                 final Map<SAMReaderID, SAMFileSpan> fileSpans = Collections.emptyMap();
-                final FilePointer fp = new FilePointer(fileSpans, Collections.singletonList(loc));
+                final FilePointer fp = new FilePointer(fileSpans, IntervalMergingRule.ALL, Collections.singletonList(loc));
                 pointers.add(fp);
             }
             expectedLocs.add(Collections.singleton(genomeLocParser.createGenomeLoc(record.getSequenceName(), 0, end)));

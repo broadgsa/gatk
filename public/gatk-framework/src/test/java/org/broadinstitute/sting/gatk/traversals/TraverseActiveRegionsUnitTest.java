@@ -481,7 +481,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true, null);
+                false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());

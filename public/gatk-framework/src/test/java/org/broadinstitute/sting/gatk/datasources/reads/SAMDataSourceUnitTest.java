@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -184,7 +185,7 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 (byte) -1,
                 removeProgramRecords,
                 false,
-                null);
+                null, IntervalMergingRule.ALL);
 
         List<SAMProgramRecord> dontRemoveProgramRecords = data.getHeader().getProgramRecords();
         assertEquals(dontRemoveProgramRecords, defaultProgramRecords, "testRemoveProgramRecords: default program records differ from removeProgramRecords = false");
@@ -205,7 +206,7 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 (byte) -1,
                 removeProgramRecords,
                 false,
-                null);
+                null, IntervalMergingRule.ALL);
 
         List<SAMProgramRecord> doRemoveProgramRecords = data.getHeader().getProgramRecords();
         assertTrue(doRemoveProgramRecords.isEmpty(), "testRemoveProgramRecords: program records not cleared when removeProgramRecords = true");
@@ -247,6 +248,6 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 (byte) -1,
                 true,
                 false,
-                null);
+                null, IntervalMergingRule.ALL);
     }
 }
