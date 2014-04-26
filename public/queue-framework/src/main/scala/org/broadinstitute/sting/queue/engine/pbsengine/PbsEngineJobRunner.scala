@@ -54,8 +54,6 @@ class PbsEngineJobRunner(session: Session, function: CommandLineFunction) extend
     // If the job queue is set specify the job queue
     if (function.jobQueue != null)
       nativeSpec += " -q " + function.jobQueue
-    else
-      nativeSpec += " -q normal "	
 
     // If the resident set size is requested pass on the memory request
     // mem_free is the standard, but may also be virtual_free or even not available
