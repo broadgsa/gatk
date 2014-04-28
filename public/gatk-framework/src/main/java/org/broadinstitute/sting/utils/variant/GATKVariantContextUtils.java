@@ -582,7 +582,7 @@ public class GATKVariantContextUtils {
     }
 
     /**
-     * Create the new GenotypesContext with the subsetted PLs
+     * Create the new GenotypesContext with the subsetted PLs and ADs
      *
      * @param originalGs               the original GenotypesContext
      * @param vc                       the original VariantContext
@@ -643,7 +643,7 @@ public class GATKVariantContextUtils {
             newGTs.add(gb.make());
         }
 
-        return newGTs;
+        return fixADFromSubsettedAlleles(newGTs, vc, allelesToUse);
     }
 
     private static boolean likelihoodsAreUninformative(final double[] likelihoods) {
@@ -1087,10 +1087,10 @@ public class GATKVariantContextUtils {
         if ( refAllele == null )
             return null;
 
-        // FinalAlleleSet contains the alleles of the new resulting VC.
-        // Using linked set in order to guaranteed an stable order:
+        // FinalAlleleSet contains the alleles of the new resulting VC
+        // Using linked set in order to guarantee a stable order
         final LinkedHashSet<Allele> finalAlleleSet = new LinkedHashSet<>(10);
-        // Reference goes first:
+        // Reference goes first
         finalAlleleSet.add(refAllele);
 
         final Map<String, Object> attributes = new LinkedHashMap<>();
@@ -1321,20 +1321,18 @@ public class GATKVariantContextUtils {
         if ( numNewAlleles == numOriginalAlleles )
             return oldGs;
 
-        final GenotypesContext newGs = fixPLsFromSubsettedAlleles(oldGs, originalVC, selectedVC.getAlleles());
-
-        return fixADFromSubsettedAlleles(newGs, originalVC, selectedVC.getAlleles());
+        return fixGenotypesFromSubsettedAlleles(oldGs, originalVC, selectedVC.getAlleles());
     }
 
     /**
-     * Fix the PLs for the GenotypesContext of a VariantContext that has been subset
+     * Fix the PLs and ADs for the GenotypesContext of a VariantContext that has been subset
      *
      * @param originalGs       the original GenotypesContext
      * @param originalVC       the original VariantContext
      * @param allelesToUse     the new (sub)set of alleles to use
      * @return a new non-null GenotypesContext
      */
-    static private GenotypesContext fixPLsFromSubsettedAlleles(final GenotypesContext originalGs, final VariantContext originalVC, final List<Allele> allelesToUse) {
+    static private GenotypesContext fixGenotypesFromSubsettedAlleles(final GenotypesContext originalGs, final VariantContext originalVC, final List<Allele> allelesToUse) {
 
         // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
         final List<Integer> likelihoodIndexesToUse = determineLikelihoodIndexesToUse(originalVC, allelesToUse);
