@@ -1546,23 +1546,37 @@ public class GATKVariantContextUtils {
             // only add if the name is new
             final String name = g.getSampleName();
             if ( !mergedGenotypes.containsSample(name) ) {
-
-                if ( !g.hasPL() ) {
-                    if ( g.isNoCall() ) {
-                        mergedGenotypes.add(g);
-                        continue;
-                    }
-                    throw new UserException("cannot merge genotypes from samples without PLs; sample " + g.getSampleName() + " does not have likelihoods at position " + VC.getChr() + ":" + VC.getStart());
+                final GenotypeBuilder genotypeBuilder = new GenotypeBuilder(g).alleles(noCallAlleles(g.getPloidy()));
+                if (g.hasPL()) {
+                    // we need to modify it even if it already contains all of the alleles because we need to purge the <ALT> PLs out anyways
+                    final int[] indexesOfRelevantAlleles = getIndexesOfRelevantAlleles(remappedAlleles, targetAlleles, VC.getStart());
+                    final int[] PLs = generatePLs(g, indexesOfRelevantAlleles);
+                    final int[] AD = g.hasAD() ? generateAD(g.getAD(), indexesOfRelevantAlleles) : null;
+                    genotypeBuilder.PL(PLs).AD(AD).noGQ();
                 }
-
-                // we need to modify it even if it already contains all of the alleles because we need to purge the <ALT> PLs out anyways
-                final int[] indexesOfRelevantAlleles = getIndexesOfRelevantAlleles(remappedAlleles, targetAlleles, VC.getStart());
-                final int[] PLs = generatePLs(g, indexesOfRelevantAlleles);
-                final int[] AD = g.hasAD() ? generateAD(g.getAD(), indexesOfRelevantAlleles) : null;
-
-                final Genotype newG = new GenotypeBuilder(g).name(name).alleles(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL)).PL(PLs).AD(AD).noGQ().make();
-                mergedGenotypes.add(newG);
+                mergedGenotypes.add(genotypeBuilder.make());
             }
+        }
+    }
+
+    /**
+     * Returns a {@link Allele#NO_CALL NO_CALL} allele list provided the ploidy.
+     *
+     * @param ploidy the required ploidy.
+     *
+     * @return never {@code null}, but an empty list if {@code ploidy} is equal or less than 0. The returned list
+     *   might or might not be mutable.
+     */
+    public static List<Allele> noCallAlleles(final int ploidy) {
+        if (ploidy <= 0)
+            return Collections.EMPTY_LIST;
+        else if (ploidy == 1)
+            return Collections.singletonList(Allele.NO_CALL);
+        else {
+            final List<Allele> result = new ArrayList<>(ploidy);
+            for (int i = 0; i < ploidy; i++)
+                result.add(Allele.NO_CALL);
+            return result;
         }
     }
 
