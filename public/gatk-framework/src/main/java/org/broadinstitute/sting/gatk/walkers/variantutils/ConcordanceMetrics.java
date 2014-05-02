@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -39,12 +40,12 @@ import java.util.*;
  * */
 public class ConcordanceMetrics {
 
-    private Map<String,GenotypeConcordanceTable> perSampleGenotypeConcordance;
-    private GenotypeConcordanceTable overallGenotypeConcordance;
-    private SiteConcordanceTable overallSiteConcordance;
-    private boolean printInterestingSites;
+    final private Map<String,GenotypeConcordanceTable> perSampleGenotypeConcordance;
+    final private GenotypeConcordanceTable overallGenotypeConcordance;
+    final private SiteConcordanceTable overallSiteConcordance;
+    final PrintStream sitesFile;
 
-    public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth, boolean printSitesEnabled) {
+    public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth, PrintStream inputSitesFile) {
         HashSet<String> overlappingSamples = new HashSet<String>(evaluate.getGenotypeSamples());
         overlappingSamples.retainAll(truth.getGenotypeSamples());
         perSampleGenotypeConcordance = new HashMap<String, GenotypeConcordanceTable>(overlappingSamples.size());
@@ -53,7 +54,12 @@ public class ConcordanceMetrics {
         }
         overallGenotypeConcordance = new GenotypeConcordanceTable();
         overallSiteConcordance = new SiteConcordanceTable();
-        printInterestingSites = printSitesEnabled;
+        sitesFile = inputSitesFile;
+        if (sitesFile != null) printSitesFileHeader();
+    }
+
+    private void printSitesFileHeader() {
+        sitesFile.println("Locus\tSample\tTruth Genotype\tEval Genotype");
     }
 
     public GenotypeConcordanceTable getOverallGenotypeConcordance() {
@@ -134,11 +140,8 @@ public class ConcordanceMetrics {
             }
             perSampleGenotypeConcordance.get(sample).update(evalGenotype,truthGenotype,alleleTruth,truthRef);
             doPrint = overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth,truthRef);
-            if(printInterestingSites && doPrint)
-                System.out.println(eval.getChr() + ":" + eval.getStart() + "\t truth is:" + truthGenotype.getType() + "\t eval is:" + evalGenotype.getType());
-
-                //Below is code to print out mismatched alternate alleles
-                //System.out.println(eval.getChr() + ":" + eval.getStart() + "\t truth is:" + truthGenotype.getAlleles() + "\t eval is:" + evalGenotype.getAlleles());
+            if(sitesFile != null && doPrint)
+                sitesFile.println(eval.getChr() + ":" + eval.getStart() + "\t" + sample + "\t" + truthGenotype.getType() + "\t" + evalGenotype.getType());
         }
     }
 

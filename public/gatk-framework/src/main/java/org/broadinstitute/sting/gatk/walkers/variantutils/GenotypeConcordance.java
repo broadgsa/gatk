@@ -246,13 +246,12 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
 
     /**
      * Print sites where genotypes are mismatched between callsets along with annotations giving the genotype of each callset
-     * Outputs directly to System.out.  Super classy.
+     * to the given filename
      *
-     * NOTE: doesn't currently differentiate between samples, so there may be repeats
      */
-    @Hidden
-    @Argument(shortName="sites", fullName = "printInterestingSites", required=false)
-    protected boolean printSites = false;
+
+    @Argument(shortName = "sites",required = false,fullName = "printInterestingSites", doc="File to output the discordant sites and genotypes.")
+    private PrintStream sitesFile = null;
 
     @Output
     PrintStream out;
@@ -285,7 +284,7 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
         evalSamples = evalHeader.getGenotypeSamples();
         VCFHeader compHeader = headerMap.get(compBinding.getName());
         compSamples = compHeader.getGenotypeSamples();
-        return new ConcordanceMetrics(evalHeader,compHeader, printSites);
+        return new ConcordanceMetrics(evalHeader,compHeader, sitesFile);
     }
 
 
