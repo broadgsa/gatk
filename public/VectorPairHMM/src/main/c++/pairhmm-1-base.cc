@@ -29,7 +29,6 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-#define BATCH_SIZE 10000
   if(argc < 2)
   {
     cerr << "Needs path to input file as argument\n";

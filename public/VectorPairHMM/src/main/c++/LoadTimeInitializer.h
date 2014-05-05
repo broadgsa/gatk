@@ -27,7 +27,7 @@
 #define LOAD_TIME_INITIALIZER_H
 #include "headers.h"
 #include <jni.h>
-#include "template.h"
+/*#include "template.h"*/
 
 enum LoadTimeInitializerStatsEnum
 {
@@ -47,10 +47,6 @@ class LoadTimeInitializer
 {
   public:
     LoadTimeInitializer();		//will be called when library is loaded
-    ~LoadTimeInitializer()
-    {
-      delete[] m_buffer;
-    }
     void print_profiling();
     void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline=true);
     void debug_close();
@@ -72,8 +68,6 @@ class LoadTimeInitializer
     uint64_t m_data_transfer_time;
     //bytes copied
     uint64_t m_bytes_copied;
-    unsigned get_buffer_size() { return m_buffer_size; }
-    char* get_buffer() { return (char*)m_buffer; }
   private:
     std::map<std::string, std::ofstream*> m_filename_to_fptr;
     std::set<std::string> m_written_files_set;
@@ -83,8 +77,6 @@ class LoadTimeInitializer
     double m_sum_square_stats[TOTAL_NUMBER_STATS];
     uint64_t m_min_stats[TOTAL_NUMBER_STATS];
     uint64_t m_max_stats[TOTAL_NUMBER_STATS];
-    unsigned m_buffer_size;
-    uint64_t* m_buffer;
 };
 extern LoadTimeInitializer g_load_time_initializer;
 

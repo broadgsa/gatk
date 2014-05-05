@@ -32,14 +32,30 @@
 JRE_HOME?=/opt/jdk1.7.0_25/jre
 JNI_COMPILATION_FLAGS=-D_REENTRANT -fPIC -I${JRE_HOME}/../include -I${JRE_HOME}/../include/linux
 
-COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -W -Wall -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
-CC=icc
-CXX=icc
+#COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -W -Wall -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
+COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -Wall $(OMPCFLAGS) -Wno-unknown-pragmas -Wno-write-strings -Wno-unused-variable -Wno-unused-but-set-variable
+ifdef DISABLE_FTZ
+  COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ
+endif
+
+ifdef USE_GCC
+  C_COMPILER?=gcc
+  CPP_COMPILER?=g++
+  AVX_FLAGS=-mavx
+  SSE41_FLAGS=-msse4.1
+  COMMON_COMPILATION_FLAGS+=-Wno-char-subscripts
+else
+  C_COMPILER?=icc
+  CPP_COMPILER?=icc
+  AVX_FLAGS=-xAVX
+  SSE41_FLAGS=-xSSE4.1
+  LIBFLAGS=-static-intel
+  ifdef DISABLE_FTZ
+    COMMON_COMPILATION_FLAGS+=-no-ftz
+  endif
+endif
 
 LDFLAGS=-lm -lrt $(OMPLDFLAGS)
-ifdef DISABLE_FTZ
-  COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ -no-ftz
-endif
 
 PAPI_DIR=/home/karthikg/softwares/papi-5.3.0
 ifdef USE_PAPI
@@ -47,10 +63,6 @@ ifdef USE_PAPI
     COMMON_COMPILATION_FLAGS+=-I$(PAPI_DIR)/include -DUSE_PAPI
     LDFLAGS+=-L$(PAPI_DIR)/lib -lpapi
   endif
-endif
-
-ifdef DISABLE_FTZ
-  COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ -no-ftz
 endif
 
 BIN=libVectorLoglessPairHMM.so pairhmm-template-main checker
@@ -79,8 +91,8 @@ NO_VECTOR_OBJECTS=$(NO_VECTOR_SOURCES:.cc=.o)
 AVX_OBJECTS=$(AVX_SOURCES:.cc=.o)
 SSE_OBJECTS=$(SSE_SOURCES:.cc=.o)
 $(NO_VECTOR_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS)
-$(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xAVX
-$(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) -xSSE4.2
+$(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) $(AVX_FLAGS)
+$(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) $(SSE41_FLAGS)
 OBJECTS=$(NO_VECTOR_OBJECTS) $(AVX_OBJECTS) $(SSE_OBJECTS)
 
 all: $(BIN) Sandbox.class copied_lib
@@ -88,18 +100,18 @@ all: $(BIN) Sandbox.class copied_lib
 -include $(addprefix $(DEPDIR)/,$(SOURCES:.cc=.d))
 
 checker: pairhmm-1-base.o $(COMMON_OBJECTS)
-	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CPP_COMPILER) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 pairhmm-template-main:	pairhmm-template-main.o $(COMMON_OBJECTS)
-	$(CXX) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CPP_COMPILER) $(OMPLFLAGS) -o $@ $^ $(LDFLAGS)
 
 libVectorLoglessPairHMM.so: $(LIBOBJECTS) 
-	$(CXX) $(OMPLFLAGS) -shared -static-intel -o $@ $(LIBOBJECTS) ${LDFLAGS}
+	$(CPP_COMPILER) $(OMPLFLAGS) -shared $(LIBFLAGS) -o $@ $(LIBOBJECTS) ${LDFLAGS}
 
 
 $(OBJECTS): %.o: %.cc
 	@mkdir -p $(DEPDIR)
-	$(CXX) -c -MMD -MF $(DF) $(CXXFLAGS) $(OUTPUT_OPTION) $<
+	$(CPP_COMPILER) -c -MMD -MF $(DF) $(CXXFLAGS) $(OUTPUT_OPTION) $<
 
 Sandbox.class: Sandbox.java
 	javac Sandbox.java

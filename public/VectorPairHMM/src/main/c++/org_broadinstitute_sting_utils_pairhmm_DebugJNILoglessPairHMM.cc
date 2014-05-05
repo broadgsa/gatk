@@ -26,7 +26,6 @@
 #include "headers.h"
 #include "jni_common.h"
 #include "org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.h"
-#include "template.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
 #include "jnidebug.h"

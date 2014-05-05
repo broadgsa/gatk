@@ -23,13 +23,14 @@
 */
 
 
-#include "template.h"
 
 #undef SIMD_ENGINE
 #undef SIMD_ENGINE_SSE
 
 #define SIMD_ENGINE avx
 #define SIMD_ENGINE_AVX
+
+#include "template.h"
 
 #include "define-float.h"
 #include "shift_template.c"

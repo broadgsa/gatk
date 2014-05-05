@@ -78,8 +78,9 @@ public abstract class PairHMM {
     protected double[] mLikelihoodArray;
 
     //profiling information
-    protected static final boolean doProfiling = true;
-    protected long computeTime = 0;
+    protected static Boolean doProfiling = true;
+    protected static long pairHMMComputeTime = 0;
+    protected long threadLocalPairHMMComputeTimeDiff = 0;
     protected long startTime = 0;
 
     /**
@@ -207,7 +208,13 @@ public abstract class PairHMM {
             }
         }
         if(doProfiling)
-            computeTime += (System.nanoTime() - startTime);
+        {
+            threadLocalPairHMMComputeTimeDiff = (System.nanoTime() - startTime);
+            //synchronized(doProfiling)
+            {
+                pairHMMComputeTime += threadLocalPairHMMComputeTimeDiff;
+            }
+        }
         return likelihoodMap;
     }
 
@@ -315,6 +322,17 @@ public abstract class PairHMM {
     }
 
     /**
+     * Use number of threads to set doProfiling flag - doProfiling iff numThreads == 1
+     * This function should be called only during initialization phase - single thread phase of HC
+     */
+    public static void setNumberOfThreads(final int numThreads)
+    {
+        doProfiling = (numThreads == 1);
+        if(numThreads > 1)
+            logger.info("Performance profiling for PairHMM is disabled because HaplotypeCaller is being run with multiple threads (-nct>1) option\nProfiling is enabled only when running in single thread mode\n");
+    }
+
+    /**
      * Return the results of the computeLikelihoods function
      */
     public double[] getLikelihoodArray() { return mLikelihoodArray; }
@@ -324,6 +342,6 @@ public abstract class PairHMM {
     public void close()
     {
         if(doProfiling)
-            System.out.println("Total compute time in PairHMM computeLikelihoods() : "+(computeTime*1e-9));
+            System.out.println("Total compute time in PairHMM computeLikelihoods() : "+(pairHMMComputeTime*1e-9));
     }
 }

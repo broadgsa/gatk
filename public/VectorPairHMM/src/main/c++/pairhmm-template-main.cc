@@ -24,12 +24,11 @@
 
 
 #include "headers.h"
-#include "template.h"
-#include "vector_defs.h"
 
 #define SIMD_ENGINE avx
 #define SIMD_ENGINE_AVX
 
+#include "utils.h"
 
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
