@@ -53,7 +53,7 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   //Function: enabling FTZ converts denormals to 0 in hardware
   //Denormals cause microcode to insert uops into the core causing big slowdown
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-  cout << "FTZ enabled - may decrease accuracy if denormal numbers encountered\n";
+  //cout << "FTZ enabled - may decrease accuracy if denormal numbers encountered\n";
 #else
   cout << "FTZ is not set - may slow down performance if denormal numbers encountered\n";
 #endif
