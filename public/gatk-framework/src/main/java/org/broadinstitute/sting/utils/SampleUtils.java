@@ -25,14 +25,14 @@
 
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 

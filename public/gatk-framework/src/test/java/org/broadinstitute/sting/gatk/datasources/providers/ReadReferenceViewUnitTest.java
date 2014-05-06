@@ -30,8 +30,8 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import org.testng.annotations.Test;
 
-import net.sf.samtools.*;
-import net.sf.picard.reference.ReferenceSequence;
+import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequence;
 
 /*
  * Copyright (c) 2009 The Broad Institute

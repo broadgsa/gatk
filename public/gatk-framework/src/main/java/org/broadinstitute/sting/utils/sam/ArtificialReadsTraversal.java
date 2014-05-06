@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;

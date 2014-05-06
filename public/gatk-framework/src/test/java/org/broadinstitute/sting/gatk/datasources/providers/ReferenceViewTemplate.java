@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;

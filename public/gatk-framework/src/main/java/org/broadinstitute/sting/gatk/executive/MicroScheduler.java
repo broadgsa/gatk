@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import com.google.java.contract.Ensures;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;

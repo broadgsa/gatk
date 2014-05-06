@@ -30,10 +30,10 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.variant.vcf.VCFConstants;
+import htsjdk.variant.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.Collection;
 import java.util.Set;

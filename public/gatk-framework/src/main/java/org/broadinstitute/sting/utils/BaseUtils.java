@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.util.StringUtil;
+import htsjdk.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;

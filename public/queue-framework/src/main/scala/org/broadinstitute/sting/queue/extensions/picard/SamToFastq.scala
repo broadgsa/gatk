@@ -37,7 +37,7 @@ import java.io.File
  */
 class SamToFastq extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "SamToFastq"
-  javaMainClass = "net.sf.picard.sam.SamToFastq"
+  javaMainClass = "picard.sam.SamToFastq"
 
   @Input(shortName = "input", fullName = "input_bam_files", required = true, doc = "Input SAM/BAM file to extract reads from.")
   var input: Seq[File] = Nil

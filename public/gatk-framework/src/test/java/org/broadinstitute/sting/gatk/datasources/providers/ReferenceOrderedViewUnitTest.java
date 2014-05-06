@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
@@ -49,7 +49,7 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Collections;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 /**
  * User: hanna
  * Date: May 27, 2009

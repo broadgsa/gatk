@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.SAMFileSpan;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.util.PeekableIterator;
+import htsjdk.samtools.SAMFileSpan;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;

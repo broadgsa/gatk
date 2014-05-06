@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.picard.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequence;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Walker;

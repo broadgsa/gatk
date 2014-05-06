@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.util.CloseableIterator;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;

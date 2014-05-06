@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import net.sf.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileWriter;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;

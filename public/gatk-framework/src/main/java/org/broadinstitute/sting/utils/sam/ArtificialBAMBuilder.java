@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.*;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.NGSPlatform;
 

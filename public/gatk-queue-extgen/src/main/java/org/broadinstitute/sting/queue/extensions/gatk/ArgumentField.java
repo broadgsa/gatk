@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.queue.extensions.gatk;
 
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileWriter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.io.InputStream;

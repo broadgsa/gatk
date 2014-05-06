@@ -27,8 +27,8 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**

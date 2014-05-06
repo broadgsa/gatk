@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.codecs.samread;
 
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 
 /**
  * Represents a SAM record read from a SAM text format file. 

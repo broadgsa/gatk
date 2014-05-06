@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io;
 
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileReader;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
 import org.broadinstitute.sting.gatk.io.storage.StorageFactory;

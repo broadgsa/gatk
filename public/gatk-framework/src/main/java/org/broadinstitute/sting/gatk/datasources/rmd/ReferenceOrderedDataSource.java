@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.rmd;
 
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import org.broad.tribble.CloseableTribbleIterator;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.CloseableTribbleIterator;
+import htsjdk.tribble.Feature;
 
 import java.util.ArrayList;
 import java.util.Iterator;

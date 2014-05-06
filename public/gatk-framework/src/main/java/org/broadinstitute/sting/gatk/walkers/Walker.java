@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;

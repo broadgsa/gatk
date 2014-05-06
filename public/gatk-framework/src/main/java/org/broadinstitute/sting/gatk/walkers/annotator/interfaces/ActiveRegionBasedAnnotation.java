@@ -26,8 +26,8 @@
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.variant.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFInfoHeaderLine;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.List;
 import java.util.Map;

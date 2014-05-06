@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.picard.util.PeekableIterator;
+import htsjdk.samtools.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.refdata.RODRecordListImpl;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;

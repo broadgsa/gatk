@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.Arrays;
 import java.util.List;

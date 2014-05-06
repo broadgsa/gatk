@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.alignment.bwa.java;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.*;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.BaseUtils;

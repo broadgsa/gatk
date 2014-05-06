@@ -41,8 +41,8 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.ArrayList;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.*;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.*;
 
 /**
  * Basic unit test for BAQ calculation

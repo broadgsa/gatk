@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.utils.codecs.hapmap;
 
-import org.broad.tribble.annotation.Strand;
-import org.broad.tribble.readers.LineIterator;
-import org.broad.tribble.readers.LineIteratorImpl;
-import org.broad.tribble.readers.LineReaderUtil;
-import org.broad.tribble.readers.PositionalBufferedStream;
+import htsjdk.tribble.annotation.Strand;
+import htsjdk.tribble.readers.LineIterator;
+import htsjdk.tribble.readers.LineIteratorImpl;
+import htsjdk.tribble.readers.LineReaderUtil;
+import htsjdk.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;

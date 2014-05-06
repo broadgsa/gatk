@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.alignment.bwa.java;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayDeque;

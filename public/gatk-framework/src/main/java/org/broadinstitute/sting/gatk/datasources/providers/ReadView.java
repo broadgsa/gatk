@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 
 import java.util.Arrays;

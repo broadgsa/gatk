@@ -27,7 +27,7 @@ package org.broadinstitute.sting.commandline;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 
 import java.util.*;
 

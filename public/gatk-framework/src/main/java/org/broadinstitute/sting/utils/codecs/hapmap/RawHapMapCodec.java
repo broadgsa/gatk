@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.utils.codecs.hapmap;
 
-import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.FeatureCodecHeader;
-import org.broad.tribble.annotation.Strand;
-import org.broad.tribble.readers.LineIterator;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.FeatureCodecHeader;
+import htsjdk.tribble.annotation.Strand;
+import htsjdk.tribble.readers.LineIterator;
 
 import java.io.IOException;
 import java.util.Arrays;

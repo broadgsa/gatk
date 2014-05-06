@@ -30,7 +30,7 @@ import org.broadinstitute.sting.queue.function.InProcessFunction
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.utils.text.XReadLines
 import java.io.{PrintStream, PrintWriter, File}
-import net.sf.samtools.{SAMSequenceRecord, SAMSequenceDictionary}
+import htsjdk.samtools.{SAMSequenceRecord, SAMSequenceDictionary}
 import org.broadinstitute.sting.utils.{GenomeLocParser, GenomeLoc}
 
 class VCFSimpleMerge extends InProcessFunction {

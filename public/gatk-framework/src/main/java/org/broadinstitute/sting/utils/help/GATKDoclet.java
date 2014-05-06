@@ -34,7 +34,7 @@ import freemarker.template.TemplateException;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.broad.tribble.FeatureCodec;
+import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.qc.DocumentationTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

@@ -32,7 +32,7 @@ import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.Tag;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;

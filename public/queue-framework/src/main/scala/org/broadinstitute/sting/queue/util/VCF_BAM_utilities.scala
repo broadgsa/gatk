@@ -28,10 +28,10 @@ package org.broadinstitute.sting.queue.util
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import scala.io.Source._
-import net.sf.samtools.SAMFileReader
-import org.broadinstitute.variant.vcf.{VCFHeader, VCFCodec}
+import htsjdk.samtools.SAMFileReader
+import htsjdk.variant.vcf.{VCFHeader, VCFCodec}
 import scala.collection.JavaConversions._
-import org.broad.tribble.AbstractFeatureReader
+import htsjdk.tribble.AbstractFeatureReader
 
 object VCF_BAM_utilities {
 

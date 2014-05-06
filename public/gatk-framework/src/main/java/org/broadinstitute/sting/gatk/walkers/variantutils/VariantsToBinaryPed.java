@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broad.tribble.TribbleException;
+import htsjdk.tribble.TribbleException;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
@@ -40,12 +40,12 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.variant.variantcontext.*;
+import htsjdk.variant.variantcontext.*;
 
 import java.io.*;
 import java.util.*;

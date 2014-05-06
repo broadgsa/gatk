@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.tools;
 
 import org.apache.commons.lang.StringUtils;
-import org.broad.tribble.AbstractFeatureReader;
+import htsjdk.tribble.AbstractFeatureReader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.MD5DB;
 import org.broadinstitute.sting.MD5Mismatch;

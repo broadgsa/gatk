@@ -26,16 +26,16 @@
 package org.broadinstitute.sting.utils.haplotype;
 
 import com.google.java.contract.Requires;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.Allele;
 
 import java.util.Arrays;
 import java.util.Comparator;

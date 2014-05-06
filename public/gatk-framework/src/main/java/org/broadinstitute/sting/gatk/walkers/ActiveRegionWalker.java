@@ -26,8 +26,8 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import com.google.java.contract.Ensures;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

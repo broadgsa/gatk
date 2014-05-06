@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecordIterator;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMRecordIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineProgram;

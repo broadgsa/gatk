@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.alignment.bwa;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.StringUtil;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.util.StringUtil;
 import org.broadinstitute.sting.alignment.reference.bwt.*;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
 import org.broadinstitute.sting.utils.Utils;

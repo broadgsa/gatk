@@ -37,9 +37,9 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAn
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.vcf.*;
+import htsjdk.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.*;
 import java.util.regex.Pattern;

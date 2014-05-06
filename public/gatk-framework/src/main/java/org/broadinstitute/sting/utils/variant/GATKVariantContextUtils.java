@@ -29,13 +29,13 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
+import htsjdk.tribble.TribbleException;
+import htsjdk.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.variant.variantcontext.*;
-import org.broadinstitute.variant.vcf.VCFConstants;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.vcf.VCFConstants;
 
 import java.io.Serializable;
 import java.util.*;

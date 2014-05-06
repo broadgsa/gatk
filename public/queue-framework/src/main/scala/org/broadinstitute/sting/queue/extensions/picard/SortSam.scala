@@ -37,7 +37,7 @@ import java.io.File
  */
 class SortSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "SortSam"
-  javaMainClass = "net.sf.picard.sam.SortSam"
+  javaMainClass = "picard.sam.SortSam"
 
   @Input(doc="The input SAM or BAM files to sort.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

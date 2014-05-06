@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.MathUtils;

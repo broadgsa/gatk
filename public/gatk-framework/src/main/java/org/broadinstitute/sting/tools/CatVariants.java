@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.tools;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
-import org.broad.tribble.AbstractFeatureReader;
-import org.broad.tribble.FeatureReader;
-import org.broad.tribble.index.IndexCreator;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.FeatureReader;
+import htsjdk.tribble.index.IndexCreator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
@@ -40,15 +40,15 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.variant.GATKVCFIndexType;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
+import htsjdk.variant.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.variant.vcf.VCFCodec;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.writer.Options;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.*;
 import java.util.*;

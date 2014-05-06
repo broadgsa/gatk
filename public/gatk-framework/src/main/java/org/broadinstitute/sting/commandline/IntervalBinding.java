@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.commandline;
 
 import com.google.java.contract.Requires;
-import org.broad.tribble.AbstractFeatureReader;
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.FeatureReader;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.FeatureReader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;

@@ -25,17 +25,17 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import org.broad.tribble.index.IndexCreator;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.tribble.index.IndexCreator;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.writer.Options;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
-import org.broadinstitute.variant.vcf.VCFHeader;
-import org.broadinstitute.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
 
 import java.io.File;
 import java.io.OutputStream;

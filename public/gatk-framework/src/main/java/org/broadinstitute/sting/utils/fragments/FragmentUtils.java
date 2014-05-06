@@ -27,11 +27,11 @@ package org.broadinstitute.sting.utils.fragments;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.picard.util.QualityUtil;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.util.QualityUtil;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.collections.Pair;

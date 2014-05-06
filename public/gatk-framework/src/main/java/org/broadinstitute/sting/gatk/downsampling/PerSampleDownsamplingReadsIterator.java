@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordComparator;
-import net.sf.samtools.SAMRecordCoordinateComparator;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordComparator;
+import htsjdk.samtools.SAMRecordCoordinateComparator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 
 import java.util.*;

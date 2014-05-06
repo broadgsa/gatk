@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.locusiterator;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.picard.util.PeekableIterator;
+import htsjdk.samtools.util.PeekableIterator;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;

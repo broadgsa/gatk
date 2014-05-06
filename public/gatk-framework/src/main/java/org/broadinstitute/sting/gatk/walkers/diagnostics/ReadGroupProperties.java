@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.diagnostics;
 
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;

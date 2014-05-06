@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.ProgressLoggerInterface;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.ProgressLoggerInterface;
 
 /**
  * XXX

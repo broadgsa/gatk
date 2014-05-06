@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads.utilities;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;

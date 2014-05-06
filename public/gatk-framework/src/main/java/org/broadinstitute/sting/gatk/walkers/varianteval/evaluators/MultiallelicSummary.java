@@ -33,8 +33,8 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
 
 @Analysis(description = "Evaluation summary for multi-allelic variants")
 public class MultiallelicSummary extends VariantEvaluator implements StandardEval {

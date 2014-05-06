@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.Bin;
-import net.sf.samtools.GATKBin;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.LinearIndex;
-import net.sf.samtools.seekablestream.SeekableBufferedStream;
-import net.sf.samtools.seekablestream.SeekableFileStream;
+import htsjdk.samtools.Bin;
+import htsjdk.samtools.GATKBin;
+import htsjdk.samtools.GATKChunk;
+import htsjdk.samtools.LinearIndex;
+import htsjdk.samtools.seekablestream.SeekableBufferedStream;
+import htsjdk.samtools.seekablestream.SeekableFileStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

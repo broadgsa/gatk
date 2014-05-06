@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.haplotypecaller;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;

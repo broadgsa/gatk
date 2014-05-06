@@ -41,10 +41,10 @@ import org.broadinstitute.sting.utils.help.HelpUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.variant.vcf.*;
+import htsjdk.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;

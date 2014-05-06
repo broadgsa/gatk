@@ -29,10 +29,10 @@ package org.broadinstitute.sting;
 // the imports for unit testing.
 
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
@@ -46,10 +46,10 @@ import org.broadinstitute.sting.utils.sam.ArtificialBAMBuilder;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.vcf.VCFCodec;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;

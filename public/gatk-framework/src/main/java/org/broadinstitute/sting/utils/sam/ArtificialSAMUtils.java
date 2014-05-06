@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
@@ -103,7 +103,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMFileHeader createArtificialSamHeader(int numberOfChromosomes, int startingChromosome, int chromosomeSize) {
         SAMFileHeader header = new SAMFileHeader();
-        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
+        header.setSortOrder(htsjdk.samtools.SAMFileHeader.SortOrder.coordinate);
         SAMSequenceDictionary dict = new SAMSequenceDictionary();
         // make up some sequence records
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
@@ -122,7 +122,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMFileHeader createArtificialSamHeader(final SAMSequenceDictionary dict) {
         SAMFileHeader header = new SAMFileHeader();
-        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
+        header.setSortOrder(htsjdk.samtools.SAMFileHeader.SortOrder.coordinate);
         header.setSequenceDictionary(dict);
         return header;
     }

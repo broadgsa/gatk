@@ -27,11 +27,11 @@ package org.broadinstitute.sting.utils.interval;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalList;
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalList;
+import htsjdk.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.commandline.IntervalArgumentCollection;
 import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
@@ -669,8 +669,8 @@ public class IntervalUtils {
      * @param locIndex The loc index for use in the file.
      * @return The picard interval.
      */
-    private static net.sf.picard.util.Interval toInterval(GenomeLoc loc, int locIndex) {
-        return new net.sf.picard.util.Interval(loc.getContig(), loc.getStart(), loc.getStop(), false, "interval_" + locIndex);
+    private static htsjdk.samtools.util.Interval toInterval(GenomeLoc loc, int locIndex) {
+        return new htsjdk.samtools.util.Interval(loc.getContig(), loc.getStart(), loc.getStop(), false, "interval_" + locIndex);
     }
 
     /**

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceDictionary;
 
 import java.util.Comparator;
 import java.util.Set;

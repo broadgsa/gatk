@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;

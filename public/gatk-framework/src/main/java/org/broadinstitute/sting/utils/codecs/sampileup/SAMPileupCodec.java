@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.utils.codecs.sampileup;
 
-import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.readers.LineIterator;
-import org.broad.tribble.util.ParsingUtils;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.exception.CodecLineParsingException;
+import htsjdk.tribble.readers.LineIterator;
+import htsjdk.tribble.util.ParsingUtils;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 /**
  * Factory for creating SimplePositionalDownsamplers on demand

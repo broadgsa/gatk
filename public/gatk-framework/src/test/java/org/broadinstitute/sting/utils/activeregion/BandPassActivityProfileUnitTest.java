@@ -29,9 +29,9 @@ package org.broadinstitute.sting.utils.activeregion;
 // the imports for unit testing.
 
 
-import net.sf.picard.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.commons.lang.ArrayUtils;
-import org.broad.tribble.readers.LineIterator;
+import htsjdk.tribble.readers.LineIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -39,9 +39,9 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.vcf.VCFCodec;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFHeader;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;

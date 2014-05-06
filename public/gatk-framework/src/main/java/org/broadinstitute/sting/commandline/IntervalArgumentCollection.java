@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 

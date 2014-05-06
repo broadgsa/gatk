@@ -25,7 +25,7 @@
 
 package htsjdk.samtools;
 
-import net.sf.picard.util.PeekableIterator;
+import htsjdk.samtools.util.PeekableIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 /**
  * An extension of the basic downsampler API with reads-specific operations

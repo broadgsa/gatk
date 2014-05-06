@@ -27,8 +27,8 @@ package org.broadinstitute.sting.queue.extensions.picard
 
 import java.io.File
 import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
-import net.sf.samtools.SAMFileReader.ValidationStringency
-import net.sf.samtools.SAMFileHeader.SortOrder
+import htsjdk.samtools.SAMFileReader.ValidationStringency
+import htsjdk.samtools.SAMFileHeader.SortOrder
 
 /**
  * Wraps a Picard function that operates on BAM files but doesn't output a new BAM file (i.e. QC metric files).

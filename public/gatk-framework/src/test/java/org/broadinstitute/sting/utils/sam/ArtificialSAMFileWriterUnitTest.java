@@ -30,8 +30,8 @@ import static org.testng.Assert.assertTrue;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMFileHeader;
 
 import java.util.ArrayList;
 import java.util.List;

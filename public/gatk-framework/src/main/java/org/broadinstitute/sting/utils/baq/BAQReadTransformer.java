@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.baq;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;

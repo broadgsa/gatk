@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.Tribble;
-import org.broad.tribble.index.Index;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.Tribble;
+import htsjdk.tribble.index.Index;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;

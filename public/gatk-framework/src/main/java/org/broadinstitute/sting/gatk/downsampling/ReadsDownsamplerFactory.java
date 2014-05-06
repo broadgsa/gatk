@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 /**
  * A ReadsDownsamplerFactory can be used to create an arbitrary number of instances of a particular

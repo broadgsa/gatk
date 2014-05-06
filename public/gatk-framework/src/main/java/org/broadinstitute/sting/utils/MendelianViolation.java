@@ -26,9 +26,9 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.variant.variantcontext.Genotype;
-import org.broadinstitute.variant.variantcontext.GenotypeType;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.GenotypeType;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.*;
 

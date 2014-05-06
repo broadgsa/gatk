@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.utils.codecs.samread;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.TextCigarCodec;
-import net.sf.samtools.util.StringUtil;
-import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.readers.LineIterator;
-import org.broad.tribble.util.ParsingUtils;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.TextCigarCodec;
+import htsjdk.samtools.util.StringUtil;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.exception.CodecLineParsingException;
+import htsjdk.tribble.readers.LineIterator;
+import htsjdk.tribble.util.ParsingUtils;
 
 /**
  * Decodes a simple SAM text string.

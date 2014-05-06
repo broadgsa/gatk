@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;

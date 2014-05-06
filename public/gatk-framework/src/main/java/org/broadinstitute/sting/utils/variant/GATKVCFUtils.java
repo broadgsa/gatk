@@ -25,28 +25,28 @@
 
 package org.broadinstitute.sting.utils.variant;
 
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.FeatureCodecHeader;
-import org.broad.tribble.index.DynamicIndexCreator;
-import org.broad.tribble.index.IndexCreator;
-import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.index.interval.IntervalIndexCreator;
-import org.broad.tribble.index.linear.LinearIndexCreator;
-import org.broad.tribble.index.tabix.TabixFormat;
-import org.broad.tribble.index.tabix.TabixIndexCreator;
-import org.broad.tribble.readers.LineIterator;
-import org.broad.tribble.readers.PositionalBufferedStream;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.FeatureCodecHeader;
+import htsjdk.tribble.index.DynamicIndexCreator;
+import htsjdk.tribble.index.IndexCreator;
+import htsjdk.tribble.index.IndexFactory;
+import htsjdk.tribble.index.interval.IntervalIndexCreator;
+import htsjdk.tribble.index.linear.LinearIndexCreator;
+import htsjdk.tribble.index.tabix.TabixFormat;
+import htsjdk.tribble.index.tabix.TabixIndexCreator;
+import htsjdk.tribble.readers.LineIterator;
+import htsjdk.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.vcf.*;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.*;
 
 import java.io.File;
 import java.io.FileInputStream;

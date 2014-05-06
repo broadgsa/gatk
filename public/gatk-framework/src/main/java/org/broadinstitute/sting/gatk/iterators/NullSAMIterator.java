@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadProperties;

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.alignment;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

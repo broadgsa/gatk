@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
-import org.broad.tribble.bed.BEDFeature;
+import htsjdk.tribble.bed.BEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;

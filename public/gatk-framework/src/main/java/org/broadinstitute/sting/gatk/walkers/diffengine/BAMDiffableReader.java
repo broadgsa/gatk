@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.util.BlockCompressedInputStream;
 
 import java.io.*;
 import java.util.Arrays;
@@ -111,7 +111,7 @@ public class BAMDiffableReader implements DiffableReader {
             return Arrays.equals(buffer, BAM_MAGIC);
         } catch ( IOException e ) {
             return false;
-        } catch ( net.sf.samtools.FileTruncatedException e ) {
+        } catch ( htsjdk.samtools.FileTruncatedException e ) {
             return false;
         }
     }

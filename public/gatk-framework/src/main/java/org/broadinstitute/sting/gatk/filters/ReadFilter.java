@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.filter.SamRecordFilter;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;

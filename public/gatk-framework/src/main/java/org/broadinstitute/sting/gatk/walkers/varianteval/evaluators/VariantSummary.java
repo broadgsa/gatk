@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
-import net.sf.picard.util.IntervalTree;
+import htsjdk.samtools.util.IntervalTree;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -36,10 +36,10 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
-import org.broadinstitute.variant.vcf.VCFConstants;
+import htsjdk.variant.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.variant.variantcontext.Genotype;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.*;
 

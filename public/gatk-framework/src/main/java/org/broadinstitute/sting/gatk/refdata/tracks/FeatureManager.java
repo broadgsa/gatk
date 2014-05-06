@@ -27,14 +27,14 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.NameAwareCodec;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.NameAwareCodec;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.variant.vcf.AbstractVCFCodec;
+import htsjdk.variant.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.GATKDocUtils;
 

@@ -33,7 +33,7 @@ import org.broadinstitute.sting.queue.util.ClassFieldCache
 import java.io.File
 
 /**
- * Merges BAM files using net.sf.picard.sam.MergeSamFiles.
+ * Merges BAM files using htsjdk.samtools.MergeSamFiles.
  */
 class BamGatherFunction extends MergeSamFiles with GatherFunction with RetryMemoryLimit {
   this.assumeSorted = Some(true)

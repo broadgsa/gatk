@@ -29,9 +29,9 @@ package org.broadinstitute.sting.utils.fasta;
 // the imports for unit testing.
 
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Priority;
 import org.broadinstitute.sting.BaseTest;

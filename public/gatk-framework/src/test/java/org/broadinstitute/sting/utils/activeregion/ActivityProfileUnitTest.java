@@ -29,7 +29,7 @@ package org.broadinstitute.sting.utils.activeregion;
 // the imports for unit testing.
 
 
-import net.sf.picard.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;

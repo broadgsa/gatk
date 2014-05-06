@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.locusiterator.AlignmentStateMachine;
 import org.broadinstitute.sting.utils.locusiterator.LIBS_position;

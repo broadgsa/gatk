@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;

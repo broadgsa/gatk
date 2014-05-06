@@ -25,15 +25,15 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broad.tribble.AbstractFeatureReader;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.Tribble;
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.util.LittleEndianOutputStream;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.Tribble;
+import htsjdk.tribble.TribbleException;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.IndexFactory;
+import htsjdk.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;

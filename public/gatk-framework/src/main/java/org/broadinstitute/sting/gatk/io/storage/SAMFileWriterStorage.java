@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.io.storage;
 
-import net.sf.samtools.*;
-import net.sf.samtools.util.CloseableIterator;
-import net.sf.samtools.util.ProgressLoggerInterface;
-import net.sf.samtools.util.RuntimeIOException;
+import htsjdk.samtools.*;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.ProgressLoggerInterface;
+import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;

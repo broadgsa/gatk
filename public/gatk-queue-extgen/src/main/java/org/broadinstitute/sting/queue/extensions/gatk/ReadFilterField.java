@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.queue.extensions.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
+import htsjdk.samtools.filter.SamRecordFilter;
 import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.walkers.Walker;

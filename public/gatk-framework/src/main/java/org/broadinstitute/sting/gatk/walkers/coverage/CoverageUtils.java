@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

@@ -26,12 +26,12 @@
 package org.broadinstitute.sting.commandline;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.sf.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileWriter;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.stubs.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

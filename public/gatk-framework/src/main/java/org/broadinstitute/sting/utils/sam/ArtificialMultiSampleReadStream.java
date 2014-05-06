@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.picard.sam.MergingSamRecordIterator;
-import net.sf.picard.sam.SamFileHeaderMerger;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.MergingSamRecordIterator;
+import htsjdk.samtools.SamFileHeaderMerger;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
-import net.sf.samtools.*;
-import net.sf.samtools.util.CloseableIterator;
+import htsjdk.samtools.*;
+import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;

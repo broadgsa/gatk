@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 /**
  * Filter out reads that are not paired, have their mate unmapped, are duplicates, fail vendor quality check or both mate and read are in the same strand.

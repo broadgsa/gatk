@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads.utilities;
 
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecordIterator;
+import htsjdk.samtools.GATKBAMFileSpan;
+import htsjdk.samtools.GATKChunk;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecordIterator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.utils.exceptions.UserException;

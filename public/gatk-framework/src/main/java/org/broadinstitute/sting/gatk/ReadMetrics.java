@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
+import htsjdk.samtools.filter.SamRecordFilter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.HashMap;

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;

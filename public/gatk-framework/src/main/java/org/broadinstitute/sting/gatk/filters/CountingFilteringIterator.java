@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
-import net.sf.samtools.util.CloserUtil;
+import htsjdk.samtools.filter.SamRecordFilter;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.CloserUtil;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 
 import java.util.*;

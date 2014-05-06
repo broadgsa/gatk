@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 /*
  * Copyright (c) 2009 The Broad Institute

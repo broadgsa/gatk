@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;

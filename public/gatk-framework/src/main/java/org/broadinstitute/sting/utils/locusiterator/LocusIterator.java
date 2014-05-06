@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
-import net.sf.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.Iterator;

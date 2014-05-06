@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.datasources.reference;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;

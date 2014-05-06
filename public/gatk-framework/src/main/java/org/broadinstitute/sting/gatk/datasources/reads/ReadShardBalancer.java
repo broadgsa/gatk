@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.util.PeekableIterator;
+import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 

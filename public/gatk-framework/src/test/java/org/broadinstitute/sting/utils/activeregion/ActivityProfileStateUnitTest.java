@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.activeregion;
 
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;

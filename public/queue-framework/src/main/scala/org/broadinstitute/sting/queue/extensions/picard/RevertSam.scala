@@ -37,7 +37,7 @@ import java.io.File
  */
 class RevertSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "RevertSam"
-  javaMainClass = "net.sf.picard.sam.RevertSam"
+  javaMainClass = "picard.sam.RevertSam"
 
   @Input(shortName = "input", fullName = "input_bam_files", required = true, doc = "The input SAM or BAM files to revert.")
   var input: Seq[File] = Nil

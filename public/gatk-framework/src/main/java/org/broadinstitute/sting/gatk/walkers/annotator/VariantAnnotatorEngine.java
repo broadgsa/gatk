@@ -36,8 +36,8 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.variant.variantcontext.*;
-import org.broadinstitute.variant.vcf.*;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.vcf.*;
 
 import java.util.*;
 

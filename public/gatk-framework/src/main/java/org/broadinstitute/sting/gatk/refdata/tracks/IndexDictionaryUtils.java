@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.index.MutableIndex;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.MutableIndex;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
 

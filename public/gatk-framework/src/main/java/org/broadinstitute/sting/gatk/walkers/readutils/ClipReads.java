@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.readutils;
 
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.samtools.util.StringUtil;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.util.StringUtil;
 import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;

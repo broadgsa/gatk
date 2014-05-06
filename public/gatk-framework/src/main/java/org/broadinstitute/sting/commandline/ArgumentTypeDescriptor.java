@@ -27,7 +27,7 @@ package org.broadinstitute.sting.commandline;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;

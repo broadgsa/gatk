@@ -34,8 +34,8 @@ import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.util.StringUtil;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.StringUtil;
 
 import java.util.Collections;
 /*

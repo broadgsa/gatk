@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue.extensions.picard
 
 import org.broadinstitute.sting.commandline._
 
-import net.sf.picard.sam.ValidateSamFile.Mode
+import picard.sam.ValidateSamFile.Mode
 
 import java.io.File
 
@@ -39,7 +39,7 @@ import java.io.File
  */
 class ValidateSamFile extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "ValidateSamFile"
-  javaMainClass = "net.sf.picard.sam.ValidateSamFile"
+  javaMainClass = "picard.sam.ValidateSamFile"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

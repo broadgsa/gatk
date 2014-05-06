@@ -37,10 +37,10 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.beagle.BeagleFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.vcf.*;
+import htsjdk.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.variant.variantcontext.*;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 

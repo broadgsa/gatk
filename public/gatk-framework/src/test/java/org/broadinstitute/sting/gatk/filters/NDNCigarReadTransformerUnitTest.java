@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.Cigar;
+import htsjdk.samtools.Cigar;
 import org.broadinstitute.sting.utils.sam.CigarUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;

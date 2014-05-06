@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

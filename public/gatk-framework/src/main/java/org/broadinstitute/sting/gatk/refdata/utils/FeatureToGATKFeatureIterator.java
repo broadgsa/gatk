@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import net.sf.samtools.util.CloseableIterator;
-import org.broad.tribble.CloseableTribbleIterator;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.tribble.CloseableTribbleIterator;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 

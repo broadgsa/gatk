@@ -30,8 +30,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.Test;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMReadGroupRecord;
 
 import java.util.List;
 import java.util.ArrayList;

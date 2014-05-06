@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue.util
 
 import java.io.File
 import io.Source._
-import net.sf.samtools.{SAMReadGroupRecord, SAMFileReader}
+import htsjdk.samtools.{SAMReadGroupRecord, SAMFileReader}
 
 import collection.JavaConversions._
 

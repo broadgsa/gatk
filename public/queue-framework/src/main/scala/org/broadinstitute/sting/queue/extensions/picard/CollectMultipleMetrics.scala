@@ -37,7 +37,7 @@ import java.io.File
  */
 class CollectMultipleMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction{
   analysisName = "CollectMultipleMetrics"
-  javaMainClass = "net.sf.picard.analysis.CollectMultipleMetrics"
+  javaMainClass = "picard.analysis.CollectMultipleMetrics"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

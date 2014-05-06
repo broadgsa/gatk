@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.locusiterator;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.downsampling.Downsampler;
 import org.broadinstitute.sting.gatk.downsampling.PassThroughDownsampler;
 import org.broadinstitute.sting.gatk.downsampling.ReservoirDownsampler;

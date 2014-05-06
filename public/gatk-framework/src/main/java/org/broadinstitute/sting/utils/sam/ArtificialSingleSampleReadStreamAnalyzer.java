@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;

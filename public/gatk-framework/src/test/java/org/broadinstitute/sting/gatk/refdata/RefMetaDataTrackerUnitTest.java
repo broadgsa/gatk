@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
@@ -38,9 +38,9 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.*;
 import java.util.*;

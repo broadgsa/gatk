@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 import java.util.Comparator;
 

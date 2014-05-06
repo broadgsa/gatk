@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.utils.interval;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.util.Interval;
-import net.sf.picard.util.IntervalList;
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.util.Interval;
+import htsjdk.samtools.util.IntervalList;
+import htsjdk.samtools.SAMFileHeader;
 import org.apache.commons.io.FileUtils;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;

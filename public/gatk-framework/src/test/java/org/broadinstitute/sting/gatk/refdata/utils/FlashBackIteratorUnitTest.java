@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.readutils;
 
-import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;

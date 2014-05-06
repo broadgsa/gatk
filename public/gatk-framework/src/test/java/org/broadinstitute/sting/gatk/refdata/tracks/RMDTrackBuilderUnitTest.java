@@ -26,11 +26,11 @@
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broad.tribble.Tribble;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.util.LittleEndianOutputStream;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.tribble.Tribble;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.util.LittleEndianOutputStream;
+import htsjdk.variant.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;

@@ -29,9 +29,9 @@ package org.broadinstitute.sting.utils;
 // the imports for unit testing.
 
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
