@@ -42,12 +42,9 @@
         <java.gc.heapFreeLimit>10</java.gc.heapFreeLimit>
         <test.args>-Xmx${test.maxmemory} -XX:+UseParallelOldGC -XX:ParallelGCThreads=${java.gc.threads} -XX:GCTimeLimit=${java.gc.timeLimit} -XX:GCHeapFreeLimit=${java.gc.heapFreeLimit}</test.args>
 
-        <!-- Version numbers for picard sam-jdk. Usually kept in sync. -->
-        <picard.public.version>1.111.1920</picard.public.version>
-        <sam.version>${picard.public.version}</sam.version>
-        <picard.version>${picard.public.version}</picard.version>
-        <variant.version>${picard.public.version}</variant.version>
-        <tribble.version>${picard.public.version}</tribble.version>
+        <!-- Version numbers for picard and htsjdk -->
+        <htsjdk.version>1.112.1452</htsjdk.version>
+        <picard.version>1.112.1452</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -69,9 +66,9 @@
                 <version>1.0-r139</version>
             </dependency>
             <dependency>
-                <groupId>net.sf</groupId>
-                <artifactId>sam</artifactId>
-                <version>${sam.version}</version>
+                <groupId>samtools</groupId>
+                <artifactId>htsjdk</artifactId>
+                <version>${htsjdk.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.testng</groupId>
@@ -80,19 +77,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>net.sf</groupId>
+                <groupId>picard</groupId>
                 <artifactId>picard</artifactId>
                 <version>${picard.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.broad</groupId>
-                <artifactId>tribble</artifactId>
-                <version>${tribble.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.broadinstitute</groupId>
-                <artifactId>variant</artifactId>
-                <version>${variant.version}</version>
             </dependency>
             <dependency>
                 <groupId>log4j</groupId>

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package net.sf.samtools;
+package htsjdk.samtools;
 
 /**
  * Utils that insist on being in the same package as Picard.

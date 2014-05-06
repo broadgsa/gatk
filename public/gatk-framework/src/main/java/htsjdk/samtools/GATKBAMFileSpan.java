@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package net.sf.samtools;
+package htsjdk.samtools;
 
 import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

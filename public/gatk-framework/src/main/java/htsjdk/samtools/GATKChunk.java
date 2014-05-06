@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package net.sf.samtools;
+package htsjdk.samtools;
 
 /**
  * A temporary solution to work around Java access rights issues:

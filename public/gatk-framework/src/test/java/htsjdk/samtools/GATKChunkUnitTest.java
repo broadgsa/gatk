@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package net.sf.samtools;
+package htsjdk.samtools;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
