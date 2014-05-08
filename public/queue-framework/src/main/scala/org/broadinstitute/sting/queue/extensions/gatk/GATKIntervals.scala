@@ -29,10 +29,10 @@ import java.io.File
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.interval.{IntervalSetRule, IntervalMergingRule, IntervalUtils}
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource
-import net.sf.samtools.SAMFileHeader
+import htsjdk.samtools.SAMFileHeader
 import org.broadinstitute.sting.utils.GenomeLoc
 import org.broadinstitute.sting.commandline._
-import org.broad.tribble.Feature
+import htsjdk.tribble.Feature
 
 case class GATKIntervals(reference: File, intervals: Seq[File], intervalsString: Seq[String],
                          intervalSetRule: IntervalSetRule, intervalMergingRule: IntervalMergingRule, intervalPadding: Option[Int],

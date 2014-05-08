@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.alignment.bwa.c;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;

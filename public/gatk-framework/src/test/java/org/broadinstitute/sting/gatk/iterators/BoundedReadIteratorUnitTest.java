@@ -27,10 +27,10 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import static org.testng.Assert.fail;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLocParser;

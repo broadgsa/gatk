@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.fragments;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.TextCigarCodec;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.TextCigarCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;

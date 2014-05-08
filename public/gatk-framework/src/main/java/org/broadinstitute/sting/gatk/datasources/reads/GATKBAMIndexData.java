@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -26,18 +26,18 @@
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.codecs.table.BedTableCodec;
 import org.broadinstitute.sting.utils.codecs.table.TableFeature;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.variant.vcf.VCF3Codec;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCF3Codec;
+import htsjdk.variant.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;

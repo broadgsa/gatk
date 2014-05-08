@@ -28,7 +28,7 @@ package org.broadinstitute.sting.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
-import net.sf.samtools.CigarOperator;
+import htsjdk.samtools.CigarOperator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.downsampling.Downsampler;
 import org.broadinstitute.sting.gatk.downsampling.LevelingDownsampler;

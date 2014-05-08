@@ -26,20 +26,20 @@
 package org.broadinstitute.sting;
 
 import org.apache.commons.lang.StringUtils;
-import org.broad.tribble.Tribble;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.index.tabix.TabixFormat;
-import org.broad.tribble.util.TabixUtils;
+import htsjdk.tribble.Tribble;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.IndexFactory;
+import htsjdk.tribble.index.tabix.TabixFormat;
+import htsjdk.tribble.util.TabixUtils;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.variant.bcf2.BCF2Utils;
+import htsjdk.variant.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.testng.Assert;

@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
@@ -44,6 +44,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 /**
  * User: hanna
@@ -335,6 +336,9 @@ public abstract class LocusViewTemplate extends BaseTest {
 
             public void reset() {
                 return;
+            }
+
+            public void close() throws IOException {
             }
         };
     }

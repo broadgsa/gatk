@@ -56,7 +56,7 @@ import java.io.File
 
 class FastqToSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction /*with PicardBamFunction*/ {
   analysisName = "FastqToSam"
-  javaMainClass = "net.sf.picard.sam.FastqToSam"
+  javaMainClass = "picard.sam.FastqToSam"
 
   @Input(shortName = "fq1", fullName = "input_fq_file1", required = true, doc = "Input Fastq file to extract reads from (single-end fastq or, if paired, first end of the pair fastq)")
   var fastq: File = _

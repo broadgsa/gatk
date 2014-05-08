@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads.utilities;
 
-import net.sf.samtools.util.BlockGunzipper;
+import htsjdk.samtools.util.BlockGunzipper;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
 

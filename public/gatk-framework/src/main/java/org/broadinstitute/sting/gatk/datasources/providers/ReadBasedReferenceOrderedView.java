@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.util.PeekableIterator;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

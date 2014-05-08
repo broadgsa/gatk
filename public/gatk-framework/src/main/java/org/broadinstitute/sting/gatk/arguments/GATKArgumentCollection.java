@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.arguments;
 
-import net.sf.samtools.SAMFileReader;
+import htsjdk.samtools.SAMFileReader;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;

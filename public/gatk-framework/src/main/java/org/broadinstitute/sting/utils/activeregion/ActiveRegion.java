@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.activeregion;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;

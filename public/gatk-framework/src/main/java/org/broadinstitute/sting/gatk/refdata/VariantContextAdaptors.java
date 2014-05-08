@@ -25,17 +25,17 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import net.sf.samtools.util.SequenceUtil;
-import org.broad.tribble.Feature;
-import org.broad.tribble.annotation.Strand;
-import org.broad.tribble.dbsnp.OldDbSNPFeature;
-import org.broad.tribble.gelitext.GeliTextFeature;
+import htsjdk.samtools.util.SequenceUtil;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.annotation.Strand;
+import htsjdk.tribble.dbsnp.OldDbSNPFeature;
+import htsjdk.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
-import org.broadinstitute.variant.variantcontext.*;
+import htsjdk.variant.variantcontext.*;
 
 import java.util.*;
 

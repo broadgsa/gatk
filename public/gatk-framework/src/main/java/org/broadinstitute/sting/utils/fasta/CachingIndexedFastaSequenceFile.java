@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.utils.fasta;
 
-import net.sf.picard.PicardException;
-import net.sf.picard.reference.FastaSequenceIndex;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.StringUtil;
+import picard.PicardException;
+import htsjdk.samtools.reference.FastaSequenceIndex;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.util.StringUtil;
 import org.apache.log4j.Priority;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.BaseUtils;

@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.Assert;
 import org.testng.annotations.Test;

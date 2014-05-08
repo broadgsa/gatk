@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.PicardException;
-import net.sf.samtools.SAMException;
-import org.broad.tribble.TribbleException;
+import picard.PicardException;
+import htsjdk.samtools.SAMException;
+import htsjdk.tribble.TribbleException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;

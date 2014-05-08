@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
-import net.sf.samtools.SAMUtils;
+import htsjdk.samtools.SAMUtils;
 
 /**
  * QualityUtils is a static class (no instantiation allowed!) with some utility methods for manipulating

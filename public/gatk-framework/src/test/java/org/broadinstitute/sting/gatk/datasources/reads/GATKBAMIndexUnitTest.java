@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;

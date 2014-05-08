@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.smithwaterman;
 
-import net.sf.samtools.Cigar;
+import htsjdk.samtools.Cigar;
 
 /**
  * Generic interface for SmithWaterman calculations

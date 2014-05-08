@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;

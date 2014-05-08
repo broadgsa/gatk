@@ -25,14 +25,14 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
-import net.sf.picard.util.IntervalTree;
+import htsjdk.samtools.util.IntervalTree;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.*;
 

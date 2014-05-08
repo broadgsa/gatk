@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
 import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.List;
 

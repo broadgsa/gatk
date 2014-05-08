@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
-import net.sf.samtools.util.ProgressLoggerInterface;
+import htsjdk.samtools.*;
+import htsjdk.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.utils.Utils;

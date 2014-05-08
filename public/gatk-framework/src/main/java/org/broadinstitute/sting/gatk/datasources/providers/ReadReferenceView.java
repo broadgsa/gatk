@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 /*

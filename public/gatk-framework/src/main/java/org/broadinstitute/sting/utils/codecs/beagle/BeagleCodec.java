@@ -50,9 +50,9 @@ package org.broadinstitute.sting.utils.codecs.beagle;
  */
 
 
-import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.readers.LineIterator;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.exception.CodecLineParsingException;
+import htsjdk.tribble.readers.LineIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;

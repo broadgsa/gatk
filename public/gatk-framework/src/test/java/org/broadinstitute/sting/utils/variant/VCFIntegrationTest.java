@@ -25,19 +25,19 @@
 
 package org.broadinstitute.sting.utils.variant;
 
-import org.broad.tribble.AbstractFeatureReader;
-import org.broad.tribble.Tribble;
-import org.broad.tribble.index.AbstractIndex;
-import org.broad.tribble.index.ChrIndex;
-import org.broad.tribble.index.Index;
-import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.index.interval.IntervalTreeIndex;
-import org.broad.tribble.index.linear.LinearIndex;
-import org.broad.tribble.index.tabix.TabixIndex;
-import org.broad.tribble.util.TabixUtils;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.Tribble;
+import htsjdk.tribble.index.AbstractIndex;
+import htsjdk.tribble.index.ChrIndex;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.IndexFactory;
+import htsjdk.tribble.index.interval.IntervalTreeIndex;
+import htsjdk.tribble.index.linear.LinearIndex;
+import htsjdk.tribble.index.tabix.TabixIndex;
+import htsjdk.tribble.util.TabixUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.variant.vcf.VCFCodec;
 import org.testng.Assert;
 import org.testng.TestException;
 import org.testng.annotations.DataProvider;
@@ -253,8 +253,8 @@ public class VCFIntegrationTest extends WalkerTest {
      }
 
     private static boolean equivalentLinearIndices(LinearIndex thisIndex, LinearIndex otherIndex, String chr) throws NoSuchFieldException, IllegalAccessException {
-        org.broad.tribble.index.linear.LinearIndex.ChrIndex thisChr = (org.broad.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(thisIndex, chr);
-        org.broad.tribble.index.linear.LinearIndex.ChrIndex otherChr = (org.broad.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(otherIndex, chr);
+        htsjdk.tribble.index.linear.LinearIndex.ChrIndex thisChr = (htsjdk.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(thisIndex, chr);
+        htsjdk.tribble.index.linear.LinearIndex.ChrIndex otherChr = (htsjdk.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(otherIndex, chr);
 
         return  thisChr.getName().equals(otherChr.getName()) &&
                 //thisChr.getTotalSize() == otherChr.getTotalSize() &&      TODO: why does this differ?
@@ -263,8 +263,8 @@ public class VCFIntegrationTest extends WalkerTest {
     }
 
     private static boolean equivalentIntervalIndices(IntervalTreeIndex thisIndex, IntervalTreeIndex otherIndex, String chr) throws NoSuchFieldException, IllegalAccessException {
-        org.broad.tribble.index.interval.IntervalTreeIndex.ChrIndex thisChr = (org.broad.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(thisIndex, chr);
-        org.broad.tribble.index.interval.IntervalTreeIndex.ChrIndex otherChr = (org.broad.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(otherIndex, chr);
+        htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex thisChr = (htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(thisIndex, chr);
+        htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex otherChr = (htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(otherIndex, chr);
 
         // TODO: compare trees?
         return thisChr.getName().equals(otherChr.getName());

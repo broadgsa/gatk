@@ -24,12 +24,12 @@
 */
 
 package org.broadinstitute.sting.queue.extensions.gatk;
-import net.sf.samtools.BAMIndex;
-import net.sf.samtools.SAMFileWriter;
-import org.broad.tribble.Tribble;
+import htsjdk.samtools.BAMIndex;
+import htsjdk.samtools.SAMFileWriter;
+import htsjdk.tribble.Tribble;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.lang.annotation.Annotation;

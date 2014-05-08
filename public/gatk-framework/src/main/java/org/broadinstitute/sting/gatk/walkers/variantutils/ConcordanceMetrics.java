@@ -29,8 +29,8 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
-import org.broadinstitute.variant.variantcontext.*;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.vcf.VCFHeader;
 
 import java.io.PrintStream;
 import java.util.*;

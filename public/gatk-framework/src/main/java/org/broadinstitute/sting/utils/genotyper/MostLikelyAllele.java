@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.utils.genotyper;
 
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.Allele;
 
 /**
  * Stores the most likely and second most likely alleles, along with a threshold

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.picard.util.PeekableIterator;
+import htsjdk.samtools.util.PeekableIterator;
 
 import java.util.Comparator;
 import java.util.Iterator;

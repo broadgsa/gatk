@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import static org.testng.Assert.assertEquals;
 import org.testng.annotations.Test;

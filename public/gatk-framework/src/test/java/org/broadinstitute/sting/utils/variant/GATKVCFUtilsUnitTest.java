@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.utils.variant;
 
-import org.broad.tribble.index.DynamicIndexCreator;
-import org.broad.tribble.index.IndexCreator;
-import org.broad.tribble.index.interval.IntervalIndexCreator;
-import org.broad.tribble.index.linear.LinearIndexCreator;
+import htsjdk.tribble.index.DynamicIndexCreator;
+import htsjdk.tribble.index.IndexCreator;
+import htsjdk.tribble.index.interval.IntervalIndexCreator;
+import htsjdk.tribble.index.linear.LinearIndexCreator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -36,8 +36,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.variant.vcf.VCFHeader;
-import org.broadinstitute.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

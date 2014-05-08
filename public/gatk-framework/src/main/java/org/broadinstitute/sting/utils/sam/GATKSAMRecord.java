@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.utils.sam;
 
 import com.google.java.contract.Ensures;
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.EventType;

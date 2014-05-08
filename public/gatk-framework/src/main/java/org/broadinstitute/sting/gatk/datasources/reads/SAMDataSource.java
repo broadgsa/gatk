@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.sam.MergingSamRecordIterator;
-import net.sf.picard.sam.SamFileHeaderMerger;
-import net.sf.samtools.*;
-import net.sf.samtools.util.CloseableIterator;
-import net.sf.samtools.util.RuntimeIOException;
+import htsjdk.samtools.MergingSamRecordIterator;
+import htsjdk.samtools.SamFileHeaderMerger;
+import htsjdk.samtools.*;
+import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
@@ -640,7 +640,7 @@ public class SAMDataSource {
             final long stopCoordinate = inputStream.getFilePointer();
 
             if(reader != null && nextRead != null)
-                PicardNamespaceUtils.setFileSource(nextRead,new SAMFileSource(reader,new GATKBAMFileSpan(new GATKChunk(startCoordinate,stopCoordinate))));
+                PicardNamespaceUtils.setFileSource(nextRead, new SAMFileSource(reader, new GATKBAMFileSpan(new GATKChunk(startCoordinate, stopCoordinate))));
         }
     }
 
@@ -1130,7 +1130,7 @@ public class SAMDataSource {
         File indexFile;
 
         try {
-            Class bamFileReaderClass = Class.forName("net.sf.samtools.BAMFileReader");
+            Class bamFileReaderClass = Class.forName("htsjdk.samtools.BAMFileReader");
             Method indexFileLocator = bamFileReaderClass.getDeclaredMethod("findIndexFile",File.class);
             indexFileLocator.setAccessible(true);
             indexFile = (File)indexFileLocator.invoke(null,bamFile);

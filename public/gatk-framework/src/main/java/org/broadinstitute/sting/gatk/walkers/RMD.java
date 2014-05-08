@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;

@@ -28,7 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import org.broadinstitute.sting.BaseTest;
 import static org.testng.Assert.assertEquals;
 import org.testng.annotations.Test;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 
 /*

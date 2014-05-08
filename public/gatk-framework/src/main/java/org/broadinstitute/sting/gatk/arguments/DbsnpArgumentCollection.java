@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.arguments;
 
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 
 /**
  * @author ebanks

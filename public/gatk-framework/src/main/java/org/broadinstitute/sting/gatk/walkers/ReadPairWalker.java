@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecord;
 
 import java.util.Collection;
 

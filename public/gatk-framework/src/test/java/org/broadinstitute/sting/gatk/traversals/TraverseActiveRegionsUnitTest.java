@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import com.google.java.contract.PreconditionError;
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.sam.*;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;

@@ -25,11 +25,10 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.util.BlockCompressedFilePointerUtil;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import htsjdk.samtools.util.PeekableIterator;
+import htsjdk.samtools.GATKBAMFileSpan;
+import htsjdk.samtools.GATKChunk;
+import htsjdk.samtools.util.BlockCompressedFilePointerUtil;
 
 import java.util.LinkedList;
 import java.util.List;

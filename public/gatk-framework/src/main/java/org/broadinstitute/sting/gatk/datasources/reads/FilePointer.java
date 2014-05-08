@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.SAMFileSpan;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.util.PeekableIterator;
+import htsjdk.samtools.GATKBAMFileSpan;
+import htsjdk.samtools.GATKChunk;
+import htsjdk.samtools.SAMFileSpan;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;

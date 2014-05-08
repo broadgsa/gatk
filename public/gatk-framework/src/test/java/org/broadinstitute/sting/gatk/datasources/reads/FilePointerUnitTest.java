@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKChunk;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.GATKBAMFileSpan;
+import htsjdk.samtools.GATKChunk;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.utils.GenomeLocParser;

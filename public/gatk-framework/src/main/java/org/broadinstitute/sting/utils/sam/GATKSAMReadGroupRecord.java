@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
 /**

@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue.extensions.picard
 
 import org.broadinstitute.sting.commandline.{Argument, Output, Input}
 import java.io.File
-import net.sf.picard.analysis.MetricAccumulationLevel
+import picard.analysis.MetricAccumulationLevel
 
 /**
  * Created with IntelliJ IDEA.
@@ -38,7 +38,7 @@ import net.sf.picard.analysis.MetricAccumulationLevel
  */
 class CalculateHsMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction {
   analysisName = "CalculateHsMetrics"
-  javaMainClass = "net.sf.picard.analysis.directed.CalculateHsMetrics"
+  javaMainClass = "picard.analysis.directed.CalculateHsMetrics"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

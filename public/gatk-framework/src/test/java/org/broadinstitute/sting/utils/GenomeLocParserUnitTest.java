@@ -26,20 +26,20 @@
 package org.broadinstitute.sting.utils;
 
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
-import org.broad.tribble.BasicFeature;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.tribble.BasicFeature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -119,7 +119,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
     @Test
     public void testContigHasColon() {
         SAMFileHeader header = new SAMFileHeader();
-        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
+        header.setSortOrder(htsjdk.samtools.SAMFileHeader.SortOrder.coordinate);
         SAMSequenceDictionary dict = new SAMSequenceDictionary();
         SAMSequenceRecord rec = new SAMSequenceRecord("c:h:r1", 10);
         rec.setSequenceLength(10);

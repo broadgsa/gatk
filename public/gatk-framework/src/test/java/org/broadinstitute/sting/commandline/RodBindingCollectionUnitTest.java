@@ -27,7 +27,7 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

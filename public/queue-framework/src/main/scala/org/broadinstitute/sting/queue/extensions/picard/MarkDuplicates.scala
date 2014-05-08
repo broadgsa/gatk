@@ -37,7 +37,7 @@ import java.io.File
  */
 class MarkDuplicates extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "MarkDuplicates"
-  javaMainClass = "net.sf.picard.sam.MarkDuplicates"
+  javaMainClass = "picard.sam.MarkDuplicates"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

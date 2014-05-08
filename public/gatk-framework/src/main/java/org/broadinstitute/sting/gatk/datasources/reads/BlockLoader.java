@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.util.BlockCompressedStreamConstants;
+import htsjdk.samtools.util.BlockCompressedStreamConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.FileInputStream;

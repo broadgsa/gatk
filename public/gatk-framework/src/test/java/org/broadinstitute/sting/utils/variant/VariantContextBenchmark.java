@@ -27,10 +27,10 @@ package org.broadinstitute.sting.utils.variant;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broadinstitute.variant.variantcontext.*;
-import org.broadinstitute.variant.vcf.VCFCodec;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.vcf.VCFCodec;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -254,54 +254,54 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 
 //    public void timeV13(int rep) {
 //        for ( int i = 0; i < rep; i++ ) {
-//            FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext> func = getV13FunctionToBenchmark();
-//            FeatureCodec<org.broadinstitute.variant.variantcontext.v13.VariantContext> codec = new org.broadinstitute.variant.variantcontext.v13.VCFCodec();
+//            FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext> func = getV13FunctionToBenchmark();
+//            FeatureCodec<htsjdk.variant.variantcontext.v13.VariantContext> codec = new htsjdk.variant.variantcontext.v13.VCFCodec();
 //            runBenchmark(codec, func);
 //        }
 //    }
 //
-//    public FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext> getV13FunctionToBenchmark() {
+//    public FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext> getV13FunctionToBenchmark() {
 //        switch ( operation ) {
 //            case READ:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        ; // empty operation
 //                    }
 //                };
 //            case SUBSET_TO_SAMPLES:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
 //                    List<String> samples;
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        if ( samples == null )
 //                            samples = new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake);
-//                        org.broadinstitute.variant.variantcontext.v13.VariantContext sub = vc.subContextFromGenotypes(vc.getGenotypes(samples).values());
+//                        htsjdk.variant.variantcontext.v13.VariantContext sub = vc.subContextFromGenotypes(vc.getGenotypes(samples).values());
 //                        sub.getNSamples();
 //                    }
 //                };
 //
 //            case GET_TYPE:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getType();
 //                    }
 //                };
 //            case GET_ID:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getID();
 //                    }
 //                };
 //            case GET_GENOTYPES:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getGenotypes().size();
 //                    }
 //                };
 //
 //            case GET_GENOTYPES_FOR_SAMPLES:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
 //                    Set<String> samples;
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        if ( samples == null )
 //                            samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
 //                        vc.getGenotypes(samples).size();
@@ -309,60 +309,60 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //                };
 //
 //            case GET_ATTRIBUTE_STRING:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getExtendedAttribute("AN", null);
 //                    }
 //                };
 //
 //            case GET_ATTRIBUTE_INT:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getAttributeAsInt("AC", 0);
 //                    }
 //                };
 //
 //            case GET_N_SAMPLES:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getNSamples();
 //                    }
 //                };
 //
 //            case GET_GENOTYPES_IN_ORDER_OF_NAME:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        ; // TODO - TEST IS BROKEN
 //                        //vc.getGenotypesOrderedByName();
 //                    }
 //                };
 //
 //            case CALC_GENOTYPE_COUNTS:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
 //                        vc.getHetCount();
 //                    }
 //                };
 //
 //            case MERGE:
-//                return new FunctionToBenchmark<org.broadinstitute.variant.variantcontext.v13.VariantContext>() {
-//                    public void run(final org.broadinstitute.variant.variantcontext.v13.VariantContext vc) {
-//                        List<org.broadinstitute.variant.variantcontext.v13.VariantContext> toMerge = new ArrayList<org.broadinstitute.variant.variantcontext.v13.VariantContext>();
+//                return new FunctionToBenchmark<htsjdk.variant.variantcontext.v13.VariantContext>() {
+//                    public void run(final htsjdk.variant.variantcontext.v13.VariantContext vc) {
+//                        List<htsjdk.variant.variantcontext.v13.VariantContext> toMerge = new ArrayList<htsjdk.variant.variantcontext.v13.VariantContext>();
 //
 //                        for ( int i = 0; i < dupsToMerge; i++ ) {
-//                            Map<String, org.broadinstitute.variant.variantcontext.v13.Genotype> gc = new HashMap<String, org.broadinstitute.variant.variantcontext.v13.Genotype>();
-//                            for ( final org.broadinstitute.variant.variantcontext.v13.Genotype g : vc.getGenotypes().values() ) {
+//                            Map<String, htsjdk.variant.variantcontext.v13.Genotype> gc = new HashMap<String, htsjdk.variant.variantcontext.v13.Genotype>();
+//                            for ( final htsjdk.variant.variantcontext.v13.Genotype g : vc.getGenotypes().values() ) {
 //                                String name = g.getSampleName()+"_"+i;
-//                                gc.put(name, new org.broadinstitute.variant.variantcontext.v13.Genotype(name,
+//                                gc.put(name, new htsjdk.variant.variantcontext.v13.Genotype(name,
 //                                        g.getAlleles(), g.getLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased(), g.getLikelihoods().getAsVector()));
-//                                toMerge.add(org.broadinstitute.variant.variantcontext.v13.VariantContext.modifyGenotypes(vc, gc));
+//                                toMerge.add(htsjdk.variant.variantcontext.v13.VariantContext.modifyGenotypes(vc, gc));
 //                            }
 //                        }
 //
-//                        org.broadinstitute.variant.variantcontext.v13.VariantContextUtils.simpleMerge(b37GenomeLocParser,
+//                        htsjdk.variant.variantcontext.v13.VariantContextUtils.simpleMerge(b37GenomeLocParser,
 //                                toMerge, null,
-//                                org.broadinstitute.variant.variantcontext.v13.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-//                                org.broadinstitute.variant.variantcontext.v13.VariantContextUtils.GenotypeMergeType.UNSORTED,
+//                                htsjdk.variant.variantcontext.v13.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+//                                htsjdk.variant.variantcontext.v13.VariantContextUtils.GenotypeMergeType.UNSORTED,
 //                                true, false, "set", false, true, false);
 //                    }
 //                };

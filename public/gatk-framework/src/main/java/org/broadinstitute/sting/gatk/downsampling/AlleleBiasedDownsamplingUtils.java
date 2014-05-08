@@ -33,7 +33,7 @@ import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.Allele;
 
 import java.io.File;
 import java.io.IOException;

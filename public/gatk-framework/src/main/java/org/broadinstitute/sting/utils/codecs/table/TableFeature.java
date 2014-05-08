@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.utils.codecs.table;
 
 
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 

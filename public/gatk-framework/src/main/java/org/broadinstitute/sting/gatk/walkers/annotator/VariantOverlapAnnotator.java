@@ -29,10 +29,10 @@ import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
-import org.broadinstitute.variant.vcf.VCFConstants;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
+import htsjdk.variant.vcf.VCFConstants;
 
 import java.util.*;
 
@@ -74,7 +74,7 @@ public final class VariantOverlapAnnotator {
 
     /**
      * Update rsID in vcToAnnotate with rsIDs from dbSNPBinding fetched from tracker
-     * @see #annotateOverlap(java.util.List, String, org.broadinstitute.variant.variantcontext.VariantContext)
+     * @see #annotateOverlap(java.util.List, String, htsjdk.variant.variantcontext.VariantContext)
      *
      * @param tracker non-null tracker, which we will use to update the rsID of vcToAnnotate
      *                for VariantContexts bound to dbSNPBinding that start at vcToAnnotate
@@ -122,7 +122,7 @@ public final class VariantOverlapAnnotator {
     /**
      * Add overlap attributes to vcToAnnotate against all overlapBindings in tracker
      *
-     * @see #annotateOverlap(java.util.List, String, org.broadinstitute.variant.variantcontext.VariantContext)
+     * @see #annotateOverlap(java.util.List, String, htsjdk.variant.variantcontext.VariantContext)
      * for more information
      *
      * @param tracker non-null tracker, which we will use to update the rsID of vcToAnnotate

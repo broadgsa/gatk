@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.picard.util.PeekableIterator;
+import htsjdk.samtools.util.PeekableIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Iterator;

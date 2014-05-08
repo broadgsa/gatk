@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broad.tribble.FeatureCodec;
+import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**

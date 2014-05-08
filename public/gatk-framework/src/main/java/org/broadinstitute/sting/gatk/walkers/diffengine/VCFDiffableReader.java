@@ -26,12 +26,12 @@
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.apache.log4j.Logger;
-import org.broad.tribble.AbstractFeatureReader;
-import org.broad.tribble.FeatureReader;
+import htsjdk.tribble.AbstractFeatureReader;
+import htsjdk.tribble.FeatureReader;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.variant.vcf.*;
-import org.broadinstitute.variant.variantcontext.Genotype;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.vcf.*;
+import htsjdk.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.io.*;
 import java.util.Iterator;

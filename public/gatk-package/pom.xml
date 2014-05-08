@@ -28,15 +28,10 @@
             <artifactId>gatk-framework</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Tribble codecs -->
+        <!-- Tribble codecs & the variant package (VCF, BCF, and VariantContext) -->
         <dependency>
-            <groupId>org.broad</groupId>
-            <artifactId>tribble</artifactId>
-        </dependency>
-        <!-- The variant package (VCF, BCF, and VariantContext) -->
-        <dependency>
-            <groupId>org.broadinstitute</groupId>
-            <artifactId>variant</artifactId>
+            <groupId>samtools</groupId>
+            <artifactId>htsjdk</artifactId>
         </dependency>
         <!-- Workaround - depend on the logger impl required by JEXL -->
         <dependency>

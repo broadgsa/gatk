@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
-import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.TribbleIndexedFeatureReader;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.FeatureCodec;
+import htsjdk.tribble.TribbleIndexedFeatureReader;
 
 import java.io.IOException;
 

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;

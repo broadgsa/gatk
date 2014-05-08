@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.help.HelpConstants;
-import org.broadinstitute.variant.vcf.VCFHeaderLine;
+import htsjdk.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.util.List;

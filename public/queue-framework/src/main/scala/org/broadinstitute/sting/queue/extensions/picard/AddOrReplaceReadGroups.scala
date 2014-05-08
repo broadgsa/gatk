@@ -37,7 +37,7 @@ import java.io.File
  */
 class AddOrReplaceReadGroups extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "AddOrReplaceReadGroups"
-  javaMainClass = "net.sf.picard.sam.AddOrReplaceReadGroups"
+  javaMainClass = "picard.sam.AddOrReplaceReadGroups"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

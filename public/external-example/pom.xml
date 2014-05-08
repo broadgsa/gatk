@@ -146,13 +146,7 @@
                                     </includes>
                                 </filter>
                                 <filter>
-                                    <artifact>org.broad:tribble</artifact>
-                                    <includes>
-                                        <include>**</include>
-                                    </includes>
-                                </filter>
-                                <filter>
-                                    <artifact>org.broadinstitute:variant</artifact>
+                                    <artifact>samtools:htsjdk</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>

@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import com.google.java.contract.Ensures;
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.lang.reflect.Constructor;

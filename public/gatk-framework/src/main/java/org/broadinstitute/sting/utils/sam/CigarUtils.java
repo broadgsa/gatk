@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.utils.sam;
 
 import com.google.java.contract.Ensures;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.TextCigarCodec;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.TextCigarCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.smithwaterman.Parameters;
 import org.broadinstitute.sting.utils.smithwaterman.SWPairwiseAlignment;

@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.util.BlockCompressedInputStream;
+import htsjdk.samtools.GATKBAMFileSpan;
+import htsjdk.samtools.GATKChunk;
+import htsjdk.samtools.util.BlockCompressedInputStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.IOException;

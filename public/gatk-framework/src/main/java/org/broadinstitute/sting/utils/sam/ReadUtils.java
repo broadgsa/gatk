@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.*;
+import htsjdk.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.*;
@@ -617,7 +617,7 @@ public class ReadUtils {
     }
 
     /**
-     * @see #readStartsWithInsertion(net.sf.samtools.Cigar, boolean) with ignoreClipOps set to true
+     * @see #readStartsWithInsertion(htsjdk.samtools.Cigar, boolean) with ignoreClipOps set to true
      */
     public static CigarElement readStartsWithInsertion(final Cigar cigarForRead) {
         return readStartsWithInsertion(cigarForRead, true);

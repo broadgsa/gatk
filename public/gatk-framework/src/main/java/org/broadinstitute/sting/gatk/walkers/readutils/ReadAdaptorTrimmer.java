@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.readutils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileWriter;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;

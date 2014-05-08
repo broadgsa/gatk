@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.codecs.sampileup;
 
-import net.sf.samtools.util.StringUtil;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.util.StringUtil;
+import htsjdk.tribble.Feature;
 
 import java.util.List;
 

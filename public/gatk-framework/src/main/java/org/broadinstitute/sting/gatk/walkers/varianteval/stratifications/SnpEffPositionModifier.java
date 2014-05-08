@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.SnpEff;
 import org.broadinstitute.sting.gatk.walkers.annotator.SnpEff.EffectType;
 import org.broadinstitute.sting.gatk.walkers.annotator.SnpEff.InfoFieldKey;
 import org.broadinstitute.sting.gatk.walkers.annotator.SnpEffUtil;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.List;

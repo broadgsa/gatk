@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.utils.codecs.refseq;
 
-import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.Feature;
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.readers.LineIterator;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.Feature;
+import htsjdk.tribble.TribbleException;
+import htsjdk.tribble.readers.LineIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;

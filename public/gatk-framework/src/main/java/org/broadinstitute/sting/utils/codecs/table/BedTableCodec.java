@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.codecs.table;
 
-import org.broad.tribble.Feature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 
 import java.util.Arrays;

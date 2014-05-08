@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
+import htsjdk.samtools.SAMSequenceDictionary;
 
 import java.io.File;
 import java.io.IOException;

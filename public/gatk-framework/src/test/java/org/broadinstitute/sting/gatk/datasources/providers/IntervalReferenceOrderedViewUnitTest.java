@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.SAMFileHeader;
-import org.broad.tribble.BasicFeature;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.util.PeekableIterator;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.tribble.BasicFeature;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.refdata.RODRecordListImpl;

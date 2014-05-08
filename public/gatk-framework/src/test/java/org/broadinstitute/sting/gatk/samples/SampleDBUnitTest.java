@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.samples;
 
-import net.sf.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;

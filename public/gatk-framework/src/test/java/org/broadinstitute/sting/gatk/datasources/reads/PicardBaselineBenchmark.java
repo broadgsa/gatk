@@ -27,10 +27,10 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import net.sf.picard.util.SamLocusIterator;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.SamLocusIterator;
+import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.util.CloseableIterator;
 
 import java.io.File;
 import java.util.Iterator;

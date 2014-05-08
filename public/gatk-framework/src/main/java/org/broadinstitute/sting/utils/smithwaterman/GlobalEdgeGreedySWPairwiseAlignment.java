@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.smithwaterman;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
+import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 

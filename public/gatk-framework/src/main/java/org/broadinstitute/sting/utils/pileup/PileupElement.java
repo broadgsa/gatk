@@ -27,8 +27,8 @@ package org.broadinstitute.sting.utils.pileup;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
+import htsjdk.samtools.CigarElement;
+import htsjdk.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 

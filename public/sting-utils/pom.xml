@@ -21,20 +21,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.sf</groupId>
-            <artifactId>sam</artifactId>
+            <groupId>samtools</groupId>
+            <artifactId>htsjdk</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.sf</groupId>
+            <groupId>picard</groupId>
             <artifactId>picard</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.broad</groupId>
-            <artifactId>tribble</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.broadinstitute</groupId>
-            <artifactId>variant</artifactId>
         </dependency>
         <dependency>
             <groupId>log4j</groupId>

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.datasources.rmd;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broad.tribble.Feature;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.refdata.utils.*;

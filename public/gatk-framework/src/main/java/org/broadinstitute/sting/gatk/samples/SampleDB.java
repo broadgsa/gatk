@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.gatk.samples;
 
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.SAMReadGroupRecord;
+import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.Genotype;
 
 import java.util.*;
 

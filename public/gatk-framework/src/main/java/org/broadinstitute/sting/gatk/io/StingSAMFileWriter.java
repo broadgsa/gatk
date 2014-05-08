@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.io;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriter;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMFileWriter;
 
 /**
  * A writer that will allow unsorted BAM files to be written

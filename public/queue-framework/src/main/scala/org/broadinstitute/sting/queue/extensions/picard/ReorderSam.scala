@@ -36,7 +36,7 @@ import java.io.File
  */
 class ReorderSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "ReorderSam"
-  javaMainClass = "net.sf.picard.sam.ReorderSam"
+  javaMainClass = "picard.sam.ReorderSam"
 
   @Input(doc="Input file (bam or sam) to extract reads from.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.utils.codecs.table;
 
-import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.readers.LineIterator;
+import htsjdk.tribble.AsciiFeatureCodec;
+import htsjdk.tribble.readers.LineIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;

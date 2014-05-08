@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.picard.sam.MergingSamRecordIterator;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import htsjdk.samtools.MergingSamRecordIterator;
+import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMRecord;
 
 import java.util.Iterator;
 
