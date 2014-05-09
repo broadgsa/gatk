@@ -25,7 +25,7 @@
 
 #include "headers.h"
 #include "jni_common.h"
-#include "org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM.h"
+#include "org_broadinstitute_gatk_utils_pairhmm_DebugJNILoglessPairHMM.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
 #include "jnidebug.h"
@@ -33,7 +33,7 @@ DataHolder<double> g_double_dataholder;
 
 using namespace std;
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM_jniInitialize
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_DebugJNILoglessPairHMM_jniInitialize
 (JNIEnv* env, jobject thisObject,
  jint readMaxLength, jint haplotypeMaxLength)
 {
@@ -48,7 +48,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILogle
   ++g_num_init_calls;
 }
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM_jniInitializeProbabilities
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_DebugJNILoglessPairHMM_jniInitializeProbabilities
 (JNIEnv* env, jclass thisObject,
  jobjectArray transition, jbyteArray insertionGOP, jbyteArray deletionGOP, jbyteArray overallGCP
  )
@@ -79,7 +79,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILogle
 }
 
 JNIEXPORT jdouble JNICALL 
-Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM_jniInitializePriorsAndUpdateCells( 
+Java_org_broadinstitute_gatk_utils_pairhmm_DebugJNILoglessPairHMM_jniInitializePriorsAndUpdateCells( 
     JNIEnv* env, jobject thisObject,
     jboolean doInitialization, jint paddedReadLength, jint paddedHaplotypeLength,
     jbyteArray readBases, jbyteArray haplotypeBases, jbyteArray readQuals,
@@ -119,7 +119,7 @@ Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM_jniInitialize
 }
 
 JNIEXPORT jdouble JNICALL 
-Java_org_broadinstitute_sting_utils_pairhmm_DebugJNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10( 
+Java_org_broadinstitute_gatk_utils_pairhmm_DebugJNILoglessPairHMM_jniSubComputeReadLikelihoodGivenHaplotypeLog10( 
     JNIEnv* env, jobject thisObject,
     jint readLength, jint haplotypeLength,
     jbyteArray readBases, jbyteArray haplotypeBases, jbyteArray readQuals,

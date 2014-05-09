@@ -25,14 +25,14 @@
 
 #include "headers.h"
 #include "jni_common.h"
-#include "org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.h"
+#include "org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM.h"
 //#include "template.h"
 #include "utils.h"
 #include "LoadTimeInitializer.h"
 
 using namespace std;
 
-JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniGetMachineType
+JNIEXPORT jlong JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniGetMachineType
   (JNIEnv* env, jobject thisObject)
 {
   return (jlong)get_machine_capabilities(); 
@@ -40,7 +40,7 @@ JNIEXPORT jlong JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogles
 
 //Should be called only once for the whole Java process - initializes field ids for the classes JNIReadDataHolderClass
 //and JNIHaplotypeDataHolderClass
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeClassFieldsAndMachineMask
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniInitializeClassFieldsAndMachineMask
   (JNIEnv* env, jobject thisObject, jclass readDataHolderClass, jclass haplotypeDataHolderClass, jlong mask)
 {
   assert(readDataHolderClass);
@@ -138,7 +138,7 @@ vector<unsigned> g_haplotypeBasesLengths;
 //Since the list of haplotypes against which the reads are evaluated in PairHMM is the same for a region,
 //transfer the list only once
 //Works only for ST case as the haplotype data is stored in global variables
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes
   (JNIEnv * env, jobject thisObject, jint numHaplotypes, jobjectArray haplotypeDataArray)
 {
 #ifdef SINGLE_THREADED_ONLY
@@ -150,7 +150,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 
 //Create a vector of testcases for computation - copy the references to bytearrays read/readQuals etc into the appropriate
 //testcase struct
-inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector
+inline JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector
   (JNIEnv* env, jint numReads, jint numHaplotypes, jobjectArray& readDataArray,
    vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector,
    vector<pair<jbyteArray, jbyte*> >& haplotypeBasesArrayVector, vector<unsigned>& haplotypeBasesLengths,
@@ -271,7 +271,7 @@ inline void compute_testcases(vector<testcase>& tc_array, unsigned numTestCases,
 }
 
 //Inform the Java VM that we no longer need access to the read arrays (and free memory)
-inline JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays
+inline JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays
   (JNIEnv* env, vector<vector<pair<jbyteArray,jbyte*> > >& readBasesArrayVector)
 {
   //Release read arrays first
@@ -293,7 +293,7 @@ uint64_t g_sum = 0;
 //haplotypeDataArray - array of JNIHaplotypeDataHolderClass objects which contain the haplotypeBases
 //likelihoodArray - array of doubles to return results back to Java. Memory allocated by Java prior to JNI call
 //maxNumThreadsToUse - Max number of threads that OpenMP can use for the HMM computation
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods
   (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
    jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
 {
@@ -329,7 +329,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   initializeHaplotypes(env, thisObject, numHaplotypes, haplotypeDataArray, haplotypeBasesArrayVector, haplotypeBasesLengths);
 #endif
   //Copy byte array references from Java memory into vector of testcase structs
-  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector(env,
+  Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniInitializeTestcasesVector(env,
       numReads, numHaplotypes, readDataArray, readBasesArrayVector, haplotypeBasesArrayVector, haplotypeBasesLengths, tc_array);
 
 #ifdef DO_PROFILING
@@ -375,7 +375,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
   get_time(&start_time);
 #endif
   RELEASE_DOUBLE_ARRAY_ELEMENTS(likelihoodArray, likelihoodDoubleArray, 0); //release mode 0, copy back results to Java memory (if copy made)
-  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays(env, readBasesArrayVector);
+  Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniReleaseReadArrays(env, readBasesArrayVector);
 #ifndef SINGLE_THREADED_ONLY
   releaseHaplotypes(env, thisObject, haplotypeBasesArrayVector, haplotypeBasesLengths);
 #endif
@@ -394,7 +394,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 }
 
 //If single threaded, release haplotypes at the end of a region
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniFinalizeRegion
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniFinalizeRegion
   (JNIEnv * env, jobject thisObject)
 {
 #ifdef SINGLE_THREADED_ONLY
@@ -403,7 +403,7 @@ JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLogless
 }
 
 
-JNIEXPORT void JNICALL Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniClose
+JNIEXPORT void JNICALL Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniClose
   (JNIEnv* env, jobject thisObject)
 {
 #ifdef DO_PROFILING
