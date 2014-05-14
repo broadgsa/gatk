@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
@@ -35,6 +34,7 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.IOException;
@@ -477,7 +477,7 @@ public abstract class ArgumentTypeDescriptor {
         final Set<String> fileValues = new HashSet<>();
 
         // parse each line separately using the given Tags if none are provided on each line
-        for ( final String line: FileUtils.readLines(file) ) {
+        for ( final String line: new XReadLines(file) ) {
             final String[] tokens = line.split("\\s+");
             final RodBinding binding;
 

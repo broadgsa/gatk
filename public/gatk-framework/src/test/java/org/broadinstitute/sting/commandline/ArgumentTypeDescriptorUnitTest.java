@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import htsjdk.variant.variantcontext.VariantContext;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import htsjdk.samtools.SAMFileWriter;
 import org.broadinstitute.sting.BaseTest;
@@ -36,6 +37,8 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -164,6 +167,54 @@ public class ArgumentTypeDescriptorUnitTest extends BaseTest {
 
         } catch (Exception e) {
             throw new ReviewedStingException(e.getMessage());
+        }
+    }
+
+    @Test
+    public void testRodBindingsCollection() {
+
+        final ParsingEngine parser = new ParsingEngine(new ATDTestCommandLineProgram());
+
+        //A list file containing a single VCF
+        final File listFile = new File(privateTestDir+"oneVCF.list");
+
+        try {
+            Object result = ArgumentTypeDescriptor.getRodBindingsCollection(listFile,
+                    parser,
+                    VariantContext.class,
+                    "variant",
+                    new Tags(),
+                    "variantTest");
+            if (!(result instanceof RodBindingCollection))
+                throw new ReviewedStingException("getRodBindingsCollection did not return a RodBindingCollection");
+            RodBindingCollection<?> rbc = (RodBindingCollection) result;
+
+            Assert.assertEquals(rbc.getType(), VariantContext.class);
+            Assert.assertEquals(rbc.getRodBindings().size(), 1);
+
+        } catch (IOException e) {
+            throw new ReviewedStingException(e.getMessage(), e);
+        }
+
+        //The same file, now with an extra blank line
+        final File listFileWithBlank = new File(privateTestDir+"oneVCFwithBlankLine.list");
+
+        try {
+            Object result = ArgumentTypeDescriptor.getRodBindingsCollection(listFileWithBlank,
+                    parser,
+                    VariantContext.class,
+                    "variant",
+                    new Tags(),
+                    "variantTest");
+            if (!(result instanceof RodBindingCollection))
+                throw new ReviewedStingException("getRodBindingsCollection did not return a RodBindingCollection");
+            RodBindingCollection<?> rbc = (RodBindingCollection) result;
+
+            Assert.assertEquals(rbc.getType(), VariantContext.class);
+            Assert.assertEquals(rbc.getRodBindings().size(), 1);
+
+        } catch (IOException e) {
+            throw new ReviewedStingException(e.getMessage(), e);
         }
     }
 
