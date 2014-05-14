@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.baq.ReadTransformingIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
@@ -155,6 +156,11 @@ public class SAMDataSource {
     private final ThreadAllocation threadAllocation;
 
     /**
+     * How are adjacent intervals merged by the sharder?
+     */
+    private final IntervalMergingRule intervalMergingRule;
+
+    /**
      * Static set of unsupported programs that create bam files.
      * The key is the PG record ID and the value is the name of the tool that created it
      */
@@ -217,7 +223,8 @@ public class SAMDataSource {
                 (byte) -1,
                 false,
                 false,
-                null);
+                null,
+                IntervalMergingRule.ALL);
     }
 
     /**
@@ -236,6 +243,7 @@ public class SAMDataSource {
      * @param keepReadsInLIBS should we keep a unique list of reads in LIBS?
      * @param sampleRenameMap Map of BAM file to new sample ID used during on-the-fly runtime sample renaming.
      *                        Will be null if we're not doing sample renaming.
+     * @param intervalMergingRule how are adjacent intervals merged by the sharder
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -253,10 +261,12 @@ public class SAMDataSource {
             byte defaultBaseQualities,
             boolean removeProgramRecords,
             final boolean keepReadsInLIBS,
-            final Map<String, String> sampleRenameMap) {
+            final Map<String, String> sampleRenameMap,
+            final IntervalMergingRule intervalMergingRule) {
 
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
+        this.intervalMergingRule = intervalMergingRule;
 
         readerIDs = samFiles;
 
@@ -1182,7 +1192,7 @@ public class SAMDataSource {
     public Iterable<Shard> createShardIteratorOverIntervals(final GenomeLocSortedSet intervals,final ShardBalancer shardBalancer) {
         if(intervals == null)
             throw new ReviewedStingException("Unable to create schedule from intervals; no intervals were provided.");
-        shardBalancer.initialize(this,IntervalSharder.shardOverIntervals(SAMDataSource.this,intervals),genomeLocParser);
+        shardBalancer.initialize(this,IntervalSharder.shardOverIntervals(SAMDataSource.this,intervals,intervalMergingRule),genomeLocParser);
         return shardBalancer;
     }
 }

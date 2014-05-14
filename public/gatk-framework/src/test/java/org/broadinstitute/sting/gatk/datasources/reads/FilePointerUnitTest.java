@@ -32,6 +32,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -61,12 +62,26 @@ public class FilePointerUnitTest extends BaseTest {
 
     @Test
     public void testFilePointerCombineDisjoint() {
-        FilePointer one = new FilePointer(genomeLocParser.createGenomeLoc("chr1",1,5));
+        FilePointer one = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",1,5));
         one.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,1)));
-        FilePointer two = new FilePointer(genomeLocParser.createGenomeLoc("chr1",6,10));
+        FilePointer two = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",6,10));
         two.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(1,2)));
 
-        FilePointer result = new FilePointer(genomeLocParser.createGenomeLoc("chr1",1,10));
+        FilePointer result = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",1,10));
+        result.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,2)));
+
+        Assert.assertEquals(one.combine(genomeLocParser,two),result,"Combination of two file pointers is incorrect");
+        Assert.assertEquals(two.combine(genomeLocParser,one),result,"Combination of two file pointers is incorrect");
+
+        //Now test that adjacent (but disjoint) intervals are properly handled with OVERLAPPING_ONLY
+        one = new FilePointer(IntervalMergingRule.OVERLAPPING_ONLY, genomeLocParser.createGenomeLoc("chr1",1,5));
+        one.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,1)));
+        two = new FilePointer(IntervalMergingRule.OVERLAPPING_ONLY, genomeLocParser.createGenomeLoc("chr1",6,10));
+        two.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(1,2)));
+
+        result = new FilePointer(IntervalMergingRule.OVERLAPPING_ONLY,
+                genomeLocParser.createGenomeLoc("chr1",1,5),
+                genomeLocParser.createGenomeLoc("chr1",6,10));
         result.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,2)));
 
         Assert.assertEquals(one.combine(genomeLocParser,two),result,"Combination of two file pointers is incorrect");
@@ -75,13 +90,25 @@ public class FilePointerUnitTest extends BaseTest {
 
     @Test
     public void testFilePointerCombineJoint() {
-        FilePointer one = new FilePointer(genomeLocParser.createGenomeLoc("chr1",1,5));
+        FilePointer one = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",1,5));
         one.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,2)));
-        FilePointer two = new FilePointer(genomeLocParser.createGenomeLoc("chr1",2,6));
+        FilePointer two = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",2,6));
         two.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(1,3)));
 
-        FilePointer result = new FilePointer(genomeLocParser.createGenomeLoc("chr1",1,6));
+        FilePointer result = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",1,6));
         result.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,3)));        
+
+        Assert.assertEquals(one.combine(genomeLocParser,two),result,"Combination of two file pointers is incorrect");
+        Assert.assertEquals(two.combine(genomeLocParser,one),result,"Combination of two file pointers is incorrect");
+
+        //Repeat the tests for OVERLAPPING_ONLY
+        one = new FilePointer(IntervalMergingRule.OVERLAPPING_ONLY, genomeLocParser.createGenomeLoc("chr1",1,5));
+        one.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,2)));
+        two = new FilePointer(IntervalMergingRule.OVERLAPPING_ONLY, genomeLocParser.createGenomeLoc("chr1",2,6));
+        two.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(1,3)));
+
+        result = new FilePointer(IntervalMergingRule.OVERLAPPING_ONLY, genomeLocParser.createGenomeLoc("chr1",1,6));
+        result.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,3)));
 
         Assert.assertEquals(one.combine(genomeLocParser,two),result,"Combination of two file pointers is incorrect");
         Assert.assertEquals(two.combine(genomeLocParser,one),result,"Combination of two file pointers is incorrect");
@@ -89,12 +116,12 @@ public class FilePointerUnitTest extends BaseTest {
 
     @Test
     public void testFilePointerCombineOneSided() {
-        FilePointer filePointer = new FilePointer(genomeLocParser.createGenomeLoc("chr1",1,5));
+        FilePointer filePointer = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",1,5));
         filePointer.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,1)));
-        FilePointer empty = new FilePointer(genomeLocParser.createGenomeLoc("chr1",6,10));
+        FilePointer empty = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",6,10));
         // Do not add file spans to empty result
 
-        FilePointer result = new FilePointer(genomeLocParser.createGenomeLoc("chr1",1,10));
+        FilePointer result = new FilePointer(IntervalMergingRule.ALL, genomeLocParser.createGenomeLoc("chr1",1,10));
         result.addFileSpans(readerID,new GATKBAMFileSpan(new GATKChunk(0,1)));
         Assert.assertEquals(filePointer.combine(genomeLocParser,empty),result,"Combination of two file pointers is incorrect");
         Assert.assertEquals(empty.combine(genomeLocParser,filePointer),result,"Combination of two file pointers is incorrect");

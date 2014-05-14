@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import htsjdk.samtools.util.PeekableIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 
 import java.util.Iterator;
 
@@ -54,8 +55,8 @@ public class IntervalSharder implements Iterator<FilePointer> {
         return new IntervalSharder(BAMScheduler.createOverMappedReads(dataSource),parser);
     }
 
-    public static IntervalSharder shardOverIntervals(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
-        return new IntervalSharder(BAMScheduler.createOverIntervals(dataSource,loci),loci.getGenomeLocParser());
+    public static IntervalSharder shardOverIntervals(final SAMDataSource dataSource, final GenomeLocSortedSet loci, final IntervalMergingRule intervalMergeRule) {
+        return new IntervalSharder(BAMScheduler.createOverIntervals(dataSource,intervalMergeRule,loci),loci.getGenomeLocParser());
     }
 
     private IntervalSharder(final BAMScheduler scheduler, final GenomeLocParser parser) {

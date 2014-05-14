@@ -104,7 +104,7 @@ public class FindLargeShards extends CommandLineProgram {
 
         logger.info(String.format("PROGRESS: Calculating mean and variance: Contig\tRegion.Start\tRegion.Stop\tSize"));        
 
-        IntervalSharder sharder = IntervalSharder.shardOverIntervals(dataSource,intervalSortedSet);
+        IntervalSharder sharder = IntervalSharder.shardOverIntervals(dataSource,intervalSortedSet,IntervalMergingRule.ALL);
         while(sharder.hasNext()) {
             FilePointer filePointer = sharder.next();
 
@@ -133,7 +133,7 @@ public class FindLargeShards extends CommandLineProgram {
         logger.warn(String.format("PROGRESS: Searching for large shards: Contig\tRegion.Start\tRegion.Stop\tSize"));
         out.printf("Contig\tRegion.Start\tRegion.Stop\tSize%n");
 
-        sharder =  IntervalSharder.shardOverIntervals(dataSource,intervalSortedSet);
+        sharder =  IntervalSharder.shardOverIntervals(dataSource,intervalSortedSet,IntervalMergingRule.ALL);
         while(sharder.hasNext()) {
             FilePointer filePointer = sharder.next();
 

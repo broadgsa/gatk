@@ -45,6 +45,7 @@ import java.util.*;
 public class FilePointer {
     protected final SortedMap<SAMReaderID,SAMFileSpan> fileSpans = new TreeMap<SAMReaderID,SAMFileSpan>();
     protected final List<GenomeLoc> locations = new ArrayList<GenomeLoc>();
+    protected final IntervalMergingRule intervalMergingRule;
 
     /**
      * Does this file pointer point into an unmapped region?
@@ -65,7 +66,8 @@ public class FilePointer {
     private Integer contigIndex = null;
 
 
-    public FilePointer( List<GenomeLoc> locations ) {
+    public FilePointer( final IntervalMergingRule mergeRule, final List<GenomeLoc> locations ) {
+        this.intervalMergingRule = mergeRule;
         this.locations.addAll(locations);
         this.isRegionUnmapped = checkUnmappedStatus();
 
@@ -75,12 +77,12 @@ public class FilePointer {
         }
     }
 
-    public FilePointer( final GenomeLoc... locations ) {
-        this(Arrays.asList(locations));
+    public FilePointer( final IntervalMergingRule mergeRule, final GenomeLoc... locations ) {
+        this(mergeRule, Arrays.asList(locations));
     }
 
-    public FilePointer( Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> locations ) {
-        this(locations);
+    public FilePointer( final Map<SAMReaderID,SAMFileSpan> fileSpans, final IntervalMergingRule mergeRule, final List<GenomeLoc> locations ) {
+        this(mergeRule, locations);
         this.fileSpans.putAll(fileSpans);
     }
 
@@ -150,6 +152,15 @@ public class FilePointer {
      */
     public int getContigIndex() {
         return locations.size() > 0 ? locations.get(0).getContigIndex() : SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+    }
+
+    /**
+     * Returns the IntervalMergingRule used by this FilePointer to merge adjacent locations
+     *
+     * @return the IntervalMergingRule used by this FilePointer (never null)
+     */
+    public IntervalMergingRule getIntervalMergingRule() {
+        return intervalMergingRule;
     }
 
     /**
@@ -277,12 +288,12 @@ public class FilePointer {
      * @return A completely new file pointer that is the combination of the two.
      */
     public FilePointer combine(final GenomeLocParser parser, final FilePointer other) {
-        FilePointer combined = new FilePointer();
+        FilePointer combined = new FilePointer(intervalMergingRule);
 
         List<GenomeLoc> intervals = new ArrayList<GenomeLoc>();
         intervals.addAll(locations);
         intervals.addAll(other.locations);
-        for(GenomeLoc interval: IntervalUtils.sortAndMergeIntervals(parser,intervals,IntervalMergingRule.ALL))
+        for(GenomeLoc interval: IntervalUtils.sortAndMergeIntervals(parser,intervals,intervalMergingRule))
             combined.addLocation(interval);
 
         PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>> thisIterator = new PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>>(this.fileSpans.entrySet().iterator());
@@ -340,15 +351,18 @@ public class FilePointer {
      */
     public static FilePointer union( List<FilePointer> filePointers, GenomeLocParser parser ) {
         if ( filePointers == null || filePointers.isEmpty() ) {
-            return new FilePointer();
+            return new FilePointer(IntervalMergingRule.ALL);
         }
 
         Map<SAMReaderID, List<GATKChunk>> fileChunks = new HashMap<SAMReaderID, List<GATKChunk>>();
         List<GenomeLoc> locations = new ArrayList<GenomeLoc>();
+        IntervalMergingRule mergeRule = filePointers.get(0).getIntervalMergingRule();
 
         // First extract all intervals and file chunks from the FilePointers into unsorted, unmerged collections
         for ( FilePointer filePointer : filePointers ) {
             locations.addAll(filePointer.getLocations());
+            if (mergeRule != filePointer.getIntervalMergingRule())
+                throw new ReviewedStingException("All FilePointers in FilePointer.union() must have use the same IntervalMergeRule");
 
             for ( Map.Entry<SAMReaderID, SAMFileSpan> fileSpanEntry : filePointer.getFileSpans().entrySet() ) {
                 GATKBAMFileSpan fileSpan = (GATKBAMFileSpan)fileSpanEntry.getValue();
@@ -364,7 +378,7 @@ public class FilePointer {
 
         // Now sort and merge the intervals
         List<GenomeLoc> sortedMergedLocations = new ArrayList<GenomeLoc>();
-        sortedMergedLocations.addAll(IntervalUtils.sortAndMergeIntervals(parser, locations, IntervalMergingRule.ALL));
+        sortedMergedLocations.addAll(IntervalUtils.sortAndMergeIntervals(parser, locations, mergeRule));
 
         // For each BAM file, convert from an unsorted, unmerged list of chunks to a GATKBAMFileSpan containing
         // the sorted, merged union of the chunks for that file
@@ -375,7 +389,7 @@ public class FilePointer {
                                 (new GATKBAMFileSpan(unmergedChunks.toArray(new GATKChunk[unmergedChunks.size()]))).union(new GATKBAMFileSpan()));
         }
 
-        return new FilePointer(mergedFileSpans, sortedMergedLocations);
+        return new FilePointer(mergedFileSpans, mergeRule, sortedMergedLocations);
     }
 
     /**

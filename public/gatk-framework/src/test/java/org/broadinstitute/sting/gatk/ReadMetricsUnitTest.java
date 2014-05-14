@@ -50,6 +50,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.sam.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -158,7 +159,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true, null);
+                false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
 
@@ -193,7 +194,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true, null);
+                false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
@@ -234,7 +235,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true, null);
+                false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
@@ -281,7 +282,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 filters,
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true, null);
+                false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
 
