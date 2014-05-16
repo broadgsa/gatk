@@ -207,7 +207,10 @@ class QCommandLine extends CommandLineProgram with Logging {
         }
       }
     }
-    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatusSize))
+    if (success)
+      logger.info("Script completed successfully with %d total jobs".format(functionsAndStatusSize))
+    else
+      logger.info("Script failed: %s".format(qGraph.formattedStatusCounts))
     result
   }
 
