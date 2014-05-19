@@ -3,28 +3,28 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-root</artifactId>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-root</artifactId>
         <version>3.2-SNAPSHOT</version>
-        <relativePath>sting-root</relativePath>
+        <relativePath>gatk-root</relativePath>
     </parent>
 
-    <artifactId>sting-public</artifactId>
+    <artifactId>gatk-aggregator-public</artifactId>
     <packaging>pom</packaging>
-    <name>Sting Public</name>
+    <name>GATK Aggregator Public</name>
 
     <modules>
-        <module>sting-root</module>
+        <module>gatk-root</module>
         <module>gsalib</module>
-        <module>sting-utils</module>
-        <module>gatk-framework</module>
-        <module>gatk-package</module>
-        <!--       <module>external-example</module>  -->
+        <module>gatk-utils</module>
+        <module>gatk-engine</module>
+        <module>gatk-tools-public</module>
+        <module>external-example</module>
         <!-- queue optionally enabled as profiles -->
     </modules>
 
     <properties>
-        <sting.basedir>${project.basedir}/..</sting.basedir>
+        <gatk.basedir>${project.basedir}/..</gatk.basedir>
     </properties>
 
     <profiles>
@@ -37,9 +37,9 @@
                 </property>
             </activation>
             <modules>
-                <module>gatk-queue-extgen</module>
-                <module>queue-framework</module>
-                <module>queue-package</module>
+                <module>gatk-queue</module>
+                <module>gatk-queue-extensions-generator</module>
+                <module>gatk-queue-extensions-public</module>
             </modules>
         </profile>
     </profiles>

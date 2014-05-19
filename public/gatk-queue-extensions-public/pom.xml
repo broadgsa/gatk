@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-aggregator</artifactId>
+        <version>3.2-SNAPSHOT</version>
+        <relativePath>../..</relativePath>
+    </parent>
+
+    <artifactId>gatk-queue-extensions-public</artifactId>
+    <packaging>jar</packaging>
+    <name>GATK Queue Extensions Public</name>
+
+    <properties>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk.extensions.sources>${project.build.directory}/generated-sources/gatk-extensions</gatk.extensions.sources>
+        <gatk.generate-gatk-extensions.skipped>false</gatk.generate-gatk-extensions.skipped>
+        <gatk.packagetests.artifactId>gatk-queue-package-distribution</gatk.packagetests.artifactId>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-tools-public</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-queue</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </dependency>
+        <!--
+        Extensions generator dependency only applies to the exec:exec,
+        not the artifact, but don't know another way to include
+        the artifact *only* in the <classpath/> of exec.
+        See https://jira.codehaus.org/browse/MEXEC-111
+
+        Perhaps extensions-generator should be wrapped in a maven plugin?
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-queue-extensions-generator</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+        NOTE: Because exec-maven-plugin is used, this aggregator dependency
+        will cause mvn compile to not work. Use mvn test-compile for now.
+
+        See:
+          http://stackoverflow.com/questions/4786881/why-is-test-jar-dependency-required-for-mvn-compile
+          http://jira.codehaus.org/browse/MEXEC-91
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-tools-public</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-queue</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+            See note above about exec plugin breaking mvn compile
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-gatk-extensions</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <skip>${gatk.generate-gatk-extensions.skipped}</skip>
+                            <executable>java</executable>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath />
+                                <argument>org.broadinstitute.gatk.queue.extensions.gatk.GATKExtensionsGenerator</argument>
+                                <argument>-l</argument>
+                                <argument>WARN</argument>
+                                <argument>-outDir</argument>
+                                <argument>${gatk.extensions.sources}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-gatk-extensions</id>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <sources>
+                                <source>${gatk.extensions.sources}</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>example-resources</id>
+                        <phase>${gatk.generate-resources.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.scala-tools</groupId>
+                <artifactId>maven-scala-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.pyx4j</groupId>
+                <artifactId>maven-junction-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>link-public-qscript</id>
+                        <phase>process-test-resources</phase>
+                    </execution>
+                    <execution>
+                        <id>unlink-public-qscript</id>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-invoker-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>package-unittests</id>
+                    </execution>
+                    <execution>
+                        <id>package-integrationtests</id>
+                    </execution>
+                    <execution>
+                        <id>package-largescaletests</id>
+                    </execution>
+                    <execution>
+                        <id>package-knowledgebasetests</id>
+                    </execution>
+                    <execution>
+                        <id>package-queuetests</id>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>private-testdata</id>
+            <activation>
+                <file>
+                    <exists>${basedir}/../../private/pom.xml</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- TODO: All tests require access to private. For now. -->
+                    <plugin>
+                        <groupId>com.pyx4j</groupId>
+                        <artifactId>maven-junction-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>link-private-testdata</id>
+                                <phase>process-test-resources</phase>
+                            </execution>
+                            <execution>
+                                <id>unlink-private-testdata</id>
+                                <phase>clean</phase>
+                            </execution>
+                            <execution>
+                                <id>link-private-qscript</id>
+                                <phase>process-test-resources</phase>
+                            </execution>
+                            <execution>
+                                <id>unlink-private-qscript</id>
+                                <phase>clean</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

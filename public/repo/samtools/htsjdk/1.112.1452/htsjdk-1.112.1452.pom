@@ -17,7 +17,7 @@
             <artifactId>snappy-java</artifactId>
             <version>1.0.3-rc3</version>
         </dependency>
-        <!-- TODO: This artifact is only in the Sting local repo, not in central, yet. -->
+        <!-- TODO: This artifact is only in the GATK local repo, not in central, yet. -->
         <dependency>
             <groupId>com.google.code.cofoja</groupId>
             <artifactId>cofoja</artifactId>

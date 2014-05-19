@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-aggregator</artifactId>
+        <version>3.2-SNAPSHOT</version>
+        <relativePath>../..</relativePath>
+    </parent>
+
+    <artifactId>gatk-queue-extensions-generator</artifactId>
+    <packaging>jar</packaging>
+    <name>GATK Queue Extensions Generator</name>
+    <description>GATK Queue Extensions Generator</description>
+
+    <properties>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>gatk-tools-public</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

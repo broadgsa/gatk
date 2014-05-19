@@ -25,7 +25,7 @@
 
 package org.mycompany.app;
 
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
