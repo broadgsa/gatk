@@ -102,7 +102,7 @@ public class SWPairwiseAlignmentMain {
 
 
         SWPairwiseAlignment.keepScoringMatrix = true;
-        SWPairwiseAlignment a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),w_match,w_mismatch,w_open,w_extend);
+        SWPairwiseAlignment a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),w_match,w_mismatch,w_open,w_extend, 0.0001);
 
         System.out.println("start="+a.getAlignmentStart2wrt1()+", cigar="+a.getCigar()+
                 " length1="+ref.length()+" length2="+read.length());

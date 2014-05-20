@@ -82,7 +82,7 @@ import java.util.*;
  */
 @SuppressWarnings("unchecked")
 public abstract class BaseTest {
-    /** our log, which we want to capture anything from org.broadinstitute.gatk */
+    /** our log, which we want to capture anything from org.broadinstitute.sting */
     public static final Logger logger = CommandLineUtils.getStingLogger();
 
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
@@ -106,6 +106,7 @@ public abstract class BaseTest {
     public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.vcf";
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.vcf";
     public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
+    public static final String b37dbSNP138 = "/humgen/gsa-hpprojects/GATK/bundle/current/b37/dbsnp_138.b37.vcf";
     public static final String hg18dbSNP132 = dbsnpDataLocation + "dbsnp_132.hg18.vcf";
 
     public static final String hapmapDataLocation = comparisonDataLocation + "Validated/HapMap/3.3/";
