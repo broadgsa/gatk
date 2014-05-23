@@ -813,7 +813,7 @@
                             <doclet>org.broadinstitute.gatk.utils.help.GATKDoclet</doclet>
                             <docletArtifact>
                                 <groupId>${project.groupId}</groupId>
-                                <artifactId>gatk-package</artifactId>
+                                <artifactId>gatk-package-distribution</artifactId>
                                 <version>${project.version}</version>
                             </docletArtifact>
                             <useStandardDocletOptions>false</useStandardDocletOptions>
