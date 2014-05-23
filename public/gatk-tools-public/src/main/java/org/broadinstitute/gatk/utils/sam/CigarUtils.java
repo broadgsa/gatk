@@ -172,7 +172,7 @@ public class CigarUtils {
 
     // used in the bubble state machine to apply Smith-Waterman to the bubble sequence
     // these values were chosen via optimization against the NA12878 knowledge base
-    public static final Parameters NEW_SW_PARAMETERS = new Parameters(20.0, -15.0, -26.0, -1.1);
+    public static final Parameters NEW_SW_PARAMETERS = new Parameters(20.0, -15.0, -26.0, -1.1, 0.00001);
 
     private final static String SW_PAD = "NNNNNNNNNN";
 
@@ -192,10 +192,12 @@ public class CigarUtils {
 
         final String paddedRef = SW_PAD + new String(refSeq) + SW_PAD;
         final String paddedPath = SW_PAD + new String(altSeq) + SW_PAD;
-        final SmithWaterman alignment = new SWPairwiseAlignment( paddedRef.getBytes(), paddedPath.getBytes(), NEW_SW_PARAMETERS );
+        final SmithWaterman alignment = new SWPairwiseAlignment( paddedRef.getBytes(), paddedPath.getBytes(), NEW_SW_PARAMETERS);
 
-        if ( isSWFailure(alignment) )
+        if ( isSWFailure(alignment) ) {
             return null;
+        }
+
 
         // cut off the padding bases
         final int baseStart = SW_PAD.length();
@@ -217,7 +219,7 @@ public class CigarUtils {
         // check that the alignment starts at the first base, which it should given the padding
         if ( alignment.getAlignmentStart2wrt1() > 0 ) {
             return true;
-//            throw new IllegalStateException("SW failure ref " + paddedRef + " vs. " + paddedPath + " should always start at 0, but got " + alignment.getAlignmentStart2wrt1() + " with cigar " + alignment.getCigar());
+//          throw new IllegalStateException("SW failure ref " + paddedRef + " vs. " + paddedPath + " should always start at 0, but got " + alignment.getAlignmentStart2wrt1() + " with cigar " + alignment.getCigar());
         }
 
         // check that we aren't getting any S operators (which would be very bad downstream)

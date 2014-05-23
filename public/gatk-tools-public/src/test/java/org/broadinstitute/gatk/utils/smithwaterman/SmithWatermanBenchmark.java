@@ -34,7 +34,7 @@ import org.broadinstitute.gatk.utils.Utils;
  */
 public class SmithWatermanBenchmark extends SimpleBenchmark {
 
-    @Param({"Original", "Greedy"})
+    @Param({"Original"})
     String version; // set automatically by framework
 
     @Param({"10", "50", "100", "500"})
@@ -75,9 +75,8 @@ public class SmithWatermanBenchmark extends SimpleBenchmark {
         for ( int i = 0; i < rep; i++ ) {
             final SmithWaterman sw;
             if ( version.equals("Greedy") )
-                sw = new GlobalEdgeGreedySWPairwiseAlignment(refString.getBytes(), hapString.getBytes());
-            else
-                sw = new SWPairwiseAlignment(refString.getBytes(), hapString.getBytes());
+                throw new IllegalArgumentException("Unsupported implementation");
+            sw = new SWPairwiseAlignment(refString.getBytes(), hapString.getBytes());
             sw.getCigar();
         }
     }
