@@ -34,12 +34,12 @@ package org.broadinstitute.gatk.utils.smithwaterman;
  */
 public enum SWParameterSet {
     // match=1, mismatch = -1/3, gap=-(1+k/3)
-    ORIGINAL_DEFAULT(new Parameters(1.0,-1.0/3.0,-1.0-1.0/3.0,-1.0/3.0,0.00001)),
+    ORIGINAL_DEFAULT(new Parameters(3,-1,-4,-3)),
 
     /**
      * A standard set of values for NGS alignments
      */
-    STANDARD_NGS(new Parameters(5.0, -10.0, -22.0, -1.2,0.00001));
+    STANDARD_NGS(new Parameters(25, -50, -110, -6));
 
     protected Parameters parameters;
 

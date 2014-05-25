@@ -35,11 +35,10 @@ package org.broadinstitute.gatk.utils.smithwaterman;
  * Time: 12:03 PM
  */
 public final class Parameters {
-    public final double w_match;
-    public final double w_mismatch;
-    public final double w_open;
-    public final double w_extend;
-    public final double epsilon;
+    public final int w_match;
+    public final int w_mismatch;
+    public final int w_open;
+    public final int w_extend;
 
     /**
      * Create a new set of SW parameters
@@ -47,20 +46,17 @@ public final class Parameters {
      * @param w_mismatch the mismatch penalty
      * @param w_open the gap open penalty
      * @param w_extend the gap extension penalty
-     * @param epsilon weight comparison error
+
      */
-    public Parameters(final double w_match, final double w_mismatch, final double w_open, final double w_extend, final double epsilon) {
+    public Parameters(final int w_match, final int w_mismatch, final int w_open, final int w_extend) {
         if ( w_mismatch > 0 ) throw new IllegalArgumentException("w_mismatch must be <= 0 but got " + w_mismatch);
         if ( w_open> 0 ) throw new IllegalArgumentException("w_open must be <= 0 but got " + w_open);
         if ( w_extend> 0 ) throw new IllegalArgumentException("w_extend must be <= 0 but got " + w_extend);
-        if ( Double.isNaN(epsilon)) throw new IllegalArgumentException("epsilon cannot be a NaN");
-        if ( epsilon < 0.0 ) throw new IllegalArgumentException("epsilon cannot be negative");
 
         this.w_match = w_match;
         this.w_mismatch = w_mismatch;
         this.w_open = w_open;
         this.w_extend = w_extend;
-        this.epsilon = epsilon;
     }
 
 }

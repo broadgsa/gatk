@@ -121,35 +121,29 @@ public final class GlobalEdgeGreedySWPairwiseAlignment extends SWPairwiseAlignme
         final byte[] refToAlign = Utils.trimArray(reference, forwardEdgeMatch, reverseEdgeMatch);
         final byte[] altToAlign = Utils.trimArray(alternate, forwardEdgeMatch, reverseEdgeMatch);
 
-        final double[] sw = new double[(sizeOfRefToAlign+1)*(sizeOfAltToAlign+1)];
+        final int[][] sw = new int[(sizeOfRefToAlign+1)][(sizeOfAltToAlign+1)];
         if ( keepScoringMatrix ) SW = sw;
-        final int[] btrack = new int[(sizeOfRefToAlign+1)*(sizeOfAltToAlign+1)];
+        final int[][] btrack = new int[(sizeOfRefToAlign+1)][(sizeOfAltToAlign+1)];
 
         calculateMatrix(refToAlign, altToAlign, sw, btrack, OVERHANG_STRATEGY.INDEL);
 
         if ( DEBUG_MODE ) {
             System.out.println(new String(refToAlign) + " vs. " + new String(altToAlign));
-            debugMatrix(sw, sizeOfRefToAlign+1, sizeOfAltToAlign+1);
+            debugMatrix(sw);
             System.out.println("----");
-            debugMatrix(btrack, sizeOfRefToAlign + 1, sizeOfAltToAlign + 1);
+            debugMatrix(btrack);
             System.out.println();
         }
 
-        alignmentResult = calculateCigar(forwardEdgeMatch, reverseEdgeMatch, sizeOfRefToAlign, sizeOfAltToAlign, sw, btrack);
+        alignmentResult = calculateCigar(forwardEdgeMatch, reverseEdgeMatch, sw, btrack);
     }
 
-    private void debugMatrix(final double[] matrix, final int dim1, final int dim2) {
-        for ( int i = 0; i < dim1; i++ ) {
-            for ( int j = 0; j < dim2; j++ )
-                System.out.print(String.format("%.1f ", matrix[i * dim2 + j]));
-            System.out.println();
-        }
-    }
 
-    private void debugMatrix(final int[] matrix, final int dim1, final int dim2) {
-        for ( int i = 0; i < dim1; i++ ) {
-            for ( int j = 0; j < dim2; j++ )
-                System.out.print(matrix[i*dim2 + j] + " ");
+    private void debugMatrix(final int[][] matrix) {
+        for ( int i = 0; i < matrix.length; i++ ) {
+            int [] cur = matrix[i];
+            for ( int j = 0; j < cur.length; j++ )
+                System.out.print(cur[j] + " ");
             System.out.println();
         }
     }
@@ -194,17 +188,14 @@ public final class GlobalEdgeGreedySWPairwiseAlignment extends SWPairwiseAlignme
      *
      * @param matchingPrefix       the prefix match size
      * @param matchingSuffix       the suffix match size
-     * @param refLength            length of the reference sequence
-     * @param altLength            length of the alternate sequence
      * @param sw                   the Smith-Waterman matrix to use
      * @param btrack               the back track matrix to use
      * @return non-null SWPairwiseAlignmentResult object
      */
     protected SWPairwiseAlignmentResult calculateCigar(final int matchingPrefix, final int matchingSuffix,
-                                                       final int refLength, final int altLength,
-                                                       final double[] sw, final int[] btrack) {
+                                                       final int[][] sw, final int[][] btrack) {
 
-        final SWPairwiseAlignmentResult SW_result = calculateCigar(refLength, altLength, sw, btrack, OVERHANG_STRATEGY.INDEL);
+        final SWPairwiseAlignmentResult SW_result = calculateCigar(sw, btrack, OVERHANG_STRATEGY.INDEL);
 
         final LinkedList<CigarElement> lce = new LinkedList<CigarElement>(SW_result.cigar.getCigarElements());
         if ( matchingPrefix > 0 )

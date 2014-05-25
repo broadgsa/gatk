@@ -90,19 +90,16 @@ public class SWPairwiseAlignmentMain {
             System.exit(1);
         }
 
-        double w_match;
-        double w_mismatch;
-        double w_open;
-        double w_extend;
+        final int w_match, w_mismatch, w_open, w_extend;
 
-        w_match = (m == null ? 30.0 : m.doubleValue());
-        w_mismatch = (mm == null ? -10.0 : mm.doubleValue());
-        w_open = (open == null ? -10.0 : open.doubleValue());
-        w_extend = (ext == null ? -2.0 : ext.doubleValue());
+        w_match = (m == null ? 30 : m.intValue());
+        w_mismatch = (mm == null ? -10 : mm.intValue());
+        w_open = (open == null ? -10 : open.intValue());
+        w_extend = (ext == null ? -2 : ext.intValue());
 
 
         SWPairwiseAlignment.keepScoringMatrix = true;
-        SWPairwiseAlignment a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),w_match,w_mismatch,w_open,w_extend, 0.0001);
+        SWPairwiseAlignment a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),w_match,w_mismatch,w_open,w_extend);
 
         System.out.println("start="+a.getAlignmentStart2wrt1()+", cigar="+a.getCigar()+
                 " length1="+ref.length()+" length2="+read.length());
@@ -117,19 +114,19 @@ public class SWPairwiseAlignmentMain {
         }
     }
 
-    private static void print(double[] s, byte[] a, byte[] b) {
+    private static void print(final int[][] s, final byte[] a, final byte[] b) {
         int n = a.length+1;
         int m = b.length+1;
         System.out.print("         ");
         for ( int j = 1 ; j < m ; j++) System.out.printf(" %5c",(char)b[j-1]) ;
         System.out.println();
 
-        for ( int i = 0, row_offset = 0 ; i < n ; i++, row_offset+=m) {
+        for ( int i = 0 ; i < n ; i++) {
             if ( i > 0 ) System.out.print((char)a[i-1]);
             else System.out.print(' ');
             System.out.print("  ");
             for ( int j = 0; j < m ; j++ ) {
-                System.out.printf(" %5.1f",s[row_offset+j]);
+                System.out.printf(" %5.1f",s[i][j]);
             }
             System.out.println();
         }
