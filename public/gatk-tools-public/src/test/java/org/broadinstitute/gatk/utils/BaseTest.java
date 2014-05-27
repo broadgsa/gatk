@@ -25,6 +25,8 @@
 
 package org.broadinstitute.gatk.utils;
 
+import htsjdk.tribble.Tribble;
+import htsjdk.tribble.util.TabixUtils;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -291,6 +293,13 @@ public abstract class BaseTest {
         try {
             File file = File.createTempFile(name, extension);
             file.deleteOnExit();
+
+            // Mark corresponding indices for deletion on exit as well just in case an index is created for the temp file:
+            new File(file.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION).deleteOnExit();
+            new File(file.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION).deleteOnExit();
+            new File(file.getAbsolutePath() + ".bai").deleteOnExit();
+            new File(file.getAbsolutePath().replaceAll(extension + "$", ".bai")).deleteOnExit();
+
             return file;
         } catch (IOException ex) {
             throw new ReviewedGATKException("Cannot create temp file: " + ex.getMessage(), ex);

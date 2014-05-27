@@ -319,9 +319,12 @@ public class WalkerTest extends BaseTest {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
             File fl = createTempFile(String.format("walktest.tmp_param.%d", i), ext);
 
-            // Mark corresponding indices for deletion on exit as well just in case an index is created for the temp file:
-            new File(fl.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION).deleteOnExit();
-            new File(fl.getAbsolutePath() + TabixUtils.STANDARD_INDEX_EXTENSION).deleteOnExit();
+            // Cleanup any potential shadow BCFs on exit too, if we're generating them
+            if ( spec.includeShadowBCF && GENERATE_SHADOW_BCF ) {
+                final File potentalShadowBCFFile = BCF2Utils.shadowBCF(fl);
+                potentalShadowBCFFile.deleteOnExit();
+                new File(potentalShadowBCFFile.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION).deleteOnExit();
+            }
 
             tmpFiles.add(fl);
         }
@@ -336,10 +339,12 @@ public class WalkerTest extends BaseTest {
             List<String> md5s = new LinkedList<String>();
             md5s.addAll(spec.md5s);
 
-            // check to see if they included any auxillary files, if so add them to the list
+            // check to see if they included any auxillary files, if so add them to the list and set them to be deleted on exit
             for (String md5 : spec.auxillaryFiles.keySet()) {
                 md5s.add(md5);
-                tmpFiles.add(spec.auxillaryFiles.get(md5));
+                final File auxFile = spec.auxillaryFiles.get(md5);
+                auxFile.deleteOnExit();
+                tmpFiles.add(auxFile);
             }
             return executeTest(name, spec.getTestClassName(), spec.getOutputFileLocation(), md5s, tmpFiles, args, null);
         }
