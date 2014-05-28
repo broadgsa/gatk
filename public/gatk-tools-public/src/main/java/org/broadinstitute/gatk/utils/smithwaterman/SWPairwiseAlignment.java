@@ -99,7 +99,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
     /**
      * The SW scoring matrix, stored for debugging purposes if keepScoringMatrix is true
      */
-    protected double[] SW = null;
+    protected int[][] SW = null;
 
     /**
      * Only for testing purposes in the SWPairwiseAlignmentMain function
@@ -113,10 +113,8 @@ public class SWPairwiseAlignment implements SmithWaterman {
      * @deprecated in favor of constructors using the Parameter or ParameterSet class
      */
     @Deprecated
-    public SWPairwiseAlignment(final byte[] seq1, final byte[] seq2,
-                               final double match, final double mismatch, final double open, final double extend,
-                               final double epsilon ) {
-        this(seq1, seq2, new Parameters(match, mismatch, open, extend, epsilon));
+    public SWPairwiseAlignment(byte[] seq1, byte[] seq2, int match, int mismatch, int open, int extend ) {
+        this(seq1, seq2, new Parameters(match, mismatch, open, extend));
     }
 
     /**
@@ -145,22 +143,6 @@ public class SWPairwiseAlignment implements SmithWaterman {
      */
     public SWPairwiseAlignment(final byte[] seq1, final byte[] seq2, final SWParameterSet parameters, final OVERHANG_STRATEGY strategy) {
         this(parameters.parameters);
-        overhang_strategy = strategy;
-        align(seq1, seq2);
-    }
-
-    /**
-     * Create a new SW pairwise aligner
-     *
-     * After creating the object the two sequences are aligned with an internal call to align(seq1, seq2, parameters, strategy)
-     *
-     * @param seq1 the first sequence we want to align
-     * @param seq2 the second sequence we want to align
-     * @param parameters the parameters to use
-     * @param strategy   the overhang strategy to use
-     */
-    public SWPairwiseAlignment(final byte[] seq1, final byte[] seq2, final Parameters parameters, final OVERHANG_STRATEGY strategy) {
-        this(parameters);
         overhang_strategy = strategy;
         align(seq1, seq2);
     }
@@ -207,14 +189,14 @@ public class SWPairwiseAlignment implements SmithWaterman {
         if ( reference == null || reference.length == 0 || alternate == null || alternate.length == 0 )
             throw new IllegalArgumentException("Non-null, non-empty sequences are required for the Smith-Waterman calculation");
 
-        final int n = reference.length;
-        final int m = alternate.length;
-        double [] sw = new double[(n+1)*(m+1)];
+        final int n = reference.length+1;
+        final int m = alternate.length+1;
+        int[][] sw = new int[n][m];
         if ( keepScoringMatrix ) SW = sw;
-        int [] btrack = new int[(n+1)*(m+1)];
+        int[][] btrack=new int[n][m];
 
         calculateMatrix(reference, alternate, sw, btrack);
-        alignmentResult = calculateCigar(n, m, sw, btrack, overhang_strategy); // length of the segment (continuous matches, insertions or deletions)
+        alignmentResult = calculateCigar(sw, btrack, overhang_strategy); // length of the segment (continuous matches, insertions or deletions)
     }
 
     /**
@@ -225,7 +207,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
      * @param sw         the Smith-Waterman matrix to populate
      * @param btrack     the back track matrix to populate
      */
-    protected void calculateMatrix(final byte[] reference, final byte[] alternate, double[] sw, int[] btrack) {
+    protected void calculateMatrix(final byte[] reference, final byte[] alternate, final int[][] sw, final int[][] btrack) {
         calculateMatrix(reference, alternate, sw, btrack, overhang_strategy);
     }
 
@@ -238,62 +220,54 @@ public class SWPairwiseAlignment implements SmithWaterman {
      * @param btrack     the back track matrix to populate
      * @param overhang_strategy    the strategy to use for dealing with overhangs
      */
-    protected void calculateMatrix(final byte[] reference, final byte[] alternate, double[] sw, int[] btrack, final OVERHANG_STRATEGY overhang_strategy) {
+    protected void calculateMatrix(final byte[] reference, final byte[] alternate, final int[][] sw, final int[][] btrack, final OVERHANG_STRATEGY overhang_strategy) {
         if ( reference.length == 0 || alternate.length == 0 )
             throw new IllegalArgumentException("Non-null, non-empty sequences are required for the Smith-Waterman calculation");
 
-        final int n = reference.length+1;
-        final int m = alternate.length+1;
+        final int ncol = sw[0].length;//alternate.length+1; formerly m
+        final int nrow = sw.length;// reference.length+1; formerly n
 
-        //final double MATRIX_MIN_CUTOFF=-1e100;   // never let matrix elements drop below this cutoff
-        final double MATRIX_MIN_CUTOFF;   // never let matrix elements drop below this cutoff
-        if ( cutoff ) MATRIX_MIN_CUTOFF = 0.0;
-        else MATRIX_MIN_CUTOFF = -1e100;
+        final int MATRIX_MIN_CUTOFF;   // never let matrix elements drop below this cutoff
+        if ( cutoff ) MATRIX_MIN_CUTOFF = 0;
+        else MATRIX_MIN_CUTOFF = (int) -1e8;
 
-        final double[] best_gap_v = new double[m+1];
-        Arrays.fill(best_gap_v, -1.0e40);
-        final int[] gap_size_v = new int[m+1];
-        final double[] best_gap_h = new double[n+1];
-        Arrays.fill(best_gap_h,-1.0e40);
-        final int[] gap_size_h = new int[n+1];
+        int lowInitValue=Integer.MIN_VALUE/2;
+        final int[] best_gap_v = new int[ncol+1];
+        Arrays.fill(best_gap_v, lowInitValue);
+        final int[] gap_size_v = new int[ncol+1];
+        final int[] best_gap_h = new int[nrow+1];
+        Arrays.fill(best_gap_h,lowInitValue);
+        final int[] gap_size_h = new int[nrow+1];
 
         // we need to initialize the SW matrix with gap penalties if we want to keep track of indels at the edges of alignments
         if ( overhang_strategy == OVERHANG_STRATEGY.INDEL || overhang_strategy == OVERHANG_STRATEGY.LEADING_INDEL ) {
             // initialize the first row
-            sw[1] = parameters.w_open;
-            double currentValue = parameters.w_open;
-            for ( int i = 2; i < m; i++ ) {
+            int[] topRow=sw[0];
+            topRow[1]=parameters.w_open;
+            int currentValue = parameters.w_open;
+            for ( int i = 2; i < topRow.length; i++ ) {
                 currentValue += parameters.w_extend;
-                sw[i] = currentValue;
+                topRow[i]=currentValue;
             }
-
             // initialize the first column
-            sw[m] = parameters.w_open;
+            sw[1][0]=parameters.w_open;
             currentValue = parameters.w_open;
-            for ( int i = 2; i < n; i++ ) {
+            for ( int i = 2; i < sw.length; i++ ) {
                 currentValue += parameters.w_extend;
-                sw[i*m] = currentValue;
+                sw[i][0]=currentValue;
             }
         }
-
         // build smith-waterman matrix and keep backtrack info:
-        for ( int i = 1, row_offset_1 = 0 ; i < n ; i++ ) { // we do NOT update row_offset_1 here, see comment at the end of this outer loop
-            byte a_base = reference[i-1]; // letter in a at the current pos
-
-            final int row_offset = row_offset_1 + m;
-
-            // On the entrance into the loop, row_offset_1 is the (linear) offset
-            // of the first element of row (i-1) and row_offset is the linear offset of the
-            // start of row i
-
-            for ( int j = 1, data_offset_1 = row_offset_1 ; j < m ; j++, data_offset_1++ ) {
-
-                // data_offset_1 is linearized offset of element [i-1][j-1]
-
+        int[] curRow=sw[0];
+        for ( int i = 1; i <sw.length ; i++ ) {
+            final byte a_base = reference[i-1]; // letter in a at the current pos
+            final int[] lastRow=curRow;
+            curRow=sw[i];
+            final int[] curBackTrackRow=btrack[i];
+            for ( int j = 1; j < curRow.length; j++) {
                 final byte b_base = alternate[j-1]; // letter in b at the current pos
-
                 // in other words, step_diag = sw[i-1][j-1] + wd(a_base,b_base);
-                final double step_diag = sw[data_offset_1] + wd(a_base,b_base);
+                final int step_diag = lastRow[j-1] + wd(a_base,b_base);
 
                 // optimized "traversal" of all the matrix cells above the current one (i.e. traversing
                 // all 'step down' events that would end in the current cell. The optimized code
@@ -301,11 +275,9 @@ public class SWPairwiseAlignment implements SmithWaterman {
                 // the optimization works ONLY for linear w(k)=wopen+(k-1)*wextend!!!!
 
                 // if a gap (length 1) was just opened above, this is the cost of arriving to the current cell:
-                double prev_gap = sw[data_offset_1+1]+parameters.w_open;
-
+                int prev_gap = lastRow[j]+parameters.w_open;
                 best_gap_v[j] += parameters.w_extend; // for the gaps that were already opened earlier, extending them by 1 costs w_extend
-
-                if ( compareScores(prev_gap,best_gap_v[j]) > 0 ) {
+                 if (  prev_gap > best_gap_v[j]  ) {
                     // opening a gap just before the current cell results in better score than extending by one
                     // the best previously opened gap. This will hold for ALL cells below: since any gap
                     // once opened always costs w_extend to extend by another base, we will always get a better score
@@ -317,7 +289,7 @@ public class SWPairwiseAlignment implements SmithWaterman {
                     gap_size_v[j]++;
                 }
 
-                final double step_down = best_gap_v[j] ;
+                final int step_down = best_gap_v[j] ;
                 final int kd = gap_size_v[j];
 
                 // optimized "traversal" of all the matrix cells to the left of the current one (i.e. traversing
@@ -325,11 +297,9 @@ public class SWPairwiseAlignment implements SmithWaterman {
                 // does exactly the same thing as the commented out loop below. IMPORTANT:
                 // the optimization works ONLY for linear w(k)=wopen+(k-1)*wextend!!!!
 
-                final int data_offset = row_offset + j; // linearized offset of element [i][j]
-                prev_gap = sw[data_offset-1]+parameters.w_open; // what would it cost us to open length 1 gap just to the left from current cell
+                prev_gap =curRow[j-1]  + parameters.w_open; // what would it cost us to open length 1 gap just to the left from current cell
                 best_gap_h[i] += parameters.w_extend; // previous best gap would cost us that much if extended by another base
-
-                if ( compareScores(prev_gap,best_gap_h[i]) > 0 ) {
+                if ( prev_gap > best_gap_h[i] ) {
                     // newly opened gap is better (score-wise) than any previous gap with the same row index i; since
                     // gap penalty is linear with k, this new gap location is going to remain better than any previous ones
                     best_gap_h[i] = prev_gap;
@@ -338,34 +308,26 @@ public class SWPairwiseAlignment implements SmithWaterman {
                     gap_size_h[i]++;
                 }
 
-                final double step_right = best_gap_h[i];
+                final int step_right = best_gap_h[i];
                 final int ki = gap_size_h[i];
 
-                if ( compareScores(step_down, step_right) > 0 ) {
-                    if ( compareScores(step_down,step_diag) > 0) {
-                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_down);
-                        btrack[data_offset] = kd ; // positive=vertical
-                    } else {
-                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_diag);
-                        btrack[data_offset] = 0; // 0 = diagonal
-                    }
-                } else {
-                    // step_down <= step_right
-                    if ( compareScores(step_right, step_diag) > 0 ) {
-                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_right);
-                        btrack[data_offset] = -ki; // negative = horizontal
-                    } else {
-                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_diag);
-                        btrack[data_offset] = 0; // 0 = diagonal
-                    }
+                //priority here will be step diagonal, step right, step down
+                final boolean diagHighestOrEqual = (step_diag >= step_down)
+                                                && (step_diag >= step_right);
+
+                if ( diagHighestOrEqual ) {
+                    curRow[j]=Math.max(MATRIX_MIN_CUTOFF,step_diag);
+                    curBackTrackRow[j]=0;
+                }
+                else if(step_right>=step_down) { //moving right is the highest
+                    curRow[j]=Math.max(MATRIX_MIN_CUTOFF,step_right);
+                    curBackTrackRow[j]=-ki; // negative = horizontal
+                }
+                else  {
+                    curRow[j]=Math.max(MATRIX_MIN_CUTOFF,step_down);
+                    curBackTrackRow[j]= kd; // positive=vertical
                 }
             }
-
-            // IMPORTANT, IMPORTANT, IMPORTANT:
-            // note that we update this (secondary) outer loop variable here,
-            // so that we DO NOT need to update it
-            // in the for() statement itself.
-            row_offset_1 = row_offset;
         }
     }
 
@@ -382,39 +344,21 @@ public class SWPairwiseAlignment implements SmithWaterman {
     }
 
     /**
-     * Compares alternative (sub)alignments scores considering
-     * a round-off error: {@link #parameters#epsilon}.
-     *
-     * @param score1 first score.
-     * @param score2 second score.
-     *
-     * @return -1 if {@code score1} is less than {@code score2}, 0 if the are the same, 1 if {@code score2} is
-     *   greater than {@code score1}.
-     */
-    private int compareScores(final double score1, final double score2) {
-        if (score1 == score2)
-            return 0;
-        else if (score1 < score2)
-            return score2 - score1 > parameters.epsilon ? -1 : 0;
-        else
-            return score1 - score2 > parameters.epsilon ? +1 : 0;
-    }
-
-    /**
      * Calculates the CIGAR for the alignment from the back track matrix
      *
-     * @param refLength            length of the reference sequence
-     * @param altLength            length of the alternate sequence
      * @param sw                   the Smith-Waterman matrix to use
      * @param btrack               the back track matrix to use
      * @param overhang_strategy    the strategy to use for dealing with overhangs
      * @return non-null SWPairwiseAlignmentResult object
      */
-    protected SWPairwiseAlignmentResult calculateCigar(final int refLength, final int altLength, final double[] sw, final int[] btrack, final OVERHANG_STRATEGY overhang_strategy) {
+    protected SWPairwiseAlignmentResult calculateCigar(final int[][] sw, final int[][] btrack, final OVERHANG_STRATEGY overhang_strategy) {
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
         int p1 = 0, p2 = 0;
 
-        double maxscore = Double.NEGATIVE_INFINITY; // sw scores are allowed to be negative
+        int refLength = sw.length-1;
+        int altLength = sw[0].length-1;
+
+        int maxscore = Integer.MIN_VALUE; // sw scores are allowed to be negative
         int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         // if we want to consider overhangs as legitimate operators, then just start from the corner of the matrix
@@ -424,31 +368,34 @@ public class SWPairwiseAlignment implements SmithWaterman {
         } else {
             // look for the largest score on the rightmost column. we use >= combined with the traversal direction
             // to ensure that if two scores are equal, the one closer to diagonal gets picked
-            for ( int i = 1, data_offset = altLength+1+altLength ; i < refLength+1 ; i++, data_offset += (altLength+1) ) {
-                // data_offset is the offset of [i][m]
+            //Note: this is not technically smith-waterman, as by only looking for max values on the right we are
+            //excluding high scoring local alignments
+            p2=altLength;
 
-                if ( compareScores(sw[data_offset],maxscore) >= 0 ) { // sw[data_offset] >= maxscore
-                    p1 = i; p2 = altLength ; maxscore = sw[data_offset];
-                }
+            for(int i=1;i<sw.length;i++)  {
+               final int curScore = sw[i][altLength];
+               if (curScore >= maxscore ) {
+                    p1 = i;
+                    maxscore = curScore;
+               }
             }
-
             // now look for a larger score on the bottom-most row
             if ( overhang_strategy != OVERHANG_STRATEGY.LEADING_INDEL ) {
-                for ( int j = 1, data_offset = refLength*(altLength+1)+1 ; j < altLength+1 ; j++, data_offset++ ) {
+                final int[] bottomRow=sw[refLength];
+                for ( int j = 1 ; j < bottomRow.length; j++) {
+                    int curScore=bottomRow[j];
                     // data_offset is the offset of [n][j]
-                    final int scoreComparison = compareScores(sw[data_offset],maxscore);
-                    if ( scoreComparison > 0 || scoreComparison == 0 && Math.abs(refLength-j) < Math.abs(p1 - p2)) {
+                    if ( curScore > maxscore ||
+                            (curScore == maxscore && Math.abs(refLength-j) < Math.abs(p1 - p2) ) ) {
                         p1 = refLength;
                         p2 = j ;
-                        maxscore = sw[data_offset];
+                        maxscore = curScore;
                         segment_length = altLength - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
                     }
                 }
             }
         }
-
         final List<CigarElement> lce = new ArrayList<CigarElement>(5);
-
         if ( segment_length > 0 && overhang_strategy == OVERHANG_STRATEGY.SOFTCLIP ) {
             lce.add(makeElement(State.CLIP, segment_length));
             segment_length = 0;
@@ -458,14 +405,10 @@ public class SWPairwiseAlignment implements SmithWaterman {
         // to that sequence
 
         State state = State.MATCH;
-
-        int data_offset = p1*(altLength+1)+p2;  // offset of element [p1][p2]
         do {
-            int btr = btrack[data_offset];
-
+            int btr = btrack[p1][p2];
             State new_state;
             int step_length = 1;
-
             if ( btr > 0 ) {
                 new_state = State.DELETION;
                 step_length = btr;
@@ -476,9 +419,9 @@ public class SWPairwiseAlignment implements SmithWaterman {
 
             // move to next best location in the sw matrix:
             switch( new_state ) {
-                case MATCH: data_offset -= (altLength+2); p1--; p2--; break; // move back along the diag in the sw matrix
-                case INSERTION: data_offset -= step_length; p2 -= step_length; break; // move left
-                case DELETION: data_offset -= (altLength+1)*step_length; p1 -= step_length; break; // move up
+                case MATCH:  p1--; p2--; break; // move back along the diag in the sw matrix
+                case INSERTION: p2 -= step_length; break; // move left
+                case DELETION:  p1 -= step_length; break; // move up
             }
 
             // now let's see if the state actually changed:
@@ -537,7 +480,8 @@ public class SWPairwiseAlignment implements SmithWaterman {
         return new CigarElement(length, op);
     }
 
-    private double wd(byte x, byte y) {
+
+    private int wd(final byte x, final byte y) {
         return (x == y ? parameters.w_match : parameters.w_mismatch);
     }
 

@@ -172,7 +172,7 @@ public class CigarUtils {
 
     // used in the bubble state machine to apply Smith-Waterman to the bubble sequence
     // these values were chosen via optimization against the NA12878 knowledge base
-    public static final Parameters NEW_SW_PARAMETERS = new Parameters(20.0, -15.0, -26.0, -1.1, 0.00001);
+    public static final Parameters NEW_SW_PARAMETERS = new Parameters(200, -150, -260, -11);
 
     private final static String SW_PAD = "NNNNNNNNNN";
 
