@@ -48,16 +48,6 @@ public class MathUtils {
     private MathUtils() {
     }
 
-    public static final double[] log10Cache;
-    public static final double[] log10FactorialCache;
-    private static final double[] jacobianLogTable;
-    private static final double JACOBIAN_LOG_TABLE_STEP = 0.0001;
-    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
-    private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
-    private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
-    private static final int MAXN = 100_000;
-    private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
-
     /**
      * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
      * where the real-space value is 0.0.
@@ -69,22 +59,46 @@ public class MathUtils {
     private static final double NATURAL_LOG_OF_TEN = Math.log(10.0);
     private static final double SQUARE_ROOT_OF_TWO_TIMES_PI = Math.sqrt(2.0 * Math.PI);
 
-    static {
-        log10Cache = new double[LOG10_CACHE_SIZE];
-        log10FactorialCache = new double[LOG10_CACHE_SIZE];
-        jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
-
-        log10Cache[0] = Double.NEGATIVE_INFINITY;
-        log10FactorialCache[0] = 0.0;
-        for (int k = 1; k < LOG10_CACHE_SIZE; k++) {
-            log10Cache[k] = Math.log10(k);
-            log10FactorialCache[k] = log10FactorialCache[k-1] + log10Cache[k];
+    /**
+     * A helper class to maintain a cache of log10 values
+     */
+    public static class Log10Cache {
+        /**
+         * Get the value of log10(n), expanding the cache as necessary
+         * @param n operand
+         * @return log10(n)
+         */
+        public static double get(final int n) {
+            if (n < 0)
+                throw new ReviewedGATKException(String.format("Can't take the log of a negative number: %d", n));
+            if (n >= cache.length)
+                ensureCacheContains(Math.max(n+10, 2*cache.length));
+            /*
+               Array lookups are not atomic.  It's possible that the reference to cache could be
+               changed between the time the reference is loaded and the data is fetched from the correct
+               offset.  However, the value retrieved can't change, and it's guaranteed to be present in the
+               old reference by the conditional above.
+             */
+            return cache[n];
         }
 
-        for (int k = 0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
-            jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
-
+        /**
+         * Ensures that the cache contains a value for n.  After completion of ensureCacheContains(n),
+         * #get(n) is guaranteed to return without causing a cache expansion
+         * @param n desired value to be precomputed
+         */
+        public static synchronized void ensureCacheContains(final int n) {
+            if (n < cache.length)
+                return;
+            final double[] newCache = new double[n + 1];
+            System.arraycopy(cache, 0, newCache, 0, cache.length);
+            for (int i=cache.length; i < newCache.length; i++)
+                newCache[i] = Math.log10(i);
+            cache = newCache;
         }
+
+        //initialize with the special case: log10(0) = NEGATIVE_INFINITY
+        private static double[] cache = new double[] { Double.NEGATIVE_INFINITY };
     }
 
     /**
@@ -96,6 +110,34 @@ public class MathUtils {
      */
     public static int randomIntegerInRange( final int min, final int max ) {
         return GenomeAnalysisEngine.getRandomGenerator().nextInt(max - min + 1) + min;
+    }
+
+    /**
+     * Encapsulates the second term of Jacobian log identity for differences up to MAX_TOLERANCE
+     */
+    private static class JacobianLogTable {
+
+        public static final double MAX_TOLERANCE = 8.0;
+
+        public static double get(final double difference) {
+            if (cache == null)
+                initialize();
+            final int index = fastRound(difference * INV_STEP);
+            return cache[index];
+        }
+
+        private static synchronized void initialize() {
+            if (cache == null) {
+                final int tableSize = (int) (MAX_TOLERANCE / TABLE_STEP) + 1;
+                cache = new double[tableSize];
+                for (int k = 0; k < cache.length; k++)
+                    cache[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * TABLE_STEP));
+            }
+        }
+
+        private static final double TABLE_STEP = 0.0001;
+        private static final double INV_STEP = 1.0 / TABLE_STEP;
+        private static double[] cache = null;
     }
 
     // A fast implementation of the Math.round() method.  This method does not perform
@@ -119,10 +161,9 @@ public class MathUtils {
                 continue;
 
             final double diff = approxSum - vals[i];
-            if (diff < MathUtils.MAX_JACOBIAN_TOLERANCE) {
+            if (diff < JacobianLogTable.MAX_TOLERANCE) {
                 // See notes from the 2-inout implementation below
-                final int ind = fastRound(diff * MathUtils.JACOBIAN_LOG_TABLE_INV_STEP); // hard rounding
-                approxSum += MathUtils.jacobianLogTable[ind];
+                approxSum += JacobianLogTable.get(diff);
             }
         }
 
@@ -145,7 +186,7 @@ public class MathUtils {
             return big;
 
         final double diff = big - small;
-        if (diff >= MathUtils.MAX_JACOBIAN_TOLERANCE)
+        if (diff >= JacobianLogTable.MAX_TOLERANCE)
             return big;
 
         // OK, so |y-x| < tol: we use the following identity then:
@@ -154,8 +195,7 @@ public class MathUtils {
         // max(x,y) + log10(1+10^-abs(x-y))
         // we compute the second term as a table lookup with integer quantization
         // we have pre-stored correction for 0,0.1,0.2,... 10.0
-        final int ind = fastRound(diff * MathUtils.JACOBIAN_LOG_TABLE_INV_STEP); // hard rounding
-        return big + MathUtils.jacobianLogTable[ind];
+        return big + JacobianLogTable.get(diff);
     }
 
     public static double sum(final double[] values) {
@@ -1408,10 +1448,41 @@ public class MathUtils {
     }
 
     public static double log10Factorial(final int x) {
-        if (x >= log10FactorialCache.length || x < 0)
+        if (x >= Log10FactorialCache.size() || x < 0)
             return log10Gamma(x + 1);
         else
-            return log10FactorialCache[x];
+            return Log10FactorialCache.get(x);
+    }
+
+    /**
+     * Wrapper class so that the log10Factorial array is only calculated if it's used
+     */
+    private static class Log10FactorialCache {
+
+        /**
+         * The size of the precomputed cache.  Must be a positive number!
+         */
+        private static final int CACHE_SIZE = 10_000;
+
+        public static int size() { return CACHE_SIZE; }
+
+        public static double get(final int n) {
+            if (cache == null)
+                initialize();
+            return cache[n];
+        }
+
+        private static synchronized void initialize() {
+            if (cache == null) {
+                Log10Cache.ensureCacheContains(CACHE_SIZE);
+                cache = new double[CACHE_SIZE];
+                cache[0] = 0.0;
+                for (int k = 1; k < cache.length; k++)
+                    cache[k] = cache[k-1] + Log10Cache.get(k);
+            }
+        }
+
+        private static double[] cache = null;
     }
 
     /**
