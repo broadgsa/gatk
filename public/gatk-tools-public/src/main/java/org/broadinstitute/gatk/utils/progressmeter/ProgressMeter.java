@@ -137,6 +137,16 @@ public class ProgressMeter {
     private final String processingUnitName;
 
     /**
+     * The space allocated to #processingUnitName in the output
+     */
+    private final int processingUnitWidth;
+
+    /**
+     * The format string used for progress lines
+     */
+    private final String progressFormatString;
+
+    /**
      * A potentially null file where we print a supplementary, R readable performance log
      * file.
      */
@@ -181,6 +191,8 @@ public class ProgressMeter {
 
         this.processingUnitName = processingUnitName;
         this.regionsBeingProcessed = processingIntervals;
+        this.processingUnitWidth = Math.max(processingUnitName.length(), "processed".length());
+        this.progressFormatString = String.format("%%15s   %%%1$ds   %%7s   %%%1$ds      %%5.1f%%%%   %%7s   %%9s", processingUnitWidth);
 
         // setup the performance logger output, if requested
         if ( performanceLogFile != null ) {
@@ -215,10 +227,12 @@ public class ProgressMeter {
     public synchronized void start() {
         timer.start();
         lastProgressPrintTime = timer.currentTime();
+        final String formatString = String.format("%%15s | %%%1$ds | %%7s | %%%1$ds | %%9s | %%7s | %%9s", processingUnitWidth);
 
         logger.info("[INITIALIZATION COMPLETE; STARTING PROCESSING]");
-        logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
-                "Location", processingUnitName, processingUnitName));
+        logger.info(String.format(formatString, "", "processed", "time", "per 1M", "", "total", "remaining"));
+        logger.info(String.format(formatString, "Location", processingUnitName, "elapsed", processingUnitName,
+                "completed", "runtime", "runtime"));
 
         progressMeterDaemon.start();
     }
@@ -362,18 +376,18 @@ public class ProgressMeter {
         if ( printProgress || printLog ) {
             final ProgressMeterData progressData = takeProgressSnapshot(maxGenomeLoc, nTotalRecordsProcessed);
 
-            final AutoFormattingTime elapsed = new AutoFormattingTime(progressData.getElapsedSeconds());
+            final AutoFormattingTime elapsed = new AutoFormattingTime(progressData.getElapsedSeconds(), 5, 1);
             final AutoFormattingTime bpRate = new AutoFormattingTime(progressData.secondsPerMillionBP());
             final AutoFormattingTime unitRate = new AutoFormattingTime(progressData.secondsPerMillionElements());
             final double fractionGenomeTargetCompleted = progressData.calculateFractionGenomeTargetCompleted(targetSizeInBP);
-            final AutoFormattingTime estTotalRuntime = new AutoFormattingTime(elapsed.getTimeInSeconds() / fractionGenomeTargetCompleted);
+            final AutoFormattingTime estTotalRuntime = new AutoFormattingTime(elapsed.getTimeInSeconds() / fractionGenomeTargetCompleted, 5, 1);
             final AutoFormattingTime timeToCompletion = new AutoFormattingTime(estTotalRuntime.getTimeInSeconds() - elapsed.getTimeInSeconds());
 
             if ( printProgress ) {
                 lastProgressPrintTime = curTime;
                 updateLoggerPrintFrequency(estTotalRuntime.getTimeInSeconds());
 
-                logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
+                logger.info(String.format(progressFormatString,
                         position.getMessage(), progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
