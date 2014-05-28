@@ -129,9 +129,8 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
      */
     private File createTempVCFFileAndIndex( final File vcfFile, final boolean createOutOfDateIndex ) {
         try {
-            final File tmpFile = File.createTempFile("RMDTrackBuilderUnitTest", "");
+            final File tmpFile = createTempFile("RMDTrackBuilderUnitTest", "");
             final File tmpIndex = Tribble.indexFile(tmpFile);
-            tmpFile.deleteOnExit();
             tmpIndex.deleteOnExit();
 
             copyFile(vcfFile, tmpFile);

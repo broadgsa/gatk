@@ -113,8 +113,7 @@ public class ReadMetricsUnitTest extends BaseTest {
     }
 
     private void createBAM(final List<GATKSAMRecord> reads) throws IOException {
-        testBAM = File.createTempFile("TraverseActiveRegionsUnitTest", ".bam");
-        testBAM.deleteOnExit();
+        testBAM = createTempFile("TraverseActiveRegionsUnitTest", ".bam");
 
         SAMFileWriter out = new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(reads.get(0).getHeader(), true, testBAM);
         for (GATKSAMRecord read : reads ) {

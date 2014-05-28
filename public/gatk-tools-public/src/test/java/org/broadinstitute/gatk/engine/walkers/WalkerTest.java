@@ -25,26 +25,25 @@
 
 package org.broadinstitute.gatk.engine.walkers;
 
-import org.apache.commons.lang.StringUtils;
 import htsjdk.tribble.Tribble;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
-import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.util.TabixUtils;
+import htsjdk.variant.bcf2.BCF2Utils;
+import htsjdk.variant.vcf.VCFCodec;
+import org.apache.commons.lang.StringUtils;
+import org.broadinstitute.gatk.engine.CommandLineExecutable;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.MD5DB;
 import org.broadinstitute.gatk.utils.MD5Mismatch;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.classloader.JVMUtils;
-import org.broadinstitute.gatk.engine.CommandLineExecutable;
-import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
-import htsjdk.variant.bcf2.BCF2Utils;
 import org.broadinstitute.gatk.utils.collections.Pair;
-import htsjdk.variant.vcf.VCFCodec;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
@@ -449,7 +448,7 @@ public class WalkerTest extends BaseTest {
     }
 
 
-    protected File createTempFileFromBase(String name) {
+    protected File createTempFileFromBase(final String name) {
         File fl = new File(name);
         fl.deleteOnExit();
         return fl;

@@ -90,8 +90,7 @@ public class RodBindingCollectionUnitTest extends BaseTest {
     @Test
     public void testDefaultTagsInFile() throws IOException {
 
-        final File testFile = File.createTempFile("RodBindingCollectionUnitTest.defaultTags", ".list");
-        testFile.deleteOnExit();
+        final File testFile = createTempFile("RodBindingCollectionUnitTest.defaultTags", ".list");
         final FileWriter writer = new FileWriter(testFile);
         writer.write(testVCFFileName, 0, testVCFFileName.length());
         writer.close();
@@ -109,8 +108,7 @@ public class RodBindingCollectionUnitTest extends BaseTest {
     @Test(expectedExceptions = UserException.BadArgumentValue.class)
     public void testDuplicateEntriesInFile() throws IOException {
 
-        final File testFile = File.createTempFile("RodBindingCollectionUnitTest.variantListWithDuplicates", ".list");
-        testFile.deleteOnExit();
+        final File testFile = createTempFile("RodBindingCollectionUnitTest.variantListWithDuplicates", ".list");
         final FileWriter writer = new FileWriter(testFile);
         writer.write(testVCFFileName + "\n");
         writer.write(testVCFFileName + "\n");
@@ -121,16 +119,14 @@ public class RodBindingCollectionUnitTest extends BaseTest {
 
     @Test(expectedExceptions = UserException.BadArgumentValue.class)
     public void testValidateEmptyFile() throws IOException {
-        final File testFile = File.createTempFile("RodBindingCollectionUnitTest.emptyVCFList", ".list");
-        testFile.deleteOnExit();
+        final File testFile = createTempFile("RodBindingCollectionUnitTest.emptyVCFList", ".list");
 
         ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
     }
 
     @Test
     public void testOverrideTagsInFile() throws IOException {
-        final File testFile = File.createTempFile("RodBindingCollectionUnitTest.overrideTags", ".list");
-        testFile.deleteOnExit();
+        final File testFile = createTempFile("RodBindingCollectionUnitTest.overrideTags", ".list");
         final FileWriter writer = new FileWriter(testFile);
         final String textToWrite = "foo " + testVCFFileName;
         writer.write(textToWrite, 0, textToWrite.length());

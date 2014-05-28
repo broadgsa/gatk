@@ -26,23 +26,21 @@
 package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.*;
-import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
 import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
 import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.gatk.utils.sam.ArtificialSingleSampleReadStream;
+import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import org.testng.Assert;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -154,14 +152,7 @@ public class ReadShardBalancerUnitTest extends BaseTest {
                                                                                                     150,
                                                                                                     numUnmappedReads);
 
-            File testBAMFile;
-            try {
-                testBAMFile = File.createTempFile("SAMDataSourceFillShardBoundaryTest", ".bam");
-                testBAMFile.deleteOnExit();
-            }
-            catch ( IOException e ) {
-                throw new ReviewedGATKException(String.format("Failed to create temp bam file for test %s. %s", this, e.getMessage()));
-            }
+            final File testBAMFile = createTempFile("SAMDataSourceFillShardBoundaryTest", ".bam");
 
             SAMFileWriter bamWriter = new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(header, true, testBAMFile);
             for ( SAMRecord read : artificialReads ) {
