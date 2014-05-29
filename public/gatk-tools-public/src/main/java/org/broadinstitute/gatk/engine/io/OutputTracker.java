@@ -34,8 +34,11 @@ import org.broadinstitute.gatk.engine.io.stubs.Stub;
 import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.classloader.JVMUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
 import org.broadinstitute.gatk.utils.sam.SAMFileReaderBuilder;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -114,7 +117,8 @@ public abstract class OutputTracker {
      */
     public <T> void addOutput(Stub<T> stub, Storage<T> storage) {
         stub.register(this);
-        outputs.put(stub,storage);        
+        outputs.put(stub,storage);
+        validateOutputPath(stub);
     }
 
     /**
@@ -146,6 +150,19 @@ public abstract class OutputTracker {
             outputs.put(stub,storage);
         }
         return (T)storage;
+    }
+
+    /**
+     * Ensures that the File associated with this stub (if any) is in a writable location
+     * @param stub
+     */
+    protected <T> void validateOutputPath(final Stub<T> stub) {
+        if (stub.getOutputFile() != null && !(IOUtils.isSpecialFile(stub.getOutputFile()))) {
+            final File parentDir = stub.getOutputFile().getAbsoluteFile().getParentFile();
+            if (! (parentDir.canWrite() && parentDir.canExecute()))
+                throw new UserException.CouldNotCreateOutputFile(stub.getOutputFile(),
+                        "either the containing directory doesn't exist or it isn't writable");
+        }
     }
 
     /**
