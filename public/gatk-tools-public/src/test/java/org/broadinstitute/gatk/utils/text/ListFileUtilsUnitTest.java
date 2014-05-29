@@ -143,8 +143,7 @@ public class ListFileUtilsUnitTest extends BaseTest {
     }
 
     private File createTempListFile( String tempFilePrefix, String... lines ) throws Exception {
-        File tempListFile = File.createTempFile(tempFilePrefix, ".list");
-        tempListFile.deleteOnExit();
+        File tempListFile = createTempFile(tempFilePrefix, ".list");
 
         PrintWriter out = new PrintWriter(tempListFile);
         for ( String line : lines ) {

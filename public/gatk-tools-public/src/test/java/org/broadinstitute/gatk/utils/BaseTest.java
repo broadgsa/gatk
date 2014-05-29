@@ -289,9 +289,9 @@ public abstract class BaseTest {
      * @param extension Extension to concat to the end of the file.
      * @return A file in the temporary directory starting with name, ending with extension, which will be deleted after the program exits.
      */
-    public static File createTempFile(String name, String extension) {
+    public static File createTempFile(final String name, final String extension) {
         try {
-            File file = File.createTempFile(name, extension);
+            final File file = File.createTempFile(name, extension);
             file.deleteOnExit();
 
             // Mark corresponding indices for deletion on exit as well just in case an index is created for the temp file:
