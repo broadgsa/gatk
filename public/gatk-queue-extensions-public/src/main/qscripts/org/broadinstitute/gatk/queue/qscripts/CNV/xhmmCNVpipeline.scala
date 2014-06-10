@@ -29,16 +29,19 @@ import org.broadinstitute.gatk.queue.extensions.gatk._
 import org.broadinstitute.gatk.queue.QScript
 import org.broadinstitute.gatk.queue.util.VCF_BAM_utilities
 import org.broadinstitute.gatk.queue.extensions.gatk.DoC._
-import org.broadinstitute.gatk.utils.commandline.Hidden
-import java.io.{PrintStream, PrintWriter}
+import org.broadinstitute.gatk.utils.commandline._
+import java.io.{File, PrintStream, PrintWriter}
 import org.broadinstitute.gatk.utils.text.XReadLines
 import collection.JavaConversions._
 import org.broadinstitute.gatk.tools.walkers.coverage.CoverageUtils
+import org.broadinstitute.gatk.queue.function.scattergather.{CloneFunction, ScatterFunction, GatherFunction, ScatterGatherableFunction}
+import org.broadinstitute.gatk.queue.function.{CommandLineFunction, InProcessFunction}
+import org.broadinstitute.gatk.utils.io.IOUtils
 
 class xhmmCNVpipeline extends QScript {
   qscript =>
 
-  @Input(doc = "bam input, as .bam or as a list of files", shortName = "I", required = true)
+  @Input(doc = "bam input, as as a list of .bam files, or a list of bam files with sample IDs to be used ( as specified at https://www.broadinstitute.org/gatk/gatkdocs/org_broadinstitute_sting_gatk_CommandLineGATK.html#--sample_rename_mapping_file )", shortName = "I", required = true)
   var bams: File = _
 
   @Input(doc = "gatk jar file", shortName = "J", required = true)
@@ -62,7 +65,7 @@ class xhmmCNVpipeline extends QScript {
   @Argument(doc = "level of parallelism for BAM DoC.   By default is set to 0 [no scattering].", shortName = "scatter", required = false)
   var scatterCountInput = 0
 
-  @Argument(doc = "Samples to run together for DoC.   By default is set to 1 [one job per sample].", shortName = "samplesPerJob", required = false)
+  @Argument(doc = "Samples to run together for DoC, CNV discovery, and CNV genotyping.  By default is set to 1 [one job per sample].", shortName = "samplesPerJob", required = false)
   var samplesPerJob = 1
 
   @Output(doc = "Base name for files to output", shortName = "o", required = true)
@@ -103,15 +106,6 @@ class xhmmCNVpipeline extends QScript {
 
   @Argument(shortName = "maxTargRepeats", doc = "Exclude all targets with % of repeat-masked bases greater than this value", required = false)
   var maxTargRepeats : Double = 0.1
-
-  @Argument(shortName = "sampleIDsMap", doc = "File mapping BAM sample IDs to desired sample IDs", required = false)
-  var sampleIDsMap: String = ""
-
-  @Argument(shortName = "sampleIDsMapFromColumn", doc = "Column number of OLD sample IDs to map", required = false)
-  var sampleIDsMapFromColumn = 1
-
-  @Argument(shortName = "sampleIDsMapToColumn", doc = "Column number of NEW sample IDs to map", required = false)
-  var sampleIDsMapToColumn = 2
 
   @Argument(shortName = "rawFilters", doc = "xhmm command-line parameters to filter targets and samples from raw data", required = false)
   var targetSampleFiltersString: String = ""
@@ -184,19 +178,23 @@ class xhmmCNVpipeline extends QScript {
       this.logging_level = "INFO"
     }
 
-    val sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = VCF_BAM_utilities.getMapOfBAMsForSample(VCF_BAM_utilities.parseBAMsInput(bams))
-    val samples: List[String] = sampleToBams.keys.toList
+    val parseMixedInputBamList = parseBamListWithOptionalSampleMappings(bams)
+
+    val processMixedInputBamList = new ProcessBamListWithOptionalSampleMappings(parseMixedInputBamList, outputBase.getPath)
+    add(processMixedInputBamList)
+
+    val samples: List[String] = parseMixedInputBamList.sampleToBams.keys.toList
     Console.out.printf("Samples are %s%n", samples)
 
-    val groups: List[Group] = buildDoCgroups(samples, sampleToBams, samplesPerJob, outputBase)
+    val groups: List[Group] = buildDoCgroups(samples, parseMixedInputBamList.sampleToBams, samplesPerJob, outputBase)
     var docs: List[DoC] = List[DoC]()
     for (group <- groups) {
       Console.out.printf("Group is %s%n", group)
-      docs ::= new DoC(group.bams, group.DoC_output, countType, MAX_DEPTH, minMappingQuality, minBaseQuality, scatterCountInput, START_BIN, NUM_BINS, Nil) with CommandLineGATKArgs
+      docs ::= new DoC(group.bams, group.DoC_output, countType, MAX_DEPTH, minMappingQuality, minBaseQuality, scatterCountInput, START_BIN, NUM_BINS, Nil, Some(processMixedInputBamList.bamSampleMap)) with CommandLineGATKArgs
     }
     addAll(docs)
 
-    val mergeDepths = new MergeGATKdepths(docs.map(u => u.intervalSampleOut), outputBase.getPath + RD_OUTPUT_SUFFIX, "_mean_cvg", xhmmExec, sampleIDsMap, sampleIDsMapFromColumn, sampleIDsMapToColumn, None, false) with WholeMatrixMemoryLimit with LongRunTime
+    val mergeDepths = new MergeGATKdepths(docs.map(u => u.intervalSampleOut), outputBase.getPath + RD_OUTPUT_SUFFIX, "_mean_cvg", xhmmExec, None, false) with WholeMatrixMemoryLimit with LongRunTime
     add(mergeDepths)
 
     var excludeTargets : List[File] = List[File]()
@@ -209,6 +207,7 @@ class xhmmCNVpipeline extends QScript {
       add(excludeTargetsBasedOnGC)
       excludeTargets ::= excludeTargetsBasedOnGC.out
     }
+
 
     class CalculateRepeatComplexity(outFile : String) extends CommandLineFunction {
       @Input(doc="")
@@ -233,7 +232,7 @@ class xhmmCNVpipeline extends QScript {
           " && " + calcRepeatMaskedPercent +
           " && " + extractRepeatMaskedPercent
 
-      def commandLine = command
+      override def commandLine = command
 
       override def description = "Calculate the percentage of each target that is repeat-masked in the reference sequence: " + command
     }
@@ -262,8 +261,102 @@ class xhmmCNVpipeline extends QScript {
     val filterOriginal = new FilterOriginalData(mergeDepths.mergedDoC, filterCenterDepths, filterZscore)
     add(filterOriginal)
 
+
+    class DiscoverCNVs(inputParam: File, origRDParam: File) extends SamplesScatterable(xhmmExec, groups) with LongRunTime {
+      @Input(doc = "")
+      val input = inputParam
+
+      @Input(doc = "")
+      val xhmmParams = xhmmParamsArg
+
+      @Input(doc = "")
+      val origRD = origRDParam
+
+      @Output
+      @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
+      val xcnv: File = new File(outputBase.getPath + ".xcnv")
+
+      @Output
+      @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
+      val aux_xcnv: File = new File(outputBase.getPath + ".aux_xcnv")
+
+      // Set as an @Output, so that its value is updated in the cloned jobs being scattered:
+      @Output
+      @Gather(classOf[DummyGatherFunction])
+      val posteriorsBase = outputBase
+
+      @Output
+      @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
+      val dipPosteriors: File = new File(posteriorsBase.getPath + ".posteriors.DIP.txt")
+
+      @Output
+      @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
+      val delPosteriors: File = new File(posteriorsBase.getPath + ".posteriors.DEL.txt")
+
+      @Output
+      @Gather(classOf[org.broadinstitute.gatk.queue.function.scattergather.SimpleTextGatherFunction])
+      val dupPosteriors: File = new File(posteriorsBase.getPath + ".posteriors.DUP.txt")
+
+      override def commandLine =
+        xhmmExec + " --discover" +
+        " -p " + xhmmParams +
+        " -r " + input +
+        " -R " + origRD +
+        " -c " + xcnv +
+        " -a " + aux_xcnv +
+        " -s " + posteriorsBase +
+        " " + discoverCommandLineParams +
+        " " + addCommand
+
+      override def description = "Discovers CNVs in normalized data: " + commandLine
+    }
+
     val discover = new DiscoverCNVs(filterZscore.filteredZscored, filterOriginal.sameFiltered)
     add(discover)
+
+
+    abstract class BaseGenotypeCNVs(inputParam: File, xcnv: File, origRDParam: File, outName: String) extends SamplesScatterable(xhmmExec, groups) with LongRunTime {
+      @Input(doc = "")
+      val input = inputParam
+
+      @Input(doc = "")
+      val xhmmParams = xhmmParamsArg
+
+      @Input(doc = "")
+      val origRD = origRDParam
+
+      @Input(doc = "")
+      val inXcnv = xcnv
+
+      @Output
+      @Gather(classOf[MergeVCFsGatherFunction])
+      val vcf: File = new File(outName)
+
+      override def commandLine =
+        xhmmExec + " --genotype" +
+          " -p " + xhmmParams +
+          " -r " + input +
+          " -g " + inXcnv +
+          " -F " + referenceFile +
+          " -R " + origRD +
+          " -v " +  vcf +
+          " " + genotypeCommandLineParams +
+          " " + addCommand
+    }
+
+    class GenotypeCNVs(inputParam: File, xcnv: File, origRDParam: File) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam, outputBase.getPath + ".vcf") {
+      override def description = "Genotypes discovered CNVs in all samples: " + commandLine
+    }
+
+    class GenotypeCNVandSubsegments(inputParam: File, xcnv: File, origRDParam: File) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam, outputBase.getPath + ".subsegments.vcf") {
+      override def commandLine =
+        super.commandLine +
+        " --subsegments" +
+          " --maxTargetsInSubsegment " + maxTargetsInSubsegment +
+          " --genotypeQualThresholdWhenNoExact " + subsegmentGenotypeThreshold
+
+      override def description = "Genotypes discovered CNVs (and their sub-segments, of up to " + maxTargetsInSubsegment + " targets) in all samples: " + commandLine
+    }
 
     val genotype = new GenotypeCNVs(filterZscore.filteredZscored, discover.xcnv, filterOriginal.sameFiltered)
     add(genotype)
@@ -330,7 +423,7 @@ class xhmmCNVpipeline extends QScript {
     if (targetSampleFiltersString != "")
       command += " " + targetSampleFiltersString
 
-    def commandLine = command
+    override def commandLine = command
 
     override def description = "Filters samples and targets and then mean-centers the targets: " + command
   }
@@ -353,7 +446,7 @@ class xhmmCNVpipeline extends QScript {
       " -r " + input +
       " --PCAfiles " + PCAbase
 
-    def commandLine = command
+    override def commandLine = command
 
     override def description = "Runs PCA on mean-centered data: " + command
   }
@@ -382,7 +475,7 @@ class xhmmCNVpipeline extends QScript {
     if (PCAnormalizeMethodString != "")
       command += " " + PCAnormalizeMethodString
 
-    def commandLine = command
+    override def commandLine = command
 
     override def description = "Normalizes mean-centered data using PCA information: " + command
   }
@@ -408,7 +501,7 @@ class xhmmCNVpipeline extends QScript {
     if (targetSampleNormalizedFiltersString != "")
       command += " " + targetSampleNormalizedFiltersString
 
-    def commandLine = command
+    override def commandLine = command
 
     override def description = "Filters and z-score centers (by sample) the PCA-normalized data: " + command
   }
@@ -433,100 +526,90 @@ class xhmmCNVpipeline extends QScript {
       sampFilters.map(u => " --excludeSamples " + u).reduceLeft(_ + "" + _) +
       " -o " + sameFiltered
 
-    def commandLine = command
+    override def commandLine = command
 
     override def description = "Filters original read-depth data to be the same as filtered, normalized data: " + command
   }
+}
 
-  class DiscoverCNVs(inputParam: File, origRDParam: File) extends CommandLineFunction with LongRunTime {
-    @Input(doc = "")
-    val input = inputParam
 
-    @Input(doc = "")
-    val xhmmParams = xhmmParamsArg
+abstract class SamplesScatterable(val xhmmExec: File, val groups: List[Group]) extends ScatterGatherableFunction with CommandLineFunction {
+  this.scatterCount = groups.size
+  this.scatterClass = classOf[SamplesScatterFunction]
 
-    @Input(doc = "")
-    val origRD = origRDParam
+  @Input(doc = "", required=false)
+  var keepSampleIDs: Option[String] = None
 
-    @Output
-    val xcnv: File = new File(outputBase.getPath + ".xcnv")
+  def addCommand = if (keepSampleIDs.isDefined) ("--keepSampleIDs " + keepSampleIDs.get) else ""
+}
 
-    @Output
-    val aux_xcnv: File = new File(outputBase.getPath + ".aux_xcnv")
+class SamplesScatterFunction extends ScatterFunction with InProcessFunction {
+  protected var groups: List[Group] = _
+  override def scatterCount = groups.size
 
-    val posteriorsBase = outputBase.getPath
+  @Output(doc="Scatter function outputs")
+  var scatterSamples: Seq[File] = Nil
 
-    @Output
-    val dipPosteriors: File = new File(posteriorsBase + ".posteriors.DIP.txt")
-
-    @Output
-    val delPosteriors: File = new File(posteriorsBase + ".posteriors.DEL.txt")
-
-    @Output
-    val dupPosteriors: File = new File(posteriorsBase + ".posteriors.DUP.txt")
-
-    var command: String =
-      xhmmExec + " --discover" +
-      " -p " + xhmmParams +
-      " -r " + input +
-      " -R " + origRD +
-      " -c " + xcnv +
-      " -a " + aux_xcnv +
-      " -s " + posteriorsBase +
-      " " + discoverCommandLineParams
-
-    def commandLine = command
-
-    override def description = "Discovers CNVs in normalized data: " + command
+  override def init() {
+    this.groups = this.originalFunction.asInstanceOf[SamplesScatterable].groups
   }
 
-  abstract class BaseGenotypeCNVs(inputParam: File, xcnv: File, origRDParam: File) extends CommandLineFunction with LongRunTime {
-    @Input(doc = "")
-    val input = inputParam
-
-    @Input(doc = "")
-    val xhmmParams = xhmmParamsArg
-
-    @Input(doc = "")
-    val origRD = origRDParam
-
-    @Input(doc = "")
-    val inXcnv = xcnv
-
-    var command: String =
-      xhmmExec + " --genotype" +
-      " -p " + xhmmParams +
-      " -r " + input +
-      " -g " + inXcnv +
-      " -F " + referenceFile +
-      " -R " + origRD +
-      " " + genotypeCommandLineParams
+  override def bindCloneInputs(cloneFunction: CloneFunction, index: Int) {
+    val scatterPart = IOUtils.absolute(cloneFunction.commandDirectory, "keepSampleIDs.txt")
+    cloneFunction.setFieldValue("keepSampleIDs", Some(scatterPart))
+    this.scatterSamples :+= scatterPart
   }
 
-  class GenotypeCNVs(inputParam: File, xcnv: File, origRDParam: File) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam) {
-    @Output
-    val vcf: File = new File(outputBase.getPath + ".vcf")
+  override def run() {
+    if (groups.size != this.scatterSamples.size)
+      throw new Exception("Internal inconsistency error in scattering jobs")
 
-    command +=
-      " -v " +  vcf
+    (groups, this.scatterSamples).zipped foreach {
+      (group, sampsFile) => {
+        val sampsWriter = new PrintWriter(new PrintStream(sampsFile))
 
-    def commandLine = command
-
-    override def description = "Genotypes discovered CNVs in all samples: " + command
+        for (samp <- group.samples) {
+          try {
+            sampsWriter.printf("%s%n", samp)
+          }
+          catch {
+            case e: Exception => throw e
+          }
+        }
+        sampsWriter.close
+      }
+    }
   }
+}
 
-  class GenotypeCNVandSubsegments(inputParam: File, xcnv: File, origRDParam: File) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam) {
-    @Output
-    val vcf: File = new File(outputBase.getPath + ".subsegments.vcf")
+trait MergeVCFs extends CommandLineFunction {
+  var xhmmExec: File = _
 
-    command +=
-      " -v " +  vcf +
-      " --subsegments" +
-      " --maxTargetsInSubsegment " + maxTargetsInSubsegment +
-      " --genotypeQualThresholdWhenNoExact " + subsegmentGenotypeThreshold
+  @Input(doc = "")
+  var inputVCFs: List[File] = Nil
 
-    def commandLine = command
+  @Output
+  var mergedVCF: File = null
 
-    override def description = "Genotypes discovered CNVs (and their sub-segments, of up to " + maxTargetsInSubsegment + " targets) in all samples: " + command
+  override def commandLine =
+    xhmmExec + " --mergeVCFs" +
+      inputVCFs.map(input => " --mergeVCF " + input).reduceLeft(_ + "" + _) +
+      " -v " + mergedVCF
+
+  override def description = "Combines VCF outputs for multiple samples (at same loci): " + commandLine
+}
+
+class MergeVCFsGatherFunction extends MergeVCFs with GatherFunction {
+  override def freezeFieldValues() {
+    super.freezeFieldValues()
+
+    this.xhmmExec = originalFunction.asInstanceOf[SamplesScatterable].xhmmExec
+
+    this.inputVCFs = this.gatherParts.toList
+    this.mergedVCF = this.originalOutput
   }
+}
+
+class DummyGatherFunction extends InProcessFunction with GatherFunction {
+  override def run() {}
 }
