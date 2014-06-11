@@ -41,11 +41,7 @@ import java.util.List;
 
 public class DupUtils {
     private static GATKSAMRecord tmpCopyRead(GATKSAMRecord read) {
-        try {
-            return (GATKSAMRecord)read.clone();
-        } catch ( CloneNotSupportedException e ) {
-            throw new ReviewedGATKException("Unexpected Clone failure!");
-        }
+        return (GATKSAMRecord)read.clone();
     }
 
     public static GATKSAMRecord combineDuplicates(GenomeLocParser genomeLocParser,List<GATKSAMRecord> duplicates, int maxQScore) {

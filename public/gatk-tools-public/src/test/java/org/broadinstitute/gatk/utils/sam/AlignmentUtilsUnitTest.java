@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.utils.sam;
 import htsjdk.samtools.*;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -171,7 +172,6 @@ public class AlignmentUtilsUnitTest {
         final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
         Assert.assertEquals(AlignmentUtils.calcNumDifferentBases(cigar, ref.getBytes(), read.getBytes()), expectedDifferences);
     }
-
 
     @DataProvider(name = "NumAlignedBasesCountingSoftClips")
     public Object[][] makeNumAlignedBasesCountingSoftClips() {

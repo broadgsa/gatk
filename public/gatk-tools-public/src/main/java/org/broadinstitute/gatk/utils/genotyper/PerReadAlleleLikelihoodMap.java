@@ -28,9 +28,12 @@ package org.broadinstitute.gatk.utils.genotyper;
 
 import com.google.java.contract.Ensures;
 import org.broadinstitute.gatk.engine.downsampling.AlleleBiasedDownsamplingUtils;
+import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.MathUtils;
+import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import htsjdk.variant.variantcontext.Allele;
 
@@ -227,7 +230,6 @@ public class PerReadAlleleLikelihoodMap {
                 double haplotypeLikelihood = 0.0;
                 for( final Map.Entry<GATKSAMRecord, Map<Allele,Double>> entry : likelihoodReadMap.entrySet() ) {
                     // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
-                    final GATKSAMRecord read = entry.getKey();
                     final double likelihood_iii = entry.getValue().get(iii_allele);
                     final double likelihood_jjj = entry.getValue().get(jjj_allele);
                     haplotypeLikelihood += MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + MathUtils.LOG_ONE_HALF;
@@ -380,5 +382,28 @@ public class PerReadAlleleLikelihoodMap {
      */
     public Set<Allele> getAllelesSet() {
         return Collections.unmodifiableSet(allelesSet);
+    }
+
+    /**
+     * Loop over all of the reads in this likelihood map and realign them to its most likely haplotype
+     * @param haplotypes            the collection of haplotypes
+     * @param paddedReferenceLoc    the active region
+     */
+    public void realignReadsToMostLikelyHaplotype(final Collection<Haplotype> haplotypes, final GenomeLoc paddedReferenceLoc) {
+
+        // we need to remap the Alleles back to the Haplotypes; inefficient but unfortunately this is a requirement currently
+        final Map<Allele, Haplotype> alleleToHaplotypeMap = new HashMap<>(haplotypes.size());
+        for ( final Haplotype haplotype : haplotypes )
+            alleleToHaplotypeMap.put(Allele.create(haplotype.getBases()), haplotype);
+
+        final Map<GATKSAMRecord, Map<Allele, Double>> newLikelihoodReadMap = new LinkedHashMap<>(likelihoodReadMap.size());
+        for( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
+            final MostLikelyAllele bestAllele = PerReadAlleleLikelihoodMap.getMostLikelyAllele(entry.getValue());
+            final GATKSAMRecord alignedToRef = AlignmentUtils.createReadAlignedToRef(entry.getKey(), alleleToHaplotypeMap.get(bestAllele.getMostLikelyAllele()), paddedReferenceLoc.getStart(), bestAllele.isInformative());
+            newLikelihoodReadMap.put(alignedToRef, entry.getValue());
+        }
+
+        likelihoodReadMap.clear();
+        likelihoodReadMap.putAll(newLikelihoodReadMap);
     }
 }
