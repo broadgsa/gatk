@@ -265,21 +265,28 @@ public class MathUtils {
         return log10sumLog10(log10p, start, log10p.length);
     }
 
-    public static double log10sumLog10(final double[] log10p,final int start,final int finish) {
-        double sum = 0.0;
+    public static double log10sumLog10(final double[] log10p, final int start, final int finish) {
 
-        double maxValue = arrayMax(log10p, finish);
-        if(maxValue == Double.NEGATIVE_INFINITY)
+        final int maxElementIndex = MathUtils.maxElementIndex(log10p, start, finish);
+        double maxValue = log10p[maxElementIndex];
+        if(maxValue == Double.NEGATIVE_INFINITY)   {
             return maxValue;
-
-        for (int i = start; i < finish; i++) {
-            if ( Double.isNaN(log10p[i]) || log10p[i] == Double.POSITIVE_INFINITY ) {
-                throw new IllegalArgumentException("log10p: Values must be non-infinite and non-NAN");
-            }
-            sum += Math.pow(10.0, log10p[i] - maxValue);
         }
-
-        return Math.log10(sum) + maxValue;
+        double sum = 1.0;
+        for (int i = start; i < finish; i++) {
+            double curVal = log10p[i];
+            double scaled_val = curVal - maxValue;
+            if (i == maxElementIndex || curVal == Double.NEGATIVE_INFINITY) {
+                continue;
+            }
+            else {
+                sum += Math.pow(10.0, scaled_val);
+            }
+        }
+        if ( Double.isNaN(sum) || sum == Double.POSITIVE_INFINITY ) {
+            throw new IllegalArgumentException("log10p: Values must be non-infinite and non-NAN");
+        }
+        return maxValue + (sum != 1.0 ? Math.log10(sum) : 0.0);
     }
 
     public static double sumLog10(final double[] log10values) {
@@ -848,17 +855,23 @@ public class MathUtils {
         return maxElementIndex(array, array.length);
     }
 
-    public static int maxElementIndex(final double[] array, final int endIndex) {
+    public static int maxElementIndex(final double[] array, final int start, final int endIndex) {
         if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
 
-        int maxI = 0;
-        for (int i = 1; i < endIndex; i++) {
+        if (start > endIndex) {
+           throw new IllegalArgumentException("Start cannot be after end.");
+        }
+        int maxI = start;
+        for (int i = (start+1); i < endIndex; i++) {
             if (array[i] > array[maxI])
                 maxI = i;
         }
-
         return maxI;
+    }
+
+    public static int maxElementIndex(final double[] array, final int endIndex) {
+        return maxElementIndex(array, 0, endIndex);
     }
 
     public static int maxElementIndex(final int[] array) {
@@ -878,7 +891,6 @@ public class MathUtils {
             if (array[i] > array[maxI])
                 maxI = i;
         }
-
         return maxI;
     }
 
