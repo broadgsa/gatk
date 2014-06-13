@@ -373,7 +373,15 @@ public class MendelianViolation {
             }
     }
 
-    private boolean isViolation(Genotype gMom, Genotype gDad, Genotype gChild) {
+    /**
+     * Evaluate the genotypes of mom, dad, and child to detect Mendelian violations
+     *
+     * @param gMom
+     * @param gDad
+     * @param gChild
+     * @return true if the three genotypes represent a Mendelian violation; false otherwise
+     */
+    public static boolean isViolation(final Genotype gMom, final Genotype gDad, final Genotype gChild) {
         //1 parent is no "call
         if(!gMom.isCalled()){
             return (gDad.isHomRef() && gChild.isHomVar()) || (gDad.isHomVar() && gChild.isHomRef());
