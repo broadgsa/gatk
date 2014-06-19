@@ -55,7 +55,8 @@ class CalculateHsMetrics extends org.broadinstitute.gatk.queue.function.JavaComm
   @Argument(doc="Reference file", shortName = "reference", fullName = "reference", required = true)
   var reference: File = _
 
-  val level = MetricAccumulationLevel.SAMPLE
+  @Argument(doc="The level(s) at which to accumulate metrics. Possible values: {ALL_READS, SAMPLE, LIBRARY, READ_GROUP} This option may be specified 0 or more times.", shortName = "level", fullName = "metric_accumulation_level", required = false)
+  var level: Seq[picard.analysis.MetricAccumulationLevel] = Seq(MetricAccumulationLevel.SAMPLE)
 
   override def inputBams = input
   override def outputFile = output
@@ -63,6 +64,5 @@ class CalculateHsMetrics extends org.broadinstitute.gatk.queue.function.JavaComm
     required("BAIT_INTERVALS=" + baits) +
     required("TARGET_INTERVALS=" + targets) +
     required("REFERENCE_SEQUENCE=" + reference) +
-    optional("METRIC_ACCUMULATION_LEVEL="+level)
-
+    repeat("METRIC_ACCUMULATION_LEVEL=", level, spaceSeparated=false, escape=true, format="%s")
 }

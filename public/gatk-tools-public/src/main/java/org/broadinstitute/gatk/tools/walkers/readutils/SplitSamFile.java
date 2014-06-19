@@ -57,7 +57,7 @@ import java.util.Map;
 @Requires({DataSource.READS})
 public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWriter>> {
     @Argument(fullName="outputRoot", doc="output BAM file", required=false)
-    public String outputRoot = null;
+    public String outputRoot = "";
 
     @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
     public Integer BAMcompression = 5;    
