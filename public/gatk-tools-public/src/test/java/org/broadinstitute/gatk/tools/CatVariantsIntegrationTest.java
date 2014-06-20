@@ -78,6 +78,11 @@ public class CatVariantsIntegrationTest {
         for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
             new CatVariantsTestProvider("CatVariantsTest1.vcf" + extension, "CatVariantsTest2.vcf" + extension, BaseTest.createTempFile("CatVariantsTest", ".vcf" + extension), "33f728ac5c70ce2994f3619a27f47088");
 
+        //Test list parsing functionality
+        new CatVariantsTestProvider("CatVariantsTest1.list", "CatVariantsTest2.vcf", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider("CatVariantsTest1.vcf", "CatVariantsTest2.list", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider("CatVariantsTest1.list", "CatVariantsTest2.list", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
     }
 

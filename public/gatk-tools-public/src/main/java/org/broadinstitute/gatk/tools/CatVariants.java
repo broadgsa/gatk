@@ -38,6 +38,7 @@ import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
@@ -196,6 +197,28 @@ public class CatVariants extends CommandLineProgram {
         return reader;
     }
 
+    /**
+     * Replaces any .list files in rawFileList with the files named in said .list file
+     * @param rawFileList the original file list, possibly including .list files
+     * @return a new List, with .list files replaced
+     */
+    private List<File> parseVariantList(final List<File> rawFileList) {
+        final List<File> result = new ArrayList<>(rawFileList.size());
+        for (final File rawFile : rawFileList) {
+            if (rawFile.getName().endsWith(".list")) {
+                try {
+                    for (final String line : new XReadLines(rawFile, true))
+                        result.add(new File(line));
+                } catch (IOException e) {
+                    throw new UserException.CouldNotReadInputFile(rawFile, e);
+                }
+            } else {
+                result.add(rawFile);
+            }
+        }
+        return result;
+    }
+
     @Override
     protected int execute() throws Exception {
         BasicConfigurator.configure();
@@ -207,6 +230,8 @@ public class CatVariants extends CommandLineProgram {
         } catch ( Exception e ) {
             throw new UserException("Couldn't load provided reference sequence file " + refFile, e);
         }
+
+        variant = parseVariantList(variant);
 
         Comparator<Pair<Integer,File>> positionComparator = new PositionComparator();
 
