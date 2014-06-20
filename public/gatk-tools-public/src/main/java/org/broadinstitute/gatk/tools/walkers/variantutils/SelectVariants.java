@@ -514,11 +514,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
             if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
                 boolean failedJexlMatch = false;
-                for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-                    if ( !VariantContextUtils.match(sub, jexl) ) {
-                        failedJexlMatch = true;
-                        break;
+                try {
+                    for (VariantContextUtils.JexlVCMatchExp jexl : jexls) {
+                        if (!VariantContextUtils.match(sub, jexl)) {
+                            failedJexlMatch = true;
+                            break;
+                        }
                     }
+                } catch (IllegalArgumentException e) {
+                    /*The IAE thrown by htsjdk already includes an informative error message ("Invalid JEXL
+                      expression detected...")*/
+                    throw new UserException(e.getMessage());
                 }
                 if ( !failedJexlMatch &&
                         !justRead &&
