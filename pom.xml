@@ -742,6 +742,23 @@
         <!-- Invoke plugins that always run -->
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>delete-mavens-links</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <executable>${gatk.basedir}/public/src/main/scripts/shell/delete_maven_links.sh</executable>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
