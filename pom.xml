@@ -747,10 +747,10 @@
                 <executions>
                     <execution>
                         <id>delete-mavens-links</id>
-                        <phase>process-test-resources</phase>
                         <goals>
                             <goal>exec</goal>
                         </goals>
+                        <phase>process-test-resources</phase>
                         <inherited>false</inherited>
                         <configuration>
                             <executable>${gatk.basedir}/public/src/main/scripts/shell/delete_maven_links.sh</executable>

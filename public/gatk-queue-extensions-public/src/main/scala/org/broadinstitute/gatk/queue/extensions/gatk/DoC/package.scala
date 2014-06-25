@@ -36,7 +36,10 @@ import scala.Some
 import org.broadinstitute.gatk.utils.text.XReadLines
 import org.broadinstitute.gatk.queue.util.VCF_BAM_utilities
 
-package object DoC {
+// Minimal refactor from a package object to a file full of classes/objects
+// due to ongoing bugs with inner classes/objects in package objects:
+//   https://issues.scala-lang.org/browse/SI-4344
+//   https://issues.scala-lang.org/browse/SI-5954
   class DoC(val bams: List[File], val DoC_output: File, val countType: CoverageUtils.CountPileupType, val MAX_DEPTH: Int, val minMappingQuality: Int, val minBaseQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int], val sampleRenameMappingFile: Option[File] = None) extends CommandLineGATK with ScatterGatherableFunction {
     val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
 
@@ -81,24 +84,6 @@ package object DoC {
     var outPrefix = DoC_output
 
     override def commandLine = super.commandLine.replaceAll(" --omitDepthOutputAtEachBase", "")
-  }
-
-  def buildDoCgroups(samples: List[String], sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]], samplesPerJob: Int, outputBase: File): List[Group] = {
-    var l: List[Group] = Nil
-
-    var remaining = samples
-    var subsamples: List[String] = Nil
-    var count = 1
-
-    while (!remaining.isEmpty) {
-      val splitRes = (remaining splitAt samplesPerJob)
-      subsamples = splitRes._1
-      remaining = splitRes._2
-      l ::= new Group("group" + count, outputBase, subsamples, VCF_BAM_utilities.findBAMsForSamples(subsamples, sampleToBams))
-      count = count + 1
-    }
-
-    return l
   }
 
   // A group has a list of samples and bam files to use for DoC
@@ -169,6 +154,25 @@ package object DoC {
     var sampleToBams = scala.collection.mutable.Map.empty[String, scala.collection.mutable.Set[File]]
   }
 
+object DoC {
+  def buildDoCgroups(samples: List[String], sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]], samplesPerJob: Int, outputBase: File): List[Group] = {
+    var l: List[Group] = Nil
+
+    var remaining = samples
+    var subsamples: List[String] = Nil
+    var count = 1
+
+    while (!remaining.isEmpty) {
+      val splitRes = (remaining splitAt samplesPerJob)
+      subsamples = splitRes._1
+      remaining = splitRes._2
+      l ::= new Group("group" + count, outputBase, subsamples, VCF_BAM_utilities.findBAMsForSamples(subsamples, sampleToBams))
+      count = count + 1
+    }
+
+    return l
+  }
+
   def parseBamListWithOptionalSampleMappings(bamsFile: File): ParsedBamListWithOptionalSampleMappings = {
     val r = new ParsedBamListWithOptionalSampleMappings(bamsFile)
 
@@ -210,6 +214,7 @@ package object DoC {
 
     return r
   }
+}
 
   class ProcessBamListWithOptionalSampleMappings(parsedBamList: ParsedBamListWithOptionalSampleMappings, outputBase: String) extends InProcessFunction {
     @Input(doc="")
@@ -235,4 +240,3 @@ package object DoC {
       bamSampleMapWriter.close
     }
   }
-}
