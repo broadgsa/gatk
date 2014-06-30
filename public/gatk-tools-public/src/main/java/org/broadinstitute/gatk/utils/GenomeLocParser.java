@@ -430,12 +430,12 @@ public final class GenomeLocParser {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * create a genome loc, given a read. If the read is unmapped, *and* yet the read has a contig and start position,
-     * then a GenomeLoc is returned for contig:start-start, otherwise and UNMAPPED GenomeLoc is returned.
+     * Create a genome loc, given a read. If the read is unmapped, *and* yet the read has a contig and start position,
+     * then a GenomeLoc is returned for contig:start-start, otherwise an UNMAPPED GenomeLoc is returned.
      *
-     * @param read
+     * @param read the read from which to create a genome loc
      *
-     * @return
+     * @return the GenomeLoc that was created
      */
     @Requires("read != null")
     @Ensures("result != null")
@@ -445,8 +445,29 @@ public final class GenomeLocParser {
             return GenomeLoc.UNMAPPED;
         else {
             // Use Math.max to ensure that end >= start (Picard assigns the end to reads that are entirely within an insertion as start-1)
-            int end = read.getReadUnmappedFlag() ? read.getAlignmentStart() : Math.max(read.getAlignmentEnd(), read.getAlignmentStart());
+            final int end = read.getReadUnmappedFlag() ? read.getAlignmentStart() : Math.max(read.getAlignmentEnd(), read.getAlignmentStart());
             return createGenomeLoc(read.getReferenceName(), read.getReferenceIndex(), read.getAlignmentStart(), end, false);
+        }
+    }
+
+    /**
+     * Create a genome loc, given a read using its unclipped alignment. If the read is unmapped, *and* yet the read has a contig and start position,
+     * then a GenomeLoc is returned for contig:start-start, otherwise an UNMAPPED GenomeLoc is returned.
+     *
+     * @param read the read from which to create a genome loc
+     *
+     * @return the GenomeLoc that was created
+     */
+    @Requires("read != null")
+    @Ensures("result != null")
+    public GenomeLoc createGenomeLocUnclipped(final SAMRecord read) {
+        if ( read.getReadUnmappedFlag() && read.getReferenceIndex() == -1 )
+            // read is unmapped and not placed anywhere on the genome
+            return GenomeLoc.UNMAPPED;
+        else {
+            // Use Math.max to ensure that end >= start (Picard assigns the end to reads that are entirely within an insertion as start-1)
+            final int end = read.getReadUnmappedFlag() ? read.getUnclippedEnd() : Math.max(read.getUnclippedEnd(), read.getUnclippedStart());
+            return createGenomeLoc(read.getReferenceName(), read.getReferenceIndex(), read.getUnclippedStart(), end, false);
         }
     }
 

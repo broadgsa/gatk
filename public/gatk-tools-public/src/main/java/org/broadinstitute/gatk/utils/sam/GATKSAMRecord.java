@@ -49,7 +49,7 @@ import java.util.*;
  * Changing these values in any way will invalidate the cached value. However, we do not monitor those setter
  * functions, so modifying a GATKSAMRecord in any way may result in stale cached values.
  */
-public class GATKSAMRecord extends BAMRecord {
+public class GATKSAMRecord extends BAMRecord implements Cloneable {
     // Base Quality Score Recalibrator specific attribute tags
     public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";                // base qualities for insertions
     public static final String BQSR_BASE_DELETION_QUALITIES = "BD";                 // base qualities for deletions
@@ -593,17 +593,20 @@ public class GATKSAMRecord extends BAMRecord {
      * This should be safe because callers should never modify a mutable value returned by any of the get() methods anyway.
      * 
      * @return a shallow copy of the GATKSAMRecord
-     * @throws CloneNotSupportedException
      */
     @Override
-    public Object clone() throws CloneNotSupportedException {
-        final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
-        if (temporaryAttributes != null) {
-            clone.temporaryAttributes = new HashMap<>();
-            for (Object attribute : temporaryAttributes.keySet())
-                clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
+    public Object clone() {
+        try {
+            final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
+            if (temporaryAttributes != null) {
+                clone.temporaryAttributes = new HashMap<>();
+                for (Object attribute : temporaryAttributes.keySet())
+                    clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
+            }
+            return clone;
+        } catch (final CloneNotSupportedException e) {
+            throw new RuntimeException( e );
         }
-        return clone;
     }
 
     /**

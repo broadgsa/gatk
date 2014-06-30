@@ -31,19 +31,21 @@ import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
-import org.apache.log4j.Logger;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.recalibration.EventType;
+import org.broadinstitute.gatk.utils.smithwaterman.SWPairwiseAlignment;
 
 import java.util.*;
 
 
 public final class AlignmentUtils {
-    private final static Logger logger = Logger.getLogger(AlignmentUtils.class);
     private final static EnumSet<CigarOperator> ALIGNED_TO_GENOME_OPERATORS = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X);
     private final static EnumSet<CigarOperator> ALIGNED_TO_GENOME_PLUS_SOFTCLIPS = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.S);
+    public final static String HAPLOTYPE_TAG = "HC";
 
     // cannot be instantiated
     private AlignmentUtils() { }
@@ -64,6 +66,65 @@ public final class AlignmentUtils {
         final CigarOperator last = cigar.getCigarElement(cigar.numCigarElements()-1).getOperator();
         return first == CigarOperator.D || first == CigarOperator.I || last == CigarOperator.D || last == CigarOperator.I;
     }
+
+    /**
+     * Aligns reads the haplotype, and then projects this alignment of read -> hap onto the reference
+     * via the alignment of haplotype (via its getCigar) method.
+     *
+     * @param originalRead the read we want to write aligned to the reference genome
+     * @param haplotype the haplotype that the read should be aligned to, before aligning to the reference
+     * @param referenceStart the start of the reference that haplotype is aligned to.  Provides global coordinate frame.
+     * @param isInformative true if the read is differentially informative for one of the haplotypes
+     * @return a GATKSAMRecord aligned to reference, or null if no meaningful alignment is possible
+     */
+    public static GATKSAMRecord createReadAlignedToRef(final GATKSAMRecord originalRead,
+                                                       final Haplotype haplotype,
+                                                       final int referenceStart,
+                                                       final boolean isInformative) {
+        if ( originalRead == null ) throw new IllegalArgumentException("originalRead cannot be null");
+        if ( haplotype == null ) throw new IllegalArgumentException("haplotype cannot be null");
+        if ( haplotype.getCigar() == null ) throw new IllegalArgumentException("Haplotype cigar not set " + haplotype);
+        if ( referenceStart < 1 ) throw new IllegalArgumentException("reference start much be >= 1 but got " + referenceStart);
+
+        // compute the smith-waterman alignment of read -> haplotype
+        final SWPairwiseAlignment swPairwiseAlignment = new SWPairwiseAlignment(haplotype.getBases(), originalRead.getReadBases(), CigarUtils.NEW_SW_PARAMETERS);
+        if ( swPairwiseAlignment.getAlignmentStart2wrt1() == -1 )
+            // sw can fail (reasons not clear) so if it happens just don't realign the read
+            return originalRead;
+        final Cigar swCigar = consolidateCigar(swPairwiseAlignment.getCigar());
+
+        // since we're modifying the read we need to clone it
+        final GATKSAMRecord read = (GATKSAMRecord)originalRead.clone();
+
+        // only informative reads are given the haplotype tag to enhance visualization
+        if ( isInformative )
+            read.setAttribute(HAPLOTYPE_TAG, haplotype.hashCode());
+
+        // compute here the read starts w.r.t. the reference from the SW result and the hap -> ref cigar
+        final Cigar extendedHaplotypeCigar = haplotype.getConsolidatedPaddedCigar(1000);
+        final int readStartOnHaplotype = calcFirstBaseMatchingReferenceInCigar(extendedHaplotypeCigar, swPairwiseAlignment.getAlignmentStart2wrt1());
+        final int readStartOnReference = referenceStart + haplotype.getAlignmentStartHapwrtRef() + readStartOnHaplotype;
+        read.setAlignmentStart(readStartOnReference);
+        read.resetSoftStartAndEnd();
+
+        // compute the read -> ref alignment by mapping read -> hap -> ref from the
+        // SW of read -> hap mapped through the given by hap -> ref
+        final Cigar haplotypeToRef = trimCigarByBases(extendedHaplotypeCigar, swPairwiseAlignment.getAlignmentStart2wrt1(), extendedHaplotypeCigar.getReadLength() - 1);
+        final Cigar readToRefCigarRaw = applyCigarToCigar(swCigar, haplotypeToRef);
+        final Cigar readToRefCigarClean = cleanUpCigar(readToRefCigarRaw);
+        final Cigar readToRefCigar = leftAlignIndel(readToRefCigarClean, haplotype.getBases(),
+                originalRead.getReadBases(), swPairwiseAlignment.getAlignmentStart2wrt1(), 0, true);
+
+        read.setCigar(readToRefCigar);
+
+        if ( readToRefCigar.getReadLength() != read.getReadLength() )
+            throw new IllegalStateException("Cigar " + readToRefCigar + " with read length " + readToRefCigar.getReadLength()
+                    + " != read length " + read.getReadLength() + " for read " + read.format() + "\nhapToRef " + haplotypeToRef + " length " + haplotypeToRef.getReadLength() + "/" + haplotypeToRef.getReferenceLength()
+                    + "\nreadToHap " + swCigar + " length " + swCigar.getReadLength() + "/" + swCigar.getReferenceLength());
+
+        return read;
+    }
+
 
 
     /**

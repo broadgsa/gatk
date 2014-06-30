@@ -67,12 +67,7 @@ public class ClippingOp {
      * @param originalRead the read to be clipped
      */
     public GATKSAMRecord apply(ClippingRepresentation algorithm, GATKSAMRecord originalRead) {
-        GATKSAMRecord read;
-        try {
-            read = (GATKSAMRecord) originalRead.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new ReviewedGATKException("Where did the clone go?");
-        }
+        GATKSAMRecord read = (GATKSAMRecord) originalRead.clone();
         byte[] quals = read.getBaseQualities();
         byte[] bases = read.getReadBases();
         byte[] newBases = new byte[bases.length];
@@ -169,14 +164,7 @@ public class ClippingOp {
     }
 
     private GATKSAMRecord revertSoftClippedBases(GATKSAMRecord read) {
-        GATKSAMRecord unclipped;
-
-        // shallow copy of the read bases and quals should be fine here because they are immutable in the original read
-        try {
-            unclipped = (GATKSAMRecord) read.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new ReviewedGATKException("Where did the clone go?");
-        }
+        GATKSAMRecord unclipped = (GATKSAMRecord) read.clone();
 
         Cigar unclippedCigar = new Cigar();
         int matchesCount = 0;
@@ -376,12 +364,7 @@ public class ClippingOp {
         System.arraycopy(read.getReadBases(), copyStart, newBases, 0, newLength);
         System.arraycopy(read.getBaseQualities(), copyStart, newQuals, 0, newLength);
 
-        final GATKSAMRecord hardClippedRead;
-        try {
-            hardClippedRead = (GATKSAMRecord) read.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new ReviewedGATKException("Where did the clone go?");
-        }
+        final GATKSAMRecord hardClippedRead = (GATKSAMRecord) read.clone();
 
         hardClippedRead.resetSoftStartAndEnd();                                                                         // reset the cached soft start and end because they may have changed now that the read was hard clipped. No need to calculate them now. They'll be lazily calculated on the next call to getSoftStart()/End()
         hardClippedRead.setBaseQualities(newQuals);
