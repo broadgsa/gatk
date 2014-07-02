@@ -107,7 +107,6 @@ public class CigarUtils {
         return TextCigarCodec.getSingleton().decode(cigarString);
     }
 
-
     /**
     * A valid cigar object obeys the following rules:
     *  - No Hard/Soft clips in the middle of the read
