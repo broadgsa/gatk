@@ -15,6 +15,7 @@
 
     <properties>
         <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gatk.packagetests.artifactId>gatk-package-distribution</gatk.packagetests.artifactId>
     </properties>
 
     <dependencies>
