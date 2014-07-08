@@ -15,7 +15,7 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  inputFileName = "~/Desktop/broadLocal/projects/pipelinePerformance/FullProcessingPipeline.jobreport.txt"
+  inputFileName = "~/workspaces/scratch/SingleSample_VQSRwNewSOR.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
@@ -57,7 +57,7 @@ plotJobsGantt <- function(gatkReport, sortOverall, title, includeText) {
   p <- p + xlim(0, maxRelTime * 1.3)
   p <- p + xlab(paste("Start time, relative to first job", RUNTIME_UNITS))
   p <- p + ylab("Job number")
-  p <- p + opts(title = title)
+  p <- p + ggtitle(title)
   print(p)
 }
 
@@ -95,7 +95,7 @@ plotProgressByTime <- function(gatkReport) {
   p <- p + facet_grid(variable ~ ., scales="free")
   p <- p + geom_line(size=2)
   p <- p + xlab(paste("Time since start of first job", RUNTIME_UNITS))
-  p <- p + opts(title = "Job scheduling")
+  p <- p + ggtitle("Job scheduling")
   print(p)
 }
 
@@ -123,7 +123,7 @@ plotGroup <- function(groupTable) {
     # todo -- how do we group by annotations?
     p <- ggplot(data=sub, aes(x=runtime)) + geom_histogram()
     p <- p + xlab(paste("runtime", RUNTIME_UNITS)) + ylab("No. of jobs")
-    p <- p + opts(title=paste("Job runtime histogram for", name))
+    p <- p + ggtitle(paste("Job runtime histogram for", name))
     print(p)
   }
   
@@ -171,9 +171,9 @@ plotTimeByHost <- function(gatkReportData) {
     p = p + facet_grid(analysisName ~ ., scale="free")
     p = p + vis()
     p = p + xlab("Job execution host")
-    p = p + opts(title = paste(name, "of job runtimes by analysis name and execution host"))
+    p = p + ggtitle(paste(name, "of job runtimes by analysis name and execution host"))
     p = p + ylab(paste("Distribution of runtimes", RUNTIME_UNITS))
-    p = p + opts(axis.text.x=theme_text(angle=45, hjust=1, vjust=1))
+    p = p + theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
     print(p)
   }
   
