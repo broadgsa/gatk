@@ -32,6 +32,9 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import java.util.*;
 
 public class AnnotationInterfaceManager {
+    private static final String NULL_ANNOTATION_NAME = "none";
+    private static final String NULL_ANNOTATION_GROUP_NAME = "none";
+
     private static PluginManager<InfoFieldAnnotation> infoFieldAnnotationPluginManager = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class);
     private static PluginManager<GenotypeAnnotation> genotypeAnnotationPluginManager = new PluginManager<GenotypeAnnotation>(GenotypeAnnotation.class);
     private static PluginManager<AnnotationType> annotationTypePluginManager = new PluginManager<AnnotationType>(AnnotationType.class);
@@ -53,7 +56,7 @@ public class AnnotationInterfaceManager {
         for ( Class c : annotationTypePluginManager.getInterfaces() )
             classMap.put(c.getSimpleName(), c);
 
-        if ( annotationGroupsToUse.size() != 1 || !"none".equals(annotationGroupsToUse.get(0)) ) {
+        if ( annotationGroupsToUse.size() != 1 || !NULL_ANNOTATION_GROUP_NAME.equals(annotationGroupsToUse.get(0)) ) {
             for ( String group : annotationGroupsToUse ) {
                 Class interfaceClass = classMap.get(group);
                 if ( interfaceClass == null )
@@ -64,15 +67,17 @@ public class AnnotationInterfaceManager {
         }
 
         // validate the specific classes provided
-        for ( String annotation : annotationsToUse ) {
-            Class annotationClass = classMap.get(annotation);
-            if ( annotationClass == null )
-                annotationClass = classMap.get(annotation + "Annotation");
-            if ( annotationClass == null ) {
-                if (DeprecatedToolChecks.isDeprecatedAnnotation(annotation) ) {
-                    throw new UserException.DeprecatedAnnotation(annotation, DeprecatedToolChecks.getAnnotationDeprecationInfo(annotation));
-                } else {
-                    throw new UserException.BadArgumentValue("annotation", "Annotation " + annotation + " was not found; please check that you have specified the annotation name correctly");
+        if ( annotationsToUse.size() != 1 || !NULL_ANNOTATION_NAME.equals(annotationsToUse.get(0)) ) {
+            for (String annotation : annotationsToUse) {
+                Class annotationClass = classMap.get(annotation);
+                if (annotationClass == null)
+                    annotationClass = classMap.get(annotation + "Annotation");
+                if (annotationClass == null) {
+                    if (DeprecatedToolChecks.isDeprecatedAnnotation(annotation)) {
+                        throw new UserException.DeprecatedAnnotation(annotation, DeprecatedToolChecks.getAnnotationDeprecationInfo(annotation));
+                    } else {
+                        throw new UserException.BadArgumentValue("annotation", "Annotation " + annotation + " was not found; please check that you have specified the annotation name correctly");
+                    }
                 }
             }
         }
@@ -105,7 +110,7 @@ public class AnnotationInterfaceManager {
             }
         });
 
-        if ( annotationGroupsToUse.size() != 1 || !"none".equals(annotationGroupsToUse.get(0)) ) {
+        if ( annotationGroupsToUse.size() != 1 || !NULL_ANNOTATION_GROUP_NAME.equals(annotationGroupsToUse.get(0)) ) {
             for ( String group : annotationGroupsToUse ) {
                 Class interfaceClass = classMap.get(group);
                 if ( interfaceClass == null )
@@ -116,12 +121,14 @@ public class AnnotationInterfaceManager {
         }
 
         // get the specific classes provided
-        for ( String annotation : annotationsToUse ) {
-            Class annotationClass = classMap.get(annotation);
-            if ( annotationClass == null )
-                annotationClass = classMap.get(annotation + "Annotation");
-            if ( annotationClass != null )
-                classes.add(annotationClass);
+        if ( annotationsToUse.size() != 1 || !NULL_ANNOTATION_NAME.equals(annotationsToUse.get(0)) ) {
+            for (String annotation : annotationsToUse) {
+                Class annotationClass = classMap.get(annotation);
+                if (annotationClass == null)
+                    annotationClass = classMap.get(annotation + "Annotation");
+                if (annotationClass != null)
+                    classes.add(annotationClass);
+            }
         }
 
         // note that technically an annotation can work on both the INFO and FORMAT fields
