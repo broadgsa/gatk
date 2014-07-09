@@ -49,7 +49,7 @@ public class MD5DB {
      */
     private static final int MAX_RECORDS_TO_READ = 1000000;
     private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = -1;
-    public static final String LOCAL_MD5_DB_DIR = BaseTest.baseDirectory + "integrationtests";
+    public static final String LOCAL_MD5_DB_DIR = BaseTest.gatkDirectory + "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";
 
     // tracking and emitting a data file of origina and new md5s
@@ -65,14 +65,26 @@ public class MD5DB {
 
         ensureMd5DbDirectory();
 
-        logger.debug("Creating md5 mismatch db at " + MD5MismatchesFile);
+        boolean exists = MD5MismatchesFile.exists();
+
+        if (!exists) {
+            logger.warn("Creating md5 mismatch db at " + MD5MismatchesFile);
+        } else {
+            logger.warn("Updating md5 mismatch db at " + MD5MismatchesFile);
+        }
+        logger.warn("GATK directory: " + BaseTest.gatkDirectory);
+        logger.warn("Base directory: " + BaseTest.baseDirectory);
+        logger.warn("Test type: " + BaseTest.testType);
+
         try {
-            md5MismatchStream = new PrintStream(new FileOutputStream(MD5MismatchesFile));
-            md5MismatchStream.printf("%s\t%s\t%s%n", "expected", "observed", "test");
+            md5MismatchStream = new PrintStream(new FileOutputStream(MD5MismatchesFile, true));
         } catch ( FileNotFoundException e ) {
             throw new ReviewedGATKException("Failed to open md5 mismatch file", e);
         }
 
+        if (!exists) {
+            md5MismatchStream.printf("%s\t%s\t%s%n", "expected", "observed", "test");
+        }
     }
 
     public void close() {
