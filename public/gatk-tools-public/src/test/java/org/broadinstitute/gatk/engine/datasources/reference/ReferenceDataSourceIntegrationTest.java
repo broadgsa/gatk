@@ -25,10 +25,10 @@
 
 package org.broadinstitute.gatk.engine.datasources.reference;
 
-import junit.framework.Assert;
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.Test;
+import org.testng.Assert;
 
 import java.io.File;
 import java.io.IOException;
