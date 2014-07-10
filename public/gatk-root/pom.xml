@@ -424,6 +424,10 @@
                                 <includes>
                                     <include>**/*UnitTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <gatkdir>${gatk.basedir}</gatkdir>
+                                    <testType>unit</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                     </executions>
@@ -474,6 +478,10 @@
                                 <includes>
                                     <include>**/*IntegrationTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <gatkdir>${gatk.basedir}</gatkdir>
+                                    <testType>integration</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                         <execution>
@@ -491,6 +499,10 @@
                                 <includes>
                                     <include>**/*QueueTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <gatkdir>${gatk.basedir}</gatkdir>
+                                    <testType>queue</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                         <execution>
@@ -507,6 +519,10 @@
                                 <includes>
                                     <include>**/*LargeScaleTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <gatkdir>${gatk.basedir}</gatkdir>
+                                    <testType>largescale</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                         <execution>
@@ -523,6 +539,10 @@
                                 <includes>
                                     <include>**/*KnowledgeBaseTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <gatkdir>${gatk.basedir}</gatkdir>
+                                    <testType>knowledgebasetests</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                     </executions>
