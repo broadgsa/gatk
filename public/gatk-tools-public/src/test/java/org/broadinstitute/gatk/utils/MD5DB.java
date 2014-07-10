@@ -49,7 +49,7 @@ public class MD5DB {
      */
     private static final int MAX_RECORDS_TO_READ = 1000000;
     private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = -1;
-    public static final String LOCAL_MD5_DB_DIR = BaseTest.gatkDirectory + "integrationtests";
+    public static final String LOCAL_MD5_DB_DIR = "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";
 
     // tracking and emitting a data file of origina and new md5s
@@ -65,26 +65,14 @@ public class MD5DB {
 
         ensureMd5DbDirectory();
 
-        boolean exists = MD5MismatchesFile.exists();
-
-        if (!exists) {
-            logger.warn("Creating md5 mismatch db at " + MD5MismatchesFile);
-        } else {
-            logger.warn("Updating md5 mismatch db at " + MD5MismatchesFile);
-        }
-        logger.warn("GATK directory: " + BaseTest.gatkDirectory);
-        logger.warn("Base directory: " + BaseTest.baseDirectory);
-        logger.warn("Test type: " + BaseTest.testType);
-
+        logger.debug("Creating md5 mismatch db at " + MD5MismatchesFile);
         try {
-            md5MismatchStream = new PrintStream(new FileOutputStream(MD5MismatchesFile, true));
+            md5MismatchStream = new PrintStream(new FileOutputStream(MD5MismatchesFile));
+            md5MismatchStream.printf("%s\t%s\t%s%n", "expected", "observed", "test");
         } catch ( FileNotFoundException e ) {
             throw new ReviewedGATKException("Failed to open md5 mismatch file", e);
         }
 
-        if (!exists) {
-            md5MismatchStream.printf("%s\t%s\t%s%n", "expected", "observed", "test");
-        }
     }
 
     public void close() {
@@ -107,7 +95,7 @@ public class MD5DB {
         File dir = new File(LOCAL_MD5_DB_DIR);
         if ( ! dir.exists() ) {
             System.out.printf("##### Creating MD5 db %s%n", LOCAL_MD5_DB_DIR);
-            if ( ! dir.mkdirs() ) {
+            if ( ! dir.mkdir() ) {
                 // Need to check AGAIN whether the dir exists, because we might be doing multi-process parallelism
                 // within the same working directory, and another GATK instance may have come along and created the
                 // directory between the calls to exists() and mkdir() above.

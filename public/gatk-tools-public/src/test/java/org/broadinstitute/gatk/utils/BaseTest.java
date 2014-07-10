@@ -87,12 +87,6 @@ public abstract class BaseTest {
     /** our log, which we want to capture anything from org.broadinstitute.sting */
     public static final Logger logger = CommandLineUtils.getStingLogger();
 
-    private static final String CURRENT_DIRECTORY = System.getProperty("user.dir");
-    public static final String gatkDirectory = System.getProperty("gatkdir", CURRENT_DIRECTORY) + "/";
-    public static final String baseDirectory = System.getProperty("basedir", CURRENT_DIRECTORY) + "/";
-    public static final String testType = System.getProperty("testType"); // May be null
-    public static final String testTypeSubDirectory = testType == null ? "" : ("/" + testType); // May be empty
-
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
     public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
