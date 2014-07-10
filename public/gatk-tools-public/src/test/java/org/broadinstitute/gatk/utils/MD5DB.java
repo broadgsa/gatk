@@ -49,7 +49,7 @@ public class MD5DB {
      */
     private static final int MAX_RECORDS_TO_READ = 1000000;
     private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = -1;
-    public static final String LOCAL_MD5_DB_DIR = BaseTest.baseDirectory + "integrationtests";
+    public static final String LOCAL_MD5_DB_DIR = "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";
 
     // tracking and emitting a data file of origina and new md5s
@@ -95,7 +95,7 @@ public class MD5DB {
         File dir = new File(LOCAL_MD5_DB_DIR);
         if ( ! dir.exists() ) {
             System.out.printf("##### Creating MD5 db %s%n", LOCAL_MD5_DB_DIR);
-            if ( ! dir.mkdirs() ) {
+            if ( ! dir.mkdir() ) {
                 // Need to check AGAIN whether the dir exists, because we might be doing multi-process parallelism
                 // within the same working directory, and another GATK instance may have come along and created the
                 // directory between the calls to exists() and mkdir() above.
