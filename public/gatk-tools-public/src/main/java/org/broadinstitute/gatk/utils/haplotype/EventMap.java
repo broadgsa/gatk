@@ -193,14 +193,17 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
      * @return true if the cigar is too complex, false otherwise
      */
     private boolean variationIsTooComplex(final List<VariantContext> events) {
-        int indelCount = 0;
-        for ( final VariantContext event : events ) {
-            if ( event.isIndel() )
-                indelCount++;
-        }
+        // TODO -- we've decided to disable this for now and try "physical phasing"
+        return false;
 
+        //int indelCount = 0;
+        //for ( final VariantContext event : events ) {
+        //    if ( event.isIndel() )
+        //        indelCount++;
+        //}
+        //
         // don't allow too many indels
-        return indelCount > MAX_INDELS_PER_HAPLOTYPE;
+        //return indelCount > MAX_INDELS_PER_HAPLOTYPE;
     }
 
     /**
