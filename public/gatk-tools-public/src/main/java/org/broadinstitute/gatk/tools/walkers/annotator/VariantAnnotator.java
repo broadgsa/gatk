@@ -92,7 +92,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * The INFO field will be annotated with information on the most biologically-significant effect
+     * The INFO field will be annotated with information on the most biologically significant effect
      * listed in the SnpEff output file for each variant.
      */
     @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
@@ -107,9 +107,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public RodBinding<VariantContext> getDbsnpRodBinding() { return dbsnp.dbsnp; }
 
     /**
-      * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be annotated
-      *  as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).  Records that are filtered in the comp track will be ignored.
-      *  Note that 'dbSNP' has been special-cased (see the --dbsnp argument).
+      * If a record in the 'variant' track overlaps with a record from the provided comp track, the INFO field will be
+      * annotated as such in the output with the track name (e.g. -comp:FOO will have 'FOO' in the INFO field).
+      * Records that are filtered in the comp track will be ignored. Note that 'dbSNP' has been special-cased
+      * (see the --dbsnp argument).
       */
     @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
     public List<RodBinding<VariantContext>> comps = Collections.emptyList();
@@ -118,12 +119,15 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     /**
       * An external resource VCF file or files from which to annotate.
       *
-      * One can add annotations from one of the resource VCFs to the output.
-      * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
-      * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
-      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+      * Use this option to add annotations from a resource file to the output.
+      * For example, if you want to annotate your callset with the AC field value from a VCF file named
+      * 'resource_file.vcf', you tag it with '-resource:my_resource resource_file.vcf' and you additionally specify
+      * '-E my_resource.AC' (-E is short for --expression, also documented on this page). In the resulting output
+      * VCF, any records for which there is a record at the same position in the resource file will be annotated with
+      * 'my_resource.AC=N'. Note that if there are multiple records in the resource file that overlap the given
+      * position, one is chosen randomly.
       */
-    @Input(fullName="resource", shortName = "resource", doc="external resource VCF file", required=false)
+    @Input(fullName="resource", shortName = "resource", doc="External resource VCF file", required=false)
     public List<RodBinding<VariantContext>> resources = Collections.emptyList();
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
@@ -144,8 +148,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected List<String> annotationsToExclude = new ArrayList<>();
 
     /**
-     * If specified, all available annotations in the group will be applied. See the VariantAnnotator -list argument to view available groups.
-     * Keep in mind that RODRequiringAnnotations are not intended to be used as a group, because they require specific ROD inputs.
+     * If specified, all available annotations in the group will be applied. See the VariantAnnotator -list argument
+     * to view available groups. Keep in mind that RODRequiringAnnotations are not intended to be used as a group,
+     * because they require specific ROD inputs.
      */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected List<String> annotationGroupsToUse = new ArrayList<>();
@@ -153,29 +158,40 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     /**
      * This option enables you to add annotations from one VCF to another.
      *
-     * For example, if you want to annotate your 'variant' VCF with the AC field value from the rod bound to 'resource',
-     * you can specify '-E resource.AC' and records in the output VCF will be annotated with 'resource.AC=N' when a record exists in that rod at the given position.
-     * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
+     * For example, if you want to annotate your callset with the AC field value from a VCF file named
+     * 'resource_file.vcf', you tag it with '-resource:my_resource resource_file.vcf' (see the -resource argument, also
+     * documented on this page) and you specify '-E my_resource.AC'. In the resulting output VCF, any records for
+     * which there is a record at the same position in the resource file will be annotated with 'my_resource.AC=N'.
+     * Note that if there are multiple records in the resource file that overlap the given position, one is chosen
+     * randomly.
      */
-    @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
+    @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls", required=false)
     protected Set<String> expressionsToUse = new ObjectOpenHashSet();
 
     /**
-     * Note that the -XL argument can be used along with this one to exclude annotations.
+     * You can use the -XL argument in combination with this one to exclude specific annotations.Note that some
+     * annotations may not be actually applied if they are not applicable to the data provided or if they are
+     * unavailable to the tool (e.g. there are several annotations that are currently not hooked up to
+     * HaplotypeCaller). At present no error or warning message will be provided, the annotation will simply be
+     * skipped silently. You can check the output VCF header to see which annotations were actually applied (although
+     * this does not guarantee that the annotation was applied to all records in the VCF, since some annotations have
+     * additional requirements, e.g. minimum number of samples or heterozygous sites only -- see the documentation
+     * for individual annotations' requirements).
      */
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
 
     /**
-     * Note that the --list argument requires a fully resolved and correct command-line to work. As a simpler alternative, you can use ListAnnotations (see Help Utilities).
+     * Note that the --list argument requires a fully resolved and correct command-line to work. As an alternative, you can use ListAnnotations (see Help Utilities).
      */
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit", required=false)
     protected Boolean LIST = false;
 
     /**
-     * By default, the dbSNP ID is added only when the ID field in the variant VCF is empty.
+     * By default, the dbSNP ID is added only when the ID field in the variant VCF is empty (not already annotated).
+     * This argument allows you to override that behavior. This is used in conjuction with the -dbsnp argument.
      */
-    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="In conjunction with the dbSNP binding, append the dbSNP ID even when the variant VCF already has the ID field populated", required=false)
+    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="Append the dbSNP ID even when the variant VCF already has the ID field populated", required=false)
     protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
     public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 

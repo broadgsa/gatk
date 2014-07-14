@@ -53,16 +53,19 @@ public class IntervalArgumentCollection {
      * (e.g. -XL myFile.intervals).
      *
      * Additionally, you can also specify a ROD file (such as a VCF file) in order to exclude specific
-     * positions from the analysis based on the records present in the file (e.g. -L file.vcf).
+     * positions from the analysis based on the records present in the file (e.g. -XL file.vcf).
      * */
     @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing", required = false)
     public List<IntervalBinding<Feature>> excludeIntervals = null;
 
     /**
      * By default, the program will take the UNION of all intervals specified using -L and/or -XL. However, you can
-     * change this setting, for example if you want to take the INTERSECTION of the sets instead. E.g. to perform the
+     * change this setting for -L, for example if you want to take the INTERSECTION of the sets instead. E.g. to perform the
      * analysis on positions for which there is a record in a VCF, but restrict this to just those on chromosome 20,
-     * you would do -L chr20 -L file.vcf -isr INTERSECTION.
+     * you would do -L chr20 -L file.vcf -isr INTERSECTION. However, it is not possible to modify the merging approach
+     * for intervals passed using -XL (they will always be merged using UNION).
+     *
+     * Note that if you specify both -L and -XL, the -XL interval set will be subtracted from the -L interval set.
      */
     @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Set merging approach to use for combining interval inputs", required = false)
     public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;

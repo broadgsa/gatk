@@ -49,7 +49,7 @@ import java.util.Comparator;
  *
  * @author aaron
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARDISC, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_TOY, extraDocs = {CommandLineGATK.class} )
 public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
 
     public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;

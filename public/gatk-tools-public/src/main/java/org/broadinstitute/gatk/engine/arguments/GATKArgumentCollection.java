@@ -386,7 +386,7 @@ public class GATKArgumentCollection {
     public File sampleRenameMappingFile = null;
 
     /**
-     * For expert users only who know what they are doing. We do not support usage of this argument, so we may refuse to help you if you use it and something goes wrong.
+     * For expert users only who know what they are doing. We do not support usage of this argument, so we may refuse to help you if you use it and something goes wrong. The one exception to this rule is ALLOW_N_CIGAR_READS, which is necessary for RNAseq analysis.
      */
     @Argument(fullName = "unsafe", shortName = "U", doc = "Enable unsafe operations: nothing will be checked at runtime", required = false)
     public ValidationExclusion.TYPE unsafe;
