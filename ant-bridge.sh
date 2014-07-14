@@ -100,44 +100,44 @@ for arg in "${@}" ; do
             local_repo="sitetemprepo"
             mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
             mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo}"
-            mvn_args="${mvn_args} -Dsting.packagetests.enabled=true"
-            mvn_args="${mvn_args} -Dsting.packagecommittests.skipped=false"
+            mvn_args="${mvn_args} -Dgatk.packagetests.enabled=true"
+            mvn_args="${mvn_args} -Dgatk.packagecommittests.skipped=false"
 
         # TODO: This runs only the queue tests (full, non-dry run), but not the commit tests for Queue.
         elif [[ "${arg}" == "queuefull.binary.release.tests" ]] ; then
             local_repo="sitetemprepo"
             mvn_args="install -Dmaven.repo.local=${local_repo} && mvn verify"
             mvn_args="${mvn_args} -Dmaven.repo.local=${local_repo}"
-            mvn_args="${mvn_args} -Dsting.packagetests.enabled=true"
-            mvn_args="${mvn_args} -Dsting.packagequeuetests.skipped=false"
-            mvn_args="${mvn_args} -Dsting.queuetests.run=true"
+            mvn_args="${mvn_args} -Dgatk.packagetests.enabled=true"
+            mvn_args="${mvn_args} -Dgatk.packagequeuetests.skipped=false"
+            mvn_args="${mvn_args} -Dgatk.queuetests.run=true"
 
         elif [[ "${arg}" == "committests" ]] ; then
-            mvn_args="verify -Dsting.committests.skipped=false"
+            mvn_args="verify -Dgatk.committests.skipped=false"
 
         elif [[ "${arg}" == "test" ]] ; then
-            mvn_args="test -Dsting.unittests.skipped=false"
+            mvn_args="test -Dgatk.unittests.skipped=false"
 
         elif [[ "${arg}" == "unittest" ]] ; then
-            mvn_args="test -Dsting.unittests.skipped=false"
+            mvn_args="test -Dgatk.unittests.skipped=false"
 
         elif [[ "${arg}" == "integrationtest" ]] ; then
-            mvn_args="verify -Dsting.integrationtests.skipped=false"
+            mvn_args="verify -Dgatk.integrationtests.skipped=false"
 
         elif [[ "${arg}" == "largescaletest" ]] ; then
-            mvn_args="verify -Dsting.largescaletests.skipped=false"
+            mvn_args="verify -Dgatk.largescaletests.skipped=false"
 
         elif [[ "${arg}" == "knowledgebasetest" ]] ; then
-            mvn_args="verify -Dsting.knowledgebasetests.skipped=false"
+            mvn_args="verify -Dgatk.knowledgebasetests.skipped=false"
 
         elif [[ "${arg}" == "queuetest" ]] ; then
-            mvn_args="verify -Dsting.queuetests.skipped=false"
+            mvn_args="verify -Dgatk.queuetests.skipped=false"
 
         elif [[ "${arg}" == "queuetestrun" ]] ; then
-            mvn_args="verify -Dsting.queuetests.skipped=false -Dsting.queuetests.run=true"
+            mvn_args="verify -Dgatk.queuetests.skipped=false -Dgatk.queuetests.run=true"
 
         elif [[ "${arg}" == "fasttest" ]] ; then
-            mvn_args="verify -Dsting.committests.skipped=false -pl private/gatk-private -am -Dresource.bundle.skip=true"
+            mvn_args="verify -Dgatk.committests.skipped=false -pl private/gatk-tools-private -am -Dresource.bundle.skip=true"
 
         else
             unknown_args="${unknown_args} \"${arg}\""

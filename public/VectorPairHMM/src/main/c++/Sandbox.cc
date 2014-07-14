@@ -24,7 +24,7 @@
 
 
 #include "Sandbox.h"
-#include "org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM.h"
+#include "org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM.h"
 #include "utils.h"
 #include "jni_common.h"
 /*
@@ -46,7 +46,7 @@ JNIEXPORT jlong JNICALL Java_Sandbox_jniGetMachineType
 JNIEXPORT void JNICALL Java_Sandbox_jniInitializeClassFieldsAndMachineMask
   (JNIEnv* env, jobject thisObject, jclass readDataHolderClass, jclass haplotypeDataHolderClass, jlong mask)
 {
-  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeClassFieldsAndMachineMask(env, thisObject, readDataHolderClass,
+  Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniInitializeClassFieldsAndMachineMask(env, thisObject, readDataHolderClass,
       haplotypeDataHolderClass, mask);
 }
 
@@ -58,7 +58,7 @@ JNIEXPORT void JNICALL Java_Sandbox_jniInitializeClassFieldsAndMachineMask
 JNIEXPORT void JNICALL Java_Sandbox_jniInitializeHaplotypes
   (JNIEnv * env, jobject thisObject, jint numHaplotypes, jobjectArray haplotypeDataArray)
 {
-  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes(env, thisObject, numHaplotypes, haplotypeDataArray);
+  Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniInitializeHaplotypes(env, thisObject, numHaplotypes, haplotypeDataArray);
 }
 
 /*
@@ -69,7 +69,7 @@ JNIEXPORT void JNICALL Java_Sandbox_jniInitializeHaplotypes
 JNIEXPORT void JNICALL Java_Sandbox_jniFinalizeRegion
   (JNIEnv * env, jobject thisObject)
 {
-  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniFinalizeRegion(env, thisObject);
+  Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniFinalizeRegion(env, thisObject);
 }
 
 
@@ -82,7 +82,7 @@ JNIEXPORT void JNICALL Java_Sandbox_jniComputeLikelihoods
   (JNIEnv* env, jobject thisObject, jint numReads, jint numHaplotypes, 
    jobjectArray readDataArray, jobjectArray haplotypeDataArray, jdoubleArray likelihoodArray, jint maxNumThreadsToUse)
 {
-  Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods(env, thisObject,
+  Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniComputeLikelihoods(env, thisObject,
       numReads, numHaplotypes, readDataArray, haplotypeDataArray, likelihoodArray, maxNumThreadsToUse);
 }
 /*
@@ -92,7 +92,7 @@ JNIEXPORT void JNICALL Java_Sandbox_jniComputeLikelihoods
  */
 JNIEXPORT void JNICALL Java_Sandbox_jniClose
   (JNIEnv* env, jobject thisObject)
-{ Java_org_broadinstitute_sting_utils_pairhmm_VectorLoglessPairHMM_jniClose(env, thisObject); } 
+{ Java_org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM_jniClose(env, thisObject); } 
 
 JNIEXPORT void JNICALL Java_Sandbox_doEverythingNative
   (JNIEnv* env, jobject thisObject, jstring fileNameString)

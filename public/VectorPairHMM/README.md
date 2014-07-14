@@ -44,9 +44,10 @@ end of every region (line 351 in PairHMMLikelihoodCalculationEngine).
 Note: Debug code has been moved to a separate class DebugJNILoglessPairHMM.java.
 
 Compiling:
-Make sure you have icc (Intel C compiler) available. Currently, gcc does not seem to support all AVX 
-intrinsics.
-This native library is called libVectorLoglessPairHMM.so
+The native library (called libVectorLoglessPairHMM.so) can be compiled with icc (Intel C compiler) 
+or gcc versions >= 4.8.1 that support AVX intrinsics. By default, the make process tries to invoke 
+icc. To use gcc, edit the file 'pom.xml' (in this directory) and enable the environment variables 
+USE_GCC,C_COMPILER and CPP_COMPILER (edit and uncomment lines 60-62).
 Using Maven:
 Type 'mvn install' in this directory - this will build the library (by invoking 'make') and copy the 
 native library to the directory 

@@ -27,7 +27,7 @@ distributeGraphRows <- function(graphs, heights = c()) {
 
 distributeLogGraph <- function(graph, xName) {
   continuousGraph <- graph + scale_x_continuous(xName)
-  logGraph <- graph + scale_x_log10(xName) + opts(title="")
+  logGraph <- graph + scale_x_log10(xName) + ggtitle("")
   distributeGraphRows(list(continuousGraph, logGraph))
 }
 
@@ -194,7 +194,7 @@ plotVariantQC <- function(metrics, measures, requestedStrat = "Sample",
     titleText=paste(titleText, note, sep="\n")
   }
   paste(titleText)
-  title <- opts(title=titleText)
+  title <- ggtitle(titleText)
   
   determineFacet <- function(onX) {
     if ( onX ) { 
@@ -232,7 +232,7 @@ plotVariantQC <- function(metrics, measures, requestedStrat = "Sample",
     distGraph <- distGraph + facet_grid(distFacet, scales=scale)
     distGraph <- distGraph + ylab("Relative frequency")
     distGraph <- distGraph + xlab("Variable value (see facet for variable by color)")
-    distGraph <- distGraph + opts(axis.text.x=theme_text(angle=-45)) # , legend.position="none")
+    distGraph <- distGraph + theme(axis.text.x=element_text(angle=-45)) # , legend.position="none")
   } else {
     distGraph <- NA
   }

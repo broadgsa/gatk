@@ -23,8 +23,8 @@
 */
 
 
-#include "LoadTimeInitializer.h"
 #include "utils.h"
+#include "LoadTimeInitializer.h"
 using namespace std;
 char* LoadTimeInitializerStatsNames[] = 
 {
@@ -43,13 +43,17 @@ LoadTimeInitializer g_load_time_initializer;
 
 LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loaded
 {
+#if (defined(__GNUC__) || defined(__GNUG__)) && !defined(__INTEL_COMPILER)
+  //compiles only with gcc >= 4.8
+  __builtin_cpu_init();
+#endif
   ConvertChar::init();
 #ifndef DISABLE_FTZ
   //Very important to get good performance on Intel processors
   //Function: enabling FTZ converts denormals to 0 in hardware
   //Denormals cause microcode to insert uops into the core causing big slowdown
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-  cout << "FTZ enabled - may decrease accuracy if denormal numbers encountered\n";
+  //cout << "FTZ enabled - may decrease accuracy if denormal numbers encountered\n";
 #else
   cout << "FTZ is not set - may slow down performance if denormal numbers encountered\n";
 #endif
@@ -71,11 +75,6 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   m_filename_to_fptr.clear();
   m_written_files_set.clear();
 
-  //Common buffer - 8MB
-  unsigned size = 1024*1024;
-  m_buffer = new uint64_t[size];
-  m_buffer_size = size*sizeof(uint64_t);
-  
   initialize_function_pointers();
 
   //Initialize static members of class

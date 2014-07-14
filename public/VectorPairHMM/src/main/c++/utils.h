@@ -26,7 +26,7 @@
 #ifndef PAIRHMM_UTIL_H
 #define PAIRHMM_UTIL_H
 
-#include "template.h"
+#include "common_data_structure.h"
 
 template<class T>
 std::string to_string(T obj)
@@ -50,6 +50,15 @@ extern double (*g_compute_full_prob_double)(testcase *tc, double* before_last_lo
 void debug_dump(std::string filename, std::string s, bool to_append, bool add_newline);
 template<class NUMBER>
 NUMBER compute_full_prob(testcase *tc, NUMBER *before_last_log=0);
+template<class NUMBER>
+NUMBER compute_full_prob_avxd(testcase *tc, NUMBER *before_last_log=0);
+template<class NUMBER>
+NUMBER compute_full_prob_avxs(testcase *tc, NUMBER *before_last_log=0);
+template<class NUMBER>
+NUMBER compute_full_prob_ssed(testcase *tc, NUMBER *before_last_log=0);
+template<class NUMBER>
+NUMBER compute_full_prob_sses(testcase *tc, NUMBER *before_last_log=0);
+
 double getCurrClk();
 void get_time(struct timespec* x);
 uint64_t diff_time(struct timespec& prev_time);
@@ -71,5 +80,6 @@ void do_compute(char* filename, bool use_old_read_testcase=true, unsigned chunk_
 /*#define DUMP_COMPUTE_VALUES 1*/
 #define BATCH_SIZE  10000
 #define RUN_HYBRID
+/*#define PRINT_PER_INTERVAL_TIMINGS 1*/
 
 #endif

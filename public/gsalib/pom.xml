@@ -3,19 +3,19 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.broadinstitute.sting</groupId>
-        <artifactId>sting-aggregator</artifactId>
-        <version>3.1</version>
+        <groupId>org.broadinstitute.gatk</groupId>
+        <artifactId>gatk-aggregator</artifactId>
+        <version>3.2-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
     <artifactId>gsalib</artifactId>
     <packaging>pom</packaging>
-    <name>Sting GSALib</name>
+    <name>GATK GSALib</name>
 
     <properties>
-        <sting.basedir>${project.basedir}/../..</sting.basedir>
-        <gsalib.packagedir>org/broadinstitute/sting/utils/R</gsalib.packagedir>
+        <gatk.basedir>${project.basedir}/../..</gatk.basedir>
+        <gsalib.packagedir>org/broadinstitute/gatk/utils/R</gsalib.packagedir>
         <gsalib.filename>gsalib.tar.gz</gsalib.filename>
     </properties>
 
@@ -30,7 +30,7 @@
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>${sting.generate-resources.phase}</phase>
+                        <phase>${gatk.generate-resources.phase}</phase>
                         <configuration>
                             <appendAssemblyId>false</appendAssemblyId>
                             <descriptors>
