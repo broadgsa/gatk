@@ -92,7 +92,8 @@ public class GATKSAMRecord extends BAMRecord implements Cloneable {
      * @param read
      */
     public GATKSAMRecord(final SAMRecord read) {
-        super(read.getHeader(), read.getMateReferenceIndex(),
+        super(read.getHeader(),
+                read.getReferenceIndex(),
                 read.getAlignmentStart(),
                 read.getReadName() != null ? (short)read.getReadNameLength() : 0,
                 (short)read.getMappingQuality(),
