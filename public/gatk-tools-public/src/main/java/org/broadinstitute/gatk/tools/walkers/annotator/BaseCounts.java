@@ -44,8 +44,23 @@ import java.util.Map;
 
 /**
  * Count of A, C, G, T bases across all samples
+ *
+ * <p> This annotation returns the counts of A, C, G, and T bases across all samples, in that order.</p>
+ * <h3>Example:</h3>
+ *
+ * <pre>BaseCounts=3,0,3,0</pre>
+ *
+ * <p>
+ *     This means the number of A bases seen is 3, the number of T bases seen is 0, the number of G bases seen is 3, and the number of T bases seen is 0.
+ * </p>
+ *
+ * <h3>Related annotations</h3>
+ * <ul>
+ *     <li><b><a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_NBaseCount.php">NBaseCount</a></b> counts the percentage of N bases.</li>
+ * </ul>
  */
-public class BaseCounts extends InfoFieldAnnotation {
+
+ public class BaseCounts extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                         final AnnotatorCompatible walker,
