@@ -473,7 +473,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
         SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 null,
                 null,
                 new ValidationExclusion(),

@@ -317,7 +317,7 @@ public class ReadFilterTest extends BaseTest {
         final ThreadAllocation ta = new ThreadAllocation();
         final Integer numFileHandles = 1; // I believe that any value would do but need to confirm.
         final boolean useOriginalBaseQualities = true;
-        final SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.LENIENT;
+        final ValidationStringency strictness = ValidationStringency.LENIENT;
         final Integer readBufferSize = 1; // not relevant.
         final DownsamplingMethod downsamplingMethod = DownsamplingMethod.NONE;
         final ValidationExclusion exclusionList = composeValidationExclusion();

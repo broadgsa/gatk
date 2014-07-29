@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
@@ -47,7 +48,7 @@ public class SAMFileReaderBuilder {
     /**
      * What compression level should be used when building this file?
      */
-    private SAMFileReader.ValidationStringency validationStringency = null;
+    private ValidationStringency validationStringency = null;
 
     /**
      * Sets the handle of the sam file to which data should be written.
@@ -61,7 +62,7 @@ public class SAMFileReaderBuilder {
      * Sets the validation stringency to apply when reading this sam file.
      * @param validationStringency Stringency to apply.  Must not be null.
      */
-    public void setValidationStringency( SAMFileReader.ValidationStringency validationStringency ) {
+    public void setValidationStringency( ValidationStringency validationStringency ) {
         this.validationStringency = validationStringency;
     }
 

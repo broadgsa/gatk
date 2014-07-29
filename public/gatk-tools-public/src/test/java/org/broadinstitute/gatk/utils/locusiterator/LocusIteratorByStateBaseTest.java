@@ -75,7 +75,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
                 new SAMFileHeader(),
                 SAMFileHeader.SortOrder.coordinate,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 downsamplingMethod,
                 new ValidationExclusion(),
                 Collections.<ReadFilter>emptyList(),

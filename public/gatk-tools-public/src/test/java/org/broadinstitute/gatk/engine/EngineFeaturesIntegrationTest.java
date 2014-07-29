@@ -25,10 +25,7 @@
 
 package org.broadinstitute.gatk.engine;
 
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMReadGroupRecord;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.tribble.readers.LineIterator;
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
@@ -308,7 +305,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         final File outputBam = executeTest("testGATKEngineConsolidatesCigars", spec).first.get(0);
         final SAMFileReader reader = new SAMFileReader(outputBam);
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setValidationStringency(ValidationStringency.SILENT);
         reader.setSAMRecordFactory(new GATKSamRecordFactory());
 
         final SAMRecord read = reader.iterator().next();

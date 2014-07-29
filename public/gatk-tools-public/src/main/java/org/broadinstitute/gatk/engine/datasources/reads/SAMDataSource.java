@@ -86,7 +86,7 @@ public class SAMDataSource {
     /**
      * How strict are the readers driving this data source.
      */
-    private final SAMFileReader.ValidationStringency validationStringency;
+    private final ValidationStringency validationStringency;
 
     /**
      * Do we want to remove the program records from this data source?
@@ -183,7 +183,7 @@ public class SAMDataSource {
                 numFileHandles,
                 genomeLocParser,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 null,
                 null,
                 new ValidationExclusion(),
@@ -202,7 +202,7 @@ public class SAMDataSource {
             Integer numFileHandles,
             GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
-            SAMFileReader.ValidationStringency strictness,
+            ValidationStringency strictness,
             Integer readBufferSize,
             DownsamplingMethod downsamplingMethod,
             ValidationExclusion exclusionList,
@@ -251,7 +251,7 @@ public class SAMDataSource {
             Integer numFileHandles,
             GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
-            SAMFileReader.ValidationStringency strictness,
+            ValidationStringency strictness,
             Integer readBufferSize,
             DownsamplingMethod downsamplingMethod,
             ValidationExclusion exclusionList,
@@ -800,7 +800,7 @@ public class SAMDataSource {
          * @param reader Reader for which to determine the id.
          * @return id of the given reader.
          */
-        protected synchronized SAMReaderID getReaderID(SAMFileReader reader) {
+        protected synchronized SAMReaderID getReaderID(SamReader reader) {
             for(SAMReaders readers: allResources) {
                 SAMReaderID id = readers.getReaderID(reader);
                 if(id != null)
@@ -845,7 +845,7 @@ public class SAMDataSource {
          * @param validationStringency validation stringency.
          * @param removeProgramRecords indicate whether to clear program records from the readers
          */
-        public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency, boolean removeProgramRecords) {
+        public SAMReaders(Collection<SAMReaderID> readerIDs, ValidationStringency validationStringency, boolean removeProgramRecords) {
             final int totalNumberOfFiles = readerIDs.size();
             int readerNumber = 1;
             final SimpleTimer timer = new SimpleTimer().start();
@@ -1028,7 +1028,7 @@ public class SAMDataSource {
          * @param reader Reader for which to search.
          * @return The id associated the given reader, or null if the reader is not present in this collection.
          */
-        protected SAMReaderID getReaderID(SAMFileReader reader) {
+        protected SAMReaderID getReaderID(SamReader reader) {
             for(Map.Entry<SAMReaderID,SAMFileReader> entry: readers.entrySet()) {
                 if(reader == entry.getValue())
                     return entry.getKey();
@@ -1132,33 +1132,11 @@ public class SAMDataSource {
 
     /**
      * Locates the index file alongside the given BAM, if present.
-     * TODO: This is currently a hachetjob that reaches into Picard and pulls out its index file locator.  Replace with something more permanent.
      * @param bamFile The data file to use.
      * @return A File object if the index file is present; null otherwise.
      */
     private File findIndexFile(File bamFile) {
-        File indexFile;
-
-        try {
-            Class bamFileReaderClass = Class.forName("htsjdk.samtools.BAMFileReader");
-            Method indexFileLocator = bamFileReaderClass.getDeclaredMethod("findIndexFile",File.class);
-            indexFileLocator.setAccessible(true);
-            indexFile = (File)indexFileLocator.invoke(null,bamFile);
-        }
-        catch(ClassNotFoundException ex) {
-            throw new ReviewedGATKException("Unable to locate BAMFileReader class, used to check for index files");
-        }
-        catch(NoSuchMethodException ex) {
-            throw new ReviewedGATKException("Unable to locate Picard index file locator.");
-        }
-        catch(IllegalAccessException ex) {
-            throw new ReviewedGATKException("Unable to access Picard index file locator.");
-        }
-        catch(InvocationTargetException ex) {
-            throw new ReviewedGATKException("Unable to invoke Picard index file locator.");
-        }
-
-        return indexFile;
+        return SamFiles.findIndex(bamFile);
     }
 
     /**
