@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
 import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
@@ -56,7 +57,7 @@ public class ReadProperties {
     private final Collection<SAMReaderID> readers;
     private final SAMFileHeader header;
     private final SAMFileHeader.SortOrder sortOrder;
-    private final SAMFileReader.ValidationStringency validationStringency;
+    private final ValidationStringency validationStringency;
     private final DownsamplingMethod downsamplingMethod;
     private final ValidationExclusion exclusionList;
     private final Collection<ReadFilter> supplementalFilters;
@@ -107,7 +108,7 @@ public class ReadProperties {
      * How strict should validation be?
      * @return Stringency of validation.
      */
-    public SAMFileReader.ValidationStringency getValidationStringency() {
+    public ValidationStringency getValidationStringency() {
         return validationStringency;
     }
 
@@ -173,7 +174,7 @@ public class ReadProperties {
            SAMFileHeader header,
            SAMFileHeader.SortOrder sortOrder,
            boolean useOriginalBaseQualities,
-           SAMFileReader.ValidationStringency strictness,
+           ValidationStringency strictness,
            DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
            Collection<ReadFilter> supplementalFilters,

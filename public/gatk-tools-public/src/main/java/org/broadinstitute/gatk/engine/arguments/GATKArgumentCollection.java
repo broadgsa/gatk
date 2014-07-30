@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.arguments;
 
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
@@ -361,7 +362,7 @@ public class GATKArgumentCollection {
      * Keep in mind that if you set this to LENIENT, we may refuse to provide you with support if anything goes wrong.
      */
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
-    public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
+    public ValidationStringency strictnessLevel = ValidationStringency.SILENT;
     /**
      * Some tools keep program records in the SAM header by default. Use this argument to override that behavior and discard program records for the SAM header.
      */

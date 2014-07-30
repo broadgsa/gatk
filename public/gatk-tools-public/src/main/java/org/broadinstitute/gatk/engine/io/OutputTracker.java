@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.io;
 
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.commandline.ArgumentSource;
 import org.broadinstitute.gatk.engine.io.storage.Storage;
 import org.broadinstitute.gatk.engine.io.storage.StorageFactory;
@@ -77,7 +78,7 @@ public abstract class OutputTracker {
      */
     public abstract <T> T getStorage( Stub<T> stub );
 
-    public void prepareWalker( Walker walker, SAMFileReader.ValidationStringency strictnessLevel ) {
+    public void prepareWalker( Walker walker, ValidationStringency strictnessLevel ) {
         for( Map.Entry<ArgumentSource,Object> io: inputs.entrySet() ) {
             ArgumentSource targetField = io.getKey();
             Object targetValue = io.getValue();

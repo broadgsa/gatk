@@ -25,10 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
-import htsjdk.samtools.GATKBAMFileSpan;
-import htsjdk.samtools.GATKChunk;
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.*;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -58,7 +55,7 @@ public class PrintBAMRegion extends CommandLineProgram {
 
     public int execute() {
         SAMFileReader reader = new SAMFileReader(input);
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setValidationStringency(ValidationStringency.SILENT);
 
         Pattern regionPattern = Pattern.compile("(\\d+):(\\d+)-(\\d+):(\\d+)");
         Matcher matcher = regionPattern.matcher(region);

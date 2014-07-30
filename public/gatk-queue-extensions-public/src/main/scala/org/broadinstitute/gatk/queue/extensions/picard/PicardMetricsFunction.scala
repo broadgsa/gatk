@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.queue.extensions.picard
 
 import java.io.File
 import org.broadinstitute.gatk.queue.function.JavaCommandLineFunction
-import htsjdk.samtools.SAMFileReader.ValidationStringency
+import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.SAMFileHeader.SortOrder
 
 /**

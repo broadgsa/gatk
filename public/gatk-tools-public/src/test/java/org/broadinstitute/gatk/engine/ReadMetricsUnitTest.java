@@ -152,7 +152,7 @@ public class ReadMetricsUnitTest extends BaseTest {
 
         final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 null,
                 null,
                 new ValidationExclusion(),
@@ -187,7 +187,7 @@ public class ReadMetricsUnitTest extends BaseTest {
 
         final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 null,
                 null,
                 new ValidationExclusion(),
@@ -228,7 +228,7 @@ public class ReadMetricsUnitTest extends BaseTest {
 
         final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 null,
                 null,
                 new ValidationExclusion(),
@@ -275,7 +275,7 @@ public class ReadMetricsUnitTest extends BaseTest {
 
         final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
-                SAMFileReader.ValidationStringency.STRICT,
+                ValidationStringency.STRICT,
                 null,
                 null,
                 new ValidationExclusion(),
