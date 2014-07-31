@@ -95,7 +95,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     /**
      * Index of the reference allele if any, otherwise -1.
      */
-    private final int referenceAlleleIndex;
+    private int referenceAlleleIndex;
 
     /**
      * Caches the read-list per sample list returned by {@link #sampleReads}
@@ -568,9 +568,63 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
                 final GATKSAMRecord replacement = readRealignments.get(read);
                 if (replacement == null)
                     continue;
-                readIndex.put(sampleReads[r] = replacement,r);
                 readIndex.remove(read);
+                readIndex.put(sampleReads[r] = replacement,r);
             }
+        }
+    }
+
+    /**
+     * Add alleles that are missing in the read-likelihoods collection giving all reads a default
+     * likelihood value.
+     * @param alleles the potentially missing alleles.
+     * @param defaultLikelihood the default read likelihood value for that allele.
+     *
+     * @throws IllegalArgumentException if {@code alleles} is {@code null} or there is more than
+     * one missing allele that is a reference or there is one but the collection already has
+     * a reference allele.
+     */
+    public void addMissingAlleles(final Collection<A> alleles, final double defaultLikelihood) {
+        if (alleles == null)
+            throw new IllegalArgumentException("the alleles list cannot be null");
+        if (alleles.isEmpty())
+            return;
+        final List<A> allelesToAdd = new ArrayList<A>(alleles.size());
+        for (final A allele : alleles)
+            if (!alleleIndex.containsKey(allele))
+                allelesToAdd.add(allele);
+        if (allelesToAdd.isEmpty())
+            return;
+
+        final int oldAlleleCount = this.alleles.length;
+        final int newAlleleCount = this.alleles.length + allelesToAdd.size();
+
+        alleleList = null;
+        int referenceIndex = this.referenceAlleleIndex;
+        this.alleles = Arrays.copyOf(this.alleles,newAlleleCount);
+        int nextIndex = oldAlleleCount;
+        for (final A allele : allelesToAdd) {
+            if (allele.isReference()) {
+                if (referenceIndex != -1)
+                    throw new IllegalArgumentException("there cannot be more than one reference allele");
+                referenceIndex = nextIndex;
+            }
+            alleleIndex.put(this.alleles[nextIndex] = allele, nextIndex++);
+        }
+
+        if (referenceIndex != -1)
+            referenceAlleleIndex = referenceIndex;
+
+        final int sampleCount = samples.length;
+        for (int s = 0; s < sampleCount; s++) {
+            final int sampleReadCount = readsBySampleIndex[s].length;
+            final double[][] newValuesBySampleIndex = Arrays.copyOf(valuesBySampleIndex[s],newAlleleCount);
+            for (int a = oldAlleleCount; a < newAlleleCount; a++) {
+                newValuesBySampleIndex[a] = new double[sampleReadCount];
+                if (defaultLikelihood != 0.0)
+                    Arrays.fill(newValuesBySampleIndex[a],defaultLikelihood);
+            }
+            valuesBySampleIndex[s] = newValuesBySampleIndex;
         }
     }
 
@@ -740,7 +794,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      *  or its values contain reference to non-existing alleles in this read-likelihood collection. Also no new allele
      *  can have zero old alleles mapping nor two new alleles can make reference to the same old allele.
      */
-    public <B extends Allele> ReadLikelihoods<B> marginalize(final Map<B, List<A>> newToOldAlleleMap,final GenomeLoc overlap) {
+    public <B extends Allele> ReadLikelihoods<B> marginalize(final Map<B, List<A>> newToOldAlleleMap, final GenomeLoc overlap) {
 
         if (overlap == null)
             return marginalize(newToOldAlleleMap);
@@ -775,7 +829,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
             final int newSampleReadCount = sampleReadsToKeep.length;
             if (newSampleReadCount == oldSampleReadCount) {
                 newReadIndexBySampleIndex[s] = new Object2IntOpenHashMap<>(readIndexBySampleIndex[s]);
-                newReadsBySampleIndex[s] = readsBySampleIndex[s].clone();
+                newReadsBySampleIndex[s] = oldSampleReads.clone();
             } else {
                 final Object2IntMap<GATKSAMRecord> newSampleReadIndex = newReadIndexBySampleIndex[s] = new Object2IntOpenHashMap<>(newSampleReadCount);
                 final GATKSAMRecord[] newSampleReads = newReadsBySampleIndex[s] = new GATKSAMRecord[newSampleReadCount];
