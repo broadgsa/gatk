@@ -106,7 +106,7 @@ import java.util.*;
  *               <li>UNAVAILABLE: variant is not called in this callset</li>
  *               <li>MIXED: something like ./1</li>
  *          </ul>
- *          <li><i>GenotypeConcordance_Summary<i></li>
+ *          <li><i>GenotypeConcordance_Summary</i></li>
  *          <ul>
  *               <li>Non-Reference_Sensitivity (NRS): sensitivity of the EVAL calls to polymorphic calls in the COMP set, calculated by (# true positive)/(# true polymorphic)</li>
  *               <li>Non-Reference_Discrepancy (NRD): genotype discordance excluding concordant reference sites, calculated by (# discordant sites)/(total excluding # HOM_REF_HOM_REF) = 1.0-(# HOM_VAR_HOM_VAR + # HET_HET)/(total excluding # HOM_REF_HOM_REF)</li>
