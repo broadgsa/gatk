@@ -187,7 +187,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
              * @return True if there's another token waiting in the wings.  False otherwise.
              */
             public boolean hasNext() {
-                return nextToken != null;
+                return nextSite != null;
             }
 
             /**
@@ -195,7 +195,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
              * @return The next ArgumentMatch in the series.  Should never be null.
              */
             public ArgumentMatch next() {
-                if( nextSite == null || nextToken == null )
+                if( nextSite == null )
                     throw new IllegalStateException( "No more ArgumentMatches are available" );
 
                 ArgumentMatch match = new ArgumentMatch( label, definition, nextSite, nextToken, tags );
@@ -221,10 +221,8 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
                         nextSite = siteIterator.next();
                         if( sites.get(nextSite) != null ) {
                             tokenIterator = sites.get(nextSite).iterator();
-                            if( tokenIterator.hasNext() ) {
-                                nextToken = tokenIterator.next();
-                                break;
-                            }
+                            nextToken = tokenIterator.hasNext() ? tokenIterator.next() : null;
+                            break;
                         }
                     }
                 }
@@ -280,6 +278,8 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
         for ( final List<ArgumentMatchValue> siteValue : sites.values() ) {
             if ( siteValue != null )
                 values.addAll(siteValue);
+            else
+                values.add(null);
         }
         return values;
     }

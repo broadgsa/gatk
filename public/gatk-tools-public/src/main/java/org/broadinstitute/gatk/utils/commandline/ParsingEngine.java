@@ -317,7 +317,7 @@ public class ParsingEngine {
                 // when the argument name is specified and the argument is not a flag type.
                 for(ArgumentMatch verifiableMatch: verifiableMatches) {
                     ArgumentSource argumentSource = argumentSourcesByDefinition.get(verifiableArgument);
-                    if(verifiableMatch.values().size() == 0 && !verifiableArgument.isFlag && argumentSource.createsTypeDefault())
+                    if(verifiableMatch.values().size() == 0 && !verifiableArgument.isFlag && !argumentSource.createsTypeDefault())
                         invalidValues.add(new Pair<ArgumentDefinition,String>(verifiableArgument,null));
                 }
 

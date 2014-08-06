@@ -736,8 +736,10 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             } else if (type.equals(File.class)) {
                 result = value == null ? null : value.asFile();
             } else {
+                if (value == null)
+                    throw new MissingArgumentValueException(createDefaultArgumentDefinition(source));
                 Constructor ctor = type.getConstructor(String.class);
-                result = ctor.newInstance(value == null ? null : value.asString());
+                result = ctor.newInstance(value.asString());
             }
         } catch (UserException e) {
             throw e;
