@@ -31,6 +31,7 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
@@ -111,8 +112,8 @@ public class DepthOfCoverageStats {
 
     public DepthOfCoverageStats(DepthOfCoverageStats cloneMe) {
         this.binLeftEndpoints = cloneMe.binLeftEndpoints;
-        granularHistogramBySample = new HashMap<String,long[]>();
-        totalCoverages = new HashMap<String,Long>();
+        granularHistogramBySample = new TreeMap<String,long[]>();
+        totalCoverages = new TreeMap<String,Long>();
         for ( String s : cloneMe.getAllSamples() ) {
             granularHistogramBySample.put(s,new long[cloneMe.getHistograms().get(s).length]);
             for ( int i = 0; i < granularHistogramBySample.get(s).length; i++ ) {
