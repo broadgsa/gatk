@@ -142,6 +142,33 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         execute("testAdjacentIntervals", spec);
     }
 
+
+    @Test
+    public void testSortOrder() {
+        // This test came from a user who discovered that the columns and data in the gene_summary file didn't align for the specific
+        // sample names in these files.
+        String[] intervals = {"1:1600000-1700000"};
+        String[] bams = {privateTestDir+"badHashName1.bam", privateTestDir+"badHashName2.bam"};
+
+        String cmd = buildRootCmd(b37KGReference, new ArrayList<String>(Arrays.asList(bams)), new ArrayList<String>(Arrays.asList(intervals))) +
+                " -geneList "+privateTestDir+"refGene_CDK11B.txt";
+        WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
+
+        File baseOutputFile = WalkerTest.createTempFile("depthofcoveragesortorder", ".tmp");
+        spec.setOutputFileLocation(baseOutputFile);
+
+        spec.addAuxFile("a148e50f9db207adfd5d5f0f29eb54d8", baseOutputFile);
+        spec.addAuxFile("7ccd5193a3c035d1cc856cbc89e3daf4", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
+        spec.addAuxFile("2efe59c20721ce61bc5b334a26d11720", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
+        spec.addAuxFile("9194cec953e0fe0b84a681f9bb63ffbe", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_gene_summary"));
+        spec.addAuxFile("cf62d95ec1f459fbbe35370c3f0ca481", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
+        spec.addAuxFile("b4fcb739b7f9e309e38a7d5e7e4ebb9f", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
+        spec.addAuxFile("6bf63f9c62071e850c6f0b6356fb63eb", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
+        spec.addAuxFile("e53e6a494bf1cf817762b74917c6f0c9", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+
+        execute("testSortOrder", spec);
+    }
+
     public void testRefNHandling(boolean includeNs, final String md5) {
         String command = "-R " + b37KGReference + " -L 20:26,319,565-26,319,575 -I " + validationDataLocation + "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam -T DepthOfCoverage -baseCounts --omitIntervalStatistics --omitLocusTable --omitPerSampleStats -o %s";
         if ( includeNs ) command += " --includeRefNSites";
