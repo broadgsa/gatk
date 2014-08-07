@@ -29,6 +29,7 @@ import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
+import org.broadinstitute.gatk.utils.genotyper.ReadLikelihoods;
 import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import htsjdk.variant.variantcontext.Allele;
@@ -125,7 +126,27 @@ public abstract class PairHMM {
      * @param readMaxLength the max length of reads we want to use with this PairHMM
      */
     public void initialize( final List<Haplotype> haplotypes, final Map<String, List<GATKSAMRecord>> perSampleReadList, final int readMaxLength, final int haplotypeMaxLength ) {
-        initialize(readMaxLength, haplotypeMaxLength); 
+        initialize(readMaxLength, haplotypeMaxLength);
+    }
+
+    private int findMaxReadLength(final GATKSAMRecord ... reads) {
+        int max = 0;
+        for (final GATKSAMRecord read : reads) {
+            final int readLength = read.getReadLength();
+            if (max < readLength)
+                max = readLength;
+        }
+        return max;
+    }
+
+    private int findMaxAlleleLength(final List<? extends Allele> alleles) {
+        int max = 0;
+        for (final Allele allele : alleles) {
+            final int alleleLength = allele.length();
+            if (max < alleleLength)
+                max = alleleLength;
+        }
+        return max;
     }
 
     protected int findMaxReadLength(final List<GATKSAMRecord> reads) {
@@ -151,11 +172,69 @@ public abstract class PairHMM {
      *  Given a list of reads and haplotypes, for every read compute the total probability of said read arising from
      *  each haplotype given base substitution, insertion, and deletion probabilities.
      *
+     * @param processedReads reads to analyze
+     * @param likelihoods where to store the likelihoods where position [a][r] is reserved for the likelihood of {@code reads[r]}
+     *             conditional to {@code alleles[a]}.
+     * @param constantGCP constant penalty for gap continuations.
+     *
+     * @return never {@code null}.
+     */
+    public void computeLikelihoods(final ReadLikelihoods.Matrix<Haplotype> likelihoods, final List<GATKSAMRecord> processedReads,  final byte constantGCP) {
+        if(doProfiling)
+            startTime = System.nanoTime();
+        // (re)initialize the pairHMM only if necessary
+        final int readMaxLength = findMaxReadLength(processedReads);
+        final int haplotypeMaxLength = findMaxAlleleLength(likelihoods.alleles());
+        if (!initialized || readMaxLength > maxReadLength || haplotypeMaxLength > maxHaplotypeLength)
+            initialize(readMaxLength, haplotypeMaxLength);
+
+        final int readCount = processedReads.size();
+        final List<Haplotype> alleles = likelihoods.alleles();
+        final int alleleCount = alleles.size();
+        mLikelihoodArray = new double[readCount * alleleCount];
+        int idx = 0;
+        int readIndex = 0;
+        for(final GATKSAMRecord read : processedReads){
+            final int readLength = read.getReadLength();
+            final byte[] readBases = read.getReadBases();
+            final byte[] readQuals = read.getBaseQualities();
+            final byte[] readInsQuals = read.getBaseInsertionQualities();
+            final byte[] readDelQuals = read.getBaseDeletionQualities();
+            final byte[] overallGCP = new byte[readLength];
+            Arrays.fill(overallGCP,constantGCP);
+
+            // peak at the next haplotype in the list (necessary to get nextHaplotypeBases, which is required for caching in the array implementation)
+            final boolean isFirstHaplotype = true;
+            for (int a = 0; a < alleleCount; a++) {
+                final Allele allele = alleles.get(a);
+                final byte[] alleleBases = allele.getBases();
+                final byte[] nextAlleleBases = a == alleles.size() - 1 ? null : alleles.get(a + 1).getBases();
+                final double lk = computeReadLikelihoodGivenHaplotypeLog10(alleleBases,
+                        readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, nextAlleleBases);
+                likelihoods.set(a, readIndex, lk);
+                mLikelihoodArray[idx++] = lk;
+            }
+            readIndex++;
+        }
+        if(doProfiling) {
+            threadLocalPairHMMComputeTimeDiff = (System.nanoTime() - startTime);
+            //synchronized(doProfiling)
+            {
+                pairHMMComputeTime += threadLocalPairHMMComputeTimeDiff;
+            }
+        }
+    }
+
+    /**
+     *  Given a list of reads and haplotypes, for every read compute the total probability of said read arising from
+     *  each haplotype given base substitution, insertion, and deletion probabilities.
+     *
      * @param reads the list of reads
      * @param alleleHaplotypeMap the list of haplotypes
      * @param GCPArrayMap Each read is associated with an array containing the gap continuation penalties for use in the model. Length of each GCP-array must match that of its read.
      * @return a PerReadAlleleLikelihoodMap containing each read, haplotype-allele, and the log10 probability of
      *          said read coming from the said haplotype under the provided error model
+     * @deprecated
      */
     public PerReadAlleleLikelihoodMap computeLikelihoods(final List<GATKSAMRecord> reads, final Map<Allele, Haplotype> alleleHaplotypeMap, final Map<GATKSAMRecord, byte[]> GCPArrayMap) {
         if(doProfiling)
@@ -178,7 +257,7 @@ public abstract class PairHMM {
 
             // peak at the next haplotype in the list (necessary to get nextHaplotypeBases, which is required for caching in the array implementation)
             byte[] currentHaplotypeBases = null;
-            boolean isFirstHaplotype = true;
+            final boolean isFirstHaplotype = true;
             Allele currentAllele = null;
             double log10l;
             //for (final Allele allele : alleleHaplotypeMap.keySet()){

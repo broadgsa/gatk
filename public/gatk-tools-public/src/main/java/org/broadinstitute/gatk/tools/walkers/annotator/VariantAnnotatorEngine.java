@@ -27,17 +27,18 @@ package org.broadinstitute.gatk.tools.walkers.annotator;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.gatk.utils.commandline.RodBinding;
+import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
 import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.*;
 import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
-import htsjdk.variant.variantcontext.*;
-import htsjdk.variant.vcf.*;
+import org.broadinstitute.gatk.utils.genotyper.ReadLikelihoods;
 
 import java.util.*;
 
@@ -202,6 +203,15 @@ public class VariantAnnotatorEngine {
 
         // annotate db occurrences
         return annotateDBs(tracker, annotated);
+    }
+
+    public VariantContext annotateContextForActiveRegion(final RefMetaDataTracker tracker,
+                                                         final ReadLikelihoods<Allele> readLikelihoods,
+                                                         final VariantContext vc) {
+        //TODO we transform the read-likelihood into the Map^2 previous version for the sake of not changing of not changing annotation interface.
+        //TODO should we change those interfaces?
+        final Map<String, PerReadAlleleLikelihoodMap> annotationLikelihoods = readLikelihoods.toPerReadAlleleLikelihoodMap();
+        return annotateContextForActiveRegion(tracker, annotationLikelihoods, vc);
     }
 
     public VariantContext annotateContextForActiveRegion(final RefMetaDataTracker tracker,
