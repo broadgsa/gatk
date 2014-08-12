@@ -76,11 +76,12 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains basic
-     * non-identifying statistics (which tool was used, whether the run was successful etc.) that help us for debugging
-     * and development. You can use this option to turn off reporting if your run environment is not connected to the
-     * internet or if your data is subject to stringent confidentiality clauses (e.g. clinical patient data).
-     * To do so you will need to request a key using the online request form on our website.
+     * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains your
+     * local username and machine hostname in addition to non-identifying basic statistics (which tool was used, whether
+     * the run was successful etc.) that help us for debugging and development. You can use this option to turn off
+     * reporting if your run environment is not connected to the internet or if your data is subject to stringent
+     * confidentiality clauses (e.g. clinical patient data).  To do so you will need to request a key using the online
+     * request form on our website.
      */
     @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
