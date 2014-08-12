@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2012 The Broad Institute
-* 
+*
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -30,6 +30,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.broadinstitute.gatk.engine.downsampling.AlleleBiasedDownsamplingUtils;
+import org.broadinstitute.gatk.genotyping.*;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
@@ -42,7 +43,7 @@ import java.util.*;
  *
  * @author Valentin Ruano-Rubio &lt;valentin@broadinstitute.org&gt;
  */
-public class ReadLikelihoods<A extends Allele> implements Cloneable {
+public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList<A>, Cloneable {
 
     /**
      * Reads by sample index. Each sub array contains reference to the reads of the ith sample.
@@ -58,44 +59,37 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     private double[][][] valuesBySampleIndex;
 
     /**
-     * Sorted list samples.
+     * Sample list
      */
-    private final String[] samples;
+    private final SampleList samples;
 
     /**
-     * Unmodifiable list version of the samples
+     * Allele list
      */
-    private List<String> sampleList;
+    private AlleleList<A> alleles;
 
     /**
-     * Unmodifiable list version of the alleles
+     * Cached allele list.
      */
     private List<A> alleleList;
 
     /**
-     * Sorted array of alleles.
+     * Cached sample list.
      */
-    private A[] alleles;
-
-    /**
-     * Maps from sample name to its index.
-     */
-    private final Object2IntMap<String> sampleIndex;
-
-    /**
-     * Maps from allele to its index.
-     */
-    private final Object2IntMap<A> alleleIndex;
+    private List<String> sampleList;
 
     /**
      * Maps from each read to its index within the sample.
+     *
+     * <p>In order to save CPU time the indices contained in this array (not the array itself) is
+     * lazily initialized by invoking {@link #readIndexBySampleIndex(int)}.</p>
      */
     private final Object2IntMap<GATKSAMRecord>[] readIndexBySampleIndex;
 
     /**
-     * Index of the reference allele if any, otherwise -1.
+     * Index of the reference allele if any, otherwise -1
      */
-    private int referenceAlleleIndex;
+    private int referenceAlleleIndex = -1;
 
     /**
      * Caches the read-list per sample list returned by {@link #sampleReads}
@@ -103,7 +97,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     private final List<GATKSAMRecord>[] readListBySampleIndex;
 
     /**
-     * Sample matrices.
+     * Sample matrices lazily initialized (the elements not the array) by invoking {@link #sampleMatrix(int)}.
      */
     private final Matrix<A>[] sampleMatrices;
 
@@ -124,7 +118,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      *  or if they contain null values.
      */
     @SuppressWarnings("unchecked")
-    public ReadLikelihoods(final List<String> samples, final List<A> alleles,
+    public ReadLikelihoods(final SampleList samples, final AlleleList<A> alleles,
                            final Map<String, List<GATKSAMRecord>> reads) {
         if (alleles == null)
             throw new IllegalArgumentException("allele list cannot be null");
@@ -133,17 +127,17 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         if (reads == null)
             throw new IllegalArgumentException("read map cannot be null");
 
-        final int sampleCount = samples.size();
-        final int alleleCount = alleles.size();
-        this.alleles = alleles.toArray((A[]) new Allele[alleleCount]);
-        this.samples = samples.toArray(new String[sampleCount]);
+        this.samples = samples;
+        this.alleles = alleles;
+
+        final int sampleCount = samples.sampleCount();
+        final int alleleCount = alleles.alleleCount();
+
         readsBySampleIndex = new GATKSAMRecord[sampleCount][];
         readListBySampleIndex = new List[sampleCount];
         valuesBySampleIndex = new double[sampleCount][][];
-        referenceAlleleIndex = findReferenceAllele(this.alleles);
+        referenceAlleleIndex = findReferenceAllele(alleles);
 
-        sampleIndex = new Object2IntOpenHashMap<>(sampleCount);
-        alleleIndex = new Object2IntOpenHashMap<>(alleleCount);
         readIndexBySampleIndex = new Object2IntMap[sampleCount];
 
         setupIndexes(reads, sampleCount, alleleCount);
@@ -153,47 +147,20 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
     // Add all the indices to alleles, sample and reads in the look-up maps.
     private void setupIndexes(final Map<String, List<GATKSAMRecord>> reads, final int sampleCount, final int alleleCount) {
-        alleleIndex.clear();
-        for (int i = 0; i < alleleCount; i++) {
-            final A allele = alleles[i];
-            if (allele == null)
-                throw new IllegalArgumentException("no allele can be null");
-            alleleIndex.put(allele, i);
-        }
-        if (alleleIndex.size() != alleleCount)
-            throw new IllegalArgumentException("repeated alleles");
-
-        sampleIndex.clear();
-        for (int i = 0; i < sampleCount; i++) {
+        for (int i = 0; i < sampleCount; i++)
             setupSampleData(i, reads, alleleCount);
-        }
-
-        if (sampleIndex.size() != sampleCount)
-            throw new IllegalArgumentException("repeated sample names");
     }
 
     // Assumes that {@link #samples} has been initialized with the sample names.
     private void setupSampleData(final int sampleIndex, final Map<String, List<GATKSAMRecord>> readsBySample,
                                  final int alleleCount) {
-        final String sample = this.samples[sampleIndex];
-        if (sample == null)
-            throw new IllegalArgumentException("no sample can be null");
-        this.sampleIndex.put(sample, sampleIndex);
+        final String sample = samples.sampleAt(sampleIndex);
+
         final List<GATKSAMRecord> reads = readsBySample.get(sample);
         readsBySampleIndex[sampleIndex] = reads == null
                 ? new GATKSAMRecord[0]
                 : reads.toArray(new GATKSAMRecord[reads.size()]);
         final int sampleReadCount = readsBySampleIndex[sampleIndex].length;
-
-        readIndexBySampleIndex[sampleIndex] = new Object2IntOpenHashMap<>(sampleReadCount);
-        for (int r = 0; r < sampleReadCount; r++) {
-            final GATKSAMRecord read = readsBySampleIndex[sampleIndex][r];
-            if (read == null)
-                throw new IllegalArgumentException("read cannot be null");
-            if (readIndexBySampleIndex[sampleIndex].containsKey(read))
-                throw new IllegalArgumentException("repeated read " + read);
-            readIndexBySampleIndex[sampleIndex].put(readsBySampleIndex[sampleIndex][r], r);
-        }
 
         final double[][] sampleValues = new double[alleleCount][sampleReadCount];
         valuesBySampleIndex[sampleIndex] = sampleValues;
@@ -204,8 +171,8 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     public ReadLikelihoods<A> clone() {
 
-        final int sampleCount = samples.length;
-        final int alleleCount = alleles.length;
+        final int sampleCount = samples.sampleCount();
+        final int alleleCount = alleles.alleleCount();
 
         final double[][][] newLikelihoodValues = new double[sampleCount][alleleCount][];
 
@@ -214,21 +181,20 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         final GATKSAMRecord[][] newReadsBySampleIndex = new GATKSAMRecord[sampleCount][];
 
         for (int s = 0; s < sampleCount; s++) {
-            newReadIndexBySampleIndex[s] = new Object2IntOpenHashMap<>(readIndexBySampleIndex[s]);
             newReadsBySampleIndex[s] = readsBySampleIndex[s].clone();
             for (int a = 0; a < alleleCount; a++)
                 newLikelihoodValues[s][a] = valuesBySampleIndex[s][a].clone();
         }
 
         // Finally we create the new read-likelihood
-        return new ReadLikelihoods<>(alleles.clone(), samples, sampleIndex,
+        return new ReadLikelihoods<>(alleles, samples,
                 newReadsBySampleIndex,
                 newReadIndexBySampleIndex, newLikelihoodValues);
     }
 
     // Internally used constructor.
     @SuppressWarnings("unchecked")
-    private ReadLikelihoods(final A[] alleles, final String[] samples, final Object2IntMap<String> sampleIndex,
+    private ReadLikelihoods(final AlleleList alleles, final SampleList samples,
                             final GATKSAMRecord[][] readsBySampleIndex, final Object2IntMap<GATKSAMRecord>[] readIndex,
                             final double[][][] values) {
         this.samples = samples;
@@ -236,41 +202,20 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         this.readsBySampleIndex = readsBySampleIndex;
         this.valuesBySampleIndex = values;
         this.readIndexBySampleIndex = readIndex;
-        this.readListBySampleIndex = new List[samples.length];
-
-        this.sampleIndex = sampleIndex;
-
-        this.alleleIndex = new Object2IntOpenHashMap<>(alleles.length);
-        for (int i = 0; i < alleles.length; i++)
-            alleleIndex.put(alleles[i],i);
-
-        if (alleleIndex.size() != alleles.length)
-            throw new IllegalArgumentException("the allele index is null");
+        final int sampleCount = samples.sampleCount();
+        this.readListBySampleIndex = new List[sampleCount];
 
         referenceAlleleIndex = findReferenceAllele(alleles);
-        sampleMatrices = (Matrix<A>[]) new Matrix[samples.length];
+        sampleMatrices = (Matrix<A>[]) new Matrix[sampleCount];
     }
-
 
     // Search for the reference allele, if not found the index is -1.
-    private int findReferenceAllele(final A[] alleles) {
-        for (int i = 0; i < alleles.length; i++)
-            if (alleles[i].isReference())
+    private int findReferenceAllele(final AlleleList<A> alleles) {
+        final int alleleCount = alleles.alleleCount();
+        for (int i = 0; i < alleleCount; i++)
+            if (alleles.alleleAt(i).isReference())
                 return i;
         return -1;
-    }
-
-    /**
-     * Checks whether a sample is included likelihood collection.
-     *
-     * @param sample the query sample.
-     *
-     * @throws IllegalArgumentException if {@code sample} is {@code null}.
-     * @return {@code true} iff the sample is in the likelihood collection.
-     */
-    @SuppressWarnings("unused")
-    public boolean containsSample(final String sample) {
-        return sampleIndex.containsKey(sample);
     }
 
     /**
@@ -282,12 +227,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @return -1 if the allele is not included, 0 or greater otherwise.
      */
     public int sampleIndex(final String sample) {
-        if (sample == null)
-            throw new IllegalArgumentException("the input allele cannot be null");
-        if (sampleIndex.containsKey(sample))
-            return sampleIndex.getInt(sample);
-        else
-            return -1;
+        return samples.sampleIndex(sample);
     }
 
     /**
@@ -295,7 +235,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @return 0 or greater.
      */
     public int sampleCount() {
-        return samples.length;
+        return samples.sampleCount();
     }
 
     /**
@@ -307,22 +247,8 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      *
      * @return never {@code null}.
      */
-    public String sample(final int sampleIndex) {
-        checkSampleIndex(sampleIndex);
-        return samples[sampleIndex];
-    }
-
-    /**
-     * Checks whether the allele is within the likelihood collection.
-     *
-     * @param allele the query allele.
-     *
-     * @throws IllegalArgumentException if {@code allele} is {@code null}.
-     * @return {@code true} iff the allele is in the likelihood collection.
-     */
-    @SuppressWarnings("unused")
-    public boolean containsAllele(final A allele) {
-        return alleleIndex.containsKey(allele);
+    public String sampleAt(final int sampleIndex) {
+        return samples.sampleAt(sampleIndex);
     }
 
     /**
@@ -335,12 +261,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @return -1 if the allele is not included, 0 or greater otherwise.
      */
     public int alleleIndex(final A allele) {
-        if (allele == null)
-            throw new IllegalArgumentException("the input allele cannot be null");
-        if (alleleIndex.containsKey(allele))
-            return alleleIndex.getInt(allele);
-        else
-            return -1;
+        return alleles.alleleIndex(allele);
     }
 
     /**
@@ -349,7 +270,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     @SuppressWarnings("unused")
     public int alleleCount() {
-        return alleles.length;
+        return alleles.alleleCount();
     }
 
     /**
@@ -361,9 +282,8 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      *
      * @return never {@code null}.
      */
-    public A allele(final int alleleIndex) {
-        checkAlleleIndex(alleleIndex);
-        return alleles[alleleIndex];
+    public A alleleAt(final int alleleIndex) {
+        return alleles.alleleAt(alleleIndex);
     }
 
     /**
@@ -381,30 +301,6 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         else
             return extantList;
     }
-
-    /**
-     * Returns the likelihood matrix for a sample.
-     * <p>
-     *     The matrix is indexed by allele and the by read index.
-     *
-     *     <pre>
-     *          result[a][r] == lnLk(Read_r | Allele_a)
-     *     </pre>
-     * </p>
-     *
-     * <p>
-     *     The matrix is live and changes to it update the likelihood in the collection, please use with care.
-     * </p>
-     *
-     * @param sampleIndex the sample index.
-     *
-     * @return never {@code null}.
-     */
-    /* package */ double[][] sampleValues(final int sampleIndex) {
-        checkSampleIndex(sampleIndex);
-        return valuesBySampleIndex[sampleIndex];
-    }
-
 
     /**
      * Returns a read vs allele likelihood matrix corresponding to a sample.
@@ -441,7 +337,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         if (maximumLikelihoodDifferenceCap == Double.NEGATIVE_INFINITY && !bestToZero)
             return;
 
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         if (alleleCount == 0) // trivial case there is no alleles.
             return;
         else if (alleleCount == 1 && !bestToZero)
@@ -469,19 +365,20 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         final double bestAbsoluteLikelihood = Math.max(bestAlternativeAllele.likelihood,referenceLikelihood);
 
+        final int alleleCount = alleles.alleleCount();
         if (bestToZero) {
             if (bestAbsoluteLikelihood == Double.NEGATIVE_INFINITY)
-                for (int a = 0; a < alleles.length; a++)
+                for (int a = 0; a < alleleCount; a++)
                     sampleValues[a][readIndex] = 0;
             else if (worstLikelihoodCap != Double.NEGATIVE_INFINITY)
-                for (int a = 0; a < alleles.length; a++)
+                for (int a = 0; a < alleleCount; a++)
                     sampleValues[a][readIndex] = (sampleValues[a][readIndex] < worstLikelihoodCap ? worstLikelihoodCap : sampleValues[a][readIndex]) - bestAbsoluteLikelihood;
             else
-                for (int a = 0; a < alleles.length; a++)
+                for (int a = 0; a < alleleCount; a++)
                     sampleValues[a][readIndex] -= bestAbsoluteLikelihood;
         } else  // else if (maximumReferenceLikelihoodFall != Double.NEGATIVE_INFINITY ) { //
-                 // Guarantee to be the case by enclosing code.
-            for (int a = 0; a < alleles.length; a++)
+            // Guarantee to be the case by enclosing code.
+            for (int a = 0; a < alleleCount; a++)
                 if (sampleValues[a][readIndex] < worstLikelihoodCap)
                     sampleValues[a][readIndex] = worstLikelihoodCap;
     }
@@ -499,9 +396,8 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @return never {@code null}.
      */
     public List<String> samples() {
-        if (sampleList == null)
-            sampleList = Collections.unmodifiableList(Arrays.asList(samples));
-        return sampleList;
+        return sampleList == null ? sampleList = SampleListUtils.asList(samples) : sampleList;
+
     }
 
     /**
@@ -518,10 +414,9 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @return never {@code null}.
      */
     public List<A> alleles() {
-        if (alleleList == null)
-            alleleList = Collections.unmodifiableList(Arrays.asList(alleles));
-        return alleleList;
+        return alleleList == null ? alleleList = AlleleListUtils.asList(alleles) : alleleList;
     }
+
 
     /**
      * Search the best allele for a read.
@@ -533,7 +428,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * if non-could be found.
      */
     private BestAllele searchBestAllele(final int sampleIndex, final int readIndex, final boolean canBeReference) {
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         if (alleleCount == 0 || (alleleCount == 1 && referenceAlleleIndex == 0 && !canBeReference))
             return new BestAllele(sampleIndex,readIndex,-1,Double.NEGATIVE_INFINITY,Double.NEGATIVE_INFINITY);
 
@@ -558,7 +453,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     }
 
     public void changeReads(final Map<GATKSAMRecord, GATKSAMRecord> readRealignments) {
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
         for (int s = 0; s < sampleCount; s++) {
             final GATKSAMRecord[] sampleReads = readsBySampleIndex[s];
             final Object2IntMap<GATKSAMRecord> readIndex = readIndexBySampleIndex[s];
@@ -568,8 +463,11 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
                 final GATKSAMRecord replacement = readRealignments.get(read);
                 if (replacement == null)
                     continue;
-                readIndex.remove(read);
-                readIndex.put(sampleReads[r] = replacement,r);
+                sampleReads[r] = replacement;
+                if (readIndex != null) {
+                    readIndex.remove(read);
+                    readIndex.put(replacement, r);
+                }
             }
         }
     }
@@ -577,45 +475,51 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     /**
      * Add alleles that are missing in the read-likelihoods collection giving all reads a default
      * likelihood value.
-     * @param alleles the potentially missing alleles.
+     * @param candidateAlleles the potentially missing alleles.
      * @param defaultLikelihood the default read likelihood value for that allele.
      *
-     * @throws IllegalArgumentException if {@code alleles} is {@code null} or there is more than
+     * @throws IllegalArgumentException if {@code candidateAlleles} is {@code null} or there is more than
      * one missing allele that is a reference or there is one but the collection already has
      * a reference allele.
      */
-    public void addMissingAlleles(final Collection<A> alleles, final double defaultLikelihood) {
-        if (alleles == null)
-            throw new IllegalArgumentException("the alleles list cannot be null");
-        if (alleles.isEmpty())
+    public void addMissingAlleles(final Collection<A> candidateAlleles, final double defaultLikelihood) {
+        if (candidateAlleles == null)
+            throw new IllegalArgumentException("the candidateAlleles list cannot be null");
+        if (candidateAlleles.isEmpty())
             return;
-        final List<A> allelesToAdd = new ArrayList<A>(alleles.size());
-        for (final A allele : alleles)
-            if (!alleleIndex.containsKey(allele))
+        final List<A> allelesToAdd = new ArrayList<>(candidateAlleles.size());
+        for (final A allele : candidateAlleles)
+            if (alleles.alleleIndex(allele) == -1)
                 allelesToAdd.add(allele);
+
         if (allelesToAdd.isEmpty())
             return;
 
-        final int oldAlleleCount = this.alleles.length;
-        final int newAlleleCount = this.alleles.length + allelesToAdd.size();
+        final int oldAlleleCount = alleles.alleleCount();
+        final int newAlleleCount = alleles.alleleCount() + allelesToAdd.size();
 
         alleleList = null;
         int referenceIndex = this.referenceAlleleIndex;
-        this.alleles = Arrays.copyOf(this.alleles,newAlleleCount);
-        int nextIndex = oldAlleleCount;
+        @SuppressWarnings("unchecked")
+        final A[] newAlleles = (A[]) new Allele[newAlleleCount];
+        for (int a = 0; a < oldAlleleCount; a++)
+            newAlleles[a] = this.alleleAt(a);
+        int newIndex = oldAlleleCount;
         for (final A allele : allelesToAdd) {
             if (allele.isReference()) {
                 if (referenceIndex != -1)
                     throw new IllegalArgumentException("there cannot be more than one reference allele");
-                referenceIndex = nextIndex;
+                referenceIndex = newIndex;
             }
-            alleleIndex.put(this.alleles[nextIndex] = allele, nextIndex++);
+            newAlleles[newIndex++] = allele;
         }
+
+        alleles = new IndexedAlleleList<>(newAlleles);
 
         if (referenceIndex != -1)
             referenceAlleleIndex = referenceIndex;
 
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
         for (int s = 0; s < sampleCount; s++) {
             final int sampleReadCount = readsBySampleIndex[s].length;
             final double[][] newValuesBySampleIndex = Arrays.copyOf(valuesBySampleIndex[s],newAlleleCount);
@@ -632,7 +536,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * Likelihood matrix between a set of alleles and reads.
      * @param <A> the allele-type.
      */
-    public interface Matrix<A extends Allele> {
+    public interface Matrix<A extends Allele> extends AlleleList<A> {
 
         /**
          * List of reads in the matrix sorted by their index therein.
@@ -716,7 +620,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
          * @throws IllegalArgumentException if {@code alleleIndex} is not a valid allele index.
          * @return never {@code null}.
          */
-        public A allele(final int alleleIndex);
+        public A alleleAt(final int alleleIndex);
 
         /**
          * Returns the allele given its index.
@@ -726,7 +630,16 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
          * @throws IllegalArgumentException if {@code readIndex} is not a valid read index.
          * @return never {@code null}.
          */
-        public GATKSAMRecord read(final int readIndex);
+        public GATKSAMRecord readAt(final int readIndex);
+
+
+        /**
+         * Copies the likelihood of all the reads for a given allele into an array from a particular offset.
+         * @param alleleIndex the targeted allele
+         * @param dest the destination array.
+         * @param offset the copy offset within the destination allele
+         */
+        public void copyAlleleLikelihoods(final int alleleIndex, final double[] dest, final int offset);
     }
 
     /**
@@ -749,7 +662,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         @SuppressWarnings("unchecked")
         final B[] newAlleles = newToOldAlleleMap.keySet().toArray((B[]) new Allele[newToOldAlleleMap.size()]);
-        final int oldAlleleCount = alleles.length;
+        final int oldAlleleCount = alleles.alleleCount();
         final int newAlleleCount = newAlleles.length;
 
         // we get the index correspondence between new old -> new allele, -1 entries mean that the old
@@ -760,19 +673,18 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         final double[][][] newLikelihoodValues = marginalLikelihoods(oldAlleleCount, newAlleleCount, oldToNewAlleleIndexMap, null);
 
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
 
         @SuppressWarnings("unchecked")
         final Object2IntMap<GATKSAMRecord>[] newReadIndexBySampleIndex = new Object2IntMap[sampleCount];
         final GATKSAMRecord[][] newReadsBySampleIndex = new GATKSAMRecord[sampleCount][];
 
         for (int s = 0; s < sampleCount; s++) {
-            newReadIndexBySampleIndex[s] = new Object2IntOpenHashMap<>(readIndexBySampleIndex[s]);
             newReadsBySampleIndex[s] = readsBySampleIndex[s].clone();
         }
 
         // Finally we create the new read-likelihood
-        return new ReadLikelihoods<>(newAlleles, samples, sampleIndex,
+        return new ReadLikelihoods<>(new IndexedAlleleList(newAlleles), samples,
                 newReadsBySampleIndex,
                 newReadIndexBySampleIndex, newLikelihoodValues);
     }
@@ -804,7 +716,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         @SuppressWarnings("unchecked")
         final B[] newAlleles = newToOldAlleleMap.keySet().toArray((B[]) new Allele[newToOldAlleleMap.size()]);
-        final int oldAlleleCount = alleles.length;
+        final int oldAlleleCount = alleles.alleleCount();
         final int newAlleleCount = newAlleles.length;
 
         // we get the index correspondence between new old -> new allele, -1 entries mean that the old
@@ -816,7 +728,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         final double[][][] newLikelihoodValues = marginalLikelihoods(oldAlleleCount, newAlleleCount, oldToNewAlleleIndexMap, readsToKeep);
 
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
 
         @SuppressWarnings("unchecked")
         final Object2IntMap<GATKSAMRecord>[] newReadIndexBySampleIndex = new Object2IntMap[sampleCount];
@@ -828,18 +740,16 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
             final int oldSampleReadCount = oldSampleReads.length;
             final int newSampleReadCount = sampleReadsToKeep.length;
             if (newSampleReadCount == oldSampleReadCount) {
-                newReadIndexBySampleIndex[s] = new Object2IntOpenHashMap<>(readIndexBySampleIndex[s]);
                 newReadsBySampleIndex[s] = oldSampleReads.clone();
             } else {
-                final Object2IntMap<GATKSAMRecord> newSampleReadIndex = newReadIndexBySampleIndex[s] = new Object2IntOpenHashMap<>(newSampleReadCount);
-                final GATKSAMRecord[] newSampleReads = newReadsBySampleIndex[s] = new GATKSAMRecord[newSampleReadCount];
-                for (int r = 0; r < newSampleReadCount; r++)
-                    newSampleReadIndex.put(newSampleReads[r] = oldSampleReads[sampleReadsToKeep[r]],r);
+                newReadsBySampleIndex[s] = new GATKSAMRecord[newSampleReadCount];
+                for (int i = 0; i < newSampleReadCount; i++)
+                    newReadsBySampleIndex[s][i] = oldSampleReads[sampleReadsToKeep[i]];
             }
         }
 
         // Finally we create the new read-likelihood
-        return new ReadLikelihoods<>(newAlleles, samples, sampleIndex,
+        return new ReadLikelihoods<>(new IndexedAlleleList(newAlleles), samples,
                 newReadsBySampleIndex,
                 newReadIndexBySampleIndex, newLikelihoodValues);
     }
@@ -847,7 +757,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     private int[][] overlappingReadIndicesBySampleIndex(final GenomeLoc overlap) {
         if (overlap == null)
             return null;
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
         final int[][] result = new int[sampleCount][];
         final IntArrayList buffer = new IntArrayList(200);
         final int referenceIndex = overlap.getContigIndex();
@@ -884,12 +794,10 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         return readEnd >= start;
     }
 
-
-
     // Calculate the marginal likelihoods considering the old -> new allele index mapping.
     private double[][][] marginalLikelihoods(final int oldAlleleCount, final int newAlleleCount, final int[] oldToNewAlleleIndexMap, final int[][] readsToKeep) {
 
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
         final double[][][] result = new double[sampleCount][][];
 
         for (int s = 0; s < sampleCount; s++) {
@@ -911,6 +819,46 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
                     final double likelihood = oldSampleValues[a][oldReadIndex];
                     if (likelihood > newSampleValues[newAlleleIndex][r])
                         newSampleValues[newAlleleIndex][r] = likelihood;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Given a collection of likelihood in the old map format, it creates the corresponding read-likelihoods collection.
+     *
+     * @param map the likelihoods to transform.
+     *
+     * @throws IllegalArgumentException if {@code map} is {@code null}.
+     *
+     * @return never {@code null}.
+     */
+    public static ReadLikelihoods<Allele> fromPerAlleleReadLikelihoodsMap(final Map<String,PerReadAlleleLikelihoodMap> map) {
+
+        // First we need to create the read-likelihood collection with all required alleles, samples and reads.
+        final SampleList sampleList = new IndexedSampleList(map.keySet());
+        final Set<Allele> alleles = new LinkedHashSet<>(10);
+        final Map<String,List<GATKSAMRecord>> sampleToReads = new HashMap<>(sampleList.sampleCount());
+        for (final Map.Entry<String,PerReadAlleleLikelihoodMap> entry : map.entrySet()) {
+            final String sample = entry.getKey();
+            final PerReadAlleleLikelihoodMap sampleLikelihoods = entry.getValue();
+            alleles.addAll(sampleLikelihoods.getAllelesSet());
+            sampleToReads.put(sample,new ArrayList<>(sampleLikelihoods.getLikelihoodReadMap().keySet()));
+        }
+
+        final AlleleList<Allele> alleleList = new IndexedAlleleList<>(alleles);
+        final ReadLikelihoods<Allele> result = new ReadLikelihoods<>(sampleList,alleleList,sampleToReads);
+
+        // Now set the likelihoods.
+        for (final Map.Entry<String,PerReadAlleleLikelihoodMap> sampleEntry : map.entrySet()) {
+            final ReadLikelihoods.Matrix<Allele> sampleMatrix = result.sampleMatrix(result.sampleIndex(sampleEntry.getKey()));
+            for (final Map.Entry<GATKSAMRecord,Map<Allele,Double>> readEntry : sampleEntry.getValue().getLikelihoodReadMap().entrySet()) {
+                final GATKSAMRecord read = readEntry.getKey();
+                final int readIndex = sampleMatrix.readIndex(read);
+                for (final Map.Entry<Allele,Double> alleleEntry : readEntry.getValue().entrySet()) {
+                    final int alleleIndex = result.alleleIndex(alleleEntry.getKey());
+                    sampleMatrix.set(alleleIndex,readIndex,alleleEntry.getValue());
                 }
             }
         }
@@ -963,18 +911,24 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         if (location.isUnmapped())
             throw new IllegalArgumentException("the location cannot be unmapped");
 
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
 
         final int locContig = location.getContigIndex();
         final int locStart = location.getStart();
         final int locEnd = location.getStop();
 
-        final Set<GATKSAMRecord> readsToRemove = new HashSet<>(100); // can we improve this estimate?
-        for (int s = 0; s < sampleCount; s++)
-            for (final GATKSAMRecord read : readsBySampleIndex[s])
-                if (!unclippedReadOverlapsRegion(read, locContig, locStart, locEnd))
-                    readsToRemove.add(read);
-        removeReads(readsToRemove);
+        final int alleleCount = alleles.alleleCount();
+        final IntArrayList removeIndices = new IntArrayList(10);
+        for (int s = 0; s < sampleCount; s++) {
+            int readRemoveCount = 0;
+            final GATKSAMRecord[] sampleReads = readsBySampleIndex[s];
+            final int sampleReadCount = sampleReads.length;
+            for (int r = 0; r < sampleReadCount; r++)
+                if (!unclippedReadOverlapsRegion(sampleReads[r], locContig, locStart, locEnd))
+                    removeIndices.add(r);
+            removeSampleReads(s,removeIndices,alleleCount);
+            removeIndices.clear();
+        }
     }
 
     // Compare the read coordinates to the location of interest.
@@ -1014,23 +968,25 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @throws IllegalArgumentException if {@code maximumErrorPerBase} is negative.
      */
     public void filterPoorlyModeledReads(final double maximumErrorPerBase) {
-        if (alleles.length == 0)
+        if (alleles.alleleCount() == 0)
             throw new IllegalStateException("unsupported for read-likelihood collections with no alleles");
         if (Double.isNaN(maximumErrorPerBase) || maximumErrorPerBase <= 0.0)
             throw new IllegalArgumentException("the maximum error per base must be a positive number");
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
 
-        final Set<GATKSAMRecord> readsToRemove = new HashSet<>(100); // rough estimate, can be improved?
+        final int alleleCount = alleles.alleleCount();
+        final IntArrayList removeIndices = new IntArrayList(10);
         for (int s = 0; s < sampleCount; s++) {
             final GATKSAMRecord[] sampleReads = readsBySampleIndex[s];
             final int sampleReadCount = sampleReads.length;
             for (int r = 0; r < sampleReadCount; r++) {
                 final GATKSAMRecord read = sampleReads[r];
                 if (readIsPoorlyModelled(s,r,read, maximumErrorPerBase))
-                    readsToRemove.add(read);
+                    removeIndices.add(r);
             }
+            removeSampleReads(s, removeIndices, alleleCount);
+            removeIndices.clear();
         }
-        removeReads(readsToRemove);
     }
 
     // Check whether the read is poorly modelled.
@@ -1039,7 +995,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         final double log10QualPerBase = -4.0;
         final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
 
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         final double[][] sampleValues = valuesBySampleIndex[sampleIndex];
         for (int a = 0; a < alleleCount; a++)
             if (sampleValues[a][readIndex] >= log10MaxLikelihoodForTrueAllele)
@@ -1064,7 +1020,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
             final String sample = entry.getKey();
             final List<GATKSAMRecord> newSampleReads = entry.getValue();
-            final int sampleIndex = this.sampleIndex.getInt(sample);
+            final int sampleIndex = samples.sampleIndex(sample);
 
             if (sampleIndex == -1)
                 throw new IllegalArgumentException("input sample " + sample +
@@ -1084,7 +1040,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     // Extends the likelihood arrays-matrices.
     private void extendsLikelihoodArrays(double initialLikelihood, int sampleIndex, int sampleReadCount, int newSampleReadCount) {
         final double[][] sampleValues = valuesBySampleIndex[sampleIndex];
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         for (int a = 0; a < alleleCount; a++)
             sampleValues[a] = Arrays.copyOf(sampleValues[a], newSampleReadCount);
         if (initialLikelihood != 0.0) // the default array new value.
@@ -1101,10 +1057,10 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         int nextReadIndex = sampleReadCount;
         final Object2IntMap<GATKSAMRecord> sampleReadIndex = readIndexBySampleIndex[sampleIndex];
         for (final GATKSAMRecord newRead : newSampleReads) {
-            if (sampleReadIndex.containsKey(newRead)) // might be worth handle this without exception (ignore the read?) but in practice should never be the case.
-                throw new IllegalArgumentException("you cannot add reads that are already in read-likelihood collection");
-            sampleReads[nextReadIndex] = newRead;
-            sampleReadIndex.put(newRead,nextReadIndex++);
+        //    if (sampleReadIndex.containsKey(newRead)) // might be worth handle this without exception (ignore the read?) but in practice should never be the case.
+        //        throw new IllegalArgumentException("you cannot add reads that are already in read-likelihood collection");
+            if (sampleReadIndex != null ) sampleReadIndex.put(newRead,nextReadIndex);
+            sampleReads[nextReadIndex++] = newRead;
         }
     }
 
@@ -1133,19 +1089,22 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         if (!nonRefAllele.equals(GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE))
             throw new IllegalArgumentException("the non-ref allele is not valid");
         // Already present?
-        if (alleleIndex.containsKey(nonRefAllele))
+        if (alleles.alleleIndex(nonRefAllele) != -1)
             return;
 
-        final int alleleCount = alleles.length;
-        final int newAlleleCount = alleleCount + 1;
-        alleles = Arrays.copyOf(alleles,newAlleleCount);
-        alleles[alleleCount] = nonRefAllele;
-        alleleIndex.put(nonRefAllele,alleleCount);
+        final int oldAlleleCount = alleles.alleleCount();
+        final int newAlleleCount = oldAlleleCount + 1;
+        @SuppressWarnings("unchecked")
+        final A[] newAlleles = (A[]) new Allele[newAlleleCount];
+        for (int a = 0; a < oldAlleleCount; a++)
+            newAlleles[a] = alleles.alleleAt(a);
+        newAlleles[oldAlleleCount] = nonRefAllele;
+        alleles = new IndexedAlleleList<>(newAlleles);
         alleleList = null; // remove the cached alleleList.
 
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
         for (int s = 0; s < sampleCount; s++)
-            addNonReferenceAlleleLikelihoodsPerSample(alleleCount, newAlleleCount, s);
+            addNonReferenceAlleleLikelihoodsPerSample(oldAlleleCount, newAlleleCount, s);
     }
 
     // Updates per-sample structures according to the addition of the NON_REF allele.
@@ -1173,24 +1132,75 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     public void contaminationDownsampling(final Map<String, Double> perSampleDownsamplingFraction) {
 
-        final int sampleCount = samples.length;
-        final Set<GATKSAMRecord> readsToRemove = new HashSet<>(100); // blind estimate, can be improved?
+        final int sampleCount = samples.sampleCount();
+        final IntArrayList readsToRemove = new IntArrayList(10); // blind estimate, can be improved?
+        final int alleleCount = alleles.alleleCount();
         for (int s = 0; s < sampleCount; s++) {
-            final String sample = samples[s];
+            final String sample = samples.sampleAt(s);
             final Double fractionDouble = perSampleDownsamplingFraction.get(sample);
             if (fractionDouble == null)
                 continue;
             final double fraction = fractionDouble;
             if (Double.isNaN(fraction) || fraction <= 0.0)
                 continue;
-            if (fraction >= 1.0)
-                readsToRemove.addAll(Arrays.asList(readsBySampleIndex[s]));
+            if (fraction >= 1.0) {
+                final int sampleReadCount = readsBySampleIndex[s].length;
+                readsToRemove.ensureCapacity(sampleReadCount);
+                for (int r = 0; r < sampleReadCount; r++)
+                    readsToRemove.add(r);
+                removeSampleReads(s,readsToRemove,alleleCount);
+                readsToRemove.clear();
+            }
             else {
                 final Map<A,List<GATKSAMRecord>> readsByBestAllelesMap = readsByBestAlleleMap(s);
-                readsToRemove.addAll(AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(readsByBestAllelesMap, fraction));
+                removeSampleReads(s,AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(readsByBestAllelesMap, fraction),alleleCount);
             }
         }
-        removeReads(readsToRemove);
+    }
+
+    /**
+     * Given a collection of likelihood in the old map format, it creates the corresponding read-likelihoods collection.
+     *
+     * @param alleleList the target list of alleles.
+     * @param map the likelihoods to transform.
+     *
+     *
+     * @throws IllegalArgumentException if {@code map} is {@code null}, or {@code map} does not contain likelihoods for all read vs allele combinations.
+     *
+     * @return never {@code null}.
+     */
+    public static ReadLikelihoods<Allele> fromPerAlleleReadLikelihoodsMap(final AlleleList<Allele> alleleList, final Map<String,PerReadAlleleLikelihoodMap> map) {
+
+        //TODO add test code for this method.
+        // First we need to create the read-likelihood collection with all required alleles, samples and reads.
+        final SampleList sampleList = new IndexedSampleList(map.keySet());
+        final int alleleCount = alleleList.alleleCount();
+        final Map<String,List<GATKSAMRecord>> sampleToReads = new HashMap<>(sampleList.sampleCount());
+        for (final Map.Entry<String,PerReadAlleleLikelihoodMap> entry : map.entrySet()) {
+            final String sample = entry.getKey();
+            final PerReadAlleleLikelihoodMap sampleLikelihoods = entry.getValue();
+            sampleToReads.put(sample,new ArrayList<>(sampleLikelihoods.getLikelihoodReadMap().keySet()));
+        }
+
+        final ReadLikelihoods<Allele> result = new ReadLikelihoods<>(sampleList,alleleList,sampleToReads);
+
+        // Now set the likelihoods.
+        for (final Map.Entry<String,PerReadAlleleLikelihoodMap> sampleEntry : map.entrySet()) {
+            final ReadLikelihoods.Matrix<Allele> sampleMatrix = result.sampleMatrix(result.sampleIndex(sampleEntry.getKey()));
+            for (final Map.Entry<GATKSAMRecord,Map<Allele,Double>> readEntry : sampleEntry.getValue().getLikelihoodReadMap().entrySet()) {
+                final GATKSAMRecord read = readEntry.getKey();
+                final int readIndex = sampleMatrix.readIndex(read);
+                final Map<Allele,Double> alleleToLikelihoodMap = readEntry.getValue();
+                for (int a = 0; a < alleleCount; a++) {
+                    final Allele allele = alleleList.alleleAt(a);
+                    final Double likelihood = alleleToLikelihoodMap.get(allele);
+                    if (likelihood == null)
+                        throw new IllegalArgumentException("there is no likelihood for allele " + allele + " and read " + read);
+                    sampleMatrix.set(a,readIndex,likelihood);
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -1202,7 +1212,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     public Collection<BestAllele> bestAlleles() {
         final List<BestAllele> result = new ArrayList<>(100); // blind estimate.
-        final int sampleCount = samples.length;
+        final int sampleCount = samples.sampleCount();
         for (int s = 0; s < sampleCount; s++) {
             final GATKSAMRecord[] sampleReads = readsBySampleIndex[s];
             final int readCount = sampleReads.length;
@@ -1219,11 +1229,11 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     public Map<A,List<GATKSAMRecord>> readsByBestAlleleMap(final int sampleIndex) {
         checkSampleIndex(sampleIndex);
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         final int sampleReadCount = readsBySampleIndex[sampleIndex].length;
         final Map<A,List<GATKSAMRecord>> result = new HashMap<>(alleleCount);
-        for (final A allele : alleles)
-            result.put(allele,new ArrayList<GATKSAMRecord>(sampleReadCount));
+        for (int a = 0; a < alleleCount; a++)
+            result.put(alleles.alleleAt(a),new ArrayList<GATKSAMRecord>(sampleReadCount));
         readsByBestAlleleMap(sampleIndex,result);
         return result;
     }
@@ -1234,12 +1244,12 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     @SuppressWarnings("unused")
     public Map<A,List<GATKSAMRecord>> readsByBestAlleleMap() {
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         final Map<A,List<GATKSAMRecord>> result = new HashMap<>(alleleCount);
         final int totalReadCount = readCount();
-        for (final A allele : alleles)
-            result.put(allele,new ArrayList<GATKSAMRecord>(totalReadCount));
-        final int sampleCount = samples.length;
+        for (int a = 0; a < alleleCount; a++)
+            result.put(alleles.alleleAt(a),new ArrayList<GATKSAMRecord>(totalReadCount));
+        final int sampleCount = samples.sampleCount();
         for (int s = 0; s < sampleCount; s++)
             readsByBestAlleleMap(s,result);
         return result;
@@ -1265,9 +1275,9 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     @SuppressWarnings("unused")
     public int readIndex(final int sampleIndex, final GATKSAMRecord read) {
-        final Object2IntMap<GATKSAMRecord> readIndex = readIndexBySampleIndex[sampleIndex];
+        final Object2IntMap<GATKSAMRecord> readIndex = readIndexBySampleIndex(sampleIndex);
         if (readIndex.containsKey(read))
-            return readIndexBySampleIndex[sampleIndex].getInt(read);
+            return readIndexBySampleIndex(sampleIndex).getInt(read);
         else
             return -1;
     }
@@ -1279,7 +1289,8 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      */
     public int readCount() {
         int sum = 0;
-        for (int i = 0; i < samples.length; i++)
+        final int sampleCount = samples.sampleCount();
+        for (int i = 0; i < sampleCount; i++)
             sum += readsBySampleIndex[i].length;
         return sum;
     }
@@ -1330,9 +1341,9 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         private BestAllele(final int sampleIndex, final int readIndex, final int bestAlleleIndex,
                            final double likelihood, final double secondBestLikelihood) {
-            allele = bestAlleleIndex == -1 ? null : alleles[bestAlleleIndex];
+            allele = bestAlleleIndex == -1 ? null : alleles.alleleAt(bestAlleleIndex);
             this.likelihood = likelihood;
-            sample = samples[sampleIndex];
+            sample = samples.sampleAt(sampleIndex);
             read = readsBySampleIndex[sampleIndex][readIndex];
             confidence = likelihood == secondBestLikelihood ? 0 : likelihood - secondBestLikelihood;
         }
@@ -1342,38 +1353,51 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         }
     }
 
-
-    /**
-     * Remove a set of reads from the read-likelihoods
-     * @param readsToRemove collection of reads to remove.
-     */
-    @SuppressWarnings("unused")
-    public void removeReads(final Collection<GATKSAMRecord> readsToRemove) {
-        if (readsToRemove == null)
-            throw new IllegalArgumentException("remove read collection cannot be null");
-        if (readsToRemove.isEmpty())
+    private void removeSampleReads(final int sampleIndex, final IntArrayList indexToRemove, final int alleleCount) {
+        final int removeCount = indexToRemove.size();
+        if (removeCount == 0)
             return;
-        removeReads(new HashSet<>(readsToRemove));
-    }
 
-    // Requires that the collection passed iterator can remove elements, and it can be modified.
-    private void removeReads(final Set<GATKSAMRecord> readsToRemove) {
-        if (readsToRemove.isEmpty())
-            return;
-        final int sampleCount = samples.length;
-        final int alleleCount = alleles.length;
-        for (int s = 0; s < sampleCount; s++) {
-            removeSampleReads(s, readsToRemove, alleleCount);
-            if (readsToRemove.isEmpty()) break; // each iteration may exhaust the reads to remove.
-        }
-    }
-
-    // Requires that the collection passed iterator can remove elements, and it can be modified.
-    private void removeSampleReads(final int sampleIndex, final Set<GATKSAMRecord> readsToRemove, final int alleleCount) {
         final GATKSAMRecord[] sampleReads = readsBySampleIndex[sampleIndex];
         final int sampleReadCount = sampleReads.length;
 
         final Object2IntMap<GATKSAMRecord> indexByRead = readIndexBySampleIndex[sampleIndex];
+        if (indexByRead != null)
+            for (int i = 0; i < removeCount; i++)
+                indexByRead.remove(sampleReads[indexToRemove.getInt(i)]);
+        final boolean[] removeIndex = new boolean[sampleReadCount];
+        int firstDeleted = indexToRemove.get(0);
+        for (int i = 0; i < removeCount; i++)
+            removeIndex[indexToRemove.get(i)] = true;
+
+        final int newSampleReadCount = sampleReadCount - removeCount;
+
+        // Now we skim out the removed reads from the read array.
+        final GATKSAMRecord[] oldSampleReads = readsBySampleIndex[sampleIndex];
+        final GATKSAMRecord[] newSampleReads = new GATKSAMRecord[newSampleReadCount];
+
+        System.arraycopy(oldSampleReads,0,newSampleReads,0,firstDeleted);
+        Utils.skimArray(oldSampleReads,firstDeleted, newSampleReads, firstDeleted, removeIndex, firstDeleted);
+
+        // Then we skim out the likelihoods of the removed reads.
+        final double[][] oldSampleValues = valuesBySampleIndex[sampleIndex];
+        final double[][] newSampleValues = new double[alleleCount][newSampleReadCount];
+        for (int a = 0; a < alleleCount; a++) {
+            System.arraycopy(oldSampleValues[a],0,newSampleValues[a],0,firstDeleted);
+            Utils.skimArray(oldSampleValues[a], firstDeleted, newSampleValues[a], firstDeleted, removeIndex, firstDeleted);
+        }
+        valuesBySampleIndex[sampleIndex] = newSampleValues;
+        readsBySampleIndex[sampleIndex] = newSampleReads;
+        readListBySampleIndex[sampleIndex] = null; // reset the unmodifiable list.
+    }
+
+
+    // Requires that the collection passed iterator can remove elements, and it can be modified.
+    private void removeSampleReads(final int sampleIndex, final Collection<GATKSAMRecord> readsToRemove, final int alleleCount) {
+        final GATKSAMRecord[] sampleReads = readsBySampleIndex[sampleIndex];
+        final int sampleReadCount = sampleReads.length;
+
+        final Object2IntMap<GATKSAMRecord> indexByRead = readIndexBySampleIndex(sampleIndex);
         // Count how many we are going to remove, which ones (indexes) and remove entry from the read-index map.
         final boolean[] removeIndex = new boolean[sampleReadCount];
         int removeCount = 0; // captures the number of deletions.
@@ -1423,18 +1447,32 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         readListBySampleIndex[sampleIndex] = null; // reset the unmodifiable list.
     }
 
+    private Object2IntMap<GATKSAMRecord> readIndexBySampleIndex(final int sampleIndex) {
+        if (readIndexBySampleIndex[sampleIndex] == null) {
+            final GATKSAMRecord[] sampleReads = readsBySampleIndex[sampleIndex];
+            final int sampleReadCount = sampleReads.length;
+            readIndexBySampleIndex[sampleIndex] = new Object2IntOpenHashMap<>(sampleReadCount);
+            for (int r = 0; r < sampleReadCount; r++)
+                readIndexBySampleIndex[sampleIndex].put(sampleReads[r],r);
+        }
+        return readIndexBySampleIndex[sampleIndex];
+    }
+
     /**
      * Transform into a multi-sample HashMap backed {@link PerReadAlleleLikelihoodMap} type.
      * @return never {@code null}.
      *
+     * @deprecated
+     *
+     * This method should eventually disappear once we have removed PerReadAlleleLikelihoodMap class completelly.
      */
     @Deprecated
     @SuppressWarnings("all")
-    public Map<String, PerReadAlleleLikelihoodMap> toPerReadAlleleLikelihoodMap () {
-        final int sampleCount = samples.length;
-        final Map<String,PerReadAlleleLikelihoodMap> result = new HashMap<>(sampleCount);
+    public Map<String, PerReadAlleleLikelihoodMap> toPerReadAlleleLikelihoodMap() {
+        final int sampleCount = samples.sampleCount();
+        final Map<String, PerReadAlleleLikelihoodMap> result = new HashMap<>(sampleCount);
         for (int s = 0; s < sampleCount; s++)
-            result.put(samples[s],toPerReadAlleleLikelihoodMap(s));
+            result.put(samples.sampleAt(s),toPerReadAlleleLikelihoodMap(s));
         return result;
     }
 
@@ -1447,11 +1485,11 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
     public PerReadAlleleLikelihoodMap toPerReadAlleleLikelihoodMap(final int sampleIndex) {
         checkSampleIndex(sampleIndex);
         final PerReadAlleleLikelihoodMap result = new PerReadAlleleLikelihoodMap();
-        final int alleleCount = alleles.length;
+        final int alleleCount = alleles.alleleCount();
         final GATKSAMRecord[] sampleReads = readsBySampleIndex[sampleIndex];
         final int sampleReadCount = sampleReads.length;
         for (int a = 0; a < alleleCount; a++) {
-            final A allele = alleles[a];
+            final A allele = alleles.alleleAt(a);
             final double[] readLikelihoods = valuesBySampleIndex[sampleIndex][a];
             for (int r = 0; r < sampleReadCount; r++)
                 result.add(sampleReads[r], allele, readLikelihoods[r]);
@@ -1497,12 +1535,12 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
 
         @Override
         public int readIndex(final GATKSAMRecord read) {
-            return ReadLikelihoods.this.readIndex(sampleIndex,read);
+            return ReadLikelihoods.this.readIndex(sampleIndex, read);
         }
 
         @Override
         public int alleleCount() {
-            return alleles.length;
+            return alleles.alleleCount();
         }
 
         @Override
@@ -1511,18 +1549,23 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
         }
 
         @Override
-        public A allele(int alleleIndex) {
-            return ReadLikelihoods.this.allele(alleleIndex);
+        public A alleleAt(int alleleIndex) {
+            return ReadLikelihoods.this.alleleAt(alleleIndex);
         }
 
         @Override
-        public GATKSAMRecord read(final int readIndex) {
+        public GATKSAMRecord readAt(final int readIndex) {
             if (readIndex < 0)
                 throw new IllegalArgumentException("the read-index cannot be negative");
             final GATKSAMRecord[] sampleReads = readsBySampleIndex[sampleIndex];
             if (readIndex >= sampleReads.length)
                 throw new IllegalArgumentException("the read-index is beyond the read count of the sample");
             return sampleReads[readIndex];
+        }
+
+        @Override
+        public void copyAlleleLikelihoods(final int alleleIndex, final double[] dest, final int offset) {
+            System.arraycopy(valuesBySampleIndex[sampleIndex][alleleIndex],0,dest,offset,readCount());
         }
     }
 
@@ -1536,21 +1579,7 @@ public class ReadLikelihoods<A extends Allele> implements Cloneable {
      * @throws IllegalArgumentException if {@code sampleIndex} is invalid, i.e. outside the range [0,{@link #sampleCount}).
      */
     private void checkSampleIndex(final int sampleIndex) {
-        if (sampleIndex < 0 || sampleIndex >= samples.length)
+        if (sampleIndex < 0 || sampleIndex >= samples.sampleCount())
             throw new IllegalArgumentException("invalid sample index: " + sampleIndex);
-    }
-
-    /**
-     * Checks whether the provide allele index is valid.
-     * <p>
-     *     If not, it throws an exception.
-     * </p>
-     * @param alleleIndex the target sample index.
-     *
-     * @throws IllegalArgumentException if {@code alleleIndex} is invalid, i.e. outside the range [0,{@link #sampleCount}).
-     */
-    private void checkAlleleIndex(final int alleleIndex) {
-        if (alleleIndex < 0 || alleleIndex >= alleles.length)
-            throw new IllegalArgumentException("invalid allele index: " + alleleIndex);
     }
 }
