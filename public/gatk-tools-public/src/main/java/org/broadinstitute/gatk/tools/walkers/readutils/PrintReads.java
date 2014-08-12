@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.tools.walkers.readutils;
 
+import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.gatk.engine.walkers.*;
@@ -41,6 +42,7 @@ import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.SampleUtils;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.baq.BAQ;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
@@ -128,13 +130,13 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      * Only reads from samples listed in the provided file(s) will be included in the output.
      */
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
-    public Set<File> sampleFile = new TreeSet<File>();
+    public Set<File> sampleFile = new TreeSet<>();
 
     /**
      * Only reads from the sample(s) will be included in the output.
      */
     @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
-    public Set<String> sampleNames = new TreeSet<String>();
+    public Set<String> sampleNames = new TreeSet<>();
 
     /**
      * Erase all extra attributes in the read but keep the read group information 
@@ -147,8 +149,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public boolean NO_PG_TAG = false;
 
     List<ReadTransformer> readTransformers = Collections.emptyList();
-    private TreeSet<String> samplesToChoose = new TreeSet<String>();
-    private boolean SAMPLES_SPECIFIED = false;
+    private Set<String> readGroupsToKeep = Collections.emptySet();
 
     public static final String PROGRAM_RECORD_NAME = "GATK PrintReads";   // The name that will go in the @PG tag
     
@@ -161,12 +162,16 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public void initialize() {
         final GenomeAnalysisEngine toolkit = getToolkit();
 
-        if  ( platform != null )
-            platform = platform.toUpperCase();
+        if ( toolkit != null )
+            readTransformers = toolkit.getReadTransformers();
 
-        if ( getToolkit() != null )
-            readTransformers = getToolkit().getReadTransformers();
-
+        //Sample names are case-insensitive
+        final TreeSet<String> samplesToChoose = new TreeSet<>(new Comparator<String>() {
+            @Override
+            public int compare(String a, String b) {
+                return a.compareToIgnoreCase(b);
+            }
+        });
         Collection<String> samplesFromFile;
         if (!sampleFile.isEmpty())  {
             samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFile);
@@ -176,15 +181,24 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
         if (!sampleNames.isEmpty())
             samplesToChoose.addAll(sampleNames);
 
-        if(!samplesToChoose.isEmpty()) {
-            SAMPLES_SPECIFIED = true;
-        }
-
         random = GenomeAnalysisEngine.getRandomGenerator();
 
-        final boolean preSorted = true;
-        if (getToolkit() != null && getToolkit().getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
-            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), preSorted, this, PROGRAM_RECORD_NAME);
+        if (toolkit != null) {
+            final SAMFileHeader outputHeader = toolkit.getSAMFileHeader().clone();
+            readGroupsToKeep = determineReadGroupsOfInterest(outputHeader, samplesToChoose);
+
+            //If some read groups are to be excluded, remove them from the output header
+            pruneReadGroups(outputHeader);
+
+            //Add the program record (if appropriate) and set up the writer
+            final boolean preSorted = true;
+            if (toolkit.getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
+                Utils.setupWriter(out, toolkit, outputHeader, preSorted, this, PROGRAM_RECORD_NAME);
+            } else {
+                out.writeHeader(outputHeader);
+                out.setPresorted(preSorted);
+            }
+
         }
 
     }
@@ -197,31 +211,12 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      * @return true if the read passes the filter, false if it doesn't
      */
     public boolean filter(ReferenceContext ref, GATKSAMRecord read) {
-        // check the read group
-        if  ( readGroup != null ) {
-            SAMReadGroupRecord myReadGroup = read.getReadGroup();
-            if ( myReadGroup == null || !readGroup.equals(myReadGroup.getReadGroupId()) )
+        // check that the read belongs to an RG that we need to keep
+        if (!readGroupsToKeep.isEmpty()) {
+            final SAMReadGroupRecord readGroup = read.getReadGroup();
+            if (!readGroupsToKeep.contains(readGroup.getReadGroupId()))
                 return false;
         }
-
-        // check the platform
-        if  ( platform != null ) {
-            SAMReadGroupRecord readGroup = read.getReadGroup();
-            if ( readGroup == null )
-                return false;
-
-            Object readPlatformAttr = readGroup.getAttribute("PL");
-            if ( readPlatformAttr == null || !readPlatformAttr.toString().toUpperCase().contains(platform))
-                return false;
-        }
-        if (SAMPLES_SPECIFIED )  {
-            // user specified samples to select
-            // todo - should be case-agnostic  but for simplicity and speed this is ignored.
-            // todo - can check at initialization intersection of requested samples and samples in BAM header to further speedup.
-            if (!samplesToChoose.contains(read.getReadGroup().getSample()))
-                return false;
-        }
-
 
         // check if we've reached the output limit
         if ( nReadsToPrint == 0 ) {
@@ -273,5 +268,49 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public SAMFileWriter reduce( GATKSAMRecord read, SAMFileWriter output ) {
         output.addAlignment(read);
         return output;
+    }
+
+    /**
+     * Determines the list of read groups that meet the user's criteria for inclusion (based on id, platform, or sample)
+     * @param header         the merged header for all input files
+     * @param samplesToKeep  the list of specific samples specified by the user
+     * @return               a Set of read group IDs that meet the user's criteria, empty if all RGs should be included
+     */
+    private Set<String> determineReadGroupsOfInterest(final SAMFileHeader header, final Set<String> samplesToKeep) {
+        //If no filter options that use read group information have been supplied, exit early
+        if (platform == null && readGroup == null && samplesToKeep.isEmpty())
+            return Collections.emptySet();
+
+        if  ( platform != null )
+            platform = platform.toUpperCase();
+
+        final Set<String> result = new HashSet<>();
+        for (final SAMReadGroupRecord rg : header.getReadGroups()) {
+            // To be eligible for output, a read group must:
+            //  NOT have an id that is blacklisted on the command line (note that String.equals(null) is false)
+            //  AND NOT have a platform that contains the blacklisted platform from the command line
+            //  AND have a sample that is whitelisted on the command line
+            if (!rg.getReadGroupId().equals(readGroup) &&
+                    (platform == null || !rg.getPlatform().toUpperCase().contains(platform)) &&
+                    (samplesToKeep.isEmpty() || samplesToKeep.contains(rg.getSample())))
+                result.add(rg.getReadGroupId());
+        }
+
+        if (result.isEmpty())
+            throw new UserException.BadArgumentValue("-sn/-sf/-platform/-readGroup", "No read groups remain after pruning based on the supplied parameters");
+
+        return result;
+    }
+
+    private void pruneReadGroups(final SAMFileHeader header) {
+        if (readGroupsToKeep.isEmpty())
+            return;
+
+        final List<SAMReadGroupRecord> readGroups = new ArrayList<>();
+        for (final SAMReadGroupRecord rg : header.getReadGroups()) {
+            if (readGroupsToKeep.contains(rg.getReadGroupId()))
+                readGroups.add(rg);
+        }
+        header.setReadGroups(readGroups);
     }
 }
