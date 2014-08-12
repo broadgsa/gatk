@@ -31,7 +31,6 @@ import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.haplotype.Haplotype;
@@ -75,7 +74,11 @@ public final class AlignmentUtils {
      * @param haplotype the haplotype that the read should be aligned to, before aligning to the reference
      * @param referenceStart the start of the reference that haplotype is aligned to.  Provides global coordinate frame.
      * @param isInformative true if the read is differentially informative for one of the haplotypes
-     * @return a GATKSAMRecord aligned to reference, or null if no meaningful alignment is possible
+     *
+     * @throws IllegalArgumentException if {@code originalRead} is {@code null} or {@code haplotype} is {@code null} or it
+     *   does not have a Cigar or the {@code referenceStart} is invalid (less than 1).
+     *
+     * @return a GATKSAMRecord aligned to reference. Never {@code null}.
      */
     public static GATKSAMRecord createReadAlignedToRef(final GATKSAMRecord originalRead,
                                                        final Haplotype haplotype,

@@ -25,21 +25,22 @@
 
 package org.broadinstitute.gatk.engine.downsampling;
 
-import org.broadinstitute.gatk.utils.*;
+import org.apache.log4j.Logger;
+import org.broadinstitute.gatk.utils.BaseUtils;
+import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.collections.DefaultHashMap;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.pileup.*;
+import org.broadinstitute.gatk.utils.pileup.PileupElement;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
-import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 import htsjdk.variant.variantcontext.Allele;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
-import org.apache.log4j.Logger;
 
 public class AlleleBiasedDownsamplingUtils {
 
@@ -216,7 +217,7 @@ public class AlleleBiasedDownsamplingUtils {
      * @param downsamplingFraction      the fraction of total reads to remove per allele
      * @return list of reads TO REMOVE from allele biased down-sampling
      */
-    public static List<GATKSAMRecord> selectAlleleBiasedReads(final Map<Allele, List<GATKSAMRecord>> alleleReadMap, final double downsamplingFraction) {
+    public static <A extends Allele> List<GATKSAMRecord> selectAlleleBiasedReads(final Map<A, List<GATKSAMRecord>> alleleReadMap, final double downsamplingFraction) {
         int totalReads = 0;
         for ( final List<GATKSAMRecord> reads : alleleReadMap.values() )
             totalReads += reads.size();
