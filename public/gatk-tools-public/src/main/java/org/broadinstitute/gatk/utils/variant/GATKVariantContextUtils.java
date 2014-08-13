@@ -347,9 +347,9 @@ public class GATKVariantContextUtils {
 
         final int[] repetitionCount = new int[2];
         // look for repetitions forward on the ref bases (i.e. starting at beginning of ref bases)
-        int repetitionsInRef = findNumberofRepetitions(repeatUnit,refBases, true);
-        repetitionCount[0] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext), true)-repetitionsInRef;
-        repetitionCount[1] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext), true)-repetitionsInRef;
+        int repetitionsInRef = findNumberOfRepetitions(repeatUnit, refBases, true);
+        repetitionCount[0] = findNumberOfRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext), true)-repetitionsInRef;
+        repetitionCount[1] = findNumberOfRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext), true)-repetitionsInRef;
 
         return new Pair<>(repetitionCount, repeatUnit);
 
@@ -393,7 +393,7 @@ public class GATKVariantContextUtils {
      * @oaram lookForward            Look for repetitions forward (at beginning of string) or backward (at end of string)
      * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
      */
-    public static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString, boolean lookForward) {
+    public static int findNumberOfRepetitions(byte[] repeatUnit, byte[] testString, boolean lookForward) {
         int numRepeats = 0;
         if (lookForward) {
             // look forward on the test string
@@ -891,7 +891,7 @@ public class GATKVariantContextUtils {
         final String name = first.getSource();
         final Allele refAllele = determineReferenceAllele(VCs);
 
-        final Set<Allele> alleles = new LinkedHashSet<>();
+        final LinkedHashSet<Allele> alleles = new LinkedHashSet<>();
         final Set<String> filters = new HashSet<>();
         final Map<String, Object> attributes = new LinkedHashMap<>();
         final Set<String> inconsistentAttributes = new HashSet<>();
@@ -1159,7 +1159,7 @@ public class GATKVariantContextUtils {
 
         final VariantContextBuilder builder = new VariantContextBuilder().source(name).id(ID).alleles(allelesList)
                 .chr(loc.getContig()).start(loc.getStart()).computeEndFromAlleles(allelesList, loc.getStart(), loc.getStart())
-                .genotypes(genotypes).unfiltered().attributes(new TreeMap<>(attributes)).log10PError(CommonInfo.NO_LOG10_PERROR);  // we will need to regenotype later
+                .genotypes(genotypes).unfiltered().attributes(new TreeMap<>(attributes)).log10PError(CommonInfo.NO_LOG10_PERROR);  // we will need to re-genotype later
 
         return builder.make();
     }
@@ -1289,7 +1289,7 @@ public class GATKVariantContextUtils {
         return result;
     }
 
-    public static GenotypesContext stripPLsAndAD(GenotypesContext genotypes) {
+    public static GenotypesContext stripPLsAndAD(final GenotypesContext genotypes) {
         final GenotypesContext newGs = GenotypesContext.create(genotypes.size());
 
         for ( final Genotype g : genotypes ) {
@@ -1430,7 +1430,7 @@ public class GATKVariantContextUtils {
         return loc == null || loc.getStart() == vc.getStart();
     }
 
-    static private AlleleMapper resolveIncompatibleAlleles(final Allele refAllele, final VariantContext vc, final Set<Allele> allAlleles) {
+    static private AlleleMapper resolveIncompatibleAlleles(final Allele refAllele, final VariantContext vc, final LinkedHashSet<Allele> allAlleles) {
         if ( refAllele.equals(vc.getReference()) )
             return new AlleleMapper(vc);
         else {
@@ -1606,7 +1606,7 @@ public class GATKVariantContextUtils {
         // create the index mapping, using the <ALT> allele whenever such a mapping doesn't exist
         for ( int i = 1; i < targetAlleles.size(); i++ ) {
             final int indexOfRemappedAllele = remappedAlleles.indexOf(targetAlleles.get(i));
-            indexMapping[i] = indexOfRemappedAllele == -1 ? indexOfGenericAlt: indexOfRemappedAllele;
+            indexMapping[i] = indexOfRemappedAllele == -1 ? indexOfGenericAlt : indexOfRemappedAllele;
         }
 
         return indexMapping;
@@ -1656,9 +1656,6 @@ public class GATKVariantContextUtils {
         if ( originalAD == null || indexesOfRelevantAlleles == null ) throw new IllegalArgumentException("The list of input AD values and alleles must not be null");
 
         final int numADs = indexesOfRelevantAlleles.length;
-        if ( numADs == originalAD.length )
-            return originalAD;
-
         final int[] newAD = new int[numADs];
 
         for ( int i = 0; i < numADs; i++ ) {
