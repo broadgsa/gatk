@@ -26,20 +26,9 @@
 package org.broadinstitute.gatk.utils;
 
 import htsjdk.tribble.Tribble;
-import htsjdk.tribble.util.TabixUtils;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.spi.LoggingEvent;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.gatk.utils.commandline.CommandLineUtils;
-import org.broadinstitute.gatk.utils.collections.Pair;
-import org.broadinstitute.gatk.utils.crypt.CryptUtils;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import org.broadinstitute.gatk.utils.io.IOUtils;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import htsjdk.tribble.util.TabixUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -47,6 +36,17 @@ import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.spi.LoggingEvent;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.commandline.CommandLineUtils;
+import org.broadinstitute.gatk.utils.crypt.CryptUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import org.testng.Assert;
 import org.testng.Reporter;
 import org.testng.SkipException;
@@ -132,6 +132,7 @@ public abstract class BaseTest {
     protected static final String publicTestDirRoot = publicTestDir.replace(publicTestDirRelative, "");
 
     public static final String keysDataLocation = validationDataLocation + "keys/";
+
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
 
     public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";

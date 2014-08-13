@@ -45,9 +45,12 @@ import java.util.*;
  */
 public class PerReadAlleleLikelihoodMap {
     /** A set of all of the allele, so we can efficiently determine if an allele is already present */
-    private final Set<Allele> allelesSet = new HashSet<>();
+    private final Map<Allele,Integer> allelesSet = new HashMap<>();
     /** A list of the unique allele, as an ArrayList so we can call get(i) efficiently */
     protected final List<Allele> alleles = new ArrayList<>();
+
+
+
     protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap = new LinkedHashMap<>();
 
     public PerReadAlleleLikelihoodMap() { }
@@ -64,6 +67,10 @@ public class PerReadAlleleLikelihoodMap {
         if ( likelihood == null ) throw new IllegalArgumentException("Likelihood cannot be null");
         if ( likelihood > 0.0 ) throw new IllegalArgumentException("Likelihood must be negative (L = log(p))");
 
+        if (!allelesSet.containsKey(a)) {
+            allelesSet.put(a,alleles.size());
+            alleles.add(a);
+        }
         Map<Allele,Double> likelihoodMap = likelihoodReadMap.get(read);
         if (likelihoodMap == null){
             // LinkedHashMap will ensure iterating through alleles will be in consistent order
@@ -73,10 +80,7 @@ public class PerReadAlleleLikelihoodMap {
 
         likelihoodMap.put(a,likelihood);
 
-        if (!allelesSet.contains(a)) {
-            allelesSet.add(a);
-            alleles.add(a);
-        }
+
     }
 
     public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction) {
@@ -198,7 +202,7 @@ public class PerReadAlleleLikelihoodMap {
      * @return the log10 likelihood that this read matches this allele
      */
     public double getLikelihoodAssociatedWithReadAndAllele(final GATKSAMRecord read, final Allele allele){
-        if (!allelesSet.contains(allele) || !likelihoodReadMap.containsKey(read))
+        if (!allelesSet.containsKey(allele) || !likelihoodReadMap.containsKey(read))
             return 0.0;
 
         return likelihoodReadMap.get(read).get(allele);
@@ -381,7 +385,7 @@ public class PerReadAlleleLikelihoodMap {
      * @return a non-null unmodifiable map
      */
     public Set<Allele> getAllelesSet() {
-        return Collections.unmodifiableSet(allelesSet);
+        return Collections.unmodifiableSet(allelesSet.keySet());
     }
 
     /**
