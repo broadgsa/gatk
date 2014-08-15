@@ -44,7 +44,7 @@ public class HelpUtils {
      */
     public static void listAnnotations() {
         System.out.println("\nThis is a list of available Variant Annotations for use with tools such as UnifiedGenotyper, HaplotypeCaller and VariantAnnotator. Please see the Technical Documentation for more details about these annotations:");
-        System.out.println("http://www.broadinstitute.org/gatk/gatkdocs/");
+        System.out.println("http://www.broadinstitute.org/gatk/tooldocs/");
         System.out.println("\nStandard annotations in the list below are marked with a '*'.");
         List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
         System.out.println("\nAvailable annotations for the VCF INFO field:");

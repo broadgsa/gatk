@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.utils.help;
 public class HelpConstants {
 
     public final static String BASE_GATK_URL = "http://www.broadinstitute.org/gatk";
-    public final static String GATK_DOCS_URL = BASE_GATK_URL + "/gatkdocs/";
+    public final static String GATK_DOCS_URL = BASE_GATK_URL + "/tooldocs/";
     public final static String GATK_FORUM_URL = "http://gatkforums.broadinstitute.org/";
     public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
 
@@ -37,7 +37,7 @@ public class HelpConstants {
      */
     public final static String ARG_TREEREDUCIBLE = "-nt";
     public final static String ARG_NANOSCHEDULABLE = "-nct";
-    public final static String CMDLINE_GATK_URL = GATK_DOCS_URL + "org_broadinstitute_sting_gatk_CommandLineGATK.html";
+    public final static String CMDLINE_GATK_URL = GATK_DOCS_URL + "org_broadinstitute_gatk_engine_CommandLineGATK.php";
 
     /**
      * Definition of the group names / categories of tools.

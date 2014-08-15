@@ -32,65 +32,13 @@
     <#global guideIndex = "http://www.broadinstitute.org/gatk/guide/" />
     <#global forum = "http://gatkforums.broadinstitute.org/" />
 
-    <#macro makeHeader title isIndex>
-        <?php ob_start(); ?>
-        <!DOCTYPE html>
-        <html lang='en'>
-        <head>
-            <meta charset='utf-8'>
-            <title>${title} documentation</title>
-            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-            <meta name='description' content=''>
-
-            <link type="text/css" rel="stylesheet" href="bootstrap.min.css">
-            <script src="jquery.min.js"></script>
-            <script src="bootstrap.min.js"></script>
-            <style>
-                @media (min-width: 980px) {
-                    body {
-                        padding-top : 60px;
-                    }
-                }
-            </style>
-
-            <!-- MathJax / MathML support for displaying equations -->
-            <script type='text/x-mathjax-config'>
-		        MathJax.Hub.Config({
-  			        TeX: { equationNumbers: { autoNumber: 'AMS' } }
-		        });
-	        </script>
-            <script type='text/javascript' src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
-
-        </head>
-        <body>
-        <div class="navbar navbar-fixed-top">
-            <div class="navbar-inner">
-                <div class="container-fluid">
-                    <a class="brand" href="index.html">GATK | Tool Documentation</a>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid">
-            <?php
-    // Output Buffering allows for the website to inject a different header
-    ob_clean();
-    include '../include/common.php';
-    printHeader("${title}", "Guides");
-    ?>
-
-            <div class="row-fluid">
-                <#if isIndex>
-                    <?php printGATKDocsNav(); ?>
-                    <div class="span9">
-                </#if>
-
-    </#macro>
-
     <#macro footerInfo>
+        <hr>
+        <p><a href='#top'><i class='fa fa-chevron-up'></i> Return to top</a></p>
         <hr>
         <p class="see-also">See also 
         	<a href="${guideIndex}">Guide Index</a> | 
-        	<a href="index.html">Tool Documentation Index</a> | 
+        	<a href="index">Tool Documentation Index</a> |
         	<a href="${forum}">Support Forum</a>
         </p>
 
@@ -101,15 +49,6 @@
     <#macro footerClose>
     	<#-- ugly little hack to enable adding tool-specific info inline -->
         </p>
-    </#macro>
-
-    <#macro pageFooter>
-        </div><!--/.span-->
-        </div><!--/.row-->
-        </body>
-        <?php printFooter();
-        ob_end_flush();
-        ?>
     </#macro>
 
     <#macro getCategories groups>

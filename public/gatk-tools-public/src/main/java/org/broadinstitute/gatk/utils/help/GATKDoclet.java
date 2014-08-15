@@ -205,9 +205,6 @@ public class GATKDoclet {
         try {
             // basic setup
             destinationDir.mkdirs();
-            FileUtils.copyFile(new File(settingsDir + "/bootstrap.min.css"), new File(destinationDir + "/bootstrap.min.css"));
-            FileUtils.copyFile(new File(settingsDir + "/bootstrap.min.js"), new File(destinationDir + "/bootstrap.min.js"));
-            FileUtils.copyFile(new File(settingsDir + "/jquery.min.js"), new File(destinationDir + "/jquery.min.js"));
             // print the Version number
             FileUtils.writeByteArrayToFile(new File(destinationDir + "/current.version.txt"), getSimpleVersion(absoluteVersion).getBytes());
 
@@ -383,7 +380,7 @@ public class GATKDoclet {
     }
 
     /**
-     * Create the html index listing all of the GATKDocs features
+     * Create the php index listing all of the GATKDocs features
      *
      * @param cfg
      * @param indexData
@@ -394,7 +391,7 @@ public class GATKDoclet {
         Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
-        Writer out = new OutputStreamWriter(new FileOutputStream(new File(destinationDir + "/index.html")));
+        Writer out = new OutputStreamWriter(new FileOutputStream(new File(destinationDir + "/index.php")));
         try {
             temp.process(groupIndexData(indexData), out);
             out.flush();
@@ -404,7 +401,7 @@ public class GATKDoclet {
     }
 
     /**
-     * Helpful function to create the html index.  Given all of the already run GATKDocWorkUnits,
+     * Helpful function to create the php index.  Given all of the already run GATKDocWorkUnits,
      * create the high-level grouping data listing individual features by group.
      *
      * @param indexData
