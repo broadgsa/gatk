@@ -25,6 +25,12 @@
 
 package org.broadinstitute.gatk.utils.help;
 
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.Expose;
+import com.google.gson.stream.JsonWriter;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
 import freemarker.template.Configuration;
@@ -46,7 +52,7 @@ import java.util.*;
 
 /**
  * Javadoc Doclet that combines javadoc, GATK ParsingEngine annotations, and FreeMarker
- * templates to produce html formatted GATKDocs for walkers
+ * templates to produce PHP formatted GATKDocs for walkers
  * and other classes.
  * <p/>
  * This document has the following workflow:
@@ -56,10 +62,11 @@ import java.util.*;
  * static list of things to document, and are to be documented
  * 2 -- construct for each a GATKDocWorkUnit, resulting in the complete
  * set of things to document
- * 3 -- for each unit, actually generate an html page documenting it
+ * 3 -- for each unit, actually generate a PHP page documenting it
  * as well as links to related features via their units.  Writing
- * of a specific class HTML is accomplished by a generate DocumentationHandler
+ * of a specific class PHP is accomplished by a generate DocumentationHandler
  * 4 -- write out an index of all units, organized by group
+ * 5 -- emit JSON version of GATKDocs using Google GSON (currently incomplete but workable)
  * <p/>
  * The documented classes are restricted to only those with @DocumentedGATKFeature
  * annotation or are in the STATIC_DOCS class.
@@ -73,7 +80,7 @@ public class GATKDoclet {
     final protected static File SETTINGS_DIR = new File("settings/helpTemplates");
 
     /**
-     * Where we write the GATKDoc html directory
+     * Where we write the GATKDoc PHP directory
      */
     final protected static File DESTINATION_DIR = new File("gatkdocs");
 
@@ -125,7 +132,6 @@ public class GATKDoclet {
                 "NA"));
     }
 
-
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
      *
@@ -161,7 +167,6 @@ public class GATKDoclet {
 
         // process the docs
         new GATKDoclet().processDocs(rootDoc);
-
 
         return true;
     }
@@ -203,8 +208,6 @@ public class GATKDoclet {
         this.rootDoc = rootDoc;
 
         try {
-            // basic setup
-            destinationDir.mkdirs();
             // print the Version number
             FileUtils.writeByteArrayToFile(new File(destinationDir + "/current.version.txt"), getSimpleVersion(absoluteVersion).getBytes());
 
@@ -413,6 +416,7 @@ public class GATKDoclet {
         //      -> groups -> group1, group2, etc.
         Map<String, Object> root = new HashMap<String, Object>();
 
+
         Collections.sort(indexData);
 
         List<Map<String, String>> groups = new ArrayList<Map<String, String>>();
@@ -503,7 +507,6 @@ public class GATKDoclet {
     private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit, List<Map<String, String>> groups, List<Map<String, String>> data)
             throws IOException {
         //System.out.printf("Processing documentation for class %s%n", unit.classDoc);
-
         unit.handler.processOne(unit);
         unit.forTemplate.put("groups", groups);
         unit.forTemplate.put("data", data);
@@ -519,6 +522,43 @@ public class GATKDoclet {
         } catch (TemplateException e) {
             throw new ReviewedGATKException("Failed to create GATK documentation", e);
         }
+
+        // Create GSON-friendly object from unit.forTemplate
+        GSONWorkUnit gsonworkunit = new GSONWorkUnit();
+        gsonworkunit.populate(  unit.forTemplate.get("summary").toString(),
+                                unit.forTemplate.get("parallel"),
+                                unit.forTemplate.get("activeregion"),
+                                unit.forTemplate.get("partitiontype").toString(),
+                                unit.forTemplate.get("walkertype").toString(),
+                                unit.forTemplate.get("gson-arguments"),
+                                unit.forTemplate.get("refwindow"),
+                                unit.forTemplate.get("description").toString(),
+                                unit.forTemplate.get("name").toString(),
+                                unit.forTemplate.get("annotinfo").toString(),
+                                unit.forTemplate.get("readfilters"),
+                                unit.forTemplate.get("downsampling"),
+                                unit.forTemplate.get("group").toString(),
+                                unit.forTemplate.get("annotfield").toString(),
+                                unit.forTemplate.get("annotdescript")
+        );
+
+        // Prepare to write JSON entry to file
+        File outputPathForJSON = new File(destinationDir + "/" + unit.filename + ".json");
+
+        try {
+            BufferedWriter outJSON = new BufferedWriter(new FileWriter(outputPathForJSON));
+            // Convert object to JSON
+            Gson gson = new GsonBuilder()
+                .serializeSpecialFloatingPointValues()
+                .setPrettyPrinting()
+                .create();
+            String json = gson.toJson(gsonworkunit); // was run on unit.forTemplate
+            outJSON.write(json);
+            outJSON.close();
+
+        } catch (Exception e) {
+            throw new ReviewedGATKException("Failed to create JSON entry", e);
+        }
     }
 
     private static String getSimpleVersion(String absoluteVersion) {
@@ -532,4 +572,5 @@ public class GATKDoclet {
 
         return parts[0];
     }
+
 }

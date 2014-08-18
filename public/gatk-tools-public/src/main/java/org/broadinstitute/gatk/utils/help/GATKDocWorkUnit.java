@@ -74,7 +74,7 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
 
     // set by the handler
     String summary;
-    Map<String, Object> forTemplate;
+    Map<String, Object> forTemplate; // this is where the actual doc content gets stored
 
     public GATKDocWorkUnit(String name, String filename, String group, DocumentedGATKFeatureObject annotation,
                            DocumentedGATKFeatureHandler handler, ClassDoc classDoc, Class clazz,
