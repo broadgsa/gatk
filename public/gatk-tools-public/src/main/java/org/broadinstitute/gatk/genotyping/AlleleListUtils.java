@@ -37,6 +37,24 @@ import java.util.List;
  */
 public class AlleleListUtils {
 
+    @SuppressWarnings("unchecked")
+    private static final AlleleList EMPTY_LIST = new AlleleList() {
+        @Override
+        public int alleleCount() {
+            return 0;
+        }
+
+        @Override
+        public int alleleIndex(final Allele allele) {
+            return -1;
+        }
+
+        @Override
+        public Allele alleleAt(final int index) {
+            throw new IllegalArgumentException("allele index is out of range");
+        }
+    };
+
     /**
      * Checks whether two allele lists are in fact the same.
      * @param first one list to compare.
@@ -105,6 +123,16 @@ public class AlleleListUtils {
         if (list == null)
             throw new IllegalArgumentException("the list cannot be null");
         return new AsList(list);
+    }
+
+    /**
+     * Returns an unmodifiable empty allele-list.
+     * @param <A> the allele class.
+     * @return never {@code null}.
+     */
+    @SuppressWarnings("unchecked")
+    public static final <A extends Allele> AlleleList<A> emptyList() {
+        return EMPTY_LIST;
     }
 
     /**

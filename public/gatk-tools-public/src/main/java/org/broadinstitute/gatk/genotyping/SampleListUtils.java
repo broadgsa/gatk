@@ -34,6 +34,33 @@ import java.util.*;
  */
 public class SampleListUtils {
 
+    private static final SampleList EMPTY_LIST = new SampleList() {
+
+        @Override
+        public int sampleCount() {
+            return 0;
+        }
+
+        @Override
+        public int sampleIndex(String sample) {
+            return -1;
+        }
+
+        @Override
+        public String sampleAt(final int sampleIndex) {
+            throw new IllegalArgumentException("index is out of valid range");
+        }
+    };
+
+    /**
+     * Empty list.
+     *
+     * @return never {@code null}
+     */
+    public static SampleList emptyList() {
+        return EMPTY_LIST;
+    }
+
     /**
      * Checks whether two sample lists are in fact the same.
      * @param first one list to compare.
