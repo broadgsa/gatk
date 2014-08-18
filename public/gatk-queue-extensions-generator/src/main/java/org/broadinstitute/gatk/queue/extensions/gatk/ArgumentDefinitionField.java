@@ -147,7 +147,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, BAMIndex.BAMIndexSuffix, ".bam"));
 
-        } else if ((RodBinding.class.equals(argumentDefinition.argumentType) || RodBinding.class.equals(argumentDefinition.componentType)) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
+        } else if ((RodBinding.class.equals(argumentDefinition.argumentType) || RodBinding.class.equals(argumentDefinition.componentType) || RodBindingCollection.class.equals(argumentDefinition.componentType)) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, Tribble.STANDARD_INDEX_EXTENSION));
 
         } else if (argumentDefinition.ioType == ArgumentIOType.INPUT) {
@@ -416,7 +416,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                 if (originalSuffix == null) {
                     return String.format(
                             ("%1$s ++= %2$s" +
-                                    ".filter(orig => orig != null)" +
+                                    ".filter(orig => orig != null && (!orig.getName.endsWith(\".list\")))" +
                                     ".map(orig => new File(orig.getPath + \"%3$s\"))%n"),
                             indexFieldName, originalFieldName, indexSuffix);
                 } else {
