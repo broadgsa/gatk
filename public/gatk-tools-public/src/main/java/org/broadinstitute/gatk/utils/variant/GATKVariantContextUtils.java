@@ -85,6 +85,24 @@ public class GATKVariantContextUtils {
         return true;
     }
 
+    /**
+     * Returns a homozygous call allele list given the only allele and the ploidy.
+     *
+     * @param allele the only allele in the allele list.
+     * @param ploidy the ploidy of the resulting allele list.
+     *
+     * @throws IllegalArgumentException if {@code allele} is {@code null} or ploidy is negative.
+     *
+     * @return never {@code null}.
+     */
+    public static List<Allele> homozygousAlleleList(final Allele allele, final int ploidy) {
+        if (allele == null || ploidy < 0)
+            throw new IllegalArgumentException();
+
+        // Use a tailored inner class to implement the list:
+        return Collections.nCopies(ploidy,allele);
+    }
+
     public enum GenotypeMergeType {
         /**
          * Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.

@@ -26,14 +26,13 @@
 package org.broadinstitute.gatk.engine;
 
 import com.google.java.contract.Ensures;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.variant.vcf.VCFConstants;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.walkers.*;
-import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.*;
@@ -55,8 +54,12 @@ import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.samples.SampleDB;
 import org.broadinstitute.gatk.engine.samples.SampleDBBuilder;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.tools.walkers.genotyper.IndexedSampleList;
+import org.broadinstitute.gatk.tools.walkers.genotyper.SampleList;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
@@ -64,7 +67,6 @@ import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.gatk.utils.recalibration.BQSRArgumentSet;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
-import htsjdk.variant.vcf.VCFConstants;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -1138,7 +1140,7 @@ public class GenomeAnalysisEngine {
      * Returns data source objects encapsulating all rod data;
      * individual rods can be accessed through the returned data source objects.
      *
-     * @return the rods data sources
+     * @return the rods data sources, never {@code null}.
      */
     public List<ReferenceOrderedDataSource> getRodDataSources() {
         return this.rodDataSources;
@@ -1253,5 +1255,21 @@ public class GenomeAnalysisEngine {
         else {
             runtimeLimitInNanoseconds = TimeUnit.NANOSECONDS.convert(args.maxRuntime, args.maxRuntimeUnits);
         }
+    }
+
+    /**
+     * Returns the sample list including all samples.
+     * @return never {@code null}.
+     */
+    public SampleList getSampleList() {
+        return new IndexedSampleList(getSampleDB().getSampleNames());
+    }
+
+    /**
+     * Returns the sample list including samples in read inputs.
+     * @return never {@code null}.
+     */
+    public SampleList getReadSampleList() {
+        return new IndexedSampleList(SampleUtils.getSAMFileSamples(getSAMFileHeader()));
     }
 }
