@@ -22,22 +22,19 @@
 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+package org.broadinstitute.gatk.tools.walkers.genotyper;
 
-
-package org.broadinstitute.gatk.genotyping;
+import htsjdk.variant.variantcontext.Allele;
 
 /**
- * A indexed set of samples.
- *
- * <p>
- *     Implementing classes must guarantee that the sample list will remain <b>constant</b> through the life of the object.
- * </p>
+ * Created by valentin on 5/12/14.
  */
-public interface SampleList  {
+public interface AlleleList<A extends Allele> {
 
-    public int sampleCount();
+    public int alleleCount();
 
-    public int sampleIndex(final String sample);
+    public int alleleIndex(final A allele);
 
-    public String sampleAt(final int sampleIndex);
+    public A alleleAt(final int index);
+
 }

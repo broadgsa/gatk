@@ -22,19 +22,14 @@
 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-package org.broadinstitute.gatk.genotyping;
+
+package org.broadinstitute.gatk.tools.walkers.genotyper;
 
 import htsjdk.variant.variantcontext.Allele;
+import org.broadinstitute.gatk.utils.collections.Permutation;
 
 /**
- * Created by valentin on 5/12/14.
+ * Marks allele list permutation implementation classes.
  */
-public interface AlleleList<A extends Allele> {
-
-    public int alleleCount();
-
-    public int alleleIndex(final A allele);
-
-    public A alleleAt(final int index);
-
+public interface AlleleListPermutation<A extends Allele> extends Permutation<A>, AlleleList<A> {
 }

@@ -30,7 +30,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.broadinstitute.gatk.engine.downsampling.AlleleBiasedDownsamplingUtils;
-import org.broadinstitute.gatk.genotyping.*;
+import org.broadinstitute.gatk.tools.walkers.genotyper.*;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
@@ -40,6 +40,8 @@ import java.util.*;
 
 /**
  * Read-likelihoods container implementation based on integer indexed arrays.
+ *
+ * @param <A> the type of the allele the likelihood makes reference to.
  *
  * @author Valentin Ruano-Rubio &lt;valentin@broadinstitute.org&gt;
  */

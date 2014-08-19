@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.genotyping;
+package org.broadinstitute.gatk.tools.walkers.genotyper;
 
 import java.util.*;
 

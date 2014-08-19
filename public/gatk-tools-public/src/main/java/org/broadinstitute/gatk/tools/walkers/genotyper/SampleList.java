@@ -23,13 +23,21 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.genotyping;
 
-import htsjdk.variant.variantcontext.Allele;
-import org.broadinstitute.gatk.utils.collections.Permutation;
+package org.broadinstitute.gatk.tools.walkers.genotyper;
 
 /**
- * Marks allele list permutation implementation classes.
+ * A indexed set of samples.
+ *
+ * <p>
+ *     Implementing classes must guarantee that the sample list will remain <b>constant</b> through the life of the object.
+ * </p>
  */
-public interface AlleleListPermutation<A extends Allele> extends Permutation<A>, AlleleList<A> {
+public interface SampleList  {
+
+    public int sampleCount();
+
+    public int sampleIndex(final String sample);
+
+    public String sampleAt(final int sampleIndex);
 }
