@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.engine.walkers;
 import htsjdk.tribble.Tribble;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
-import htsjdk.tribble.util.TabixUtils;
 import htsjdk.variant.bcf2.BCF2Utils;
 import htsjdk.variant.vcf.VCFCodec;
 import org.apache.commons.lang.StringUtils;
