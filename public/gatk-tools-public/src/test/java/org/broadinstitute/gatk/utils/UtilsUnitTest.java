@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.io.IOUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -178,6 +179,54 @@ public class UtilsUnitTest extends BaseTest {
         Assert.assertEquals(actual, expected);
     }
 
+    @Test(dataProvider = "asIntegerListData")
+    public void testAsIntegerList(final int[] values) {
+        if (values == null) {
+            try {
+                Utils.asList((int[]) null);
+                Assert.fail("Should have thrown an exception");
+            } catch (final IllegalArgumentException ex) {
+                // good.
+            }
+        } else {
+            final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+            final int[] valuesClone = values.clone();
+            final List<Integer> list = Utils.asList(valuesClone);
+            Assert.assertNotNull(list);
+            Assert.assertEquals(list.size(),values.length);
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((int) list.get(i),values[i]);
+            for (int i = 0; i < values.length; i++)
+                valuesClone[rdn.nextInt(values.length)] = rdn.nextInt(1000);
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((int) list.get(i),valuesClone[i]);
+        }
+    }
+
+    @Test(dataProvider = "asDoubleListData")
+    public void testAsDoubleList(final double[] values) {
+        if (values == null) {
+            try {
+                Utils.asList((int[]) null);
+                Assert.fail("Should have thrown an exception");
+            } catch (final IllegalArgumentException ex) {
+                // good.
+            }
+        } else {
+            final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+            final double[] valuesClone = values.clone();
+            final List<Double> list = Utils.asList(valuesClone);
+            Assert.assertNotNull(list);
+            Assert.assertEquals(list.size(),values.length);
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((double) list.get(i),values[i]);
+            for (int i = 0; i < values.length; i++)
+                valuesClone[rdn.nextInt(values.length)] = rdn.nextDouble() * 1000;
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((double) list.get(i),valuesClone[i]);
+        }
+    }
+
     @Test
     public void testCalcMD5() throws Exception {
         final File source = new File(publicTestDir + "exampleFASTA.fasta");
@@ -285,6 +334,30 @@ public class UtilsUnitTest extends BaseTest {
                 {"romeo+juliette" , "10101010101010" },
                 {"romeo+juliette" , "01010101010101" },
                 {"romeo+juliette" , "01111010111001" },
+        };
+    }
+
+
+    @DataProvider(name = "asIntegerListData")
+    public Object[][] asIntegerListData() {
+        return new Object[][] {
+                { null },
+                {new int[0]},
+                {new int[]{1, 2, 3, 4, 5}},
+                {new int[]{2}},
+                {new int[]{3,4}}
+        };
+    }
+
+    @DataProvider(name = "asDoubleListData")
+    public Object[][] asDoubleListData() {
+        return new Object[][] {
+                { null },
+                {new double[0]},
+                {new double[]{1, 2, 3, 4, 5}},
+                {new double[]{2}},
+                {new double[]{3,4}},
+                {new double[]{Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}}
         };
     }
 }

@@ -283,6 +283,52 @@ public class Utils {
         }
     }
 
+    /**
+     * Returns a {@link List List&lt;Integer&gt;} representation of an primitive int array.
+     * @param values the primitive int array to represent.
+     * @return never code {@code null}. The returned list will be unmodifiable yet it will reflect changes in values in the original array yet
+     *   you cannot change the values
+     */
+    public static List<Integer> asList(final int ... values) {
+        if (values == null)
+            throw new IllegalArgumentException("the input array cannot be null");
+        return new AbstractList<Integer>() {
+
+            @Override
+            public Integer get(final int index) {
+                return values[index];
+            }
+
+            @Override
+            public int size() {
+                return values.length;
+            }
+        };
+    }
+
+    /**
+     * Returns a {@link List List&lt;Double&gt;} representation of an primitive double array.
+     * @param values the primitive int array to represent.
+     * @return never code {@code null}. The returned list will be unmodifiable yet it will reflect changes in values in the original array yet
+     *   you cannot change the values.
+     */
+    public static List<Double> asList(final double ... values) {
+        if (values == null)
+            throw new IllegalArgumentException("the input array cannot be null");
+        return new AbstractList<Double>() {
+
+            @Override
+            public Double get(final int index) {
+                return values[index];
+            }
+
+            @Override
+            public int size() {
+                return values.length;
+            }
+        };
+    }
+
     public static <T> String join(final String separator, final T ... objects) {
         return join(separator, Arrays.asList(objects));
     }
