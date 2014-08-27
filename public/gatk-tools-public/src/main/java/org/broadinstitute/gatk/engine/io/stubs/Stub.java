@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.engine.io.stubs;
 
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
 
 import java.io.File;
@@ -46,6 +47,15 @@ public interface Stub<StreamType> {
      * @param outputTracker The connector used to provide an appropriate stream.
      */
     public void register( OutputTracker outputTracker );
+
+    /**
+     * Provides a mechanism for uniformly processing command-line arguments
+     * that are important for file processing.  For example, this method
+     * might pass on the compression value specified by the user to
+     * a SAMFileWriter
+     * @param argumentCollection The arguments to be processed
+     */
+    public void processArguments( final GATKArgumentCollection argumentCollection );
 
     /**
      * Returns the OutputStream represented by this stub or null if not available.

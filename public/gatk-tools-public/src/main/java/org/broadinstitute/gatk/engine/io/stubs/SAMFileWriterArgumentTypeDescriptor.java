@@ -30,29 +30,14 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.io.OutputStream;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Insert a SAMFileWriterStub  instead of a full-fledged concrete OutputStream implementations.
  */
 public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    public static final String DEFAULT_ARGUMENT_FULLNAME = "outputBAM";
-    public static final String DEFAULT_ARGUMENT_SHORTNAME = "ob";
-
-    public static final String COMPRESSION_FULLNAME = "bam_compression";
-    public static final String COMPRESSION_SHORTNAME = "compress";
-
-    public static final String SIMPLIFY_BAM_FULLNAME = "simplifyBAM";
-    public static final String SIMPLIFY_BAM_SHORTNAME = SIMPLIFY_BAM_FULLNAME;
-
-    public static final String DISABLE_INDEXING_FULLNAME = "disable_bam_indexing";
-    public static final String ENABLE_MD5_FULLNAME = "generate_md5";
 
     /**
      * The engine into which output stubs should be fed.
@@ -80,15 +65,6 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     @Override
-    public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createBAMArgumentDefinition(source),
-                              createBAMCompressionArgumentDefinition(source),
-                              disableWriteIndexArgumentDefinition(source),
-                              enableMD5GenerationArgumentDefinition(source),
-                              createSimplifyBAMArgumentDefinition(source));
-    }
-
-    @Override
     public boolean createsTypeDefault(ArgumentSource source) {
         return !source.isRequired() && source.defaultsToStdout();
     }
@@ -110,37 +86,14 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     @Override
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         // Extract all possible parameters that could be passed to a BAM file writer?
-        ArgumentDefinition bamArgumentDefinition = createBAMArgumentDefinition(source);
+        ArgumentDefinition bamArgumentDefinition = createDefaultArgumentDefinition(source);
         ArgumentMatchValue writerFileName = getArgumentValue( bamArgumentDefinition, matches );
 
-        ArgumentMatchValue compressionLevelText = getArgumentValue( createBAMCompressionArgumentDefinition(source), matches );
-        Integer compressionLevel = compressionLevelText != null ? Integer.valueOf(compressionLevelText.asString()) : null;
-
-        boolean indexOnTheFly = !argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches);
-        boolean generateMD5 = argumentIsPresent(this.enableMD5GenerationArgumentDefinition(source),matches);
-        boolean simplifyBAM = argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches);
-
-        // Validate the combination of parameters passed in.
-
-        // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
-        // therefore, the user must have failed to specify a type default
-        if(writerFileName != null && writerFileName.asFile() == null && generateMD5)
-                throw new ArgumentException("MD5 generation specified, but no output file specified.  If md5 generation is desired, please specify a BAM output file and an md5 file will be written alongside.");
-
-        // Create the stub and set parameters.
+        // Create the stub
         SAMFileWriterStub stub = null;      // stub = new SAMFileWriterStub(engine, defaultOutputStream);
 
         if (writerFileName != null &&  writerFileName.asFile() != null ) {
             stub = new SAMFileWriterStub(engine, writerFileName.asFile());
-
-            if ( compressionLevel != null ) {
-                stub.setCompressionLevel(ReadUtils.validateCompressionLevel(compressionLevel));
-            } if ( indexOnTheFly )
-                stub.setIndexOnTheFly(indexOnTheFly);
-            if ( generateMD5 )
-                stub.setGenerateMD5(generateMD5);
-            if ( simplifyBAM )
-                stub.setSimplifyBAM(simplifyBAM);
 
             // WARNING: Side effects required by engine!
             parsingEngine.addTags(stub,getArgumentTags(matches));
@@ -150,96 +103,4 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         return stub;
     }
 
-    /**
-     * Gets the definition of the argument representing the BAM file itself.
-     * @param source Argument source for the BAM file.  Must not be null.
-     * @return Argument definition for the BAM file itself.  Will not be null.
-     */
-    private ArgumentDefinition createBAMArgumentDefinition(ArgumentSource source) {
-        Annotation annotation = getArgumentAnnotation(source);
-        return new ArgumentDefinition( annotation,
-                                       ArgumentIOType.getIOType(annotation),
-                                       source.field.getType(),
-                                       DEFAULT_ARGUMENT_FULLNAME,
-                                       DEFAULT_ARGUMENT_SHORTNAME,
-                                       ArgumentDefinition.getDoc(annotation),
-                                       source.isRequired(),
-                                       false,
-                                       source.isMultiValued(),
-                                       source.isHidden(),
-                                       null,
-                                       null,
-                                       null,
-                                       null);
-    }
-
-    /**
-     * Creates the optional compression level argument for the BAM file.
-     * @param source Argument source for the BAM file.  Must not be null.
-     * @return Argument definition for the BAM file itself.  Will not be null.
-     */
-    private ArgumentDefinition createBAMCompressionArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                                       int.class,
-                                       COMPRESSION_FULLNAME,
-                                       COMPRESSION_SHORTNAME,
-                                       "Compression level to use for writing BAM files",
-                                       false,
-                                       false,
-                                       false,
-                                       source.isHidden(),
-                                       null,
-                                       null,
-                                       null,
-                                       null );
-    }
-
-    private ArgumentDefinition disableWriteIndexArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                                       boolean.class,
-                                       DISABLE_INDEXING_FULLNAME,
-                                       null,
-                                       "Turn off on-the-fly creation of indices for output BAM files.",
-                                       false,
-                                       true,
-                                       false,
-                                       source.isHidden(),
-                                       null,
-                                       null,
-                                       null,
-                                       null );
-    }
-
-    private ArgumentDefinition enableMD5GenerationArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                                       boolean.class,
-                                       ENABLE_MD5_FULLNAME,
-                                       null,
-                                       "Enable on-the-fly creation of md5s for output BAM files.",
-                                       false,
-                                       true,
-                                       false,
-                                       source.isHidden(),
-                                       null,
-                                       null,
-                                       null,
-                                       null );
-    }
-
-
-    private ArgumentDefinition createSimplifyBAMArgumentDefinition(ArgumentSource source) {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                                       boolean.class,
-                                       SIMPLIFY_BAM_FULLNAME,
-                                       SIMPLIFY_BAM_SHORTNAME,
-                                       "If provided, output BAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
-                                       false,
-                                       true,
-                                       false,
-                                       source.isHidden(),
-                                       null,
-                                       null,
-                                       null,
-                                       null );
-    }
 }

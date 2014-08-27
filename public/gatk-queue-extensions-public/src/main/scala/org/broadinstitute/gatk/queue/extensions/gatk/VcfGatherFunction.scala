@@ -26,9 +26,7 @@
 package org.broadinstitute.gatk.queue.extensions.gatk
 
 import org.broadinstitute.gatk.queue.function.scattergather.GatherFunction
-import org.broadinstitute.gatk.queue.function.{RetryMemoryLimit, QFunction}
-import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor
-import org.broadinstitute.gatk.queue.util.ClassFieldCache
+import org.broadinstitute.gatk.queue.function.RetryMemoryLimit
 
 /**
  * Merges a vcf text file.
@@ -44,14 +42,8 @@ class VcfGatherFunction extends CombineVariants with GatherFunction with RetryMe
     this.out = this.originalOutput
     GATKIntervals.copyIntervalArguments(this.originalGATK, this)
 
-    // NO_HEADER and sites_only from VCFWriterArgumentTypeDescriptor
-    // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
-
-    val noHeader = ClassFieldCache.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.NO_HEADER_ARG_NAME)
-    this.no_cmdline_in_header = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
-
-    val sitesOnly = ClassFieldCache.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
-    this.sites_only = originalGATK.getFieldValue(sitesOnly).asInstanceOf[Boolean]
+    this.no_cmdline_in_header = originalGATK.no_cmdline_in_header
+    this.sites_only = originalGATK.sites_only
 
     // ensure that the gather function receives the same unsafe parameter as the scattered function
     this.unsafe = this.originalGATK.unsafe

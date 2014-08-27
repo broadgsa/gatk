@@ -44,7 +44,9 @@ import org.broadinstitute.gatk.engine.filters.FilterManager;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.gatk.engine.io.stubs.Stub;
+import org.broadinstitute.gatk.engine.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformersMode;
 import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
@@ -65,6 +67,7 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.gatk.utils.recalibration.BQSRArgumentSet;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
 
@@ -666,11 +669,13 @@ public class GenomeAnalysisEngine {
      *
      * @param outputTracker the tracker supplying the initialization data.
      */
-    private void initializeOutputStreams(OutputTracker outputTracker) {
-        for (Map.Entry<ArgumentSource, Object> input : getInputs().entrySet())
+    private void initializeOutputStreams(final OutputTracker outputTracker) {
+        for (final Map.Entry<ArgumentSource, Object> input : getInputs().entrySet())
             outputTracker.addInput(input.getKey(), input.getValue());
-        for (Stub<?> stub : getOutputs())
+        for (final Stub<?> stub : getOutputs()) {
+            stub.processArguments(argCollection);
             outputTracker.addOutput(stub);
+        }
 
         outputTracker.prepareWalker(walker, getArguments().strictnessLevel);
     }

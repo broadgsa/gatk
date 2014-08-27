@@ -30,15 +30,11 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 
 /**
  * Injects new command-line arguments into the system providing support for the genotype writer.
@@ -47,9 +43,6 @@ import java.util.List;
  * @version 0.1
  */
 public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    public static final String NO_HEADER_ARG_NAME = "no_cmdline_in_header";
-    public static final String SITES_ONLY_ARG_NAME = "sites_only";
-    public static final String FORCE_BCF = "bcf";
 
     /**
      * The engine into which output stubs should be fed.
@@ -86,15 +79,6 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public boolean supports( Class type ) {
         return VariantContextWriter.class.equals(type);
-    }
-
-    @Override
-    public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList(
-                createDefaultArgumentDefinition(source),
-                createNoCommandLineHeaderArgumentDefinition(),
-                createSitesOnlyArgumentDefinition(),
-                createBCFArgumentDefinition() );
     }
 
     /**
@@ -145,75 +129,12 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 : new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
 
         stub.setCompressed(isCompressed(writerFileName == null ? null: writerFileName.asString()));
-        stub.setDoNotWriteGenotypes(argumentIsPresent(createSitesOnlyArgumentDefinition(),matches));
-        stub.setSkipWritingCommandLineHeader(argumentIsPresent(createNoCommandLineHeaderArgumentDefinition(),matches));
-        stub.setForceBCF(argumentIsPresent(createBCFArgumentDefinition(),matches));
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));
         engine.addOutput(stub);
 
         return stub;
-    }
-
-    /**
-     * Creates the optional no_header argument for the VCF file.
-     * @return Argument definition for the VCF file itself.  Will not be null.
-     */
-    private ArgumentDefinition createNoCommandLineHeaderArgumentDefinition() {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                                       boolean.class,
-                                       NO_HEADER_ARG_NAME,
-                                       NO_HEADER_ARG_NAME,
-                                       "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.",
-                                       false,
-                                       true,
-                                       false,
-                                       true,
-                                       null,
-                                       null,
-                                       null,
-                                       null );
-    }
-
-    /**
-     * Creates the optional sites_only argument definition
-     * @return Argument definition for the VCF file itself.  Will not be null.
-     */
-    private ArgumentDefinition createSitesOnlyArgumentDefinition() {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                                       boolean.class,
-                                       SITES_ONLY_ARG_NAME,
-                                       SITES_ONLY_ARG_NAME,
-                                       "Just output sites without genotypes (i.e. only the first 8 columns of the VCF)",
-                                       false,
-                                       true,
-                                       false,
-                                       true,
-                                       null,
-                                       null,
-                                       null,
-                                       null );
-    }
-
-    /**
-     * Creates the optional bcf argument definition
-     * @return Argument definition for the VCF file itself.  Will not be null.
-     */
-    private ArgumentDefinition createBCFArgumentDefinition() {
-        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
-                boolean.class,
-                FORCE_BCF,
-                FORCE_BCF,
-                "force BCF output, regardless of the file's extension",
-                false,
-                true,
-                false,
-                true,
-                null,
-                null,
-                null,
-                null );
     }
 
     /**
