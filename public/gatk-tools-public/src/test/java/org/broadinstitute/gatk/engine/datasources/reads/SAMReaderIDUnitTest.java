@@ -38,7 +38,7 @@ public class SAMReaderIDUnitTest extends BaseTest {
     public void testSAMReaderIDHashingAndEquality() {
         // Test to make sure that two SAMReaderIDs that point at the same file via an absolute vs. relative
         // path are equal according to equals() and have the same hash code
-        final File relativePathToBAMFile = new File("public/testdata/exampleBAM.bam");
+        final File relativePathToBAMFile = new File(publicTestDir + "exampleBAM.bam");
         final File absolutePathToBAMFile = new File(relativePathToBAMFile.getAbsolutePath());
         final SAMReaderID relativePathSAMReaderID = new SAMReaderID(relativePathToBAMFile, new Tags());
         final SAMReaderID absolutePathSAMReaderID = new SAMReaderID(absolutePathToBAMFile, new Tags());

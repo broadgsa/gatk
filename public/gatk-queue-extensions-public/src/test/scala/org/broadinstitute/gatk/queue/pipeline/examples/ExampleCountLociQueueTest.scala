@@ -36,7 +36,7 @@ class ExampleCountLociQueueTest {
     val spec = new QueueTestSpec
     spec.name = "countloci"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleCountLoci.scala",
+      " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExampleCountLoci.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -o " + testOut).mkString

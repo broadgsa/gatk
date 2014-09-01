@@ -185,6 +185,7 @@
                     <failIfNoTests>false</failIfNoTests>
                     <!-- Pass various system properties -->
                     <systemPropertyVariables>
+                        <gatkdir>${gatk.basedir}</gatkdir>
                         <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
@@ -204,6 +205,9 @@
                             <includes>
                                 <include>**/*UnitTest.class</include>
                             </includes>
+                            <systemPropertyVariables>
+                                <testType>unit</testType>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                 </executions>
@@ -220,6 +224,7 @@
                     <failIfNoTests>false</failIfNoTests>
                     <!-- Pass various system properties -->
                     <systemPropertyVariables>
+                        <gatkdir>${gatk.basedir}</gatkdir>
                         <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
@@ -236,6 +241,9 @@
                             <includes>
                                 <include>**/*IntegrationTest.class</include>
                             </includes>
+                            <systemPropertyVariables>
+                                <testType>integrationtest</testType>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                 </executions>

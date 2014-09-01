@@ -1043,7 +1043,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @DataProvider(name="invalidIntervalTestData")
     public Object[][] invalidIntervalDataProvider() throws Exception {
         GATKArgumentCollection argCollection = new GATKArgumentCollection();
-        File fastaFile = new File("public/testdata/exampleFASTA.fasta");
+        File fastaFile = new File(publicTestDir + "exampleFASTA.fasta");
         GenomeLocParser genomeLocParser = new GenomeLocParser(new IndexedFastaSequenceFile(fastaFile));
 
         return new Object[][] {

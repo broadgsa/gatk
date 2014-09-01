@@ -41,6 +41,12 @@ import org.apache.commons.io.filefilter.WildcardFileFilter
 
 object QueueTest extends BaseTest with Logging {
 
+  private final val qscriptsSrcDir = "src/main/qscripts/"
+  private final val qscriptsPackageDir = qscriptsSrcDir + "org/broadinstitute/gatk/queue/qscripts/"
+  final val publicQScriptsPackageDir = BaseTest.gatkDirectory + "public/gatk-queue-extensions-public/" + qscriptsPackageDir
+  final val protectedQScriptsPackageDir = BaseTest.gatkDirectory + "protected/gatk-queue-extensions-distribution/" + qscriptsPackageDir
+  final val privateQScriptsPackageDir = BaseTest.gatkDirectory + "private/gatk-queue-extensions-internal/" + qscriptsPackageDir
+
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
   private val md5DB = new MD5DB()
 

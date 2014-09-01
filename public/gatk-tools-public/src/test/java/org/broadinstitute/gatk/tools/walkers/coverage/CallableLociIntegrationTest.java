@@ -32,7 +32,6 @@ import java.util.Arrays;
 
 public class CallableLociIntegrationTest extends WalkerTest {
     final static String commonArgs     = "-R " + b36KGReference + " -T CallableLoci -I " + validationDataLocation + "/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s";
-    final static String reduceReadArgs = "-R " + b37KGReference + " -T CallableLoci -I " + " private/testdata/NA12878.HiSeq.b37.chr20.10_11mb.reduced.bam -o %s";
 
     final static String SUMMARY_MD5 = "a6f5963669f19d9d137ced87d65834b0";
 

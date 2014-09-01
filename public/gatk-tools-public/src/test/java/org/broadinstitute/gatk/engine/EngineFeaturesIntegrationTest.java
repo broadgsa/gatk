@@ -207,7 +207,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
 
     private void testBadCompressArgument(final int compress) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I private/testdata/NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
+        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I " + privateTestDir + "NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
                 1, UserException.class);
         executeTest("badCompress " + compress, spec);
     }

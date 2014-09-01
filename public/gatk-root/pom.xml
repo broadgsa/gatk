@@ -401,6 +401,7 @@
                             </property>
                         </properties>
                         <systemPropertyVariables>
+                            <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
@@ -424,6 +425,9 @@
                                 <includes>
                                     <include>**/*UnitTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <testType>unit</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                     </executions>
@@ -451,6 +455,7 @@
                             </property>
                         </properties>
                         <systemPropertyVariables>
+                            <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
                             <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
@@ -474,6 +479,9 @@
                                 <includes>
                                     <include>**/*IntegrationTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <testType>integration</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                         <execution>
@@ -491,6 +499,9 @@
                                 <includes>
                                     <include>**/*QueueTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <testType>queue</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                         <execution>
@@ -507,6 +518,9 @@
                                 <includes>
                                     <include>**/*LargeScaleTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <testType>largescale</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                         <execution>
@@ -523,6 +537,9 @@
                                 <includes>
                                     <include>**/*KnowledgeBaseTest.class</include>
                                 </includes>
+                                <systemPropertyVariables>
+                                    <testType>knowledgebasetests</testType>
+                                </systemPropertyVariables>
                             </configuration>
                         </execution>
                     </executions>
