@@ -22,6 +22,19 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
+<?php
+
+    include '../../../include/common.php';
+    $module = modules::GATK;
+    printHeader($module, "GATK | Tool Documentation Index", "Guides");
+?>
+
+<div class='row-fluid'>
+
+<?php printGATKDocsNav($module); ?>
+
+<div class='span9'>
+
 <#include "common.html"/>
 
 <#macro emitGroup group>
@@ -53,8 +66,7 @@
     </div>
 </#macro>
 
-<@makeHeader title="GATK | Tool Documentation Index" isIndex=true />
-<h1>Tool Documentation Index
+<h1 id="top">Tool Documentation Index
     <small>${version}</small>
 </h1>
 <div class="accordion" id="index">
@@ -71,4 +83,11 @@
 
 <@footerInfo />
 <@footerClose />
-<@pageFooter />
+
+</div></div>
+
+<?php
+
+    printFooter($module);
+
+?>

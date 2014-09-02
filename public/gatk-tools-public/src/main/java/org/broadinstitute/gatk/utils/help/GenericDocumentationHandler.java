@@ -566,7 +566,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                     // make hashmap of simplename and url
                     final HashMap<String, Object> nugget = new HashMap<String, Object>();
                     nugget.put("name", filter.getSimpleName());
-                    nugget.put("filename", GATKDocUtils.htmlFilenameForClass(filter));
+                    nugget.put("filename", GATKDocUtils.phpFilenameForClass(filter));
                     bucket.add(nugget);
                 }
             }
@@ -863,7 +863,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             List<String> rodTypes = new ArrayList<String>();
             for (FeatureManager.FeatureDescriptor descriptor : manager.getByFeature(featureClass)) {
                 rodTypes.add(String.format("<a href=%s>%s</a>",
-                        GATKDocUtils.htmlFilenameForClass(descriptor.getCodecClass()),
+                        GATKDocUtils.phpFilenameForClass(descriptor.getCodecClass()),
                         descriptor.getName()));
             }
 
