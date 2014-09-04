@@ -74,8 +74,8 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
-        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
-        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File(publicTestDir + "exampleBAM.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File(publicTestDir + "exampleBAM.bam"), new Tags()));
 
         testEngine.setSAMFileIDs(samFiles);
         testEngine.checkForDuplicateSamFiles();
@@ -86,10 +86,10 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
-        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
-        samFiles.add(new SAMReaderID(new File("public/testdata/exampleNORG.bam"), new Tags()));
-        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"),  new Tags()));
-        samFiles.add(new SAMReaderID(new File("public/testdata/exampleNORG.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File(publicTestDir + "exampleBAM.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File(publicTestDir + "exampleNORG.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File(publicTestDir + "exampleBAM.bam"),  new Tags()));
+        samFiles.add(new SAMReaderID(new File(publicTestDir + "exampleNORG.bam"), new Tags()));
 
         testEngine.setSAMFileIDs(samFiles);
         testEngine.checkForDuplicateSamFiles();
@@ -99,7 +99,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
     public void testDuplicateSamFileHandlingAbsoluteVsRelativePath() {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
-        final File relativePathToBAMFile = new File("public/testdata/exampleBAM.bam");
+        final File relativePathToBAMFile = new File(publicTestDir + "exampleBAM.bam");
         final File absolutePathToBAMFile = new File(relativePathToBAMFile.getAbsolutePath());
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
         samFiles.add(new SAMReaderID(relativePathToBAMFile, new Tags()));

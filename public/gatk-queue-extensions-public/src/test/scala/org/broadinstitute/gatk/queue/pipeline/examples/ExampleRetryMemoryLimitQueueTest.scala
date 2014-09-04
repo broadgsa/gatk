@@ -37,7 +37,7 @@ class ExampleRetryMemoryLimitQueueTest {
     val spec = new QueueTestSpec
     spec.name = "RetryMemoryLimit"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleRetryMemoryLimit.scala",
+      " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExampleRetryMemoryLimit.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -retry 1").mkString

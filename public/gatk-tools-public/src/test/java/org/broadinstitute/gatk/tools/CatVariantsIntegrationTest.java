@@ -43,6 +43,10 @@ import java.io.IOException;
 public class CatVariantsIntegrationTest {
     private final MD5DB md5db = new MD5DB();
     private final File CatVariantsDir = new File(BaseTest.privateTestDir, "CatVariants");
+    private final File CatVariantsVcf1 = new File(CatVariantsDir, "CatVariantsTest1.vcf");
+    private final File CatVariantsVcf2 = new File(CatVariantsDir, "CatVariantsTest2.vcf");
+    private final File CatVariantsBcf1 = new File(CatVariantsDir, "CatVariantsTest1.bcf");
+    private final File CatVariantsBcf2 = new File(CatVariantsDir, "CatVariantsTest2.bcf");
 
     private class CatVariantsTestProvider extends BaseTest.TestDataProvider {
         private final File file1;
@@ -50,11 +54,11 @@ public class CatVariantsIntegrationTest {
         public final File outputFile;
         public final String md5;
 
-        private CatVariantsTestProvider(final String file1, final String file2, final File outputFile, final String md5) {
+        private CatVariantsTestProvider(final File file1, final File file2, final File outputFile, final String md5) {
             super(CatVariantsTestProvider.class);
 
-            this.file1 = new File(CatVariantsDir, file1);
-            this.file2 = new File(CatVariantsDir, file2);
+            this.file1 = file1;
+            this.file2 = file2;
             this.outputFile = outputFile;
             this.md5 = md5;
         }
@@ -72,16 +76,23 @@ public class CatVariantsIntegrationTest {
 
     @DataProvider(name = "ExtensionsTest")
     public Object[][] makeExtensionsTestProvider() {
-        new CatVariantsTestProvider("CatVariantsTest1.vcf", "CatVariantsTest2.vcf", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider("CatVariantsTest1.bcf", "CatVariantsTest2.bcf", BaseTest.createTempFile("CatVariantsTest", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
+        final File catVariantsTempList1 = BaseTest.createTempListFile("CatVariantsTest1", CatVariantsVcf1.getAbsolutePath());
+        final File catVariantsTempList2 = BaseTest.createTempListFile("CatVariantsTest2", CatVariantsVcf2.getAbsolutePath());
 
-        for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS)
-            new CatVariantsTestProvider("CatVariantsTest1.vcf" + extension, "CatVariantsTest2.vcf" + extension, BaseTest.createTempFile("CatVariantsTest", ".vcf" + extension), "33f728ac5c70ce2994f3619a27f47088");
+        new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
+
+        for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
+            final File file1 = new File(CatVariantsDir, "CatVariantsTest1.vcf" + extension);
+            final File file2 = new File(CatVariantsDir, "CatVariantsTest2.vcf" + extension);
+            final File outputFile = BaseTest.createTempFile("CatVariantsTest", ".vcf" + extension);
+            new CatVariantsTestProvider(file1, file2, outputFile, "33f728ac5c70ce2994f3619a27f47088");
+        }
 
         //Test list parsing functionality
-        new CatVariantsTestProvider("CatVariantsTest1.list", "CatVariantsTest2.vcf", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider("CatVariantsTest1.vcf", "CatVariantsTest2.list", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider("CatVariantsTest1.list", "CatVariantsTest2.list", BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
 
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
     }
@@ -107,8 +118,8 @@ public class CatVariantsIntegrationTest {
                 StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
                 CatVariants.class.getCanonicalName(),
                 BaseTest.b37KGReference,
-                new File(CatVariantsDir, "CatVariantsTest1.vcf"),
-                new File(CatVariantsDir, "CatVariantsTest2.vcf"),
+                CatVariantsVcf1,
+                CatVariantsVcf2,
                 BaseTest.createTempFile("CatVariantsTest", ".bcf"));
 
         ProcessController pc = ProcessController.getThreadLocal();
@@ -123,8 +134,8 @@ public class CatVariantsIntegrationTest {
                 StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
                 CatVariants.class.getCanonicalName(),
                 BaseTest.b37KGReference,
-                new File(CatVariantsDir, "CatVariantsTest1.vcf"),
-                new File(CatVariantsDir, "CatVariantsTest2.bcf"),
+                CatVariantsVcf1,
+                CatVariantsBcf2,
                 BaseTest.createTempFile("CatVariantsTest", ".vcf"));
 
         ProcessController pc = ProcessController.getThreadLocal();

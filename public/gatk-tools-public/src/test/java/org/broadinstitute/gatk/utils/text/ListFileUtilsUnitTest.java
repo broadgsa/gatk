@@ -47,12 +47,12 @@ public class ListFileUtilsUnitTest extends BaseTest {
     public void testIgnoreBlankLinesInBAMListFiles() throws Exception {
         File tempListFile = createTempListFile("testIgnoreBlankLines",
                                                "",
-                                               "public/testdata/exampleBAM.bam",
+                                               publicTestDir + "exampleBAM.bam",
                                                "         "
                                               );
 
         List<SAMReaderID> expectedBAMFileListAfterUnpacking = new ArrayList<SAMReaderID>();
-        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
+        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File(publicTestDir + "exampleBAM.bam"), new Tags()));
 
         performBAMListFileUnpackingTest(tempListFile, expectedBAMFileListAfterUnpacking);
     }
@@ -61,30 +61,30 @@ public class ListFileUtilsUnitTest extends BaseTest {
     public void testCommentSupportInBAMListFiles() throws Exception {
         File tempListFile = createTempListFile("testCommentSupport",
                                                "#",
-                                               "public/testdata/exampleBAM.bam",
-                                               "#public/testdata/foo.bam",
-                                               "      # public/testdata/bar.bam"
+                                               publicTestDir + "exampleBAM.bam",
+                                               "#" + publicTestDir + "foo.bam",
+                                               "      # " + publicTestDir + "bar.bam"
                                               );
 
         List<SAMReaderID> expectedBAMFileListAfterUnpacking = new ArrayList<SAMReaderID>();
-        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
+        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File(publicTestDir + "exampleBAM.bam"), new Tags()));
 
         performBAMListFileUnpackingTest(tempListFile, expectedBAMFileListAfterUnpacking);
     }
 
     @Test
     public void testUnpackSet() throws Exception {
-        Set<String> expected = new HashSet<String>(Arrays.asList("public/testdata/exampleBAM.bam"));
+        Set<String> expected = new HashSet<String>(Arrays.asList(publicTestDir + "exampleBAM.bam"));
         Set<String> actual;
 
-        actual = ListFileUtils.unpackSet(Arrays.asList("public/testdata/exampleBAM.bam"));
+        actual = ListFileUtils.unpackSet(Arrays.asList(publicTestDir + "exampleBAM.bam"));
         Assert.assertEquals(actual, expected);
 
         File tempListFile = createTempListFile("testUnpackSet",
                 "#",
-                "public/testdata/exampleBAM.bam",
-                "#public/testdata/foo.bam",
-                "      # public/testdata/bar.bam"
+                publicTestDir + "exampleBAM.bam",
+                "#" + publicTestDir + "foo.bam",
+                "      # " + publicTestDir + "bar.bam"
         );
         actual = ListFileUtils.unpackSet(Arrays.asList(tempListFile.getAbsolutePath()));
         Assert.assertEquals(actual, expected);
@@ -140,18 +140,6 @@ public class ListFileUtilsUnitTest extends BaseTest {
 
     private static <T> Set<T> asSet(T... args){
         return new HashSet<T>(Arrays.asList(args));
-    }
-
-    private File createTempListFile( String tempFilePrefix, String... lines ) throws Exception {
-        File tempListFile = createTempFile(tempFilePrefix, ".list");
-
-        PrintWriter out = new PrintWriter(tempListFile);
-        for ( String line : lines ) {
-            out.println(line);
-        }
-        out.close();
-
-        return tempListFile;
     }
 
     private void performBAMListFileUnpackingTest( File tempListFile, List<SAMReaderID> expectedUnpackedFileList ) throws Exception {

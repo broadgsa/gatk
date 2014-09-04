@@ -91,35 +91,4 @@
         </plugins>
     </build>
 
-
-    <profiles>
-        <profile>
-            <id>private-testdata</id>
-            <activation>
-                <file>
-                    <exists>${basedir}/../../private/pom.xml</exists>
-                </file>
-            </activation>
-            <build>
-                <plugins>
-                    <!-- TODO: All tests require access to private. For now. -->
-                    <plugin>
-                        <groupId>com.pyx4j</groupId>
-                        <artifactId>maven-junction-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>link-private-testdata</id>
-                                <phase>process-test-resources</phase>
-                            </execution>
-                            <execution>
-                                <id>unlink-private-testdata</id>
-                                <phase>clean</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
 </project>

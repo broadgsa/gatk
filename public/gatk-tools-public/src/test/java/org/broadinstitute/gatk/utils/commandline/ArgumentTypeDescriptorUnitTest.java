@@ -176,7 +176,7 @@ public class ArgumentTypeDescriptorUnitTest extends BaseTest {
         final ParsingEngine parser = new ParsingEngine(new ATDTestCommandLineProgram());
 
         //A list file containing a single VCF
-        final File listFile = new File(privateTestDir+"oneVCF.list");
+        final File listFile = createTempListFile("oneVCF", privateTestDir + "empty.vcf");
 
         try {
             Object result = ArgumentTypeDescriptor.getRodBindingsCollection(listFile,
@@ -197,8 +197,7 @@ public class ArgumentTypeDescriptorUnitTest extends BaseTest {
         }
 
         //The same file, now with an extra blank line
-        final File listFileWithBlank = new File(privateTestDir+"oneVCFwithBlankLine.list");
-
+        final File listFileWithBlank = createTempListFile("oneVCFwithBlankLine", privateTestDir + "empty.vcf", "");
         try {
             Object result = ArgumentTypeDescriptor.getRodBindingsCollection(listFileWithBlank,
                     parser,

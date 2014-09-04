@@ -933,9 +933,8 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void argumentListTest() throws IOException {
-        File argsFile = BaseTest.createTempFile("args.", ".list");
+        File argsFile = BaseTest.createTempListFile("args.", "-I na12878.bam");
         try {
-            FileUtils.write(argsFile, "-I na12878.bam");
             final String[] commandLine = new String[] {"-args", argsFile.getPath()};
             parsingEngine.addArgumentSource(InputFileArgProvider.class);
             parsingEngine.parse(commandLine);

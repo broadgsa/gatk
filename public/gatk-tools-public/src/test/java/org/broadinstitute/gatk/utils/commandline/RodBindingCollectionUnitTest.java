@@ -44,7 +44,7 @@ public class RodBindingCollectionUnitTest extends BaseTest {
 
     private static final String defaultTagString = "VCF";
     private static final String testVCFFileName = privateTestDir + "empty.vcf";
-    private static final String testListFileName = privateTestDir + "oneVCF.list";
+    private static final String testListFileName = createTempListFile("oneVCF", testVCFFileName).getAbsolutePath();
 
     @BeforeMethod
     public void setUp() {
@@ -84,16 +84,13 @@ public class RodBindingCollectionUnitTest extends BaseTest {
         final RodBindingCollectionArgProvider argProvider = new RodBindingCollectionArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals(argProvider.input.getRodBindings().iterator().next().getSource(), "private/testdata/empty.vcf", "Argument is not correctly initialized");
+        Assert.assertEquals(argProvider.input.getRodBindings().iterator().next().getSource(), testVCFFileName, "Argument is not correctly initialized");
     }
 
     @Test
     public void testDefaultTagsInFile() throws IOException {
 
-        final File testFile = createTempFile("RodBindingCollectionUnitTest.defaultTags", ".list");
-        final FileWriter writer = new FileWriter(testFile);
-        writer.write(testVCFFileName, 0, testVCFFileName.length());
-        writer.close();
+        final File testFile = createTempListFile("RodBindingCollectionUnitTest.defaultTags", testVCFFileName);
 
         ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
 
@@ -108,29 +105,21 @@ public class RodBindingCollectionUnitTest extends BaseTest {
     @Test(expectedExceptions = UserException.BadArgumentValue.class)
     public void testDuplicateEntriesInFile() throws IOException {
 
-        final File testFile = createTempFile("RodBindingCollectionUnitTest.variantListWithDuplicates", ".list");
-        final FileWriter writer = new FileWriter(testFile);
-        writer.write(testVCFFileName + "\n");
-        writer.write(testVCFFileName + "\n");
-        writer.close();
+        final File testFile = createTempListFile("RodBindingCollectionUnitTest.variantListWithDuplicates", testVCFFileName, testVCFFileName);
 
         ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
     }
 
     @Test(expectedExceptions = UserException.BadArgumentValue.class)
     public void testValidateEmptyFile() throws IOException {
-        final File testFile = createTempFile("RodBindingCollectionUnitTest.emptyVCFList", ".list");
+        final File testFile = createTempListFile("RodBindingCollectionUnitTest.emptyVCFList");
 
         ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
     }
 
     @Test
     public void testOverrideTagsInFile() throws IOException {
-        final File testFile = createTempFile("RodBindingCollectionUnitTest.overrideTags", ".list");
-        final FileWriter writer = new FileWriter(testFile);
-        final String textToWrite = "foo " + testVCFFileName;
-        writer.write(textToWrite, 0, textToWrite.length());
-        writer.close();
+        final File testFile = createTempListFile("RodBindingCollectionUnitTest.overrideTags", "foo " + testVCFFileName);
 
         ArgumentTypeDescriptor.getRodBindingsCollection(testFile, parsingEngine, VariantContext.class, "foo", mytags, "input");
 
