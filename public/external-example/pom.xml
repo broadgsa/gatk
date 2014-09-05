@@ -28,6 +28,7 @@
         <gatk.integrationtests.skipped>${gatk.committests.skipped}</gatk.integrationtests.skipped>
 
         <!-- This flag is used by the package tests to disable re-shading -->
+        <gatk.unpack.phase>process-resources</gatk.unpack.phase>
         <gatk.shade.phase>package</gatk.shade.phase>
     </properties>
 
@@ -73,7 +74,7 @@
                 <executions>
                     <execution>
                         <id>unpack</id>
-                        <phase>process-resources</phase>
+                        <phase>${gatk.unpack.phase}</phase>
                         <goals>
                             <goal>unpack</goal>
                         </goals>
@@ -261,6 +262,8 @@
                 </property>
             </activation>
             <properties>
+                <gatk.jar.phase>none</gatk.jar.phase>
+                <gatk.unpack.phase>none</gatk.unpack.phase>
                 <gatk.shade.phase>none</gatk.shade.phase>
             </properties>
         </profile>
