@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.engine.io.stubs;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.tribble.index.IndexCreator;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
 import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -227,6 +228,14 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      */
     public void register( OutputTracker outputTracker ) {
         this.outputTracker = outputTracker;
+    }
+
+    @Override
+    public void processArguments( final GATKArgumentCollection argumentCollection ) {
+        setDoNotWriteGenotypes(argumentCollection.sitesOnlyVCF);
+        setSkipWritingCommandLineHeader(argumentCollection.disableCommandLineInVCF);
+        setForceBCF(argumentCollection.forceBCFOutput);
+
     }
 
     public void writeHeader(VCFHeader header) {

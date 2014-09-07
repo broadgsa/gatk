@@ -27,12 +27,13 @@ package org.broadinstitute.gatk.queue.extensions.gatk;
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.tribble.Tribble;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.*;
-import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -116,7 +117,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     public static List<? extends ArgumentField> getArgumentFields(ParsingEngine parsingEngine,Class<?> classType) {
-        List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
+        List<ArgumentField> argumentFields = new ArrayList<>();
         for (ArgumentSource argumentSource: parsingEngine.extractArgumentSources(classType))
             if (!argumentSource.isDeprecated()) {
                 String gatherer = null;
@@ -133,7 +134,31 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         return argumentFields;
     }
 
-    private static final List<String> intervalFields = Arrays.asList("intervals", "excludeIntervals", "targetIntervals");
+    public static String getArgumentFullName(final Class<?> collection, final String fieldName) {
+        try {
+            final Field field = collection.getField(fieldName);
+            final Argument arg = field.getAnnotation(Argument.class);
+            if (arg != null)
+                return arg.fullName();
+            final Input inputAnnotation = field.getAnnotation(Input.class);
+            if (inputAnnotation != null)
+                return inputAnnotation.fullName();
+            final Output outputAnnotation = field.getAnnotation(Output.class);
+            if (outputAnnotation != null)
+                return outputAnnotation.fullName();
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException(String.format("Can't find field %s in ArgumentCollection %s", fieldName, collection.getSimpleName()), e);
+        }
+        throw new IllegalStateException(String.format("Field %s in class %s is not annotated as an argument", fieldName, collection.getName()));
+    }
+
+    private static final List<String> intervalFields = new ArrayList<>();
+    private static final String inputFileArgument = getArgumentFullName(GATKArgumentCollection.class, "samFiles");
+
+    static {
+        intervalFields.add(getArgumentFullName(IntervalArgumentCollection.class, "intervals"));
+        intervalFields.add(getArgumentFullName(IntervalArgumentCollection.class, "excludeIntervals"));
+    }
 
     private static List<? extends ArgumentField> getArgumentFields(ArgumentDefinition argumentDefinition, String gatherer) {
         if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
@@ -144,7 +169,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         } else if (NumThreadsArgumentField.NUM_THREADS_FIELD.equals(argumentDefinition.fullName)) {
             return Arrays.asList(new NumThreadsArgumentField(argumentDefinition));
 
-        } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
+        } else if (inputFileArgument.equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, BAMIndex.BAMIndexSuffix, ".bam"));
 
         } else if ((RodBinding.class.equals(argumentDefinition.argumentType) || RodBinding.class.equals(argumentDefinition.componentType) || RodBindingCollection.class.equals(argumentDefinition.componentType)) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
@@ -155,7 +180,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
         } else if (argumentDefinition.ioType == ArgumentIOType.OUTPUT) {
 
-            List<ArgumentField> fields = new ArrayList<ArgumentField>();
+            List<ArgumentField> fields = new ArrayList<>();
 
             String gatherClass;
 
@@ -193,7 +218,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
         } else if (!argumentDefinition.required && useOption(argumentDefinition.argumentType)) {
             boolean useFormat = useFormatter(argumentDefinition.argumentType);
-            List<ArgumentField> fields = new ArrayList<ArgumentField>();
+            List<ArgumentField> fields = new ArrayList<>();
             ArgumentField field = new OptionedArgumentField(argumentDefinition, useFormat);
             fields.add(field);
             if (useFormat) fields.add(new FormatterArgumentField(field));
@@ -201,7 +226,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
         } else {
             boolean useFormat = useFormatter(argumentDefinition.argumentType);
-            List<ArgumentField> fields = new ArrayList<ArgumentField>();
+            List<ArgumentField> fields = new ArrayList<>();
             ArgumentField field = new DefaultArgumentField(argumentDefinition, useFormat);
             fields.add(field);
             if (useFormat) fields.add(new FormatterArgumentField(field));
@@ -349,7 +374,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
     // Allows the user to specify the track name, track type, and the file.
     public static class NumThreadsArgumentField extends OptionedArgumentField {
-        public static final String NUM_THREADS_FIELD = "num_threads";
+        public static final String NUM_THREADS_FIELD = getArgumentFullName(GATKArgumentCollection.class, "numberOfDataThreads");
+        public static final String NCT_FIELD = getArgumentFullName(GATKArgumentCollection.class, "numberOfCPUThreadsPerDataThread");
 
         public NumThreadsArgumentField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition, false);
@@ -357,7 +383,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
         @Override
         protected String getFreezeFields() {
-            return String.format("if (num_threads.isDefined) nCoresRequest = num_threads%nif (num_cpu_threads_per_data_thread.isDefined) nCoresRequest = Some(nCoresRequest.getOrElse(1) * num_cpu_threads_per_data_thread.getOrElse(1))%n");
+            return String.format("if (%1$s.isDefined) nCoresRequest = %1$s%nif (%2$s.isDefined) nCoresRequest = Some(nCoresRequest.getOrElse(1) * %2$s.getOrElse(1))%n",
+                    NUM_THREADS_FIELD, NCT_FIELD);
         }
     }
 
@@ -495,7 +522,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (!%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath.stripSuffix(\".bam\") + \"%4$s\")%n"),
-                    auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME, BAMIndex.BAMIndexSuffix);
+                    auxFieldName, originalFieldName, getArgumentFullName(GATKArgumentCollection.class, "disableBAMIndexing"), BAMIndex.BAMIndexSuffix);
         }
     }
 
@@ -508,7 +535,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
                             "  if (%3$s)%n" +
                             "    %1$s = new File(%2$s.getPath + \"%4$s\")%n"),
-                    auxFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME, ".md5");
+                    auxFieldName, originalFieldName, getArgumentFullName(GATKArgumentCollection.class, "enableBAMmd5"), ".md5");
         }
     }
 

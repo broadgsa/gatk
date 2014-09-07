@@ -25,7 +25,6 @@
 
 package org.broadinstitute.gatk.engine.arguments;
 
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
@@ -61,7 +60,7 @@ public class GATKArgumentCollection {
      * BAM file. Please see our online documentation for more details on input formatting requirements.
      */
     @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (SAM or BAM)", required = false)
-    public List<String> samFiles = new ArrayList<String>();
+    public List<String> samFiles = new ArrayList<>();
 
     @Hidden
     @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list files).")
@@ -120,7 +119,7 @@ public class GATKArgumentCollection {
      * is specified in each tool's documentation. The default filters cannot be disabled.
      */
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Filters to apply to reads before analysis", required = false)
-    public final List<String> readFilters = new ArrayList<String>();
+    public final List<String> readFilters = new ArrayList<>();
 
     @ArgumentCollection
     public IntervalArgumentCollection intervalArguments = new IntervalArgumentCollection();
@@ -407,6 +406,39 @@ public class GATKArgumentCollection {
               doc = "Disable both auto-generation of index files and index file locking",
               required = false)
     public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
+
+    @Hidden
+    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.",
+              required = false)
+    public boolean disableCommandLineInVCF = false;
+
+    @Argument(fullName = "sites_only", shortName = "sites_only", doc = "Just output sites without genotypes (i.e. only the first 8 columns of the VCF)",
+              required = false)
+    public boolean sitesOnlyVCF = false;
+
+    @Hidden
+    @Argument(fullName = "bcf", shortName = "bcf", doc = "Force BCF output, regardless of the file's extension",
+              required = false)
+    public boolean forceBCFOutput = false;
+
+    @Advanced
+    @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files (0 - 9, higher is more compressed)",
+              minValue = 0, maxValue = 9, required = false)
+    public Integer bamCompression = null;
+
+    @Advanced
+    @Argument(fullName = "simplifyBAM", shortName = "simplifyBAM",
+              doc = "If provided, output BAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
+              required = false)
+    public boolean simplifyBAM = false;
+
+    @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM files.",
+            required = false)
+    public boolean disableBAMIndexing = false;
+
+    @Argument(fullName = "generate_md5", doc = "Enable on-the-fly creation of md5s for output BAM files.",
+            required = false)
+    public boolean enableBAMmd5 = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //

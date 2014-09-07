@@ -30,6 +30,7 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
 import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
@@ -273,6 +274,16 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter
         this.outputTracker = outputTracker;
     }
 
+    @Override
+    public void processArguments( final GATKArgumentCollection argumentCollection ) {
+        if (argumentCollection.bamCompression != null)
+            setCompressionLevel(argumentCollection.bamCompression);
+        setGenerateMD5(argumentCollection.enableBAMmd5);
+        setIndexOnTheFly(!argumentCollection.disableBAMIndexing);
+        setSimplifyBAM(argumentCollection.simplifyBAM);
+
+    }
+
     /**
      * Use the given header as the target for this writer.
      * @param header The header to write.
@@ -284,7 +295,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter
     }
 
     private void initializeReadTransformers() {
-        this.onOutputReadTransformers = new ArrayList<ReadTransformer>(engine.getReadTransformers().size());
+        this.onOutputReadTransformers = new ArrayList<>(engine.getReadTransformers().size());
         for ( final ReadTransformer transformer : engine.getReadTransformers() ) {
             if ( transformer.getApplicationTime() == ReadTransformer.ApplicationTime.ON_OUTPUT )
                 onOutputReadTransformers.add(transformer);
