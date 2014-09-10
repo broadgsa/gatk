@@ -47,7 +47,14 @@ public class GATKVariantContextUtils {
 
     public static final double SUM_GL_THRESH_NOCALL = -0.1; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
+    /**
+     * Diploid NO_CALL allele list...
+     *
+     * @deprecated you should use {@link #noCallAlleles(int)} instead. It indicates the presence of a hardcoded diploid assumption which is bad.
+     */
+    @Deprecated
     public final static List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+
     public final static String NON_REF_SYMBOLIC_ALLELE_NAME = "NON_REF";
     public final static Allele NON_REF_SYMBOLIC_ALLELE = Allele.create("<"+NON_REF_SYMBOLIC_ALLELE_NAME+">", false); // represents any possible non-ref allele at this site
 
@@ -141,6 +148,26 @@ public class GATKVariantContextUtils {
         }
 
         return ref;
+    }
+
+    /**
+     * Calculates the total ploidy of a variant context as the sum of all plodies across genotypes.
+     * @param vc the target variant context.
+     * @param defaultPloidy the default ploidy to be assume when there is no ploidy information for a genotype.
+     * @return never {@code null}.
+     */
+    public static int totalPloidy(final VariantContext vc, final int defaultPloidy) {
+        if (vc == null)
+            throw new IllegalArgumentException("the vc provided cannot be null");
+        if (defaultPloidy < 0)
+            throw new IllegalArgumentException("the default ploidy must 0 or greater");
+        int result = 0;
+        for (final Genotype genotype : vc.getGenotypes()) {
+            final int declaredPloidy = genotype.getPloidy();
+            result += declaredPloidy <= 0 ? declaredPloidy : declaredPloidy;
+        }
+
+        return result;
     }
 
     public enum GenotypeMergeType {
@@ -1323,6 +1350,28 @@ public class GATKVariantContextUtils {
     }
 
     /**
+     * Cached NO_CALL immutable lists where the position ith contains the list with i elements.
+     */
+    private static List<Allele>[] NOCALL_LISTS = new List[] {
+            Collections.emptyList(),
+            Collections.singletonList(Allele.NO_CALL),
+            Collections.nCopies(2,Allele.NO_CALL)
+    };
+
+    /**
+     * Synchronized code to ensure that {@link #NOCALL_LISTS} has enough entries beyod the requested ploidy
+     * @param capacity the requested ploidy.
+     */
+    private static synchronized void ensureNoCallListsCapacity(final int capacity) {
+        final int currentCapacity = NOCALL_LISTS.length - 1;
+        if (currentCapacity >= capacity)
+            return;
+        NOCALL_LISTS = Arrays.copyOf(NOCALL_LISTS,Math.max(capacity,currentCapacity << 1) + 1);
+        for (int i = currentCapacity + 1; i < NOCALL_LISTS.length; i++)
+            NOCALL_LISTS[i] = Collections.nCopies(i,Allele.NO_CALL);
+    }
+
+    /**
      * Returns a {@link Allele#NO_CALL NO_CALL} allele list provided the ploidy.
      *
      * @param ploidy the required ploidy.
@@ -1331,16 +1380,9 @@ public class GATKVariantContextUtils {
      *   might or might not be mutable.
      */
     public static List<Allele> noCallAlleles(final int ploidy) {
-        if (ploidy <= 0)
-            return Collections.EMPTY_LIST;
-        else if (ploidy == 1)
-            return Collections.singletonList(Allele.NO_CALL);
-        else {
-            final List<Allele> result = new ArrayList<>(ploidy);
-            for (int i = 0; i < ploidy; i++)
-                result.add(Allele.NO_CALL);
-            return result;
-        }
+        if (NOCALL_LISTS.length <= ploidy)
+            ensureNoCallListsCapacity(ploidy);
+        return NOCALL_LISTS[ploidy];
     }
 
 
