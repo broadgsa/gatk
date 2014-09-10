@@ -164,7 +164,7 @@ public class GATKVariantContextUtils {
         int result = 0;
         for (final Genotype genotype : vc.getGenotypes()) {
             final int declaredPloidy = genotype.getPloidy();
-            result += declaredPloidy <= 0 ? declaredPloidy : declaredPloidy;
+            result += declaredPloidy <= 0 ? defaultPloidy : declaredPloidy;
         }
 
         return result;
