@@ -1573,6 +1573,35 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         locs[nextIndex++]  = GenomeLoc.UNMAPPED;
     }
 
+    @Test(dataProvider = "totalPloidyData")
+    public void testTotalPloidy(final int[] ploidies, final int defaultPloidy, final int expected) {
+        final Genotype[] genotypes = new Genotype[ploidies.length];
+        final List<Allele> vcAlleles = Arrays.asList(Aref,C);
+        for (int i = 0; i < genotypes.length; i++)
+            genotypes[i] = new GenotypeBuilder().alleles(GATKVariantContextUtils.noCallAlleles(ploidies[i])).make();
+        final VariantContext vc = new VariantContextBuilder().chr("seq1").genotypes(genotypes).alleles(vcAlleles).make();
+        Assert.assertEquals(GATKVariantContextUtils.totalPloidy(vc,defaultPloidy),expected," " + defaultPloidy + " " + Arrays.toString(ploidies));
+    }
+
+    @DataProvider(name="totalPloidyData")
+    public Object[][] totalPloidyData() {
+        final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+        final List<Object[]> resultList = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            final int sampleCount = rdn.nextInt(10);
+
+            int expected = 0;
+            final int defaultPloidy = rdn.nextInt(10) + 1;
+            final int[] plodies = new int[sampleCount];
+            for (int j = 0; j < sampleCount; j++) {
+                plodies[j] = rdn.nextInt(10);
+                expected += plodies[j] == 0 ? defaultPloidy : plodies[j];
+            }
+            resultList.add(new Object[] { plodies, defaultPloidy, expected });
+        }
+        return resultList.toArray(new Object[100][]);
+    }
+
     private byte[] randomBases(final int length, final boolean reference) {
         final byte[] bases = new byte[length];
         bases[0] = (byte) (reference  ? 'A' : 'C');

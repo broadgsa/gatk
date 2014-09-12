@@ -293,11 +293,12 @@ public class MathUtils {
 
     public static double log10sumLog10(final double[] log10p, final int start, final int finish) {
 
+        if (start >= finish)
+            return Double.NEGATIVE_INFINITY;
         final int maxElementIndex = MathUtils.maxElementIndex(log10p, start, finish);
-        double maxValue = log10p[maxElementIndex];
-        if(maxValue == Double.NEGATIVE_INFINITY)   {
+        final double maxValue = log10p[maxElementIndex];
+        if(maxValue == Double.NEGATIVE_INFINITY)
             return maxValue;
-        }
         double sum = 1.0;
         for (int i = start; i < finish; i++) {
             double curVal = log10p[i];
@@ -888,6 +889,7 @@ public class MathUtils {
         if (start > endIndex) {
            throw new IllegalArgumentException("Start cannot be after end.");
         }
+
         int maxI = start;
         for (int i = (start+1); i < endIndex; i++) {
             if (array[i] > array[maxI])
