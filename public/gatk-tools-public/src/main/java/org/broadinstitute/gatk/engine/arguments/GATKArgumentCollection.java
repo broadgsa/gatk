@@ -416,6 +416,18 @@ public class GATKArgumentCollection {
               required = false)
     public boolean sitesOnlyVCF = false;
 
+    /**
+     * <p>The VCF specification permits missing records to be dropped from the end of FORMAT fields, so long as GT is always output.
+     * This option prevents GATK from performing that trimming.</p>
+     *
+     * <p>For example, given a FORMAT of <pre>GT:AD:DP:PL</pre>, GATK will by default emit <pre>./.</pre> for a variant with
+     * no reads present (ie, the AD, DP, and PL fields are trimmed).  If you specify -writeFullFormat, this record
+     * would be emitted as <pre>./.:.:.:.</pre></p>
+     */
+    @Argument(fullName = "never_trim_vcf_format_field", shortName = "writeFullFormat", doc = "Always output all the records in VCF FORMAT fields, even if some are missing",
+              required = false)
+    public boolean neverTrimVCFFormatField = false;
+
     @Hidden
     @Argument(fullName = "bcf", shortName = "bcf", doc = "Force BCF output, regardless of the file's extension",
               required = false)
