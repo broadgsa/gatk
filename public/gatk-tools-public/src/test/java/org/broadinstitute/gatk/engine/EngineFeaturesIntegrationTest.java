@@ -716,9 +716,21 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         executeTest("testVCFFeatures: "+args, spec);
     }
 
+    private void testVCFFormatHandling(final boolean writeFullFormat, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"
+                + " --no_cmdline_in_header -o %s "
+                + " --fullyDecode " //Without this parameter, the FORMAT fields will be emitted unchanged.  Oops
+                + (writeFullFormat ? "-writeFullFormat" : "") ,
+                1, Arrays.asList(md5));
+        executeTest("testVCFFormatHandling: "+(writeFullFormat ? "Untrimmed" : "Trimmed"), spec);
+    }
+
     @Test
     public void testVCFWriterFeatures() {
         testVCFFeatures("--sites_only", "94bf1f2c0946e933515e4322323a5716");
         testVCFFeatures("--bcf", "03f2d6988f54a332da48803c78f9c4b3");
+        testVCFFormatHandling(true, "2b0fa660b0cef4b0f45a10febb453b6c");
+        testVCFFormatHandling(false, "5960311fdd9ee6db88587efaaf4055a0");
     }
 }
