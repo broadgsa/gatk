@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.utils.sam;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
-import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
 
@@ -40,9 +39,9 @@ import java.util.Iterator;
  * Time: 1:19 PM
  */
 public class GATKSAMRecordIterator implements CloseableIterator<GATKSAMRecord>, Iterable<GATKSAMRecord> {
-    final CloseableIterator<SAMRecord> it;
+    final CloseableIterator<? extends SAMRecord> it;
 
-    public GATKSAMRecordIterator(final CloseableIterator<SAMRecord> it) {
+    public GATKSAMRecordIterator(final CloseableIterator<? extends SAMRecord> it) {
         this.it = it;
     }
 
@@ -51,7 +50,14 @@ public class GATKSAMRecordIterator implements CloseableIterator<GATKSAMRecord>, 
     }
 
     @Override public boolean hasNext() { return it.hasNext(); }
-    @Override public GATKSAMRecord next() { return (GATKSAMRecord)it.next(); }
+    @Override public GATKSAMRecord next() {
+        SAMRecord next = it.next();
+        if (next instanceof GATKSAMRecord) {
+            return (GATKSAMRecord)next;
+        } else {
+            return new GATKSAMRecord(next);
+        }
+    }
     @Override public void remove() { it.remove(); }
     @Override public void close() { it.close(); }
     @Override public Iterator<GATKSAMRecord> iterator() { return this; }

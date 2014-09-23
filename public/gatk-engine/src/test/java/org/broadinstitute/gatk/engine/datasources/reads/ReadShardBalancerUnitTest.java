@@ -84,7 +84,8 @@ public class ReadShardBalancerUnitTest extends BaseTest {
         public void run() {
             createTestBAM();
 
-            SAMDataSource dataSource = new SAMDataSource(Arrays.asList(testBAM),
+            SAMDataSource dataSource = new SAMDataSource(null, // Reference not used in this test.
+                                                         Arrays.asList(testBAM),
                                                          new ThreadAllocation(),
                                                          null,
                                                          new GenomeLocParser(header.getSequenceDictionary()),

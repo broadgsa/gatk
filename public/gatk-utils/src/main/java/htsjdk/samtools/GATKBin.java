@@ -132,4 +132,15 @@ public class GATKBin implements Comparable<GATKBin> {
             return new GATKChunk[0];
         return chunkList;
     }
+
+    // HACK: Using this classes package permissions to further hack the CRAM created SAMRecord's indexing bin and binary attributes.
+    public static Integer getReadIndexingBin(final SAMRecord read) {
+        return read.getIndexingBin();
+    }
+    public static void setReadIndexingBin(final SAMRecord read, final Integer indexingBin) {
+        read.setIndexingBin(indexingBin);
+    }
+    public static SAMBinaryTagAndValue getReadBinaryAttributes(final SAMRecord read) {
+        return read.getBinaryAttributes();
+    }
 }

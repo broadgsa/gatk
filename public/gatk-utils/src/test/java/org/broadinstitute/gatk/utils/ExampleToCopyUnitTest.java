@@ -40,7 +40,6 @@ import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.gatk.utils.sam.ArtificialBAMBuilder;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
-import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -219,11 +218,10 @@ public class ExampleToCopyUnitTest extends BaseTest {
         final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(seq, 20, 10);
         final File bam = bamBuilder.makeTemporarilyBAMFile();
         final SAMFileReader reader = new SAMFileReader(bam);
-        reader.setSAMRecordFactory(new GATKSamRecordFactory());
 
         final Iterator<SAMRecord> bamIt = reader.iterator();
         while ( bamIt.hasNext() ) {
-            final GATKSAMRecord read = (GATKSAMRecord)bamIt.next(); // all reads are actually GATKSAMRecords
+            final SAMRecord read = bamIt.next(); // all reads are actually GATKSAMRecords
             // TODO -- add some tests that use reads from a BAM
         }
     }

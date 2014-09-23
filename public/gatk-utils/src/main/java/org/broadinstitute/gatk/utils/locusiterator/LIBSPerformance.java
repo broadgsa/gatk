@@ -37,7 +37,6 @@ import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecordIterator;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +66,6 @@ public class LIBSPerformance extends CommandLineProgram {
         final GenomeLocParser genomeLocParser = new GenomeLocParser(reference);
 
         final SAMFileReader reader = new SAMFileReader(samFile);
-        reader.setSAMRecordFactory(new GATKSamRecordFactory());
 
         SAMRecordIterator rawIterator;
         if ( location == null )

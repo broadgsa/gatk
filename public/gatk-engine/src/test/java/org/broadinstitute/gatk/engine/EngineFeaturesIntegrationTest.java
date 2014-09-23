@@ -38,7 +38,6 @@ import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
-import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
@@ -312,7 +311,6 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File outputBam = executeTest("testGATKEngineConsolidatesCigars", spec).first.get(0);
         final SAMFileReader reader = new SAMFileReader(outputBam);
         reader.setValidationStringency(ValidationStringency.SILENT);
-        reader.setSAMRecordFactory(new GATKSamRecordFactory());
 
         final SAMRecord read = reader.iterator().next();
         reader.close();

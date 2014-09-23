@@ -76,7 +76,7 @@ public abstract class LocusViewTemplate extends BaseTest {
         SAMRecordIterator iterator = new SAMRecordIterator();
 
         GenomeLoc shardBounds = genomeLocParser.createGenomeLoc("chr1", 1, 5);
-        Shard shard = new LocusShard(genomeLocParser, new SAMDataSource(Collections.<SAMReaderID>emptyList(),new ThreadAllocation(),null,genomeLocParser),Collections.singletonList(shardBounds),Collections.<SAMReaderID,SAMFileSpan>emptyMap());
+        Shard shard = new LocusShard(genomeLocParser, new SAMDataSource(null,Collections.<SAMReaderID>emptyList(),new ThreadAllocation(),null,genomeLocParser),Collections.singletonList(shardBounds),Collections.<SAMReaderID,SAMFileSpan>emptyMap());
         WindowMaker windowMaker = new WindowMaker(shard,genomeLocParser,iterator,shard.getGenomeLocs());
         WindowMaker.WindowMakerIterator window = windowMaker.next();
         LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, genomeLocParser, window.getLocus(), window, null, null);

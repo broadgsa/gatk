@@ -138,7 +138,7 @@ public class TraverseReadsUnitTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testUnmappedReadCount() {
-        SAMDataSource dataSource = new SAMDataSource(bamList,new ThreadAllocation(),null,genomeLocParser);
+        SAMDataSource dataSource = new SAMDataSource(refFile, bamList,new ThreadAllocation(),null,genomeLocParser);
         Iterable<Shard> shardStrategy = dataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
 
         countReadWalker.initialize();

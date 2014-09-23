@@ -225,20 +225,20 @@ public class UserException extends ReviewedGATKException {
 
     public static class MissortedBAM extends UserException {
         public MissortedBAM(SAMFileHeader.SortOrder order, File file, SAMFileHeader header) {
-            super(String.format("Missorted Input SAM/BAM files: %s is must be sorted in %s order but order was: %s", file, order, header.getSortOrder()));
+            super(String.format("Missorted Input SAM/BAM/CRAM files: %s is must be sorted in %s order but order was: %s", file, order, header.getSortOrder()));
         }
 
         public MissortedBAM(SAMFileHeader.SortOrder order, String message) {
-            super(String.format("Missorted Input SAM/BAM files: files are not sorted in %s order; %s", order, message));
+            super(String.format("Missorted Input SAM/BAM/CRAM files: files are not sorted in %s order; %s", order, message));
         }
 
         public MissortedBAM(SAMFileHeader.SortOrder order, SAMRecord read, String message) {
-            super(String.format("Missorted Input SAM/BAM file %s: file sorted in %s order but %s is required; %s",
+            super(String.format("Missorted Input SAM/BAM/CRAM file %s: file sorted in %s order but %s is required; %s",
                     read.getFileSource().getReader(), read.getHeader().getSortOrder(), order, message));
         }
 
         public MissortedBAM(String message) {
-            super(String.format("Missorted Input SAM/BAM files: %s", message));
+            super(String.format("Missorted Input SAM/BAM/CRAM files: %s", message));
         }
     }
 
@@ -252,7 +252,7 @@ public class UserException extends ReviewedGATKException {
         }
 
         public MalformedBAM(String source, String message) {
-            super(String.format("SAM/BAM file %s is malformed: %s", source, message));
+            super(String.format("SAM/BAM/CRAM file %s is malformed: %s", source, message));
         }
     }
 
@@ -262,7 +262,7 @@ public class UserException extends ReviewedGATKException {
         }
 
         public MisencodedBAM(String source, String message) {
-            super(String.format("SAM/BAM file %s appears to be using the wrong encoding for quality scores: %s; please see the GATK --help documentation for options related to this error", source, message));
+            super(String.format("SAM/BAM/CRAM file %s appears to be using the wrong encoding for quality scores: %s; please see the GATK --help documentation for options related to this error", source, message));
         }
     }
 

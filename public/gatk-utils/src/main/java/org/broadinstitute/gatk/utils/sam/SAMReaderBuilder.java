@@ -25,8 +25,10 @@
 
 package org.broadinstitute.gatk.utils.sam;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
+import org.broadinstitute.gatk.utils.io.ReferenceBacked;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
@@ -39,11 +41,16 @@ import java.io.File;
  * @author mhanna
  * @version 0.1
  */
-public class SAMFileReaderBuilder {
+public class SAMReaderBuilder implements ReferenceBacked {
     /**
      * To which file should output be written?
      */
     private File samFile = null;
+
+    /**
+     * The reference file for the samFile.
+     */
+    private File referenceFile = null;
 
     /**
      * What compression level should be used when building this file?
@@ -58,6 +65,16 @@ public class SAMFileReaderBuilder {
         this.samFile = samFile;
     }
 
+    @Override
+    public File getReferenceFile() {
+        return referenceFile;
+    }
+
+    @Override
+    public void setReferenceFile(final File referenceFile) {
+        this.referenceFile = referenceFile;
+    }
+
     /**
      * Sets the validation stringency to apply when reading this sam file.
      * @param validationStringency Stringency to apply.  Must not be null.
@@ -70,15 +87,16 @@ public class SAMFileReaderBuilder {
      * Create the SAM writer, given the constituent parts accrued.
      * @return Newly minted SAM file writer.
      */
-    public SAMFileReader build() {
+    public SamReader build() {
         if( samFile == null )
             throw new ReviewedGATKException( "Filename for output sam file must be supplied.");
         if( validationStringency == null )
             throw new ReviewedGATKException( "Header for output sam file must be supplied.");
 
-        SAMFileReader reader = new SAMFileReader( samFile );
-        reader.setValidationStringency( validationStringency );
-
-        return reader;
+        return SamReaderFactory
+                .makeDefault()
+                .referenceSequence(this.getReferenceFile())
+                .validationStringency(validationStringency)
+                .open(samFile);
     }
 }

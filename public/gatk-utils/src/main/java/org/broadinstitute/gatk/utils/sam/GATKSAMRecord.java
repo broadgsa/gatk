@@ -49,7 +49,7 @@ import java.util.*;
  * Changing these values in any way will invalidate the cached value. However, we do not monitor those setter
  * functions, so modifying a GATKSAMRecord in any way may result in stale cached values.
  */
-public class GATKSAMRecord extends BAMRecord implements Cloneable {
+public class GATKSAMRecord extends SAMRecord implements Cloneable {
     // Base Quality Score Recalibrator specific attribute tags
     public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";                // base qualities for insertions
     public static final String BQSR_BASE_DELETION_QUALITIES = "BD";                 // base qualities for deletions
@@ -92,42 +92,36 @@ public class GATKSAMRecord extends BAMRecord implements Cloneable {
      * @param read
      */
     public GATKSAMRecord(final SAMRecord read) {
-        super(read.getHeader(),
-                read.getReferenceIndex(),
-                read.getAlignmentStart(),
-                read.getReadName() != null ? (short)read.getReadNameLength() : 0,
-                (short)read.getMappingQuality(),
-                0,
-                read.getCigarLength(),
-                read.getFlags(),
-                read.getReadLength(),
-                read.getMateReferenceIndex(),
-                read.getMateAlignmentStart(),
-                read.getInferredInsertSize(),
-                null);
+        super(read.getHeader());
+        super.setReferenceIndex(read.getReferenceIndex());
+        super.setAlignmentStart(read.getAlignmentStart());
+        super.setReadName(read.getReadName());
+        super.setMappingQuality(read.getMappingQuality());
+        // indexing bin done below
+        super.setCigar(read.getCigar());
+        super.setFlags(read.getFlags());
+        super.setMateReferenceIndex(read.getMateReferenceIndex());
+        super.setMateAlignmentStart(read.getMateAlignmentStart());
+        super.setInferredInsertSize(read.getInferredInsertSize());
         SAMReadGroupRecord samRG = read.getReadGroup();
-        clearAttributes();
+        SAMBinaryTagAndValue samAttr = GATKBin.getReadBinaryAttributes(read);
+        if (samAttr == null) {
+            clearAttributes();
+        } else {
+            setAttributes(samAttr);
+        }
         if (samRG != null) {
             GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(samRG);
             setReadGroup(rg);
         }
-    }
 
-    public GATKSAMRecord(final SAMFileHeader header,
-                         final int referenceSequenceIndex,
-                         final int alignmentStart,
-                         final short readNameLength,
-                         final short mappingQuality,
-                         final int indexingBin,
-                         final int cigarLen,
-                         final int flags,
-                         final int readLen,
-                         final int mateReferenceSequenceIndex,
-                         final int mateAlignmentStart,
-                         final int insertSize,
-                         final byte[] variableLengthBlock) {
-        super(header, referenceSequenceIndex, alignmentStart, readNameLength, mappingQuality, indexingBin, cigarLen,
-                flags, readLen, mateReferenceSequenceIndex, mateAlignmentStart, insertSize, variableLengthBlock);
+        super.setFileSource(read.getFileSource());
+        super.setReadName(read.getReadName());
+        super.setCigarString(read.getCigarString());
+        super.setReadBases(read.getReadBases());
+        super.setBaseQualities(read.getBaseQualities());
+        // From SAMRecord constructor: Do this after the above because setCigarString will clear it.
+        GATKBin.setReadIndexingBin(this, GATKBin.getReadIndexingBin(read));
     }
 
     public static GATKSAMRecord createRandomRead(int length) {
@@ -520,19 +514,15 @@ public class GATKSAMRecord extends BAMRecord implements Cloneable {
      * @return a read with no bases but safe for the GATK
      */
     public static GATKSAMRecord emptyRead(GATKSAMRecord read) {
-        GATKSAMRecord emptyRead = new GATKSAMRecord(read.getHeader(),
-                read.getReferenceIndex(),
-                0,
-                (short) 0,
-                (short) 0,
-                0,
-                0,
-                read.getFlags(),
-                0,
-                read.getMateReferenceIndex(),
-                read.getMateAlignmentStart(),
-                read.getInferredInsertSize(),
-                null);
+        final GATKSAMRecord emptyRead = new GATKSAMRecord(read.getHeader());
+        emptyRead.setReferenceIndex(read.getReferenceIndex());
+        emptyRead.setAlignmentStart(0);
+        emptyRead.setMappingQuality(0);
+        // setting read indexing bin last
+        emptyRead.setFlags(read.getFlags());
+        emptyRead.setMateReferenceIndex(read.getMateReferenceIndex());
+        emptyRead.setMateAlignmentStart(read.getMateAlignmentStart());
+        emptyRead.setInferredInsertSize(read.getInferredInsertSize());
 
         emptyRead.setCigarString("");
         emptyRead.setReadBases(new byte[0]);
@@ -544,6 +534,8 @@ public class GATKSAMRecord extends BAMRecord implements Cloneable {
             GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(samRG);
             emptyRead.setReadGroup(rg);
         }
+
+        GATKBin.setReadIndexingBin(emptyRead, 0);
 
         return emptyRead;
     }

@@ -81,6 +81,7 @@ public class ReadMetricsUnitTest extends BaseTest {
 
     // Test the accuracy of the read metrics
 
+    private File referenceFile;
     private IndexedFastaSequenceFile reference;
     private SAMSequenceDictionary dictionary;
     private SAMFileHeader header;
@@ -93,7 +94,8 @@ public class ReadMetricsUnitTest extends BaseTest {
 
     @BeforeClass
     private void init() throws IOException {
-        reference = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        referenceFile = new File(b37KGReference);
+        reference = new CachingIndexedFastaSequenceFile(referenceFile);
         dictionary = reference.getSequenceDictionary();
         genomeLocParser = new GenomeLocParser(dictionary);
         header = ArtificialSAMUtils.createDefaultReadGroup(new SAMFileHeader(), "test", "test");
@@ -149,7 +151,7 @@ public class ReadMetricsUnitTest extends BaseTest {
         final SAMReaderID readerID = new SAMReaderID(testBAM, new Tags());
         samFiles.add(readerID);
 
-        final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+        final SAMDataSource dataSource = new SAMDataSource(referenceFile, samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
                 ValidationStringency.STRICT,
                 null,
@@ -184,7 +186,7 @@ public class ReadMetricsUnitTest extends BaseTest {
         final SAMReaderID readerID = new SAMReaderID(testBAM, new Tags());
         samFiles.add(readerID);
 
-        final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+        final SAMDataSource dataSource = new SAMDataSource(referenceFile, samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
                 ValidationStringency.STRICT,
                 null,
@@ -225,7 +227,7 @@ public class ReadMetricsUnitTest extends BaseTest {
         final SAMReaderID readerID = new SAMReaderID(testBAM, new Tags());
         samFiles.add(readerID);
 
-        final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+        final SAMDataSource dataSource = new SAMDataSource(referenceFile, samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
                 ValidationStringency.STRICT,
                 null,
@@ -272,7 +274,7 @@ public class ReadMetricsUnitTest extends BaseTest {
         final List<ReadFilter> filters = new ArrayList<>();
         filters.add(new EveryTenthReadFilter());
 
-        final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+        final SAMDataSource dataSource = new SAMDataSource(referenceFile, samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
                 ValidationStringency.STRICT,
                 null,

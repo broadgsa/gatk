@@ -29,14 +29,14 @@ import htsjdk.samtools.SAMFileReader;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.sam.SAMFileReaderBuilder;
+import org.broadinstitute.gatk.utils.sam.SAMReaderBuilder;
 
 import java.lang.reflect.Type;
 
 /**
- * Describe how to parse SAMFileReaders.
+ * Describe how to parse SAMReaders.
  */
-public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor {
+public class SAMReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     /**
      * The engine into which output stubs should be fed.
      */
@@ -46,7 +46,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      * Create a new SAMFileReader argument, notifying the given engine when that argument has been created.
      * @param engine engine
      */
-    public SAMFileReaderArgumentTypeDescriptor( GenomeAnalysisEngine engine ) {
+    public SAMReaderArgumentTypeDescriptor(GenomeAnalysisEngine engine) {
         this.engine = engine;
     }
 
@@ -57,7 +57,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches ) {
-        SAMFileReaderBuilder builder = new SAMFileReaderBuilder();
+        SAMReaderBuilder builder = new SAMReaderBuilder();
 
         ArgumentMatchValue readerFileName = getArgumentValue( createDefaultArgumentDefinition(source), matches );
 
@@ -71,7 +71,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
         // MASSIVE KLUDGE!  SAMFileReader is tricky to implement and we don't yet have a stub.  Return null, then
         // let the output tracker load it in.
-        // TODO: Add a stub for SAMFileReader.
+        // TODO: Add a stub for SAMReader.
         return null;
     }
 }

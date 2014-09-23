@@ -37,6 +37,7 @@ import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -313,6 +314,7 @@ public class ReadFilterTest extends BaseTest {
 
     protected SAMDataSource composeDataSource() {
         checkHeaderExists();
+        final File referenceFile = null; // Not used in this test.
         final Set<SAMReaderID> readerIDs = new HashSet<>(1);
         final ThreadAllocation ta = new ThreadAllocation();
         final Integer numFileHandles = 1; // I believe that any value would do but need to confirm.
@@ -326,6 +328,7 @@ public class ReadFilterTest extends BaseTest {
 
         final GenomeLocParser glp = new GenomeLocParser(header.getSequenceDictionary());
         final SAMDataSource res = new SAMDataSource(
+                referenceFile,
                 readerIDs,
                 ta,
                 numFileHandles,

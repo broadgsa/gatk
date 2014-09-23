@@ -50,6 +50,7 @@ import org.broadinstitute.gatk.engine.io.stubs.Stub;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformersMode;
 import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
+import org.broadinstitute.gatk.utils.io.ReferenceBacked;
 import org.broadinstitute.gatk.utils.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
@@ -697,14 +698,23 @@ public class GenomeAnalysisEngine {
      * @param outputTracker the tracker supplying the initialization data.
      */
     private void initializeOutputStreams(final OutputTracker outputTracker) {
-        for (final Map.Entry<ArgumentSource, Object> input : getInputs().entrySet())
+        for (final Map.Entry<ArgumentSource, Object> input : getInputs().entrySet()) {
+            setReferenceFile(input.getValue());
             outputTracker.addInput(input.getKey(), input.getValue());
+        }
         for (final Stub<?> stub : getOutputs()) {
+            setReferenceFile(stub);
             stub.processArguments(argCollection);
             outputTracker.addOutput(stub);
         }
 
         outputTracker.prepareWalker(walker, getArguments().strictnessLevel);
+    }
+
+    private void setReferenceFile(final Object object) {
+        if (object instanceof ReferenceBacked) {
+            ((ReferenceBacked)object).setReferenceFile(argCollection.referenceFile);
+        }
     }
 
     public ReferenceDataSource getReferenceDataSource() {
@@ -907,6 +917,7 @@ public class GenomeAnalysisEngine {
         final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
         return new SAMDataSource(
+                argCollection.referenceFile,
                 samReaderIDs,
                 threadAllocation,
                 argCollection.numberOfBAMFileHandles,

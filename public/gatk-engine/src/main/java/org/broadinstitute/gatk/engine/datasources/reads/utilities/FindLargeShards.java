@@ -93,7 +93,7 @@ public class FindLargeShards extends CommandLineProgram {
 
         // initialize reads
         List<SAMReaderID> bamReaders = ListFileUtils.unpackBAMFileList(samFiles,parser);
-        SAMDataSource dataSource = new SAMDataSource(bamReaders,new ThreadAllocation(),null,genomeLocParser);
+        SAMDataSource dataSource = new SAMDataSource(referenceFile, bamReaders, new ThreadAllocation(), null, genomeLocParser);
 
         // intervals
         final GenomeLocSortedSet intervalSortedSet;
