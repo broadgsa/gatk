@@ -706,7 +706,7 @@ public class GATKVariantContextUtils {
                 if ( likelihoodIndexesToUse == null ) {
                     newLikelihoods = originalLikelihoods;
                 } else if ( originalLikelihoods.length != expectedNumLikelihoods ) {
-                    logger.warn("Wrong number of likelihoods in sample " + g.getSampleName() + " at " + vc + " got " + g.getLikelihoodsString() + " but expected " + expectedNumLikelihoods);
+                    logger.debug("Wrong number of likelihoods in sample " + g.getSampleName() + " at " + vc + " got " + g.getLikelihoodsString() + " but expected " + expectedNumLikelihoods);
                     newLikelihoods = null;
                 } else {
                     newLikelihoods = new double[likelihoodIndexesToUse.size()];
