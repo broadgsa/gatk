@@ -41,12 +41,12 @@ import java.util.*;
  * @since Date created
  */
 public class ActivityProfile {
-    private final static int MAX_PROB_PROPAGATION_DISTANCE = 50;
-    protected final static double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
-
     protected final List<ActivityProfileState> stateList;
     protected final GenomeLocParser parser;
     protected final GenomeLocSortedSet restrictToIntervals;
+
+    protected final int maxProbPropagationDistance;
+    protected final double activeProbThreshold;
 
     protected GenomeLoc regionStartLoc = null;
     protected GenomeLoc regionStopLoc = null;
@@ -60,22 +60,28 @@ public class ActivityProfile {
     /**
      * Create a new empty ActivityProfile
      * @param parser the parser we can use to create genome locs, cannot be null
+     * @param maxProbPropagationDistance region probability propagation distance beyond it's maximum size
+     * @param activeProbThreshold threshold for the probability of am active profile state being active
      */
-    public ActivityProfile(final GenomeLocParser parser) {
-        this(parser, null);
+    public ActivityProfile(final GenomeLocParser parser, final int maxProbPropagationDistance, final double activeProbThreshold) {
+        this(parser, maxProbPropagationDistance, activeProbThreshold, null);
     }
 
     /**
      * Create a empty ActivityProfile, restricting output to profiles overlapping intervals, if not null
      * @param parser the parser we can use to create genome locs, cannot be null
+     * @param maxProbPropagationDistance region probability propagation distance beyond it's maximum size
+     * @param activeProbThreshold threshold for the probability of a profile state being active
      * @param intervals only include states that are within these intervals, if not null
      */
-    public ActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet intervals) {
+    public ActivityProfile(final GenomeLocParser parser, final int maxProbPropagationDistance, final double activeProbThreshold, final GenomeLocSortedSet intervals) {
         if ( parser == null ) throw new IllegalArgumentException("parser cannot be null");
 
         this.parser = parser;
         this.stateList = new ArrayList<ActivityProfileState>();
         this.restrictToIntervals = intervals;
+        this.maxProbPropagationDistance = maxProbPropagationDistance;
+        this.activeProbThreshold = activeProbThreshold;
     }
 
     @Override
@@ -98,7 +104,7 @@ public class ActivityProfile {
      */
     @Ensures("result >= 0")
     public int getMaxProbPropagationDistance() {
-        return MAX_PROB_PROPAGATION_DISTANCE;
+        return maxProbPropagationDistance;
     }
 
     /**
@@ -359,7 +365,7 @@ public class ActivityProfile {
         }
 
         final ActivityProfileState first = stateList.get(0);
-        final boolean isActiveRegion = first.isActiveProb > ACTIVE_PROB_THRESHOLD;
+        final boolean isActiveRegion = first.isActiveProb > activeProbThreshold;
         final int offsetOfNextRegionEnd = findEndOfRegion(isActiveRegion, minRegionSize, maxRegionSize, forceConversion);
         if ( offsetOfNextRegionEnd == -1 )
             // couldn't find a valid ending offset, so we return null
@@ -453,7 +459,7 @@ public class ActivityProfile {
      * Find the first index into the state list where the state is considered ! isActiveRegion
      *
      * Note that each state has a probability of being active, and this function thresholds that
-     * value on ACTIVE_PROB_THRESHOLD, coloring each state as active or inactive.  Finds the
+     * value on activeProbThreshold, coloring each state as active or inactive.  Finds the
      * largest contiguous stretch of states starting at the first state (index 0) with the same isActive
      * state as isActiveRegion.  If the entire state list has the same isActive value, then returns
      * maxRegionSize
@@ -470,7 +476,7 @@ public class ActivityProfile {
         int endOfActiveRegion = 0;
 
         while ( endOfActiveRegion < nStates && endOfActiveRegion < maxRegionSize ) {
-            if ( getProb(endOfActiveRegion) > ACTIVE_PROB_THRESHOLD != isActiveRegion ) {
+            if ( getProb(endOfActiveRegion) > activeProbThreshold != isActiveRegion ) {
                 break;
             }
             endOfActiveRegion++;

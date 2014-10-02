@@ -59,6 +59,9 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
     private final static boolean DEBUG = false;
     private GenomeLocParser genomeLocParser;
 
+    private final static int MAX_PROB_PROPAGATION_DISTANCE = 50;
+    private final static double ACTIVE_PROB_THRESHOLD= 0.002;
+
     @BeforeClass
     public void init() throws FileNotFoundException {
         // sequence
@@ -91,7 +94,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
     @Test(enabled = ! DEBUG, dataProvider = "BandPassBasicTest")
     public void testBandPass(final int start, final boolean precedingIsActive, final int nPrecedingSites, final int bandPassSize, final double sigma) {
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, bandPassSize, sigma, false);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD, bandPassSize, sigma, false);
 
         final int expectedBandSize = bandPassSize * 2 + 1;
         Assert.assertEquals(profile.getFilteredSize(), bandPassSize, "Wrong filter size");
@@ -155,7 +158,8 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
     @Test( enabled = ! DEBUG, dataProvider = "BandPassComposition")
     public void testBandPassComposition(final int bandPassSize, final int integrationLength) {
         final int start = 1;
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, bandPassSize, BandPassActivityProfile.DEFAULT_SIGMA);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE,
+                ACTIVE_PROB_THRESHOLD, bandPassSize, BandPassActivityProfile.DEFAULT_SIGMA);
         final double[] rawActiveProbs = new double[integrationLength + bandPassSize * 2];
 
         // add a buffer so that we can get all of the band pass values
@@ -228,7 +232,8 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
     @Test( enabled = ! DEBUG, dataProvider = "KernelCreation")
     public void testKernelCreation(final double sigma, final int maxSize, final double[] expectedKernel) {
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, maxSize, sigma, true);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD,
+                maxSize, sigma, true);
 
         final double[] kernel = profile.getKernel();
         Assert.assertEquals(kernel.length, expectedKernel.length);
@@ -268,8 +273,8 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
         final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> reader = GATKVCFUtils.readAllVCs(file, codec);
 
         final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
-        final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser, null);
-        final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser, null);
+        final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);
+        final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);
         int pos = start;
         for ( final VariantContext vc : reader.getSecond() ) {
             if ( vc == null ) continue;
@@ -324,10 +329,10 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
             lastPosSeen = region.getLocation().getStop();
 
             for ( final ActivityProfileState state : region.getSupportingStates() ) {
-                Assert.assertEquals(state.isActiveProb > ActivityProfile.ACTIVE_PROB_THRESHOLD, region.isActive(),
+                Assert.assertEquals(state.isActiveProb > ACTIVE_PROB_THRESHOLD, region.isActive(),
                         "Region is active=" + region.isActive() + " but contains a state " + state + " with prob "
                                 + state.isActiveProb + " not within expected values given threshold for activity of "
-                                + ActivityProfile.ACTIVE_PROB_THRESHOLD);
+                                + ACTIVE_PROB_THRESHOLD);
             }
         }
     }
