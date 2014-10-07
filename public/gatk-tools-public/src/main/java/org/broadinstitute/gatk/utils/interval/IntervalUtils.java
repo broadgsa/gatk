@@ -362,29 +362,95 @@ public class IntervalUtils {
      * @param scatterParts The output interval lists to write to.
      */
     public static void scatterContigIntervals(SAMFileHeader fileHeader, List<GenomeLoc> locs, List<File> scatterParts) {
-        IntervalList intervalList = null;
-        int fileIndex = -1;
-        int locIndex = 0;
-        String contig = null;
-        for (GenomeLoc loc: locs) {
-            // If there are still more files to write and the contig doesn't match...
-            if ((fileIndex+1 < scatterParts.size()) && (contig == null || !contig.equals(loc.getContig()))) {
-                // Then close the current file and start a new one.
-                if (intervalList != null) {
-                    intervalList.write(scatterParts.get(fileIndex));
-                    intervalList = null;
-                }
-                fileIndex++;
-                contig = loc.getContig();
-            }
-            if (intervalList == null)
-                intervalList = new IntervalList(fileHeader);
-            intervalList.add(toInterval(loc, ++locIndex));
-        }
-        if (intervalList != null)
-            intervalList.write(scatterParts.get(fileIndex));
-        if ((fileIndex + 1) != scatterParts.size())
-            throw new UserException.BadArgumentValue("scatterParts", String.format("Only able to write contigs into %d of %d files.", fileIndex + 1, scatterParts.size()));
+
+	// Contract: must divide locs up so that each of scatterParts gets a sublist such that:
+	// (a) all locs concerning a particular contig go to the same part
+	// (b) locs are not split or combined, and remain in the same order (so scatterParts[0] + ... + scatterParts[n] == locs)
+
+	// Locs are already sorted.
+
+	long totalBases = 0;
+	for(GenomeLoc loc : locs)
+	    totalBases += loc.getStop() - loc.getStart();
+
+	long idealBasesPerPart = totalBases / scatterParts.size();
+	if(idealBasesPerPart == 0)
+	    throw new UserException.BadInput(String.format("Genome region is too short (%d bases) to split into %d parts", totalBases, scatterParts.size()));
+
+	// Find the indices in locs where we switch from one contig to the next.
+	ArrayList<Integer> contigStartLocs = new ArrayList<Integer>();
+	String prevContig = null;
+
+	for(int i = 0; i < locs.size(); ++i) {
+
+	    GenomeLoc loc = locs.get(i);
+	    if(prevContig == null || !loc.getContig().equals(prevContig))
+		contigStartLocs.add(i);
+	    prevContig = loc.getContig();
+
+	}
+
+	if(contigStartLocs.size() < scatterParts.size())
+	    throw new UserException.BadInput(String.format("Input genome region has too few contigs (%d) to split into %d parts", contigStartLocs.size(), scatterParts.size()));
+
+	long thisPartBases = 0;
+	int partIdx = 0;
+	IntervalList outList = new IntervalList(fileHeader);
+
+	for(int i = 0; i < locs.size(); ++i) {
+
+	    GenomeLoc loc = locs.get(i);
+	    thisPartBases += loc.getStop() - loc.getStart();
+
+	    outList.add(toInterval(loc, i));
+
+	    boolean partMustStop = false;
+
+	    if(partIdx < (scatterParts.size() - 1)) {
+
+		// If there are n contigs and n parts remaining then we must split here,
+		// otherwise we will run out of contigs.
+
+		int nextPart = partIdx + 1;
+		int nextPartMustStartBy = contigStartLocs.get(nextPart + (contigStartLocs.size() - scatterParts.size()));
+		if(i + 1 == nextPartMustStartBy)
+		    partMustStop = true;
+		
+	    }
+	    else if(i == locs.size() - 1) {
+
+		// We're done! Write the last scatter file.
+		partMustStop = true;
+
+	    }
+	    
+	    if(partMustStop || thisPartBases > idealBasesPerPart) {
+
+		// Ideally we would split here. However, we must make sure to do so
+		// on a contig boundary. Test always passes with partMustStop == true
+		// since that indicates we're at a contig boundary.
+
+		GenomeLoc nextLoc = null;
+		if((i + 1) < locs.size())
+		    nextLoc = locs.get(i+1);
+
+		if(nextLoc == null || !nextLoc.getContig().equals(loc.getContig())) {
+
+		    // Write out this part:
+		    outList.write(scatterParts.get(partIdx));
+
+		    // Reset. If this part ran long, leave the excess in thisPartBases
+		    // and the next will be a little shorter to compensate.
+		    outList = new IntervalList(fileHeader);
+		    thisPartBases -= idealBasesPerPart;
+		    ++partIdx;
+		    
+		}
+
+	    }
+
+	}
+
     }
 
     /**
