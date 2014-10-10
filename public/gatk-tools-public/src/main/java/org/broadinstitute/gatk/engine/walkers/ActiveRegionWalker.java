@@ -107,6 +107,17 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     @Argument(fullName="bandPassSigma", shortName="bandPassSigma", doc="The sigma of the band pass filter Gaussian kernel; if not provided defaults to Walker annotated default", required = false)
     public Double bandPassSigma = null;
 
+    /*
+     * For active region limits in ActivityProfile
+*   */
+    @Hidden
+    @Argument(fullName = "maxProbPropagationDistance", shortName = "maxProbPropDist", minValue = 0, doc="Region probability propagation distance beyond it's maximum size.", required = false)
+    public Integer maxProbPropagationDistance = 50;
+
+    @Advanced
+    @Argument(fullName = "activeProbabilityThreshold", shortName = "ActProbThresh", minValue = 0.0, maxValue = 1.0, doc="Threshold for the probability of a profile state being active.", required = false)
+    public Double activeProbThreshold = 0.002;
+
     private GenomeLocSortedSet presetActiveRegions = null;
 
     @Override
