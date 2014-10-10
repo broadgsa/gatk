@@ -115,7 +115,8 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
      * Similar to the INFO field based expressions, but used on the FORMAT (genotype) fields instead.
      * VariantFiltration will add the sample-level FT tag to the FORMAT field of filtered samples (this does not affect the record's FILTER tag).
      * One can filter normally based on most fields (e.g. "GQ < 5.0"), but the GT (genotype) field is an exception. We have put in convenience
-     * methods so that one can now filter out hets ("isHet == 1"), refs ("isHomRef == 1"), or homs ("isHomVar == 1").
+     * methods so that one can now filter out hets ("isHet == 1"), refs ("isHomRef == 1"), or homs ("isHomVar == 1"). Also available are
+     * expressions isCalled, isNoCall, isMixed, and isAvailable, in accordance with the methods of the Genotype object.
      */
     @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see documentation guide for more info)", required=false)
     protected ArrayList<String> GENOTYPE_FILTER_EXPS = new ArrayList<String>();

@@ -135,7 +135,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected VariantContextWriter vcfWriter = null;
 
     /**
-     * See the -list argument to view available annotations.
+     * See the --list argument to view available annotations.
      */
     @Argument(fullName="annotation", shortName="A", doc="One or more specific annotations to apply to variant calls", required=false)
     protected List<String> annotationsToUse = new ArrayList<>();
