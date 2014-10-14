@@ -167,10 +167,14 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                 Map<String, Object> argBindings = docForArgument(fieldDoc, argumentSource, argDef);
                 if (!argumentSource.isHidden() || getDoclet().showHiddenFeatures()) {
                     final String kind = docKindOfArg(argumentSource);
+                    argBindings.put("kind", kind);
                     // Retrieve default value
                     final Object value = argumentValue(toProcess.clazz, argumentSource);
-                    if (value != null)
+                    if (value != null) {
                         argBindings.put("defaultValue", prettyPrintValueString(value));
+                    } else {
+                        argBindings.put("defaultValue", "NA");
+                    }
                     // Retrieve min and max / hard and soft value thresholds for numeric args
                     if (value instanceof Number) {
                         if (argumentSource.field.isAnnotationPresent(Argument.class))   {
@@ -178,11 +182,21 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                             argBindings.put("maxValue", argumentSource.field.getAnnotation(Argument.class).maxValue());
                             if (argumentSource.field.getAnnotation(Argument.class).minRecommendedValue() != Double.NEGATIVE_INFINITY) {
                                 argBindings.put("minRecValue", argumentSource.field.getAnnotation(Argument.class).minRecommendedValue());
+                            } else {
+                                argBindings.put("minRecValue", "NA");
                             }
                             if (argumentSource.field.getAnnotation(Argument.class).maxRecommendedValue() != Double.POSITIVE_INFINITY) {
                                 argBindings.put("maxRecValue", argumentSource.field.getAnnotation(Argument.class).maxRecommendedValue());
+                            } else {
+                                argBindings.put("maxRecValue", "NA");
                             }
                         }
+                    } else {
+                        argBindings.put("minValue", "NA");
+                        argBindings.put("maxValue", "NA");
+                        argBindings.put("minRecValue", "NA");
+                        argBindings.put("maxRecValue", "NA");
+                        argBindings.put("defaultValue", "NA");
                     }
                     // Finalize argument bindings
                     args.get(kind).add(argBindings);
@@ -194,6 +208,30 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             for (Map.Entry<String, List<Map<String, Object>>> entry : args.entrySet()) {
                 entry.setValue(sortArguments(entry.getValue()));
             }
+            // make a GSON-friendly map of arguments -- uses some hacky casting
+            List<GSONArgument> allGSONArgs = new ArrayList<GSONArgument>();
+            for ( Map<String, Object> item : args.get("all")) {
+                GSONArgument itemGSONArg = new GSONArgument();
+
+                itemGSONArg.populate(item.get("summary").toString(),
+                        item.get("name").toString(),
+                        item.get("synonyms").toString(),
+                        item.get("type").toString(),
+                        item.get("required").toString(),
+                        item.get("fulltext").toString(),
+                        item.get("defaultValue").toString(),
+                        item.get("minValue").toString(),
+                        item.get("maxValue").toString(),
+                        item.get("minRecValue").toString(),
+                        item.get("maxRecValue").toString(),
+                        item.get("rodTypes").toString(),
+                        item.get("kind").toString(),
+                        (List<Map<String, Object>>)item.get("options")
+                );
+                allGSONArgs.add(itemGSONArg);
+            }
+            root.put("gson-arguments", allGSONArgs);
+
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -353,6 +391,10 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             // Get ActiveRegion size settings
             final HashMap<String, Object> activeRegion = getActiveRegion(myClass, new HashMap<String, Object>());
             root.put("activeregion", activeRegion);
+            // Get annotation header line description if applicable
+            final Object annotDescriptLines = getAnnotDescript(instance, myClass);
+            root.put("annotdescript", annotDescriptLines);
+
             // anything else?
         } else {
             // put empty items to avoid blowups
@@ -365,7 +407,30 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             root.put("downsampling", new HashMap<String, Object>());
             root.put("refwindow", new HashMap<String, Object>());
             root.put("activeregion", new HashMap<String, Object>());
+            root.put("annotdescript", new ArrayList<HashMap<String, Object>>());
         }
+    }
+
+    /**
+     * Utility function that looks up annotation descriptions if applicable.
+     *
+     * @param myClass the class to query
+     * @return a hash map of descriptions, otherwise an empty map
+     */
+    private Object getAnnotDescript(Object instance, Class myClass) {
+        //
+        // Check if the class has the method we want
+        for (Method classMethod : myClass.getMethods()) {
+            if (classMethod.toString().contains("getDescriptions") && classMethod.toString().contains("annotator")) {
+                try {
+                    return classMethod.invoke(instance);
+                } catch (IllegalArgumentException e) {
+                } catch (IllegalAccessException e) {
+                } catch (InvocationTargetException e) {
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -848,8 +913,11 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
 
         root.put("name", names.getFirst());
 
-        if (names.getSecond() != null)
+        if (names.getSecond() != null) {
             root.put("synonyms", names.getSecond());
+        } else {
+            root.put("synonyms", "NA");
+        }
 
         root.put("required", def.required ? "yes" : "no");
 
@@ -868,6 +936,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             }
 
             root.put("rodTypes", Utils.join(", ", rodTypes));
+        } else {
+            root.put("rodTypes", "NA");
         }
 
         // summary and fulltext
@@ -875,16 +945,20 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         root.put("fulltext", fieldDoc.commentText());
 
         // What are our enum options?
-        if (def.validOptions != null)
+        if (def.validOptions != null) {
             root.put("options", docForEnumArgument(source.field.getType()));
-
+        } else {
+            root.put("options", new ArrayList());
+        }
         // general attributes
         List<String> attributes = new ArrayList<String>();
         if (def.required) attributes.add("required");
         if (source.isDeprecated()) attributes.add("deprecated");
-        if (attributes.size() > 0)
+        if (attributes.size() > 0) {
             root.put("attributes", Utils.join(", ", attributes));
-
+        } else {
+            root.put("attributes", "NA");
+        }
         return root;
     }
 
