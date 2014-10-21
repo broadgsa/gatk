@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.utils.text;
 import org.broadinstitute.gatk.utils.commandline.ParsingEngine;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
-import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
+import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;

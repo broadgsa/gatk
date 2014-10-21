@@ -23,15 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata.tracks;
+package org.broadinstitute.gatk.utils.refdata.tracks;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.tribble.NameAwareCodec;
-import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
 import htsjdk.variant.vcf.AbstractVCFCodec;

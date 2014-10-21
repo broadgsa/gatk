@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.contexts;
+package org.broadinstitute.gatk.utils.contexts;
 
 import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.gatk.utils.GenomeLoc;

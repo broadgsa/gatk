@@ -35,7 +35,7 @@ public class BadReadGroupsIntegrationTest extends WalkerTest {
     @Test
     public void testMissingReadGroup() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T PrintReads -R " + b36KGReference + " -I " + privateTestDir + "missingReadGroup.bam -o /dev/null",
+                "-T TestPrintReadsWalker -R " + b36KGReference + " -I " + privateTestDir + "missingReadGroup.bam -o /dev/null",
                 0,
                 UserException.ReadMissingReadGroup.class);
         executeTest("test Missing Read Group", spec);
@@ -44,7 +44,7 @@ public class BadReadGroupsIntegrationTest extends WalkerTest {
     @Test
     public void testUndefinedReadGroup() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T PrintReads -R " + b36KGReference + " -I " + privateTestDir + "undefinedReadGroup.bam -o /dev/null",
+                "-T TestPrintReadsWalker -R " + b36KGReference + " -I " + privateTestDir + "undefinedReadGroup.bam -o /dev/null",
                 0,
                 UserException.ReadHasUndefinedReadGroup.class);
         executeTest("test Undefined Read Group", spec);

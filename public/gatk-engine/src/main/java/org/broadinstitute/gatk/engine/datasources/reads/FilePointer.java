@@ -36,6 +36,7 @@ import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.util.*;
 

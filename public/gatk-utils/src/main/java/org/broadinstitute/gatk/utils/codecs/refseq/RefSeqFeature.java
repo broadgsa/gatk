@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.utils.codecs.refseq;
 
 import htsjdk.tribble.Feature;
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 

@@ -29,9 +29,9 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.*;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.gatk.engine.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.gatk.engine.datasources.reads.*;
@@ -39,14 +39,13 @@ import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource
 import org.broadinstitute.gatk.engine.executive.WindowMaker;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.traversals.*;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
-import org.broadinstitute.gatk.utils.SampleUtils;
 import org.broadinstitute.gatk.utils.activeregion.ActiveRegion;
 import org.broadinstitute.gatk.utils.activeregion.ActivityProfileState;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -196,7 +195,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
-        final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
+        final Set<String> samples = ReadUtils.getSAMFileSamples(dataSource.getHeader());
 
         final TraverseLociNano traverseLociNano = new TraverseLociNano(1);
         final DummyLocusWalker walker = new DummyLocusWalker();
@@ -237,7 +236,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
-        final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
+        final Set<String> samples = ReadUtils.getSAMFileSamples(dataSource.getHeader());
 
         final List<GenomeLoc> intervals = new ArrayList<>(contigs.size());
         for ( final String contig : contigs )

@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.engine.iterators;
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 
 import java.util.Iterator;
 

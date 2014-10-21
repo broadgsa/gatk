@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.utils.sam;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -189,7 +188,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     @Test (enabled = true)
     public void testGetBasesReverseComplement() {
         int iterations = 1000;
-        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        Random random = Utils.getRandomGenerator();
         while(iterations-- > 0) {
             final int l = random.nextInt(1000);
             GATKSAMRecord read = GATKSAMRecord.createRandomRead(l);

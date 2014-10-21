@@ -25,22 +25,19 @@
 
 package org.broadinstitute.gatk.engine.phonehome;
 
+import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.walkers.ActiveRegionWalker;
-import org.broadinstitute.gatk.engine.walkers.Walker;
-import org.broadinstitute.gatk.tools.walkers.qc.CountLoci;
-import org.broadinstitute.gatk.tools.walkers.qc.CountRODs;
-import org.broadinstitute.gatk.tools.walkers.qc.CountReads;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.activeregion.ActiveRegion;
 import org.broadinstitute.gatk.utils.activeregion.ActivityProfileState;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
@@ -72,7 +69,7 @@ public class GATKRunReportUnitTest extends BaseTest {
 
     @BeforeClass
     public void setup() throws Exception {
-        walker = new CountReads();
+        walker = new RunReportDummyReadWalker();
         exception = new IllegalArgumentException("javaException");
         engine = new GenomeAnalysisEngine();
         engine.setArguments(new GATKArgumentCollection());
@@ -109,9 +106,9 @@ public class GATKRunReportUnitTest extends BaseTest {
     public Object[][] makeGATKReportCreationTest() {
         List<Object[]> tests = new ArrayList<Object[]>();
 
-        final Walker readWalker = new CountReads();
-        final Walker lociWalker = new CountLoci();
-        final Walker rodWalker = new CountRODs();
+        final Walker readWalker = new RunReportDummyReadWalker();
+        final Walker lociWalker = new RunReportDummyLocusWalker();
+        final Walker rodWalker = new RunReportDummyRodWalker();
         final Walker artWalker = new RunReportDummyActiveRegionWalker();
 
         final Exception noException = null;
@@ -283,6 +280,57 @@ public class GATKRunReportUnitTest extends BaseTest {
             Assert.fail("Operation " + name + " ran successfully but we expected to it fail");
         } catch ( ServiceException e ) {
             Assert.assertEquals(e.getErrorCode(), "AccessDenied");
+        }
+    }
+
+    class RunReportDummyReadWalker extends ReadWalker<Integer, Integer> {
+        @Override
+        public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
+            return 0;
+        }
+
+        @Override
+        public Integer reduceInit() {
+            return 0;
+        }
+
+        @Override
+        public Integer reduce(Integer value, Integer sum) {
+            return 0;
+        }
+    }
+
+    class RunReportDummyLocusWalker extends LocusWalker<Integer, Integer> {
+        @Override
+        public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+            return 0;
+        }
+
+        @Override
+        public Integer reduceInit() {
+            return 0;
+        }
+
+        @Override
+        public Integer reduce(Integer value, Integer sum) {
+            return 0;
+        }
+    }
+
+    class RunReportDummyRodWalker extends RodWalker<Integer, Integer> {
+        @Override
+        public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+            return 0;
+        }
+
+        @Override
+        public Integer reduceInit() {
+            return 0;
+        }
+
+        @Override
+        public Integer reduce(Integer value, Integer sum) {
+            return 0;
         }
     }
 

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.utils.pileup;
 
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.fragments.FragmentCollection;
 import org.broadinstitute.gatk.utils.fragments.FragmentUtils;
@@ -602,7 +602,7 @@ public class ReadBackedPileupImpl implements ReadBackedPileup {
         // randomly choose numbers corresponding to positions in the reads list
         TreeSet<Integer> positions = new TreeSet<Integer>();
         for (int i = 0; i < desiredCoverage; /* no update */) {
-            if (positions.add(GenomeAnalysisEngine.getRandomGenerator().nextInt(getNumberOfElements())))
+            if (positions.add(Utils.getRandomGenerator().nextInt(getNumberOfElements())))
                 i++;
         }
 

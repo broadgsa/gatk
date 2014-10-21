@@ -33,7 +33,7 @@ import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.datasources.reads.FilePointer;
 import org.broadinstitute.gatk.engine.datasources.reads.IntervalSharder;
 import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;

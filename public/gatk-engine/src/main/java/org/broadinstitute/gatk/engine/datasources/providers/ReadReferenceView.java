@@ -26,7 +26,7 @@
 package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 /*
  * Copyright (c) 2009 The Broad Institute

@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.report;
+package org.broadinstitute.gatk.utils.report;
 
 import org.apache.commons.lang.math.NumberUtils;
 

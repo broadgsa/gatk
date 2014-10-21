@@ -35,7 +35,7 @@ import org.broadinstitute.gatk.engine.datasources.reads.Shard;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
 import org.broadinstitute.gatk.engine.iterators.NullSAMIterator;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.traversals.*;
 import org.broadinstitute.gatk.engine.walkers.*;

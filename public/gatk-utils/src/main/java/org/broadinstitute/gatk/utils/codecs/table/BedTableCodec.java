@@ -25,8 +25,7 @@
 
 package org.broadinstitute.gatk.utils.codecs.table;
 
-import htsjdk.tribble.Feature;
-import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.utils.refdata.ReferenceDependentFeatureCodec;
 
 import java.util.Arrays;
 

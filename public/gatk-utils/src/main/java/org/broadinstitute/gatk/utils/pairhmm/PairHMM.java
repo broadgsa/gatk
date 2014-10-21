@@ -51,6 +51,8 @@ public abstract class PairHMM {
     protected byte[] previousHaplotypeBases;
     protected int hapStartIndex;
 
+    public static final byte BASE_QUALITY_SCORE_THRESHOLD = (byte) 18; // Base quals less than this value are squashed down to min possible qual
+
     public enum HMM_IMPLEMENTATION {
         /* Very slow implementation which uses very accurate log10 sum functions. Only meant to be used as a reference test implementation */
         EXACT,

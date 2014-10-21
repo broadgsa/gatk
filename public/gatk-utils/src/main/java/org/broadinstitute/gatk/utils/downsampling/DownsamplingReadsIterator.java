@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.downsampling;
+package org.broadinstitute.gatk.utils.downsampling;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 
 import java.util.Collection;
 import java.util.Iterator;

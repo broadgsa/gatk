@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.downsampling;
+package org.broadinstitute.gatk.utils.downsampling;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.BaseUtils;

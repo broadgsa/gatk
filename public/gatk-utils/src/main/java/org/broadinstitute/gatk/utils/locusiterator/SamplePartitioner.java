@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.downsampling.Downsampler;
-import org.broadinstitute.gatk.engine.downsampling.PassThroughDownsampler;
-import org.broadinstitute.gatk.engine.downsampling.ReservoirDownsampler;
+import org.broadinstitute.gatk.utils.downsampling.Downsampler;
+import org.broadinstitute.gatk.utils.downsampling.PassThroughDownsampler;
+import org.broadinstitute.gatk.utils.downsampling.ReservoirDownsampler;
 
 import java.util.*;
 

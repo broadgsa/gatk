@@ -28,12 +28,7 @@ package org.broadinstitute.gatk.utils.locusiterator;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
-import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
-import org.broadinstitute.gatk.engine.filters.ReadFilter;
-import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.QualityUtils;
 import org.broadinstitute.gatk.utils.Utils;
@@ -57,32 +52,17 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
-    protected LocusIteratorByState makeLTBS(List<GATKSAMRecord> reads,
-                                            ReadProperties readAttributes) {
+    protected LocusIteratorByState makeLTBS(List<GATKSAMRecord> reads) {
+        return makeLTBS(reads, null, false);
+    }
+
+    protected LocusIteratorByState makeLTBS(final List<GATKSAMRecord> reads,
+                                            final DownsamplingMethod downsamplingMethod,
+                                            final boolean keepUniqueReadList) {
         return new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
-                readAttributes,
+                downsamplingMethod, true, keepUniqueReadList,
                 genomeLocParser,
                 LocusIteratorByState.sampleListForSAMWithoutReadGroups());
-    }
-
-    public static ReadProperties createTestReadProperties() {
-        return createTestReadProperties(null, false);
-    }
-
-    public static ReadProperties createTestReadProperties( DownsamplingMethod downsamplingMethod, final boolean keepReads ) {
-        return new ReadProperties(
-                Collections.<SAMReaderID>emptyList(),
-                new SAMFileHeader(),
-                SAMFileHeader.SortOrder.coordinate,
-                false,
-                ValidationStringency.STRICT,
-                downsamplingMethod,
-                new ValidationExclusion(),
-                Collections.<ReadFilter>emptyList(),
-                Collections.<ReadTransformer>emptyList(),
-                true,
-                (byte) -1,
-                keepReads);
     }
 
     public static class FakeCloseableIterator<T> implements CloseableIterator<T> {

@@ -23,10 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata.utils;
+package org.broadinstitute.gatk.utils.refdata.utils;
 
 import htsjdk.tribble.Feature;
-import org.broadinstitute.gatk.engine.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.HasGenomeLocation;

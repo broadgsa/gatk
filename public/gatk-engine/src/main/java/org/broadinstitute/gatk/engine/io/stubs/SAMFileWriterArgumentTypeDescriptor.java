@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.engine.io.stubs;
 import htsjdk.samtools.SAMFileWriter;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.sam.GATKSAMFileWriter;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.OutputStream;

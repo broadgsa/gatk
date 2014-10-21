@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.crypt;
+package org.broadinstitute.gatk.engine.crypt;
 
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
@@ -35,7 +35,7 @@ import java.util.Arrays;
 
 public class GATKKeyIntegrationTest extends WalkerTest {
 
-    public static final String BASE_COMMAND = String.format("-T PrintReads -R %s -I %s -o %%s",
+    public static final String BASE_COMMAND = String.format("-T TestPrintReadsWalker -R %s -I %s -o %%s",
                                                             publicTestDir + "exampleFASTA.fasta",
                                                             publicTestDir + "exampleBAM.bam");
     public static final String MD5_UPON_SUCCESSFUL_RUN = "e7b4a5b62f9d4badef1cd07040011b2b";

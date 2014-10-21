@@ -30,10 +30,9 @@ import static org.testng.Assert.fail;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.testng.Assert;
-import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 

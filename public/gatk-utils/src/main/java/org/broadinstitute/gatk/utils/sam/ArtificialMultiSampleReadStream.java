@@ -30,8 +30,8 @@ import htsjdk.samtools.SamFileHeaderMerger;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIteratorAdapter;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;

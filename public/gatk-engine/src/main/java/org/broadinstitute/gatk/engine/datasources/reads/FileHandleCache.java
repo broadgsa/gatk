@@ -27,16 +27,13 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 /**
  * Caches frequently used  file handles.  Right now, caches only a single file handle.

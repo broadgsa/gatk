@@ -32,13 +32,12 @@ import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMRecordIterator;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecordIterator;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
@@ -126,7 +125,9 @@ public final class LocusIteratorByState extends LocusIterator {
      *
      * @param samIterator the iterator of reads to process into pileups.  Reads must be ordered
      *                    according to standard coordinate-sorted BAM conventions
-     * @param readInformation meta-information about how to process the reads (i.e., should we do downsampling?)
+     * @param downsamplingMethod information about how to downsample the reads
+     * @param includeReadsWithDeletionAtLoci Include reads with deletion at loci
+     * @param keepUniqueReadListInLIBS Keep unique read list in LIBS
      * @param genomeLocParser used to create genome locs
      * @param samples a complete list of samples present in the read groups for the reads coming from samIterator.
      *                This is generally just the set of read group sample fields in the SAMFileHeader.  This
@@ -134,15 +135,17 @@ public final class LocusIteratorByState extends LocusIterator {
      *                be mapped to this null sample
      */
     public LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
-                                final ReadProperties readInformation,
+                                final DownsamplingMethod downsamplingMethod,
+                                final boolean includeReadsWithDeletionAtLoci,
+                                final boolean keepUniqueReadListInLIBS,
                                 final GenomeLocParser genomeLocParser,
                                 final Collection<String> samples) {
         this(samIterator,
-                toDownsamplingInfo(readInformation),
-                readInformation.includeReadsWithDeletionAtLoci(),
+                toDownsamplingInfo(downsamplingMethod),
+                includeReadsWithDeletionAtLoci,
                 genomeLocParser,
                 samples,
-                readInformation.keepUniqueReadListInLIBS());
+                keepUniqueReadListInLIBS);
     }
 
     /**
@@ -160,7 +163,7 @@ public final class LocusIteratorByState extends LocusIterator {
                 new LIBSDownsamplingInfo(false, 0),
                 true,
                 new GenomeLocParser(reader.getFileHeader().getSequenceDictionary()),
-                SampleUtils.getSAMFileSamples(reader.getFileHeader()),
+                ReadUtils.getSAMFileSamples(reader.getFileHeader()),
                 false);
     }
 
@@ -394,7 +397,7 @@ public final class LocusIteratorByState extends LocusIterator {
     }
 
     /**
-     * Create a LIBSDownsamplingInfo object from the requested info in ReadProperties
+     * Create a LIBSDownsamplingInfo object from the requested info in DownsamplingMethod
      *
      * LIBS will invoke the Reservoir and Leveling downsamplers on the read stream if we're
      * downsampling to coverage by sample. SAMDataSource will have refrained from applying
@@ -403,16 +406,16 @@ public final class LocusIteratorByState extends LocusIterator {
      * split/re-assemble the read stream in SAMDataSource), and to enable partial downsampling
      * of reads (eg., using half of a read, and throwing the rest away).
      *
-     * @param readInfo GATK engine information about what should be done to the reads
+     * @param downsamplingMethod downsampling information about what should be done to the reads
      * @return a LIBS specific info holder about downsampling only
      */
-    @Requires("readInfo != null")
+    @Requires("downsamplingMethod != null")
     @Ensures("result != null")
-    private static LIBSDownsamplingInfo toDownsamplingInfo(final ReadProperties readInfo) {
-        final boolean performDownsampling = readInfo.getDownsamplingMethod() != null &&
-                readInfo.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE &&
-                readInfo.getDownsamplingMethod().toCoverage != null;
-        final int coverage = performDownsampling ? readInfo.getDownsamplingMethod().toCoverage : 0;
+    private static LIBSDownsamplingInfo toDownsamplingInfo(final DownsamplingMethod downsamplingMethod) {
+        final boolean performDownsampling = downsamplingMethod != null &&
+                downsamplingMethod.type == DownsampleType.BY_SAMPLE &&
+                downsamplingMethod.toCoverage != null;
+        final int coverage = performDownsampling ? downsamplingMethod.toCoverage : 0;
 
         return new LIBSDownsamplingInfo(performDownsampling, coverage);
     }

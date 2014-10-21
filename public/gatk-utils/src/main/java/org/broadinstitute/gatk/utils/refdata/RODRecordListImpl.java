@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata;
+package org.broadinstitute.gatk.utils.refdata;
 
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.HasGenomeLocation;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;

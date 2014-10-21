@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.walkers.diffengine;
+package org.broadinstitute.gatk.utils.diffengine;
 
 /**
  * Created by IntelliJ IDEA.

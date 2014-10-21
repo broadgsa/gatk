@@ -29,8 +29,11 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.downsampling.PerSampleDownsamplingReadsIterator;
+import org.broadinstitute.gatk.utils.downsampling.ReadsDownsamplerFactory;
+import org.broadinstitute.gatk.utils.downsampling.SimplePositionalDownsamplerFactory;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.engine.iterators.VerifyingSamIterator;
 import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -194,7 +197,7 @@ public class PerSampleDownsamplingReadsIteratorUnitTest extends BaseTest {
                 int thisSampleNumContigs = MathUtils.randomIntegerInRange(minContigs, maxContigs);
                 int thisSampleStacksPerContig = MathUtils.randomIntegerInRange(streamStacksPerContig.minStacksPerContig, streamStacksPerContig.maxStacksPerContig);
 
-                int thisSampleNumUnmappedReads = GenomeAnalysisEngine.getRandomGenerator().nextDouble() < unmappedReadsFraction ? unmappedReadsCount : 0;
+                int thisSampleNumUnmappedReads = Utils.getRandomGenerator().nextDouble() < unmappedReadsFraction ? unmappedReadsCount : 0;
 
                 ArtificialSingleSampleReadStream thisSampleStream = new ArtificialSingleSampleReadStream(header,
                                                                                                          readGroupID,
@@ -252,7 +255,7 @@ public class PerSampleDownsamplingReadsIteratorUnitTest extends BaseTest {
     @DataProvider(name = "PerSampleDownsamplingReadsIteratorTestDataProvider")
     public Object[][] createPerSampleDownsamplingReadsIteratorTests() {
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         // Some values don't vary across tests
         int targetCoverage = PerSampleDownsamplingReadsIteratorTest.StreamStackDepth.UNIFORM_MEDIUM.minReadsPerStack;
@@ -293,7 +296,7 @@ public class PerSampleDownsamplingReadsIteratorUnitTest extends BaseTest {
     public void runPerSampleDownsamplingReadsIteratorTest( PerSampleDownsamplingReadsIteratorTest test ) {
         logger.warn("Running test: " + test);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
         test.run();
     }
 }

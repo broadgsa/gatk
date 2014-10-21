@@ -184,7 +184,7 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
      * Add VariantContext vc to this map, merging events with the same start sites if necessary
      * @param vc the variant context to add
      */
-    protected void addVC(final VariantContext vc) {
+    public void addVC(final VariantContext vc) {
         addVC(vc, true);
     }
 
@@ -193,7 +193,7 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
      * @param vc the variant context to add
      * @param merge should we attempt to merge it with an already existing element, or should we throw an error in that case?
      */
-    protected void addVC(final VariantContext vc, final boolean merge) {
+    public void addVC(final VariantContext vc, final boolean merge) {
         if ( vc == null ) throw new IllegalArgumentException("vc cannot be null");
 
         if ( containsKey(vc.getStart()) ) {

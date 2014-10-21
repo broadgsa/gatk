@@ -27,16 +27,15 @@ package org.broadinstitute.gatk.engine.executive;
 
 import htsjdk.samtools.util.PeekableIterator;
 import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.engine.datasources.reads.Shard;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMRecordIterator;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecordIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.locusiterator.LocusIterator;
 import org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState;
-import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -111,7 +110,9 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = new GATKSAMRecordIterator(iterator);
 
-        this.libs = new LocusIteratorByState(readIterator,sourceInfo,genomeLocParser,sampleNames);
+        this.libs = new LocusIteratorByState(readIterator,
+                sourceInfo.getDownsamplingMethod(), sourceInfo.includeReadsWithDeletionAtLoci(),
+                sourceInfo.keepUniqueReadListInLIBS(), genomeLocParser,sampleNames);
         this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
 
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;

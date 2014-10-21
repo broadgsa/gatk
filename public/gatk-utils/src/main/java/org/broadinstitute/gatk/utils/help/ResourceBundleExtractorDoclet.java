@@ -26,7 +26,6 @@
 package org.broadinstitute.gatk.utils.help;
 
 import com.sun.javadoc.*;
-import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.Utils;
 
 import java.io.*;
@@ -55,7 +54,7 @@ public class ResourceBundleExtractorDoclet {
     /**
      * Maintains a collection of classes that should really be documented.
      */
-    protected final Set<String> undocumentedWalkers = new HashSet<String>();
+    protected final Set<String> undocumentedClasses = new HashSet<String>();
 
     protected String buildTimestamp = null, absoluteVersion = null;
 
@@ -105,8 +104,8 @@ public class ResourceBundleExtractorDoclet {
             PackageDoc containingPackage = currentClass.containingPackage();
             packages.add(containingPackage);
 
-            if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
-                undocumentedWalkers.add(currentClass.name());
+            if(isRequiredJavadocMissing(currentClass) && shouldDocument(currentClass))
+                undocumentedClasses.add(currentClass.name());
 
             renderHelpText(DocletUtils.getClassName(currentClass),currentClass);
         }
@@ -126,8 +125,8 @@ public class ResourceBundleExtractorDoclet {
         final String blink = "\u001B\u005B\u0035\u006D";
         final String reset = "\u001B\u005B\u006D";
 
-        if(undocumentedWalkers.size() > 0)
-            Utils.warnUser(String.format("The following walkers are currently undocumented: %s%s%s", blink, Utils.join(" ",undocumentedWalkers), reset));
+        if(undocumentedClasses.size() > 0)
+            Utils.warnUser(String.format("The following are currently undocumented: %s%s%s", blink, Utils.join(" ", undocumentedClasses), reset));
     }
 
     /**
@@ -168,12 +167,25 @@ public class ResourceBundleExtractorDoclet {
     }
 
     /**
-     * Determine whether a given class is a walker.
+     * Determine whether a given class should be documented.
      * @param classDoc the type of the given class.
-     * @return True if the class of the given name is a walker.  False otherwise.
+     * @return True if the class should be documented.  False otherwise.
      */
-    protected static boolean isWalker(ClassDoc classDoc) {
-        return DocletUtils.assignableToClass(classDoc, Walker.class, true);
+    protected static boolean shouldDocument(ClassDoc classDoc) {
+        // TODO: Code duplication with GATKDoclet, including DocletUtils.getClassForDoc().
+        // TODO: Refactor common methods into DocletUtils, and possibly just use DocumentGATKFeatureObjects.
+        final Class<? extends Object> docClass;
+        try {
+            docClass = (Class<? extends Object>) DocletUtils.getClassForDoc(classDoc);
+        } catch (ClassNotFoundException e) {
+            return false;
+        } catch (NoClassDefFoundError e) {
+            return false;
+        } catch (UnsatisfiedLinkError e) {
+            return false; // naughty BWA bindings
+        }
+        final DocumentedGATKFeature f = docClass.getAnnotation(DocumentedGATKFeature.class);
+        return f != null && f.enable();
     }
 
     /**

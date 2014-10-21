@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.report;
+package org.broadinstitute.gatk.utils.report;
 
 import org.broadinstitute.gatk.utils.commandline.Gatherer;
 import org.broadinstitute.gatk.utils.exceptions.UserException;

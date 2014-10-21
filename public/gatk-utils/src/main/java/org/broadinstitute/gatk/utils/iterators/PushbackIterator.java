@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.iterators;
+package org.broadinstitute.gatk.utils.iterators;
 
 import java.util.Iterator;
 

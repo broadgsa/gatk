@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.tools.walkers.genotyper;
+package org.broadinstitute.gatk.utils.genotyper;
 
 /**
  * A indexed set of samples.

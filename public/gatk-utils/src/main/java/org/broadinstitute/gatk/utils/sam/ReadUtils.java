@@ -29,8 +29,6 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.*;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -56,6 +54,22 @@ public class ReadUtils {
 
     private static final int DEFAULT_ADAPTOR_SIZE = 100;
     public static final int CLIPPING_GOAL_NOT_REACHED = -1;
+
+    /**
+     * Pull out the samples from a SAMFileHeader;
+     * note that we use a TreeSet so that they are sorted
+     *
+     * @param header  the sam file header
+     * @return list of strings representing the sample names
+     */
+    public static Set<String> getSAMFileSamples(final SAMFileHeader header) {
+        // get all of the unique sample names
+        final Set<String> samples = new TreeSet<String>();
+        List<SAMReadGroupRecord> readGroups = header.getReadGroups();
+        for ( SAMReadGroupRecord readGroup : readGroups )
+            samples.add(readGroup.getSample());
+        return samples;
+    }
 
     /**
      * A marker to tell which end of the read has been clipped
@@ -129,27 +143,6 @@ public class ReadUtils {
      *     <-------->          (read)
      */
     public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
-
-    /**
-     * Creates a SAMFileWriter using all of the features currently set in the engine (command line arguments, ReadTransformers, etc)
-     * @param file the filename to write to
-     * @param engine the engine
-     * @return a SAMFileWriter with the correct options set
-     */
-    public static SAMFileWriter createSAMFileWriter(final String file, final GenomeAnalysisEngine engine) {
-        final SAMFileWriterStub output = new SAMFileWriterStub(engine, new File(file));
-        output.processArguments(engine.getArguments());
-        return output;
-    }
-
-    /**
-     *  As {@link #createSAMFileWriter(String, org.broadinstitute.gatk.engine.GenomeAnalysisEngine)}, but also sets the header
-     */
-    public static SAMFileWriter createSAMFileWriter(final String file, final GenomeAnalysisEngine engine, final SAMFileHeader header) {
-        final SAMFileWriterStub output = (SAMFileWriterStub) createSAMFileWriter(file, engine);
-        output.writeHeader(header);
-        return output;
-    }
 
     /**
      * is this base inside the adaptor of the read?
@@ -757,7 +750,7 @@ public class ReadUtils {
      * @return an array with randomized base qualities between 0 and 50
      */
     public static byte[] createRandomReadQuals(int length) {
-        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        Random random = Utils.getRandomGenerator();
         byte[] quals = new byte[length];
         for (int i = 0; i < length; i++)
             quals[i] = (byte) random.nextInt(50);
@@ -772,7 +765,7 @@ public class ReadUtils {
      * @return an array with randomized bases (A-N) with equal probability
      */
     public static byte[] createRandomReadBases(int length, boolean allowNs) {
-        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        Random random = Utils.getRandomGenerator();
         int numberOfBases = allowNs ? 5 : 4;
         byte[] bases = new byte[length];
         for (int i = 0; i < length; i++) {

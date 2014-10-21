@@ -30,10 +30,11 @@ import htsjdk.samtools.SAMFileSpan;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.engine.ReadMetrics;
 import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.HasGenomeLocation;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.util.Collections;
 import java.util.List;

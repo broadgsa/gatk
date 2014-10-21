@@ -23,12 +23,15 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.sam;
+package org.broadinstitute.gatk.engine.iterators;
 
 
 import htsjdk.samtools.SAMFileHeader;
+import org.broadinstitute.gatk.engine.iterators.MisencodedBaseQualityReadTransformer;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

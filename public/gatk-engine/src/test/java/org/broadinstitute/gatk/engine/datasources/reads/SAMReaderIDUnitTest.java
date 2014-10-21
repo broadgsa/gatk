@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

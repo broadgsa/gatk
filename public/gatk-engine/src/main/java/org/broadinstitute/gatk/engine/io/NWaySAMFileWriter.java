@@ -23,20 +23,19 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.sam;
+package org.broadinstitute.gatk.engine.io;
 
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
-import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.GATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -78,6 +77,79 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     public NWaySAMFileWriter(GenomeAnalysisEngine toolkit, String ext, SAMFileHeader.SortOrder order,
                               boolean presorted, boolean indexOnTheFly , boolean generateMD5) {
         this(toolkit, ext, order, presorted, indexOnTheFly, generateMD5, null,false);
+    }
+
+    /**
+     * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
+     * up the writer with the header and presorted status.
+     *
+     * @param originalHeader      original header
+     * @param programRecord       the program record for this program
+     */
+    public static SAMFileHeader setupWriter(final SAMFileHeader originalHeader, final SAMProgramRecord programRecord) {
+        final SAMFileHeader header = originalHeader.clone();
+        final List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+        final List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+        for ( SAMProgramRecord record : oldRecords )
+            if ( (programRecord != null && !record.getId().startsWith(programRecord.getId())))
+                newRecords.add(record);
+
+        if (programRecord != null) {
+            newRecords.add(programRecord);
+            header.setProgramRecords(newRecords);
+        }
+        return header;
+    }
+
+    /**
+    * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and returns
+    * the new header to be added to the BAM writer.
+    *
+    * @param toolkit             the engine
+    * @param walker              the walker object (so we can extract the command line)
+    * @param PROGRAM_RECORD_NAME the name for the PG tag
+    * @return a pre-filled header for the bam writer
+    */
+    public static SAMFileHeader setupWriter(final GenomeAnalysisEngine toolkit, final SAMFileHeader originalHeader, final Object walker, final String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
+        return setupWriter(originalHeader, programRecord);
+    }
+
+    /**
+     * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
+     * up the writer with the header and presorted status.
+     *
+     * @param writer              BAM file writer
+     * @param toolkit             the engine
+     * @param preSorted           whether or not the writer can assume reads are going to be added are already sorted
+     * @param walker              the walker object (so we can extract the command line)
+     * @param PROGRAM_RECORD_NAME the name for the PG tag
+     */
+    public static void setupWriter(GATKSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, Object walker, String PROGRAM_RECORD_NAME) {
+        SAMFileHeader header = setupWriter(toolkit, originalHeader, walker, PROGRAM_RECORD_NAME);
+        writer.writeHeader(header);
+        writer.setPresorted(preSorted);
+    }
+
+    /**
+     * Creates a program record (@PG) tag
+     *
+     * @param toolkit             the engine
+     * @param walker              the walker object (so we can extract the command line)
+     * @param PROGRAM_RECORD_NAME the name for the PG tag
+     * @return a program record for the tool
+     */
+    public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
+        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
+        try {
+            final String version = headerInfo.getString("org.broadinstitute.gatk.engine.version");
+            programRecord.setProgramVersion(version);
+        } catch (MissingResourceException e) {
+            // couldn't care less if the resource is missing...
+        }
+        programRecord.setCommandLine(toolkit.createApproximateCommandLineArgumentString(toolkit, walker));
+        return programRecord;
     }
 
     /**
@@ -142,7 +214,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     private void addWriter(SAMReaderID id , String outName, SAMFileHeader.SortOrder order, boolean presorted,
                            boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord programRecord) {
         File f = new File(outName);
-        SAMFileHeader header = Utils.setupWriter(toolkit.getSAMFileHeader(id), programRecord);
+        SAMFileHeader header = setupWriter(toolkit.getSAMFileHeader(id), programRecord);
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         factory.setCreateIndex(indexOnTheFly);
         factory.setCreateMd5File(generateMD5);

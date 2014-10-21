@@ -32,13 +32,13 @@ package org.broadinstitute.gatk.utils.activeregion;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.commons.lang.ArrayUtils;
 import htsjdk.tribble.readers.LineIterator;
+import org.broadinstitute.gatk.utils.variant.VCIterable;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
@@ -270,7 +270,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
         final File file = new File(path);
         final VCFCodec codec = new VCFCodec();
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> reader = GATKVCFUtils.readAllVCs(file, codec);
+        final Pair<VCFHeader, VCIterable<LineIterator>> reader = VCIterable.readAllVCs(file, codec);
 
         final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
         final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);

@@ -26,11 +26,10 @@
 package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.ValidationStringency;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
-import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 

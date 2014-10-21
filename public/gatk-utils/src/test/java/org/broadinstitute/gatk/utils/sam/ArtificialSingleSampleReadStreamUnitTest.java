@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -76,7 +76,7 @@ public class ArtificialSingleSampleReadStreamUnitTest extends BaseTest {
         readGroup.setSample("testSample");
         header.addReadGroup(readGroup);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         // brute force testing!
         for ( int numContigs = 0; numContigs <= 2; numContigs++ ) {
@@ -123,7 +123,7 @@ public class ArtificialSingleSampleReadStreamUnitTest extends BaseTest {
     public void testArtificialSingleSampleReadStream( ArtificialSingleSampleReadStreamTest test ) {
         logger.warn("Running test: " + test);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
         test.run();
     }
 

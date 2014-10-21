@@ -29,7 +29,7 @@ import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.util.BlockCompressedFilePointerUtil;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -43,7 +43,7 @@ public class ReferenceDataSourceIntegrationTest extends WalkerTest {
         Assert.assertTrue(dictFile.createNewFile());
 
         final WalkerTestSpec spec = new WalkerTestSpec(
-            " -T PrintReads" +
+            " -T TestPrintReadsWalker" +
             " -R " + dummyReference.getAbsolutePath() +
             " -I " + privateTestDir + "NA12878.4.snippet.bam" +
             " -o %s",
@@ -62,7 +62,7 @@ public class ReferenceDataSourceIntegrationTest extends WalkerTest {
         Assert.assertTrue(faiFile.createNewFile());
 
         final WalkerTestSpec spec = new WalkerTestSpec(
-                " -T PrintReads" +
+                " -T TestPrintReadsWalker" +
                 " -R " + dummyReference.getAbsolutePath() +
                 " -I " + privateTestDir + "NA12878.4.snippet.bam" +
                 " -o %s",

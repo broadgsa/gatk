@@ -27,11 +27,11 @@ package org.broadinstitute.gatk.engine.datasources.rmd;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.refdata.SeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.refdata.SeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrack;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;

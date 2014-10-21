@@ -32,6 +32,7 @@ import org.broadinstitute.gatk.utils.commandline.Input
 import org.broadinstitute.gatk.utils.commandline.Output
 import org.broadinstitute.gatk.queue.function.scattergather.ScatterGatherableFunction
 import org.broadinstitute.gatk.queue.extensions.gatk.{TaggedFile, VcfGatherFunction, LocusScatterFunction}
+import org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor.isCompressed
 
 class MuTect extends org.broadinstitute.gatk.queue.extensions.gatk.CommandLineGATK with ScatterGatherableFunction {
   analysisName = "MuTect"
@@ -409,7 +410,7 @@ class MuTect extends org.broadinstitute.gatk.queue.extensions.gatk.CommandLineGA
   override def freezeFieldValues() {
     super.freezeFieldValues()
     if (vcf != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(vcf))
-      if (!org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(vcf.getPath))
+      if (!org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor.isCompressed(vcf.getPath))
         vcfIndex = new File(vcf.getPath + ".idx")
     dbsnpIndexes ++= dbsnp.filter(orig => orig != null).map(orig => new File(orig.getPath + ".idx"))
     cosmicIndexes ++= cosmic.filter(orig => orig != null).map(orig => new File(orig.getPath + ".idx"))

@@ -32,7 +32,6 @@ import com.google.java.contract.Requires;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.NormalDistribution;
 import org.apache.commons.math.distribution.NormalDistributionImpl;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
@@ -482,7 +481,7 @@ public class MannWhitneyU {
             double comp = Double.compare(left.first.doubleValue(),right.first.doubleValue());
             if ( comp > 0 ) { return 1; }
             if ( comp < 0 ) { return -1; }
-            return GenomeAnalysisEngine.getRandomGenerator().nextBoolean() ? -1 : 1;
+            return Utils.getRandomGenerator().nextBoolean() ? -1 : 1;
         }
     }
 

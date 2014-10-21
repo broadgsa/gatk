@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.sam;
+package org.broadinstitute.gatk.engine.io;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMProgramRecord;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.HashMap;
@@ -41,7 +41,7 @@ import java.util.Map;
  * User: carneiro
  * Date: Nov 13
  */
-public class BySampleSAMFileWriter extends NWaySAMFileWriter{
+public class BySampleSAMFileWriter extends NWaySAMFileWriter {
 
     private final Map<String, SAMReaderID> sampleToWriterMap;
 

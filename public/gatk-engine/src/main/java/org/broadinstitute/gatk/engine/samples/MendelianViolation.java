@@ -23,12 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils;
+package org.broadinstitute.gatk.engine.samples;
 
 import org.broadinstitute.gatk.engine.samples.Sample;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypeType;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.MathUtils;
 
 import java.util.*;
 

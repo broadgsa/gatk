@@ -25,11 +25,10 @@
 
 package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 
 import java.util.ArrayList;

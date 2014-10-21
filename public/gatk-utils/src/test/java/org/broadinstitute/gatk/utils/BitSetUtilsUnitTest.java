@@ -25,7 +25,6 @@
 
 package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -43,7 +42,7 @@ public class BitSetUtilsUnitTest {
 
     @BeforeClass
     public void init() {
-        random = GenomeAnalysisEngine.getRandomGenerator();
+        random = Utils.getRandomGenerator();
     }
 
     @Test(enabled = true)

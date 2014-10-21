@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata.tracks;
+package org.broadinstitute.gatk.utils.refdata.tracks;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.MutableIndex;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.utils.SequenceDictionaryUtils;
 
 import java.util.List;

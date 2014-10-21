@@ -23,11 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.walkers.diffengine;
+package org.broadinstitute.gatk.utils.diffengine;
 
-import org.broadinstitute.gatk.engine.report.GATKReport;
-import org.broadinstitute.gatk.engine.report.GATKReportColumn;
-import org.broadinstitute.gatk.engine.report.GATKReportTable;
+import org.broadinstitute.gatk.utils.report.GATKReport;
+import org.broadinstitute.gatk.utils.report.GATKReportColumn;
+import org.broadinstitute.gatk.utils.report.GATKReportTable;
 
 import java.io.File;
 import java.io.FileReader;

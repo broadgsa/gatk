@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.arguments;
+package org.broadinstitute.gatk.utils;
 
 import org.broadinstitute.gatk.utils.commandline.EnumerationArgumentDefault;
 
@@ -32,7 +32,6 @@ import java.util.List;
 
 
 public class ValidationExclusion {
-
     // our validation options
 
     public enum TYPE {
@@ -63,5 +62,10 @@ public class ValidationExclusion {
      */
     public boolean contains(TYPE t) {
         return (exclusions.contains(TYPE.ALL) || exclusions.contains(t));
+    }
+
+    public static boolean lenientVCFProcessing(final TYPE val) {
+        return val == TYPE.ALL
+                || val == TYPE.LENIENT_VCF_PROCESSING;
     }
 }

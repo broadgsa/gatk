@@ -25,7 +25,6 @@
 
 package org.broadinstitute.gatk.engine.io.stubs;
 
-import htsjdk.tribble.AbstractFeatureReader;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
@@ -135,14 +134,5 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         engine.addOutput(stub);
 
         return stub;
-    }
-
-    /**
-     * Returns true if the file will be compressed.
-     * @param writerFileName Name of the file
-     * @return true if the file will be compressed.
-     */
-    public static boolean isCompressed(String writerFileName) {
-        return writerFileName != null && AbstractFeatureReader.hasBlockCompressedExtension(writerFileName);
     }
 }

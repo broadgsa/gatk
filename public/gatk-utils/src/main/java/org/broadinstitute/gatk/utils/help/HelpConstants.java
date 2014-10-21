@@ -37,7 +37,6 @@ public class HelpConstants {
      */
     public final static String ARG_TREEREDUCIBLE = "-nt";
     public final static String ARG_NANOSCHEDULABLE = "-nct";
-    public final static String CMDLINE_GATK_URL = GATK_DOCS_URL + "org_broadinstitute_gatk_engine_CommandLineGATK.php";
 
     /**
      * Definition of the group names / categories of tools.

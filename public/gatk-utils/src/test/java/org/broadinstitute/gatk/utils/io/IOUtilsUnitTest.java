@@ -35,7 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
@@ -315,8 +315,8 @@ public class IOUtilsUnitTest extends BaseTest {
     }
 
     private byte[] getDeterministicRandomData ( int size ) {
-        GenomeAnalysisEngine.resetRandomGenerator();
-        Random rand = GenomeAnalysisEngine.getRandomGenerator();
+        Utils.resetRandomGenerator();
+        Random rand = Utils.getRandomGenerator();
 
         byte[] randomData = new byte[size];
         rand.nextBytes(randomData);

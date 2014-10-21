@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.variant;
+package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.Tribble;
@@ -38,6 +38,7 @@ import htsjdk.tribble.util.TabixUtils;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import htsjdk.variant.vcf.VCFCodec;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 import org.testng.Assert;
 import org.testng.TestException;
 import org.testng.annotations.DataProvider;

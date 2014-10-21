@@ -28,7 +28,9 @@ package org.broadinstitute.gatk.engine.downsampling;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.downsampling.ReadsDownsampler;
+import org.broadinstitute.gatk.utils.downsampling.SimplePositionalDownsampler;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.testng.annotations.DataProvider;
@@ -102,14 +104,14 @@ public class SimplePositionalDownsamplerUnitTest extends BaseTest {
 
     @DataProvider(name = "SimplePositionalDownsamplerTestDataProvider")
     public Object[][] createSimplePositionalDownsamplerTestData() {
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         for ( int targetCoverage = 1; targetCoverage <= 10000; targetCoverage *= 10 ) {
             for ( int contigs = 1; contigs <= 2; contigs++ ) {
                 for ( int numStacks = 0; numStacks <= 10; numStacks++ ) {
                     List<Integer> stackSizes = new ArrayList<Integer>(numStacks);
                     for ( int stack = 1; stack <= numStacks; stack++ ) {
-                        stackSizes.add(GenomeAnalysisEngine.getRandomGenerator().nextInt(targetCoverage * 2) + 1);
+                        stackSizes.add(Utils.getRandomGenerator().nextInt(targetCoverage * 2) + 1);
                     }
                     new SimplePositionalDownsamplerTest(targetCoverage, stackSizes, contigs > 1);
                 }
@@ -123,7 +125,7 @@ public class SimplePositionalDownsamplerUnitTest extends BaseTest {
     public void testSimplePostionalDownsampler( SimplePositionalDownsamplerTest test ) {
         logger.warn("Running test: " + test);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         ReadsDownsampler<SAMRecord> downsampler = new SimplePositionalDownsampler<SAMRecord>(test.targetCoverage);
 

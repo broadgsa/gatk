@@ -30,8 +30,8 @@ import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.CigarOperator;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.downsampling.Downsampler;
-import org.broadinstitute.gatk.engine.downsampling.LevelingDownsampler;
+import org.broadinstitute.gatk.utils.downsampling.Downsampler;
+import org.broadinstitute.gatk.utils.downsampling.LevelingDownsampler;
 
 import java.util.Iterator;
 import java.util.LinkedList;

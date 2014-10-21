@@ -29,7 +29,7 @@ import htsjdk.tribble.AsciiFeatureCodec;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.readers.LineIterator;
-import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.utils.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.Utils;

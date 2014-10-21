@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.engine.datasources.providers;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.util.PeekableIterator;
-import org.broadinstitute.gatk.engine.refdata.RODRecordListImpl;
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.refdata.RODRecordListImpl;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 
 import java.util.Collection;

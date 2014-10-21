@@ -32,7 +32,7 @@ import org.testng.annotations.Test;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.engine.datasources.reads.MockLocusShard;
 import org.broadinstitute.gatk.engine.iterators.GenomeLocusIterator;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.StringUtil;

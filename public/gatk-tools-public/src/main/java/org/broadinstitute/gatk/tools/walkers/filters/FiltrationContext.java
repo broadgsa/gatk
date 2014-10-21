@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.tools.walkers.filters;
 
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import htsjdk.variant.variantcontext.VariantContext;
 
 

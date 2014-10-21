@@ -35,7 +35,7 @@
         </dependency>
 
         <!--
-        gatk-framework test-jar added for BaseTest
+        gatk-utils test-jar added for BaseTest
 
         TODO: Currently the <exclusion> isn't working 100%, so switched to using additionalClasspathElements
 
@@ -47,7 +47,7 @@
           http://maven.apache.org/plugins/maven-jar-plugin/usage.html#The_preferred_way
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-tools-public</artifactId>
+            <artifactId>gatk-utils</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -101,7 +101,8 @@
                             <testClassesDirectory>${gatk.packagetests.testClasses}</testClassesDirectory>
                             <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
                             <additionalClasspathElements>
-                                <additionalClasspathElement>${gatk.basedir}/public/gatk-tools-public/target/gatk-tools-public-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-utils/target/gatk-utils-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-engine/target/gatk-engine-${project.version}-tests.jar</additionalClasspathElement>
                                 <additionalClasspathElement>${gatk.basedir}/public/gatk-queue/target/gatk-queue-${project.version}-tests.jar</additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
@@ -143,7 +144,8 @@
                             <testClassesDirectory>${gatk.packagetests.testClasses}</testClassesDirectory>
                             <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
                             <additionalClasspathElements>
-                                <additionalClasspathElement>${gatk.basedir}/public/gatk-tools-public/target/gatk-tools-public-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-utils/target/gatk-utils-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-engine/target/gatk-engine-${project.version}-tests.jar</additionalClasspathElement>
                                 <additionalClasspathElement>${gatk.basedir}/public/gatk-queue/target/gatk-queue-${project.version}-tests.jar</additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>

@@ -29,15 +29,14 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.datasources.providers.*;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.ActiveRegionTraversalParameters;
 import org.broadinstitute.gatk.engine.walkers.ActiveRegionWalker;
 import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.SampleUtils;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.activeregion.ActiveRegion;
 import org.broadinstitute.gatk.utils.activeregion.ActivityProfile;
@@ -49,6 +48,7 @@ import org.broadinstitute.gatk.utils.nanoScheduler.NSReduceFunction;
 import org.broadinstitute.gatk.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -162,7 +162,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), engine.getIntervals(), this.walker.maxProbPropagationDistance, this.walker.activeProbThreshold,
                 BandPassActivityProfile.MAX_FILTER_SIZE, bandPassSigma);
 
-        final int maxReadsAcrossSamples = annotation.maxReadsToHoldInMemoryPerSample() * SampleUtils.getSAMFileSamples(engine).size();
+        final int maxReadsAcrossSamples = annotation.maxReadsToHoldInMemoryPerSample() * ReadUtils.getSAMFileSamples(engine.getSAMFileHeader()).size();
         final int maxReadsToHoldInMemory = Math.min(maxReadsAcrossSamples, annotation.maxReadsToHoldTotal());
         myReads = new TAROrderedReadCache(maxReadsToHoldInMemory);
     }

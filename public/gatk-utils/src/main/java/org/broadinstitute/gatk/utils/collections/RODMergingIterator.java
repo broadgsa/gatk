@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.utils.collections;
 
-import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 

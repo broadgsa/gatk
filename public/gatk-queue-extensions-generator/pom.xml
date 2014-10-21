@@ -21,7 +21,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-tools-public</artifactId>
+            <artifactId>gatk-engine</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

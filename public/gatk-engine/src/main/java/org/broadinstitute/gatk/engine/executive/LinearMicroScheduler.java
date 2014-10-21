@@ -38,7 +38,7 @@ import org.broadinstitute.gatk.engine.io.OutputTracker;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.traversals.TraversalEngine;
 import org.broadinstitute.gatk.engine.walkers.Walker;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
 
 import java.util.Collection;
@@ -93,7 +93,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(),
-                        getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
+                        getReadIterator(shard), shard.getGenomeLocs(), ReadUtils.getSAMFileSamples(engine.getSAMFileHeader()));
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());

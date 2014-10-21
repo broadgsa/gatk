@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.downsampling;
+package org.broadinstitute.gatk.utils.downsampling;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.ArrayList;
@@ -66,7 +66,7 @@ public class FractionalDownsampler<T extends SAMRecord> extends ReadsDownsampler
 
     @Override
     public void submit( final T newRead ) {
-        if ( GenomeAnalysisEngine.getRandomGenerator().nextInt(10000) < cutoffForInclusion || doNotDiscardItem(newRead) ) {
+        if ( Utils.getRandomGenerator().nextInt(10000) < cutoffForInclusion || doNotDiscardItem(newRead) ) {
             selectedReads.add(newRead);
         }
         else {

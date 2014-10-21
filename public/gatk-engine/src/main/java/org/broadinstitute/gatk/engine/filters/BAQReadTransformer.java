@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.baq;
+package org.broadinstitute.gatk.engine.filters;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
@@ -31,6 +31,7 @@ import org.broadinstitute.gatk.engine.WalkerManager;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.walkers.BAQMode;
 import org.broadinstitute.gatk.engine.walkers.Walker;
+import org.broadinstitute.gatk.utils.baq.BAQ;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;

@@ -27,12 +27,12 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.*;
-import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIteratorAdapter;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.util.*;
 

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 /**
  * User: hanna
  * Date: May 12, 2009

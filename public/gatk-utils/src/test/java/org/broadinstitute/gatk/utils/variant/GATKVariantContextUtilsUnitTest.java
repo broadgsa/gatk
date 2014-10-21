@@ -26,7 +26,6 @@
 package org.broadinstitute.gatk.utils.variant;
 
 import htsjdk.variant.variantcontext.*;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -1100,8 +1099,8 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     }
 
     private static GenotypesContext createGenotypesContext(final int numGenotypes, final List<Allele> alleles) {
-        GenomeAnalysisEngine.resetRandomGenerator();
-        final Random random = GenomeAnalysisEngine.getRandomGenerator();
+        Utils.resetRandomGenerator();
+        final Random random = Utils.getRandomGenerator();
 
         final GenotypesContext gc = GenotypesContext.create();
         for ( int i = 0; i < numGenotypes; i++ ) {
@@ -1585,7 +1584,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @DataProvider(name="totalPloidyData")
     public Object[][] totalPloidyData() {
-        final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+        final Random rdn = Utils.getRandomGenerator();
         final List<Object[]> resultList = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             final int sampleCount = rdn.nextInt(10);

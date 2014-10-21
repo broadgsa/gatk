@@ -89,7 +89,7 @@ public class ArtificialPatternedSAMIterator extends ArtificialSAMIterator {
      * @param header      the associated header
      * @param pattern     the pattern to implement
      */
-    ArtificialPatternedSAMIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount, SAMFileHeader header, PATTERN pattern ) {
+    public ArtificialPatternedSAMIterator( int startingChr, int endingChr, int readCount, int unmappedReadCount, SAMFileHeader header, PATTERN pattern ) {
         super(startingChr, endingChr, readCount, unmappedReadCount, header);
         mPattern = pattern;
         this.readCount = readCount;

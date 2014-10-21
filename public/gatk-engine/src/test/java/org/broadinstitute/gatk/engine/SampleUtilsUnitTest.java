@@ -23,14 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils;
+package org.broadinstitute.gatk.engine;
 
-import org.apache.commons.io.FileUtils;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.io.IOUtils;
-import org.testng.Assert;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.testng.annotations.DataProvider;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.io.File;

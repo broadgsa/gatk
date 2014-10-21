@@ -27,12 +27,7 @@ package org.broadinstitute.gatk.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMProgramRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
-import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.lang.reflect.Array;
 import java.math.BigInteger;
@@ -49,6 +44,15 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class Utils {
+    /**
+     *  Static random number generator and seed.
+     */
+    private static final long GATK_RANDOM_SEED = 47382911L;
+    private static Random randomGenerator = new Random(GATK_RANDOM_SEED);
+    public static Random getRandomGenerator() { return randomGenerator; }
+    public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
+    public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
+
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(Utils.class);
 
@@ -563,79 +567,6 @@ public class Utils {
             array[i] = value;
     }
 
-    /**
-     * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
-     * up the writer with the header and presorted status.
-     *
-     * @param originalHeader      original header
-     * @param programRecord       the program record for this program
-     */
-    public static SAMFileHeader setupWriter(final SAMFileHeader originalHeader, final SAMProgramRecord programRecord) {
-        final SAMFileHeader header = originalHeader.clone();
-        final List<SAMProgramRecord> oldRecords = header.getProgramRecords();
-        final List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
-        for ( SAMProgramRecord record : oldRecords )
-            if ( (programRecord != null && !record.getId().startsWith(programRecord.getId())))
-                newRecords.add(record);
-
-        if (programRecord != null) {
-            newRecords.add(programRecord);
-            header.setProgramRecords(newRecords);
-        }
-        return header;
-    }
-
-    /**
-    * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and returns
-    * the new header to be added to the BAM writer.
-    *
-    * @param toolkit             the engine
-    * @param walker              the walker object (so we can extract the command line)
-    * @param PROGRAM_RECORD_NAME the name for the PG tag
-    * @return a pre-filled header for the bam writer
-    */
-    public static SAMFileHeader setupWriter(final GenomeAnalysisEngine toolkit, final SAMFileHeader originalHeader, final Object walker, final String PROGRAM_RECORD_NAME) {
-        final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
-        return setupWriter(originalHeader, programRecord);
-    }
-
-    /**
-     * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
-     * up the writer with the header and presorted status.
-     *
-     * @param writer              BAM file writer
-     * @param toolkit             the engine
-     * @param preSorted           whether or not the writer can assume reads are going to be added are already sorted
-     * @param walker              the walker object (so we can extract the command line)
-     * @param PROGRAM_RECORD_NAME the name for the PG tag
-     */
-    public static void setupWriter(GATKSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, Object walker, String PROGRAM_RECORD_NAME) {
-        SAMFileHeader header = setupWriter(toolkit, originalHeader, walker, PROGRAM_RECORD_NAME);
-        writer.writeHeader(header);
-        writer.setPresorted(preSorted);
-    }
-
-
-    /**
-     * Creates a program record (@PG) tag
-     *
-     * @param toolkit             the engine
-     * @param walker              the walker object (so we can extract the command line)
-     * @param PROGRAM_RECORD_NAME the name for the PG tag
-     * @return a program record for the tool
-     */
-    public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
-        final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
-        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
-        try {
-            final String version = headerInfo.getString("org.broadinstitute.gatk.tools.version");
-            programRecord.setProgramVersion(version);
-        } catch (MissingResourceException e) {
-            // couldn't care less if the resource is missing...
-        }
-        programRecord.setCommandLine(toolkit.createApproximateCommandLineArgumentString(toolkit, walker));
-        return programRecord;
-    }
 
     /**
      * Returns the number of combinations represented by this collection

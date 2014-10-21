@@ -46,7 +46,7 @@ public class PairHMMReadyHaplotypes implements Iterable<PairHMMReadyHaplotypes.E
             this.bases = bases;
         }
 
-        protected byte[] getBases() {
+        public byte[] getBases() {
             return bases;
         }
 

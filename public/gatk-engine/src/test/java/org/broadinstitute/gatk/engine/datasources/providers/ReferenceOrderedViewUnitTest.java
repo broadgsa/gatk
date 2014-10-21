@@ -30,14 +30,14 @@ import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.engine.datasources.reads.MockLocusShard;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.testng.Assert;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.engine.datasources.reads.Shard;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.codecs.table.TableFeature;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet.RMDStorageType;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 

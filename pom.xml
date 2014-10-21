@@ -173,7 +173,7 @@
                                 <outputDirectory>${project.reporting.outputDirectory}/apidocs</outputDirectory>
                                 <resources>
                                     <resource>
-                                        <directory>${gatk.basedir}/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
+                                        <directory>${gatk.basedir}/public/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
                                     </resource>
                                 </resources>
                             </configuration>
@@ -198,8 +198,7 @@
                                 <docletPath>${project.build.outputDirectory}</docletPath>
                                 <docletArtifact>
                                     <groupId>${project.groupId}</groupId>
-                                    <!-- TODO: THIS IS SUPPOSED TO BE GATK-UTILS! -->
-                                    <artifactId>gatk-tools-public</artifactId>
+                                    <artifactId>gatk-utils</artifactId>
                                     <version>${project.version}</version>
                                 </docletArtifact>
                                 <maxmemory>2g</maxmemory>
@@ -689,7 +688,7 @@
                         <!-- Only generate the GATK Docs across the parent aggregation, not the children too. -->
                         <inherited>false</inherited>
                         <configuration>
-                            <doclet>org.broadinstitute.gatk.utils.help.GATKDoclet</doclet>
+                            <doclet>org.broadinstitute.gatk.tools.walkers.help.WalkerDoclet</doclet>
                             <docletArtifact>
                                 <groupId>${project.groupId}</groupId>
                                 <artifactId>gatk-package-distribution</artifactId>

@@ -134,7 +134,7 @@ public class GATKVariantContextUtils {
      * @param loc    if not null, ignore records that do not begin at this start location
      * @return possibly null Allele
      */
-    protected static Allele determineReferenceAllele(final List<VariantContext> VCs, final GenomeLoc loc) {
+    public static Allele determineReferenceAllele(final List<VariantContext> VCs, final GenomeLoc loc) {
         Allele ref = null;
 
         for ( final VariantContext vc : VCs ) {

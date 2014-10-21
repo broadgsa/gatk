@@ -23,9 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.report;
+package org.broadinstitute.gatk.utils.report;
 
 import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.report.GATKReport;
+import org.broadinstitute.gatk.utils.report.GATKReportColumn;
+import org.broadinstitute.gatk.utils.report.GATKReportTable;
+import org.broadinstitute.gatk.utils.report.GATKReportVersion;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;

@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 
 import java.util.Iterator;
 

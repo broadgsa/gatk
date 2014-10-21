@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.traversals;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
+import org.broadinstitute.gatk.engine.walkers.TestCountReadsWalker;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
@@ -35,10 +36,10 @@ import org.broadinstitute.gatk.engine.datasources.reads.*;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
-import org.broadinstitute.gatk.tools.walkers.qc.CountReads;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -128,7 +129,7 @@ public class TraverseReadsUnitTest extends BaseTest {
 
         bamList = new ArrayList<SAMReaderID>();
         bamList.add(bam);
-        countReadWalker = new CountReads();
+        countReadWalker = new TestCountReadsWalker();
         
         traversalEngine = new TraverseReadsNano(1);
         traversalEngine.initialize(engine, countReadWalker);

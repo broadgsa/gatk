@@ -25,17 +25,16 @@
 
 package org.broadinstitute.gatk.tools.walkers.qc;
 
+import org.broadinstitute.gatk.engine.walkers.FailMethod;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Input;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.NanoSchedulable;
 import org.broadinstitute.gatk.engine.walkers.RefWalker;
 import org.broadinstitute.gatk.engine.walkers.TreeReducible;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 
@@ -50,12 +49,6 @@ public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeRed
     @Argument(fullName = "failMethod", shortName = "fail", doc = "Determines which method to fail in", required = false)
     public FailMethod failMethod = FailMethod.MAP;
 
-    public enum FailMethod {
-          MAP,
-          REDUCE,
-          TREE_REDUCE
-    }
-
     //
     // Template code to allow us to build the walker, doesn't actually do anything
     //
@@ -65,7 +58,7 @@ public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeRed
             return null;
 
         if ( failMethod == FailMethod.MAP )
-            fail();
+            FailMethod.fail(exceptionToThrow);
 
         return 0;
     }
@@ -78,33 +71,13 @@ public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeRed
     @Override
     public Integer reduce(Integer value, Integer sum) {
         if ( value != null && failMethod == FailMethod.REDUCE )
-            fail();
+            FailMethod.fail(exceptionToThrow);
         return sum;
     }
 
     public Integer treeReduce(final Integer lhs, final Integer rhs) {
         if ( failMethod == FailMethod.TREE_REDUCE )
-            fail();
+            FailMethod.fail(exceptionToThrow);
         return rhs;
-    }
-
-    private void fail() {
-        if ( exceptionToThrow.equals("UserException") ) {
-            throw new UserException("UserException");
-        } else if ( exceptionToThrow.equals("NullPointerException") ) {
-            throw new NullPointerException();
-        } else if ( exceptionToThrow.equals("ReviewedGATKException") ) {
-            throw new ReviewedGATKException("ReviewedGATKException");
-        } else if ( exceptionToThrow.equals("SamError1") ) {
-            throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_1);
-        } else if ( exceptionToThrow.equals("SamError2") ) {
-            throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_2);
-        } else if ( exceptionToThrow.equals("NoSpace1") ) {
-            throw new htsjdk.samtools.util.RuntimeIOException(new java.io.IOException("No space left on device java.io.FileOutputStream.writeBytes(Native Method)"));
-        } else if ( exceptionToThrow.equals("NoSpace2") ) {
-            throw new htsjdk.samtools.SAMException("Exception writing BAM index file", new java.io.IOException("No space left on device java.io.FileOutputStream.writeBytes(Native Method)"));
-        } else {
-            throw new UserException.BadArgumentValue("exception", "exception isn't a recognized value " + exceptionToThrow);
-        }
     }
 }

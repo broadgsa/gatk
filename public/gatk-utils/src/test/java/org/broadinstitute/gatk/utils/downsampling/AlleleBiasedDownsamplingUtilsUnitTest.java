@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.downsampling;
+package org.broadinstitute.gatk.utils.downsampling;
 
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
@@ -106,7 +106,7 @@ public class AlleleBiasedDownsamplingUtilsUnitTest extends BaseTest {
         actualCounts[2] += addG;
         actualCounts[3] += addT;
 
-        final int[] results = AlleleBiasedDownsamplingUtils.runSmartDownsampling(actualCounts, (int)(pileupSize * contaminationFraction));
+        final int[] results = AlleleBiasedDownsamplingUtils.runSmartDownsampling(actualCounts, (int) (pileupSize * contaminationFraction));
         Assert.assertTrue(countsAreEqual(results, targetCounts));
     }
 

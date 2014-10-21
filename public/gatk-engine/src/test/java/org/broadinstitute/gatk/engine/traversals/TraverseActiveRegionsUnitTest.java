@@ -28,14 +28,13 @@ package org.broadinstitute.gatk.engine.traversals;
 import com.google.java.contract.PreconditionError;
 import htsjdk.samtools.*;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.*;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
-import org.broadinstitute.gatk.utils.SampleUtils;
 import org.broadinstitute.gatk.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
@@ -482,7 +481,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 false, (byte)30, false, true, null, IntervalMergingRule.ALL);
 
         engine.setReadsDataSource(dataSource);
-        final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
+        final Set<String> samples = ReadUtils.getSAMFileSamples(dataSource.getHeader());
 
         traverseActiveRegions.initialize(engine, walker);
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();

@@ -56,40 +56,7 @@ public class ReferenceDataSource {
      * @param fastaFile Fasta file to be used as reference
      */
     public ReferenceDataSource(File fastaFile) {
-        // does the fasta file exist? check that first...
-        if (!fastaFile.exists())
-            throw new UserException("The fasta file you specified (" + fastaFile.getAbsolutePath() + ") does not exist.");
-
-        final boolean isGzipped = fastaFile.getAbsolutePath().endsWith(".gz");
-        if ( isGzipped ) {
-            throw new UserException.CannotHandleGzippedRef();
-        }
-
-        final File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
-
-        // determine the name for the dict file
-        final String fastaExt = fastaFile.getAbsolutePath().endsWith("fa") ? "\\.fa$" : "\\.fasta$";
-        final File dictFile = new File(fastaFile.getAbsolutePath().replaceAll(fastaExt, ".dict"));
-
-        // It's an error if either the fai or dict file does not exist. The user is now responsible
-        // for creating these files.
-        if (!indexFile.exists()) {
-            throw new UserException.MissingReferenceFaiFile(indexFile, fastaFile);
-        }
-        if (!dictFile.exists()) {
-            throw new UserException.MissingReferenceDictFile(dictFile, fastaFile);
-        }
-
-        // Read reference data by creating an IndexedFastaSequenceFile.
-        try {
-            reference = new CachingIndexedFastaSequenceFile(fastaFile);
-        }
-        catch (IllegalArgumentException e) {
-            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read reference sequence.  The FASTA must have either a .fasta or .fa extension", e);
-        }
-        catch (Exception e) {
-            throw new UserException.CouldNotReadInputFile(fastaFile, e);
-        }
+        reference = CachingIndexedFastaSequenceFile.checkAndCreate(fastaFile);
     }
 
     /**

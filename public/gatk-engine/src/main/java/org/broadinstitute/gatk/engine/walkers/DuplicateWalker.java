@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.engine.filters.NotPrimaryAlignmentFilter;
 import org.broadinstitute.gatk.engine.filters.UnmappedReadFilter;
 import org.broadinstitute.gatk.utils.GenomeLoc;

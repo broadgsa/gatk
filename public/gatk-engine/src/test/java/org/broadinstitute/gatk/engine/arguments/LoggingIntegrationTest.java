@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.commandline;
+package org.broadinstitute.gatk.engine.arguments;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +58,7 @@ public class LoggingIntegrationTest {
             super(LoggingTestProvider.class);
 
             // TODO: a better command line that exercises log levels besides INFO
-            this.baseCmdLine = String.format("java -cp %s %s -T SelectVariants -R %s -V %s -L 1:1000000-2000000 --no_cmdline_in_header",
+            this.baseCmdLine = String.format("java -cp %s %s -T TestPrintVariantsWalker -R %s -V %s -L 1:1000000-2000000 --no_cmdline_in_header",
                     StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
                     CommandLineGATK.class.getCanonicalName(), BaseTest.b37KGReference, BaseTest.b37_NA12878_OMNI);
 

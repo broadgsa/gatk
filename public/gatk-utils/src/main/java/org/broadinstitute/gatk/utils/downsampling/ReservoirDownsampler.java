@@ -23,10 +23,10 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.downsampling;
+package org.broadinstitute.gatk.utils.downsampling;
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.util.*;
@@ -137,7 +137,7 @@ public class ReservoirDownsampler<T extends SAMRecord> extends ReadsDownsampler<
                 isLinkedList = false;
             }
 
-            final int randomSlot = GenomeAnalysisEngine.getRandomGenerator().nextInt(totalDiscardableReadsSeen);
+            final int randomSlot = Utils.getRandomGenerator().nextInt(totalDiscardableReadsSeen);
             if ( randomSlot < targetSampleSize ) {
                 reservoir.set(randomSlot, newRead);
             }

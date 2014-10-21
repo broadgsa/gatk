@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.interval;
+package org.broadinstitute.gatk.engine.arguments;
 
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.testng.annotations.Test;
@@ -40,7 +40,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testAllImplicitIntervalParsing() {
         String md5 = "7821db9e14d4f8e07029ff1959cd5a99";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s",
@@ -54,7 +54,7 @@ public class IntervalIntegrationTest extends WalkerTest {
 //    public void testAllExplicitIntervalParsing() {
 //        String md5 = "7821db9e14d4f8e07029ff1959cd5a99";
 //        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-//                "-T CountLoci" +
+//                "-T TestCountLociWalker" +
 //                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
 //                        " -R " + hg18Reference +
 //                        " -L all" +
@@ -67,7 +67,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     @Test
     public void testUnmappedReadInclusion() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T PrintReads" +
+                "-T TestPrintReadsWalker" +
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -L unmapped" +
@@ -87,7 +87,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     @Test
     public void testMixedMappedAndUnmapped() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T PrintReads" +
+                "-T TestPrintReadsWalker" +
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -L Escherichia_coli_K12:4630000-4639675" +
@@ -109,7 +109,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     @Test(enabled = false)
     public void testUnmappedReadExclusion() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T PrintReads" +
+                "-T TestPrintReadsWalker" +
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -XL unmapped" +
@@ -130,7 +130,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testIntervalParsingFromFile() {
         String md5 = "48a24b70a0b376535542b996af517398";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -144,7 +144,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testIntervalMergingFromFiles() {
         String md5 = "9ae0ea9e3c9c6e1b9b6252c8395efdc1";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -159,7 +159,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testIntervalExclusionsFromFiles() {
         String md5 = "26ab0db90d72e28ad0ba1e22ee510510";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -174,7 +174,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testMixedIntervalMerging() {
         String md5 = "7c5aba41f53293b712fd86d08ed5b36e";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -189,7 +189,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testBed() {
         String md5 = "cf4278314ef8e4b996e1b798d8eb92cf";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -203,7 +203,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testComplexVCF() {
         String md5 = "166d77ac1b46a1ec38aa35ab7e628ab5";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -217,7 +217,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testComplexVCFWithPadding() {
         String md5 = "649ee93d50739c656e94ec88a32c7ffe";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " --interval_padding 2" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
@@ -232,7 +232,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testMergingWithComplexVCF() {
         String md5 = "6d7fce9fee471194aa8b5b6e47267f03";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -247,7 +247,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testEmptyVCF() {
         String md5 = "897316929176464ebc9ad085f31e7284";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -261,7 +261,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testIncludeExcludeIsTheSame() {
         String md5 = "897316929176464ebc9ad085f31e7284";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
                         " -R " + hg18Reference +
                         " -o %s" +
@@ -276,7 +276,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testSymbolicAlleles() {
         String md5 = "52745056d2fd5904857bbd4984c08098";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T CountLoci" +
+                "-T TestCountLociWalker" +
                         " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam" +
                         " -R " + b36KGReference +
                         " -o %s" +
@@ -290,7 +290,7 @@ public class IntervalIntegrationTest extends WalkerTest {
     public void testIntersectionOfLexicographicallySortedIntervals() {
         final String md5 = "18be9375e5a753f766616a51eb6131f0";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                " -T CountLoci" +
+                " -T TestCountLociWalker" +
                 " -I " + privateTestDir + "NA12878.4.snippet.bam" +
                 " -R " + b37KGReference +
                 " -L " + privateTestDir + "lexicographicallySortedIntervals.bed" +

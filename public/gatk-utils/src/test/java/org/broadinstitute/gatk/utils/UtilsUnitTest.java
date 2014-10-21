@@ -26,7 +26,6 @@
 package org.broadinstitute.gatk.utils;
 
 import org.apache.commons.io.FileUtils;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.io.IOUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -189,7 +188,7 @@ public class UtilsUnitTest extends BaseTest {
                 // good.
             }
         } else {
-            final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+            final Random rdn = Utils.getRandomGenerator();
             final int[] valuesClone = values.clone();
             final List<Integer> list = Utils.asList(valuesClone);
             Assert.assertNotNull(list);
@@ -213,7 +212,7 @@ public class UtilsUnitTest extends BaseTest {
                 // good.
             }
         } else {
-            final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+            final Random rdn = Utils.getRandomGenerator();
             final double[] valuesClone = values.clone();
             final List<Double> list = Utils.asList(valuesClone);
             Assert.assertNotNull(list);

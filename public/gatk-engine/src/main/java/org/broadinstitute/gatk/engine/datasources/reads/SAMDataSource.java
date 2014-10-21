@@ -33,8 +33,7 @@ import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.ReadMetrics;
 import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
-import org.broadinstitute.gatk.engine.downsampling.*;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.filters.CountingFilteringIterator;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.iterators.*;
@@ -42,16 +41,18 @@ import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
 import org.broadinstitute.gatk.utils.SimpleTimer;
-import org.broadinstitute.gatk.utils.baq.ReadTransformingIterator;
+import org.broadinstitute.gatk.engine.iterators.ReadTransformingIterator;
+import org.broadinstitute.gatk.utils.downsampling.*;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
 import org.broadinstitute.gatk.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -297,8 +298,8 @@ public class SAMDataSource {
 
         // Determine the sort order.
         for(SAMReaderID readerID: readerIDs) {
-            if (! readerID.samFile.canRead() )
-                throw new UserException.CouldNotReadInputFile(readerID.samFile,"file is not present or user does not have appropriate permissions.  " +
+            if (! readerID.getSamFile().canRead() )
+                throw new UserException.CouldNotReadInputFile(readerID.getSamFile(),"file is not present or user does not have appropriate permissions.  " +
                         "Please check that the file is present and readable and try again.");
 
             // Get the sort order, forcing it to coordinate if unsorted.
@@ -308,7 +309,7 @@ public class SAMDataSource {
             headers.put(readerID,header);
 
             if ( header.getReadGroups().isEmpty() ) {
-                throw new UserException.MalformedBAM(readers.getReaderID(reader).samFile,
+                throw new UserException.MalformedBAM(readers.getReaderID(reader).getSamFile(),
                         "SAM file doesn't have any read groups defined in the header.  The GATK no longer supports SAM files without read groups");
             }
 
@@ -361,7 +362,7 @@ public class SAMDataSource {
         }
 
         for(SAMReaderID id: readerIDs) {
-            File indexFile = findIndexFile(id.samFile);
+            File indexFile = findIndexFile(id.getSamFile());
             if(indexFile != null)
                 bamIndices.put(id,new GATKBAMIndex(indexFile));
         }
@@ -410,7 +411,7 @@ public class SAMDataSource {
      * @return the file actually associated with the id.
      */
     public File getSAMFile(SAMReaderID id) {
-        return id.samFile;
+        return id.getSamFile();
     }
 
     /**
@@ -585,10 +586,10 @@ public class SAMDataSource {
                     iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
                 }
             } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFormatExceptions) sometimes
-                throw new UserException.MalformedBAM(id.samFile, e.getMessage());
+                throw new UserException.MalformedBAM(id.getSamFile(), e.getMessage());
             }
 
-            iterator = new MalformedBAMErrorReformatingIterator(id.samFile, iterator);
+            iterator = new MalformedBAMErrorReformatingIterator(id.getSamFile(), iterator);
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
 
@@ -603,7 +604,7 @@ public class SAMDataSource {
         return applyDecoratingIterators(readMetrics,
                 enableVerification,
                 readProperties.useOriginalBaseQualities(),
-                new ReleasingIterator(readers,GATKSAMIteratorAdapter.adapt(mergingIterator)),
+                new ReleasingIterator(readers, GATKSAMIteratorAdapter.adapt(mergingIterator)),
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
                 readProperties.getReadTransformers(),
@@ -867,7 +868,7 @@ public class SAMDataSource {
                     inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
                 }
 
-                logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.samFile));
+                logger.debug(String.format("Processing file (%d of %d) %s...", readerNumber++, totalNumberOfFiles,  readerID.getSamFile()));
                 readers.put(init.readerID,init.reader);
                 if ( ++nExecutedTotal % tickSize == 0) {
                     double tickInSec = (timer.currentTime() - lastTick) / 1000.0;
@@ -1064,21 +1065,21 @@ public class SAMDataSource {
         }
 
         public ReaderInitializer call() {
-            final File indexFile = findIndexFile(readerID.samFile);
+            final File indexFile = findIndexFile(readerID.getSamFile());
             try {
                 if (threadAllocation.getNumIOThreads() > 0)
                     blockInputStream = new BlockInputStream(dispatcher,readerID,false);
-                reader = new SAMFileReader(readerID.samFile,indexFile,false);
+                reader = new SAMFileReader(readerID.getSamFile(),indexFile,false);
             } catch ( RuntimeIOException e ) {
-                throw new UserException.CouldNotReadInputFile(readerID.samFile, e);
+                throw new UserException.CouldNotReadInputFile(readerID.getSamFile(), e);
             } catch ( SAMFormatException e ) {
-                throw new UserException.MalformedBAM(readerID.samFile, e.getMessage());
+                throw new UserException.MalformedBAM(readerID.getSamFile(), e.getMessage());
             }
             // Picard is throwing a RuntimeException here when BAMs are malformed with bad headers (and so look like SAM files).
             // Let's keep this separate from the SAMFormatException (which ultimately derives from RuntimeException) case,
             // just in case we want to change this behavior later.
             catch ( RuntimeException e ) {
-                throw new UserException.MalformedBAM(readerID.samFile, e.getMessage());
+                throw new UserException.MalformedBAM(readerID.getSamFile(), e.getMessage());
             }
             reader.setSAMRecordFactory(factory);
             reader.enableFileSource(true);

@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.utils;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.walkers.diffengine.DiffEngine;
+import org.broadinstitute.gatk.utils.diffengine.DiffEngine;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.*;

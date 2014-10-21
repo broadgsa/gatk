@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.variant;
+package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
@@ -39,14 +39,13 @@ import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndexCreator;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
-import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.*;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -210,7 +209,7 @@ public class GATKVCFUtils {
      * @return
      */
     public static IndexCreator getIndexCreator(GATKVCFIndexType type, int parameter, File outFile, SAMSequenceDictionary sequenceDictionary) {
-        if (VCFWriterArgumentTypeDescriptor.isCompressed(outFile.toString())) {
+        if (ArgumentTypeDescriptor.isCompressed(outFile.toString())) {
             if (type != GATKVCFUtils.DEFAULT_INDEX_TYPE || parameter != GATKVCFUtils.DEFAULT_INDEX_PARAMETER)
                 logger.warn("Creating Tabix index for " + outFile + ", ignoring user-specified index type and parameter");
 
@@ -230,58 +229,6 @@ public class GATKVCFUtils {
         }
 
         return idxCreator;
-    }
-
-    /**
-     * Utility class to read all of the VC records from a file
-     *
-     * @param file
-     * @param codec
-     * @return
-     * @throws IOException
-     */
-    public final static <SOURCE> Pair<VCFHeader, VCIterable<SOURCE>> readAllVCs( final File file, final FeatureCodec<VariantContext, SOURCE> codec) throws IOException {
-        // read in the features
-        SOURCE source = codec.makeSourceFromStream(new FileInputStream(file));
-        FeatureCodecHeader header = codec.readHeader(source);
-        final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
-        return new Pair<>(vcfHeader, new VCIterable<>(source, codec, vcfHeader));
-    }
-
-    public static class VCIterable<SOURCE> implements Iterable<VariantContext>, Iterator<VariantContext> {
-        final SOURCE source;
-        final FeatureCodec<VariantContext, SOURCE> codec;
-        final VCFHeader header;
-
-        private VCIterable(final SOURCE source, final FeatureCodec<VariantContext, SOURCE> codec, final VCFHeader header) {
-            this.source = source;
-            this.codec = codec;
-            this.header = header;
-        }
-
-        @Override
-        public Iterator<VariantContext> iterator() {
-            return this;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return ! codec.isDone(source);
-        }
-
-        @Override
-        public VariantContext next() {
-            try {
-                final VariantContext vc = codec.decode(source);
-                return vc == null ? null : vc.fullyDecode(header, false);
-            } catch ( IOException e ) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void remove() {
-        }
     }
 
     /**

@@ -41,12 +41,11 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
+import org.broadinstitute.gatk.utils.variant.VCIterable;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.commandline.CommandLineUtils;
-import org.broadinstitute.gatk.utils.crypt.CryptUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.io.IOUtils;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import org.testng.Assert;
 import org.testng.Reporter;
 import org.testng.SkipException;
@@ -134,13 +133,11 @@ public abstract class BaseTest {
     public static final String privateTestDir = new File(gatkDirectory, privateTestDirRelative).getAbsolutePath() + "/";
     protected static final String privateTestDirRoot = privateTestDir.replace(privateTestDirRelative, "");
 
-    private static final String publicTestDirRelative = "public/gatk-engine/src/test/resources/";
+    private static final String publicTestDirRelative = "public/gatk-utils/src/test/resources/";
     public static final String publicTestDir = new File(gatkDirectory, publicTestDirRelative).getAbsolutePath() + "/";
     protected static final String publicTestDirRoot = publicTestDir.replace(publicTestDirRelative, "");
 
     public static final String keysDataLocation = validationDataLocation + "keys/";
-
-    public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
 
     public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";
 
@@ -491,8 +488,8 @@ public abstract class BaseTest {
     }
 
     public static void assertVCFandBCFFilesAreTheSame(final File vcfFile, final File bcfFile) throws IOException {
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> vcfData = GATKVCFUtils.readAllVCs(vcfFile, new VCFCodec());
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable<PositionalBufferedStream>> bcfData = GATKVCFUtils.readAllVCs(bcfFile, new BCF2Codec());
+        final Pair<VCFHeader, VCIterable<LineIterator>> vcfData = VCIterable.readAllVCs(vcfFile, new VCFCodec());
+        final Pair<VCFHeader, VCIterable<PositionalBufferedStream>> bcfData = VCIterable.readAllVCs(bcfFile, new BCF2Codec());
         assertVCFHeadersAreEqual(bcfData.getFirst(), vcfData.getFirst());
         assertVariantContextStreamsAreEqual(bcfData.getSecond(), vcfData.getSecond());
     }

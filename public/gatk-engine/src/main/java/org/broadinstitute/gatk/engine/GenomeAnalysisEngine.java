@@ -34,31 +34,30 @@ import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.variant.vcf.VCFConstants;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.*;
 import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.engine.executive.MicroScheduler;
 import org.broadinstitute.gatk.engine.filters.FilterManager;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
-import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.gatk.engine.io.stubs.Stub;
-import org.broadinstitute.gatk.engine.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformersMode;
 import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
-import org.broadinstitute.gatk.engine.refdata.tracks.IndexDictionaryUtils;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.refdata.tracks.IndexDictionaryUtils;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.engine.samples.SampleDB;
 import org.broadinstitute.gatk.engine.samples.SampleDBBuilder;
 import org.broadinstitute.gatk.engine.walkers.*;
-import org.broadinstitute.gatk.tools.walkers.genotyper.IndexedSampleList;
-import org.broadinstitute.gatk.tools.walkers.genotyper.SampleList;
+import org.broadinstitute.gatk.utils.genotyper.IndexedSampleList;
+import org.broadinstitute.gatk.utils.genotyper.SampleList;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
 import org.broadinstitute.gatk.utils.commandline.*;
@@ -66,8 +65,9 @@ import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 import org.broadinstitute.gatk.utils.progressmeter.ProgressMeter;
-import org.broadinstitute.gatk.utils.recalibration.BQSRArgumentSet;
+import org.broadinstitute.gatk.engine.recalibration.BQSRArgumentSet;
 import org.broadinstitute.gatk.utils.sam.ReadUtils;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 import org.broadinstitute.gatk.utils.threading.ThreadEfficiencyMonitor;
 
@@ -165,7 +165,7 @@ public class GenomeAnalysisEngine {
     /**
      * A currently hacky unique name for this GATK instance
      */
-    private String myName = "GATK_" + Math.abs(getRandomGenerator().nextInt());
+    private String myName = "GATK_" + Math.abs(Utils.getRandomGenerator().nextInt());
 
     /**
      * our walker manager
@@ -231,15 +231,6 @@ public class GenomeAnalysisEngine {
     private long runtimeLimitInNanoseconds = -1;
 
     /**
-     *  Static random number generator and seed.
-     */
-    private static final long GATK_RANDOM_SEED = 47382911L;
-    private static Random randomGenerator = new Random(GATK_RANDOM_SEED);
-    public static Random getRandomGenerator() { return randomGenerator; }
-    public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
-    public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
-
-    /**
      *  Base Quality Score Recalibration helper object
      */
     private BQSRArgumentSet bqsrArgumentSet = null;
@@ -274,7 +265,7 @@ public class GenomeAnalysisEngine {
             throw new ReviewedGATKException("The walker passed to GenomeAnalysisEngine can not be null.");
 
         if (args.nonDeterministicRandomSeed)
-            resetRandomGenerator(System.currentTimeMillis());
+            Utils.resetRandomGenerator(System.currentTimeMillis());
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
@@ -490,8 +481,29 @@ public class GenomeAnalysisEngine {
         DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
 
         DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : walkerMethod;
-        method.checkCompatibilityWithWalker(walker);
+        checkCompatibilityWithWalker(method, walker);
         return method;
+    }
+
+    private static void checkCompatibilityWithWalker( DownsamplingMethod method, Walker walker ) {
+        // Refactored from DownsamplingMethod
+        final DownsampleType type = method.type;
+        final Integer toCoverage = method.toCoverage;
+        final boolean isLocusTraversal = walker instanceof LocusWalker || walker instanceof ActiveRegionWalker;
+
+        if ( isLocusTraversal && type == DownsampleType.ALL_READS && toCoverage != null ) {
+            throw new UserException("Downsampling to coverage with the ALL_READS method for locus-based traversals (eg., LocusWalkers) is not currently supported (though it is supported for ReadWalkers).");
+        }
+
+        // For locus traversals, ensure that the dcov value (if present) is not problematically low
+        if ( isLocusTraversal && type != DownsampleType.NONE && toCoverage != null &&
+                toCoverage < DownsamplingMethod.MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS ) {
+            throw new UserException(String.format("Locus-based traversals (ie., Locus and ActiveRegion walkers) require " +
+                            "a minimum -dcov value of %d when downsampling to coverage. Values less " +
+                            "than this can produce problematic downsampling artifacts while providing " +
+                            "only insignificant improvements in memory usage in most cases.",
+                    DownsamplingMethod.MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS));
+        }
     }
 
     protected void setDownsamplingMethod(DownsamplingMethod method) {
@@ -726,7 +738,7 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     protected void initializeIntervals() {
-        intervals = IntervalUtils.parseIntervalArguments(this.referenceDataSource, argCollection.intervalArguments);
+        intervals = IntervalUtils.parseIntervalArguments(this.referenceDataSource.getReference(), argCollection.intervalArguments);
     }
 
     /**
@@ -1012,12 +1024,7 @@ public class GenomeAnalysisEngine {
     }
 
     public boolean lenientVCFProcessing() {
-        return lenientVCFProcessing(argCollection.unsafe);
-    }
-
-    public static boolean lenientVCFProcessing(final ValidationExclusion.TYPE val) {
-        return val == ValidationExclusion.TYPE.ALL
-                || val == ValidationExclusion.TYPE.LENIENT_VCF_PROCESSING;
+        return ValidationExclusion.lenientVCFProcessing(argCollection.unsafe);
     }
 
     /**
@@ -1275,6 +1282,6 @@ public class GenomeAnalysisEngine {
      * @return never {@code null}.
      */
     public SampleList getReadSampleList() {
-        return new IndexedSampleList(SampleUtils.getSAMFileSamples(getSAMFileHeader()));
+        return new IndexedSampleList(ReadUtils.getSAMFileSamples(getSAMFileHeader()));
     }
 }

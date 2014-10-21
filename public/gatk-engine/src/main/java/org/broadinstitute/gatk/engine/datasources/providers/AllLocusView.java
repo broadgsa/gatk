@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.engine.iterators.GenomeLocusIterator;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileupImpl;

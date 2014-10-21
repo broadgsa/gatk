@@ -28,13 +28,14 @@ package org.broadinstitute.gatk.engine;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.commandline.Hidden;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
-import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.engine.filters.FilterManager;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.ResourceBundleExtractorDoclet;
 import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
@@ -151,6 +152,16 @@ public class WalkerManager extends PluginManager<Walker> {
      */
     public Class<? extends Walker> getWalkerClassByName(String walkerName) {
         return getPluginsByName().get(walkerName);
+    }
+
+    /**
+     * Rather than use the default exception, return a MalformedWalkerArgumentsException.
+     * @param errorMessage error message from formatErrorMessage()
+     * @return - A MalformedWalkerArgumentsException with errorMessage
+     */
+    @Override
+    protected UserException createMalformedArgumentException(final String errorMessage) {
+        return new UserException.MalformedWalkerArgumentsException(errorMessage);
     }
 
     /**

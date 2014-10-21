@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata.tracks;
+package org.broadinstitute.gatk.utils.refdata.tracks;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
@@ -34,12 +34,11 @@ import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
-import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet.RMDStorageType;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -111,7 +110,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
-        this.featureManager = new FeatureManager(GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
+        this.featureManager = new FeatureManager(ValidationExclusion.lenientVCFProcessing(validationExclusionType));
         this.disableAutoIndexCreation = disableAutoIndexCreation;
         this.sampleRenameMap = sampleRenameMap;
     }
@@ -142,7 +141,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
 
         // return a feature reader track
         Pair<AbstractFeatureReader, SAMSequenceDictionary> pair;
-        if (VCFWriterArgumentTypeDescriptor.isCompressed(inputFile.toString()))
+        if (ArgumentTypeDescriptor.isCompressed(inputFile.toString()))
             pair = createTabixIndexedFeatureSource(descriptor, name, inputFile);
         else
             pair = getFeatureSource(descriptor, name, inputFile, fileDescriptor.getStorageType());

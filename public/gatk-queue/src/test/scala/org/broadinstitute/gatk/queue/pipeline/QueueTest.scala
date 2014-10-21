@@ -35,9 +35,9 @@ import org.broadinstitute.gatk.utils.MD5DB
 import org.broadinstitute.gatk.queue.{QScript, QCommandLine}
 import org.broadinstitute.gatk.queue.util.Logging
 import java.io.{FilenameFilter, File}
-import org.broadinstitute.gatk.engine.report.GATKReport
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
+import org.broadinstitute.gatk.utils.report.GATKReport
 
 object QueueTest extends BaseTest with Logging {
 

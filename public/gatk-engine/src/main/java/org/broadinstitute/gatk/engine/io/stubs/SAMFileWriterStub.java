@@ -32,7 +32,7 @@ import htsjdk.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
-import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.sam.GATKSAMFileWriter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.utils.baq.BAQ;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -146,6 +146,27 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter
         this.engine = engine;
         this.samFile = samFile;
         this.samOutputStream = stream;
+    }
+
+    /**
+     * Creates a SAMFileWriter using all of the features currently set in the engine (command line arguments, ReadTransformers, etc)
+     * @param file the filename to write to
+     * @param engine the engine
+     * @return a SAMFileWriter with the correct options set
+     */
+    public static SAMFileWriter createSAMFileWriter(final String file, final GenomeAnalysisEngine engine) {
+        final SAMFileWriterStub output = new SAMFileWriterStub(engine, new File(file));
+        output.processArguments(engine.getArguments());
+        return output;
+    }
+
+    /**
+     *  As {@link #createSAMFileWriter(String, org.broadinstitute.gatk.engine.GenomeAnalysisEngine)}, but also sets the header
+     */
+    public static SAMFileWriter createSAMFileWriter(final String file, final GenomeAnalysisEngine engine, final SAMFileHeader header) {
+        final SAMFileWriterStub output = (SAMFileWriterStub) createSAMFileWriter(file, engine);
+        output.writeHeader(header);
+        return output;
     }
 
     /**

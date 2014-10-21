@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.iterators;
+package org.broadinstitute.gatk.utils.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
@@ -56,7 +56,7 @@ import java.util.Iterator;
  * <p/>
  * This class adapts other SAMRecord iterators to the GATKSAMIterator
  */
-public class GATKSAMIteratorAdapter {  
+public class GATKSAMIteratorAdapter {
 
     public static GATKSAMIterator adapt(Iterator<SAMRecord> iter) {
         return new PrivateStringSAMIterator(iter);

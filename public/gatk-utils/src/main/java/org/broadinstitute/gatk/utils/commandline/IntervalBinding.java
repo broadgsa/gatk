@@ -30,9 +30,8 @@ import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import htsjdk.tribble.FeatureReader;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.utils.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -67,10 +66,6 @@ public final class IntervalBinding<T extends Feature> {
 
     public String getSource() {
         return ( featureIntervals != null ? featureIntervals.getSource() : stringIntervals );
-    }
-
-    public List<GenomeLoc> getIntervals(final GenomeAnalysisEngine toolkit) {
-        return getIntervals(toolkit.getGenomeLocParser());
     }
 
     public List<GenomeLoc> getIntervals(final GenomeLocParser genomeLocParser) {

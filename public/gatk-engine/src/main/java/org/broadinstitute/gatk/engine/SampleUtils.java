@@ -23,13 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils;
+package org.broadinstitute.gatk.engine;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import htsjdk.variant.vcf.VCFHeader;
@@ -52,34 +48,6 @@ public class SampleUtils {
      * Private constructor.  No instantiating this class!
      */
     private SampleUtils() {}
-
-    /**
-     * Pull out the samples from a SAMFileHeader;
-     * note that we use a TreeSet so that they are sorted
-     *
-     * @param header  the sam file header
-     * @return list of strings representing the sample names
-     */
-    public static Set<String> getSAMFileSamples(final SAMFileHeader header) {
-        // get all of the unique sample names
-        final Set<String> samples = new TreeSet<String>();
-        List<SAMReadGroupRecord> readGroups = header.getReadGroups();
-        for ( SAMReadGroupRecord readGroup : readGroups )
-            samples.add(readGroup.getSample());
-        return samples;
-    }
-
-
-    /**
-     * Same as @link getSAMFileSamples but gets all of the samples
-     * in the SAM files loaded by the engine
-     *
-     * @param engine engine
-     * @return samples
-     */
-    public static Set<String> getSAMFileSamples(GenomeAnalysisEngine engine) {
-        return SampleUtils.getSAMFileSamples(engine.getSAMFileHeader());
-    }
 
     /**
      * Gets all of the unique sample names from all VCF rods input by the user

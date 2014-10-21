@@ -26,7 +26,9 @@
 package org.broadinstitute.gatk.engine.downsampling;
 
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.downsampling.Downsampler;
+import org.broadinstitute.gatk.utils.downsampling.LevelingDownsampler;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
 import org.testng.Assert;
@@ -106,7 +108,7 @@ public class LevelingDownsamplerUnitTest extends BaseTest {
     public void testLevelingDownsamplerWithUniformStacks( LevelingDownsamplerUniformStacksTest test ) {
         logger.warn("Running test: " + test);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         Downsampler<List<Object>> downsampler = new LevelingDownsampler<List<Object>, Object>(test.targetSize);
 

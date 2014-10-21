@@ -25,7 +25,8 @@
 
 package org.broadinstitute.gatk.utils.fasta;
 
-import picard.PicardException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import htsjdk.samtools.SAMException;
 import htsjdk.samtools.reference.FastaSequenceIndex;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -172,6 +173,50 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     }
 
     /**
+     * Create reference data source from fasta file, after performing several preliminary checks on the file.
+     * This static utility was refactored from the constructor of ReferenceDataSource.
+     * Possibly may be better as an overloaded constructor.
+     * @param fastaFile Fasta file to be used as reference
+     * @return A new instance of a CachingIndexedFastaSequenceFile.
+     */
+    public static CachingIndexedFastaSequenceFile checkAndCreate(final File fastaFile) {
+        // does the fasta file exist? check that first...
+        if (!fastaFile.exists())
+            throw new UserException("The fasta file you specified (" + fastaFile.getAbsolutePath() + ") does not exist.");
+
+        final boolean isGzipped = fastaFile.getAbsolutePath().endsWith(".gz");
+        if ( isGzipped ) {
+            throw new UserException.CannotHandleGzippedRef();
+        }
+
+        final File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
+
+        // determine the name for the dict file
+        final String fastaExt = fastaFile.getAbsolutePath().endsWith("fa") ? "\\.fa$" : "\\.fasta$";
+        final File dictFile = new File(fastaFile.getAbsolutePath().replaceAll(fastaExt, ".dict"));
+
+        // It's an error if either the fai or dict file does not exist. The user is now responsible
+        // for creating these files.
+        if (!indexFile.exists()) {
+            throw new UserException.MissingReferenceFaiFile(indexFile, fastaFile);
+        }
+        if (!dictFile.exists()) {
+            throw new UserException.MissingReferenceDictFile(dictFile, fastaFile);
+        }
+
+        // Read reference data by creating an IndexedFastaSequenceFile.
+        try {
+            return new CachingIndexedFastaSequenceFile(fastaFile);
+        }
+        catch (IllegalArgumentException e) {
+            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read reference sequence.  The FASTA must have either a .fasta or .fa extension", e);
+        }
+        catch (Exception e) {
+            throw new UserException.CouldNotReadInputFile(fastaFile, e);
+        }
+    }
+
+    /**
      * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
      *
      * Looks for a index file for fasta on disk
@@ -275,7 +320,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             SAMSequenceRecord contigInfo = super.getSequenceDictionary().getSequence(contig);
 
             if (stop > contigInfo.getSequenceLength())
-                throw new PicardException("Query asks for data past end of contig");
+                throw new SAMException("Query asks for data past end of contig");
 
             if ( start < myCache.start || stop > myCache.stop || myCache.seq == null || myCache.seq.getContigIndex() != contigInfo.getSequenceIndex() ) {
                 cacheMisses++;

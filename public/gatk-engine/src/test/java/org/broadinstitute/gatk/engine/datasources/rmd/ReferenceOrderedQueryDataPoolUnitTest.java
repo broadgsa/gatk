@@ -29,7 +29,7 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.refdata.utils.*;
+import org.broadinstitute.gatk.utils.refdata.utils.*;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;

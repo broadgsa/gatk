@@ -41,8 +41,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.FeatureCodec;
-import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.tools.walkers.qc.DocumentationTest;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.text.XReadLines;
@@ -52,8 +50,7 @@ import java.util.*;
 
 /**
  * Javadoc Doclet that combines javadoc, GATK ParsingEngine annotations, and FreeMarker
- * templates to produce PHP formatted GATKDocs for walkers
- * and other classes.
+ * templates to produce PHP formatted GATKDocs for classes.
  * <p/>
  * This document has the following workflow:
  * <p/>
@@ -71,7 +68,7 @@ import java.util.*;
  * The documented classes are restricted to only those with @DocumentedGATKFeature
  * annotation or are in the STATIC_DOCS class.
  */
-public class GATKDoclet {
+public abstract class GATKDoclet {
     final protected static Logger logger = Logger.getLogger(GATKDoclet.class);
 
     /**
@@ -97,13 +94,6 @@ public class GATKDoclet {
     protected static boolean showHiddenFeatures = false;
 
     protected static boolean testOnly = false;
-
-    /**
-     * Any class that's in this list will be included in the documentation
-     * when the -test argument is provided.  Useful for debugging.
-     */
-    private static final List<Class<?>> testOnlyKeepers = Arrays.asList(
-            DocumentationTest.class, CommandLineGATK.class, UserException.class);
 
     /**
      * The javadoc root doc
@@ -139,7 +129,7 @@ public class GATKDoclet {
      * @return Whether the JavaDoc run succeeded.
      * @throws java.io.IOException if output can't be written.
      */
-    public static boolean start(RootDoc rootDoc) throws IOException {
+    protected boolean startProcessDocs(RootDoc rootDoc) throws IOException {
         logger.setLevel(Level.INFO);
 
         // load arguments
@@ -166,7 +156,7 @@ public class GATKDoclet {
             throw new RuntimeException("-settings-dir " + settingsDir.getPath() + " is not a directory");
 
         // process the docs
-        new GATKDoclet().processDocs(rootDoc);
+        processDocs(rootDoc);
 
         return true;
     }
@@ -198,6 +188,15 @@ public class GATKDoclet {
      */
     public boolean showHiddenFeatures() {
         return showHiddenFeatures;
+    }
+
+    /**
+     * Any class that's in this list will be included in the documentation
+     * when the -test argument is provided.  Useful for debugging.
+     * Subclasses, such as WalkerDoclet, may add additional classes for debugging.
+     */
+    protected List<Class<?>> getTestOnlyKeepers() {
+        return Collections.<Class<?>>singletonList(UserException.class);
     }
 
     /**
@@ -292,11 +291,8 @@ public class GATKDoclet {
             Class clazz = getClassForClassDoc(doc);
 
             // don't add anything that's not DocumentationTest if we are in test mode
-            if (clazz != null && testOnly && !testOnlyKeepers.contains(clazz))
+            if (clazz != null && testOnly && !getTestOnlyKeepers().contains(clazz))
                 continue;
-
-            //if ( clazz != null && clazz.getName().equals("org.broadinstitute.gatk.tools.walkers.annotator.AlleleBalance"))
-            //    logger.debug("foo");
 
             DocumentedGATKFeatureObject feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
@@ -324,7 +320,7 @@ public class GATKDoclet {
     private DocumentedGATKFeatureHandler createHandler(ClassDoc doc, DocumentedGATKFeatureObject feature) {
         if (feature != null) {
             if (feature.enable()) {
-                DocumentedGATKFeatureHandler handler = new GenericDocumentationHandler();
+                DocumentedGATKFeatureHandler handler = createDocumentedGATKFeatureHandler();
                 handler.setDoclet(this);
                 return handler;
             } else {
@@ -334,6 +330,8 @@ public class GATKDoclet {
 
         return null;
     }
+
+    protected abstract DocumentedGATKFeatureHandler createDocumentedGATKFeatureHandler();
 
     /**
      * Returns the instantiated DocumentedGATKFeatureObject that describes the GATKDoc

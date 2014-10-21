@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.walkers;
 
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
 
 import java.lang.annotation.*;
 

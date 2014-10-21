@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.engine.traversals;
 
-import org.broadinstitute.gatk.engine.downsampling.Downsampler;
-import org.broadinstitute.gatk.engine.downsampling.ReservoirDownsampler;
+import org.broadinstitute.gatk.utils.downsampling.Downsampler;
+import org.broadinstitute.gatk.utils.downsampling.ReservoirDownsampler;
 import org.broadinstitute.gatk.utils.sam.AlignmentStartComparator;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 

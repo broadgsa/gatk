@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 
 import com.google.caliper.Param;
 import org.broadinstitute.gatk.engine.WalkerManager;
-import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.engine.walkers.LocusWalker;
 
 /**

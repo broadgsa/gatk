@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.utils.sam;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.ProgressLoggerInterface;
-import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
 
 import java.util.ArrayList;
 import java.util.List;

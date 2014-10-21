@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.contexts;
+package org.broadinstitute.gatk.utils.contexts;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;

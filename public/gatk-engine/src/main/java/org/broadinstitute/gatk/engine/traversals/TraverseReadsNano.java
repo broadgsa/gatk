@@ -27,12 +27,12 @@ package org.broadinstitute.gatk.engine.traversals;
 
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.datasources.providers.ReadBasedReferenceOrderedView;
 import org.broadinstitute.gatk.engine.datasources.providers.ReadReferenceView;
 import org.broadinstitute.gatk.engine.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.gatk.engine.datasources.providers.ReadView;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.utils.nanoScheduler.NSMapFunction;
 import org.broadinstitute.gatk.utils.nanoScheduler.NSProgressFunction;

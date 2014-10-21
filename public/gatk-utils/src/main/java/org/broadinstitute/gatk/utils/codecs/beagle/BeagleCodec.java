@@ -53,7 +53,7 @@ package org.broadinstitute.gatk.utils.codecs.beagle;
 import htsjdk.tribble.AsciiFeatureCodec;
 import htsjdk.tribble.exception.CodecLineParsingException;
 import htsjdk.tribble.readers.LineIterator;
-import org.broadinstitute.gatk.engine.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.gatk.utils.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 

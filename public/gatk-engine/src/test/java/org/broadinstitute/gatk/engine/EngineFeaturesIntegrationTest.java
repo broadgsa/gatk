@@ -26,35 +26,23 @@
 package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.*;
-import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.tribble.readers.LineIterator;
-import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.commandline.*;
-import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.filters.MappingQualityUnavailableFilter;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
-import org.broadinstitute.gatk.engine.walkers.ReadFilters;
-import org.broadinstitute.gatk.engine.walkers.ReadWalker;
-import org.broadinstitute.gatk.engine.walkers.RodWalker;
-import org.broadinstitute.gatk.tools.walkers.qc.ErrorThrowing;
-import org.broadinstitute.gatk.utils.GenomeLocParser;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
+import org.broadinstitute.gatk.utils.variant.VCIterable;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -67,7 +55,7 @@ import java.util.*;
  */
 public class EngineFeaturesIntegrationTest extends WalkerTest {
     private void testBadRODBindingInput(String type, String name, Class c) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -L 1:1 --variant:variant," + type + " "
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintVariantsWalker -L 1:1 --variant:variant," + type + " "
                 + b37dbSNP132 + " -R " + b37KGReference + " -o %s",
                 1, c);
         executeTest(name, spec);
@@ -92,16 +80,16 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
 
     @Test() private void testMissingBAMnt1() {
-        testMissingFile("missing BAM", "-T PrintReads -I missing.bam -nt 1");
+        testMissingFile("missing BAM", "-T TestPrintReadsWalker -I missing.bam -nt 1");
     }
     @Test() private void testMissingBAMnt4() {
-        testMissingFile("missing BAM", "-T PrintReads -I missing.bam -nt 4");
+        testMissingFile("missing BAM", "-T TestPrintReadsWalker -I missing.bam -nt 4");
     }
     @Test() private void testMissingVCF() {
-        testMissingFile("missing VCF", "-T SelectVariants -V missing.vcf");
+        testMissingFile("missing VCF", "-T TestPrintVariantsWalker -V missing.vcf");
     }
     @Test() private void testMissingInterval() {
-        testMissingFile("missing interval", "-T PrintReads -L missing.interval_list -I " + b37GoodBAM);
+        testMissingFile("missing interval", "-T TestPrintReadsWalker -L missing.interval_list -I " + b37GoodBAM);
     }
 
 
@@ -127,8 +115,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "EngineErrorHandlingTestProvider")
     public Object[][] makeEngineErrorHandlingTestProvider() {
-        for ( final ErrorThrowing.FailMethod failMethod : ErrorThrowing.FailMethod.values() ) {
-            if ( failMethod == ErrorThrowing.FailMethod.TREE_REDUCE )
+        for ( final FailMethod failMethod : FailMethod.values() ) {
+            if ( failMethod == FailMethod.TREE_REDUCE )
                 continue; // cannot reliably throw errors in TREE_REDUCE
 
             final String failArg = " -fail " + failMethod.name();
@@ -148,7 +136,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @Test(enabled = true, dataProvider = "EngineErrorHandlingTestProvider", timeOut = 60 * 1000 )
     public void testEngineErrorHandlingTestProvider(final EngineErrorHandlingTestProvider cfg) {
         for ( int i = 0; i < cfg.iterationsToTest; i++ ) {
-            final String root = "-T ErrorThrowing -R " + exampleFASTA;
+            final String root = "-T TestErrorThrowingWalker -R " + exampleFASTA;
             final String args = root + cfg.args + " -E " + cfg.expectedException.getSimpleName();
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
 
@@ -207,7 +195,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
 
     private void testBadCompressArgument(final int compress) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I " + privateTestDir + "NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintReadsWalker -R " + b37KGReference + " -I " + privateTestDir + "NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
                 1, UserException.class);
         executeTest("badCompress " + compress, spec);
     }
@@ -219,7 +207,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------
     @Test(enabled = true)
     public void testGATKVersionInVCF() throws Exception {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintVariantsWalker -R " + b37KGReference +
                 " -V " + privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf"
                 + " -o %s -L 20:61098",
                 1, Arrays.asList(""));
@@ -229,12 +217,12 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final VCFHeader header = (VCFHeader) codec.readActualHeader(codec.makeSourceFromStream(new FileInputStream(vcf)));
         final VCFHeaderLine versionLine = header.getMetaDataLine(GATKVCFUtils.GATK_COMMAND_LINE_KEY);
         Assert.assertNotNull(versionLine);
-        Assert.assertTrue(versionLine.toString().contains("SelectVariants"));
+        Assert.assertTrue(versionLine.toString().contains("TestPrintVariantsWalker"));
     }
 
     @Test(enabled = true)
     public void testMultipleGATKVersionsInVCF() throws Exception {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintVariantsWalker -R " + b37KGReference +
                 " -V " + privateTestDir + "gatkCommandLineInHeader.vcf"
                 + " -o %s",
                 1, Arrays.asList(""));
@@ -244,22 +232,22 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final VCFHeader header = (VCFHeader) codec.readActualHeader(codec.makeSourceFromStream(new FileInputStream(vcf)));
 
         boolean foundHC = false;
-        boolean foundSV = false;
+        boolean foundPV = false;
         for ( final VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
             if ( line.getKey().equals(GATKVCFUtils.GATK_COMMAND_LINE_KEY) ) {
                 if ( line.toString().contains("HaplotypeCaller") ) {
                     Assert.assertFalse(foundHC);
                     foundHC = true;
                 }
-                if ( line.toString().contains("SelectVariants") ) {
-                    Assert.assertFalse(foundSV);
-                    foundSV = true;
+                if ( line.toString().contains("TestPrintVariantsWalker") ) {
+                    Assert.assertFalse(foundPV);
+                    foundPV = true;
                 }
             }
         }
 
         Assert.assertTrue(foundHC, "Didn't find HaplotypeCaller command line header field");
-        Assert.assertTrue(foundSV, "Didn't find SelectVariants command line header field");
+        Assert.assertTrue(foundPV, "Didn't find TestPrintVariantsWalker command line header field");
     }
 
     // --------------------------------------------------------------------------------
@@ -269,7 +257,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------
 
     public WalkerTestSpec testDefaultBaseQualities(final Integer value, final String md5) {
-        return new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I " + privateTestDir + "/baseQualitiesToFix.bam -o %s"
+        return new WalkerTestSpec("-T TestPrintReadsWalker -R " + b37KGReference + " -I " + privateTestDir + "/baseQualitiesToFix.bam -o %s"
                 + (value != null ? " --defaultBaseQualities " + value : ""),
                 1, Arrays.asList(md5));
     }
@@ -297,7 +285,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     @Test
     public void testGATKEngineConsolidatesCigars() {
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "zero_length_cigar_elements.bam" +
                                                        " -o %s",
@@ -327,7 +315,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File sampleRenameMapFile = createTestSampleRenameMapFile(
                 Arrays.asList(privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam  myNewSampleName"));
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam" +
                                                        " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
@@ -363,7 +351,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             inputBamReader.close();
         }
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam" +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12891.HEADERONLY.bam" +
@@ -410,7 +398,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             inputBamReader.close();
         }
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam" +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12891.HEADERONLY.bam" +
@@ -448,7 +436,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         }
         inputBamReader.close();
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam" +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.READ_GROUP_COLLISIONS_WITH_NA12878.HEADERONLY.bam" +
@@ -485,7 +473,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File sampleRenameMapFile = createTestSampleRenameMapFile(
                 Arrays.asList(privateTestDir + "CEUTrio.HiSeq.WGS.b37.MERGED.HEADERONLY.bam  myNewSampleName"));
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "CEUTrio.HiSeq.WGS.b37.MERGED.HEADERONLY.bam" +
                                                        " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
@@ -519,7 +507,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File sampleRenameMapFile = createTestSampleRenameMapFile(
                 Arrays.asList(privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf  newSampleForNA12878"));
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T CombineVariants" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintVariantsWalker" +
                 " -R " + b37KGReference +
                 " -V " + privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf" +
                 " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
@@ -532,9 +520,9 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
 
     private void verifySampleRenaming( final File outputVCF, final String newSampleName ) throws IOException {
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> headerAndVCIter = GATKVCFUtils.readAllVCs(outputVCF, new VCFCodec());
+        final Pair<VCFHeader, VCIterable<LineIterator>> headerAndVCIter = VCIterable.readAllVCs(outputVCF, new VCFCodec());
         final VCFHeader header = headerAndVCIter.getFirst();
-        final GATKVCFUtils.VCIterable<LineIterator> iter = headerAndVCIter.getSecond();
+        final VCIterable<LineIterator> iter = headerAndVCIter.getSecond();
 
         // Verify that sample renaming occurred at both the header and record levels (checking only the first 10 records):
 
@@ -572,7 +560,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File sampleRenameMapFile = createTestSampleRenameMapFile(
                 Arrays.asList(privateTestDir + "vcf/vcfWithGenotypes.vcf  badSample"));
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T CombineVariants" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintVariantsWalker" +
                 " -R " + b37KGReference +
                 " -V " + privateTestDir + "vcf/vcfWithGenotypes.vcf" +
                 " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
@@ -588,7 +576,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File sampleRenameMapFile = createTestSampleRenameMapFile(
                 Arrays.asList(privateTestDir + "vcf/vcfWithoutGenotypes.vcf  badSample"));
 
-        final WalkerTestSpec spec = new WalkerTestSpec(" -T CombineVariants" +
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintVariantsWalker" +
                 " -R " + b37KGReference +
                 " -V " + privateTestDir + "vcf/vcfWithoutGenotypes.vcf" +
                 " --sample_rename_mapping_file " + sampleRenameMapFile.getAbsolutePath() +
@@ -675,7 +663,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     //Returns the output file
     private File testBAMFeatures(final String args, final String md5) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference +
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintReadsWalker -R " + b37KGReference +
                 " -I " + privateTestDir + "NA20313.highCoverageRegion.bam"
                 + " --no_pg_tag -o %s " + args,
                 1, Arrays.asList(".bam"), Arrays.asList(md5));
@@ -708,29 +696,39 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                           "BAM index was created even though it was disabled");
     }
 
-    private void testVCFFeatures(final String args, final String md5) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+    @DataProvider(name = "vcfFeaturesData")
+    public Object[][] getVCFFeaturesData() {
+        return new Object[][]{
+                {"--sites_only", "94bf1f2c0946e933515e4322323a5716"},
+                {"--bcf", "03f2d6988f54a332da48803c78f9c4b3"}
+        };
+    }
+
+    @Test(dataProvider = "vcfFeaturesData")
+    public void testVCFFeatures(final String args, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintVariantsWalker -R " + b37KGReference +
                 " -V " + privateTestDir + "CEUtrioTest.vcf"
                 + " --no_cmdline_in_header -o %s " + args,
                 1, Arrays.asList(md5));
         executeTest("testVCFFeatures: "+args, spec);
     }
 
-    private void testVCFFormatHandling(final boolean writeFullFormat, final String md5) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+    @DataProvider(name = "vcfFormatHandlingData")
+    public Object[][] getVCFFormatHandlingData() {
+        return new Object[][]{
+                {true, "95b6262efbd40b6b72f44f808f3e4c45"},
+                {false, "333232e08b8cdd3303309e438c44277f"}
+        };
+    }
+
+    @Test(dataProvider = "vcfFormatHandlingData")
+    public void testVCFFormatHandling(final boolean writeFullFormat, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintVariantsWalker -R " + b37KGReference +
                 " -V " + privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"
                 + " --no_cmdline_in_header -o %s "
                 + " --fullyDecode " //Without this parameter, the FORMAT fields will be emitted unchanged.  Oops
                 + (writeFullFormat ? "-writeFullFormat" : "") ,
                 1, Arrays.asList(md5));
         executeTest("testVCFFormatHandling: "+(writeFullFormat ? "Untrimmed" : "Trimmed"), spec);
-    }
-
-    @Test
-    public void testVCFWriterFeatures() {
-        testVCFFeatures("--sites_only", "94bf1f2c0946e933515e4322323a5716");
-        testVCFFeatures("--bcf", "03f2d6988f54a332da48803c78f9c4b3");
-        testVCFFormatHandling(true, "2b0fa660b0cef4b0f45a10febb453b6c");
-        testVCFFormatHandling(false, "5960311fdd9ee6db88587efaaf4055a0");
     }
 }

@@ -28,10 +28,9 @@ package org.broadinstitute.gatk.utils.locusiterator;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
-import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
-import org.broadinstitute.gatk.engine.downsampling.DownsamplingMethod;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.utils.NGSPlatform;
 import org.broadinstitute.gatk.utils.QualityUtils;
 import org.broadinstitute.gatk.utils.Utils;
@@ -69,7 +68,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         List<GATKSAMRecord> reads = Arrays.asList(mapped1, unmapped, allI, mapped2);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads,createTestReadProperties(DownsamplingMethod.NONE, true));
+        li = makeLTBS(reads, DownsamplingMethod.NONE, true);
 
         Assert.assertTrue(li.hasNext());
         AlignmentContext context = li.next();
@@ -84,9 +83,6 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testXandEQOperators() {
         final byte[] bases1 = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
         final byte[] bases2 = new byte[] {'A','A','A','C','A','A','A','A','A','C'};
-
-        // create a test version of the Reads object
-        ReadProperties readAttributes = createTestReadProperties();
 
         GATKSAMRecord r1 = ArtificialSAMUtils.createArtificialRead(header,"r1",0,1,10);
         r1.setReadBases(bases1);
@@ -111,7 +107,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         List<GATKSAMRecord> reads = Arrays.asList(r1, r2, r3, r4);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads,readAttributes);
+        li = makeLTBS(reads);
 
         while (li.hasNext()) {
             AlignmentContext context = li.next();
@@ -124,9 +120,6 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testIndelsInRegularPileup() {
         final byte[] bases = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
         final byte[] indelBases = new byte[] {'A','A','A','A','C','T','A','A','A','A','A','A'};
-
-        // create a test version of the Reads object
-        ReadProperties readAttributes = createTestReadProperties();
 
         GATKSAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
         before.setReadBases(bases);
@@ -146,7 +139,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         List<GATKSAMRecord> reads = Arrays.asList(before, during, after);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads,readAttributes);
+        li = makeLTBS(reads);
 
         boolean foundIndel = false;
         while (li.hasNext()) {
@@ -170,9 +163,6 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testWholeIndelReadInIsolation() {
         final int firstLocus = 44367789;
 
-        // create a test version of the Reads object
-        ReadProperties readAttributes = createTestReadProperties();
-
         GATKSAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header, "indelOnly", 0, firstLocus, 76);
         indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
         indelOnlyRead.setBaseQualities(Utils.dupBytes((byte) '@', 76));
@@ -181,7 +171,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         List<GATKSAMRecord> reads = Arrays.asList(indelOnlyRead);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads, readAttributes);
+        li = makeLTBS(reads);
 
         // Traditionally, reads that end with indels bleed into the pileup at the following locus.  Verify that the next pileup contains this read
         // and considers it to be an indel-containing read.
@@ -219,7 +209,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         List<GATKSAMRecord> reads = Arrays.asList(leadingRead, indelOnlyRead, fullMatchAfterIndel);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads, createTestReadProperties());
+        li = makeLTBS(reads, null, false);
         int currentLocus = firstLocus;
         int numAlignmentContextsFound = 0;
 
@@ -260,7 +250,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         List<GATKSAMRecord> reads = Arrays.asList(read1);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads, createTestReadProperties());
+        li = makeLTBS(reads, null, false);
 
         while(li.hasNext()) {
             AlignmentContext alignmentContext = li.next();
@@ -281,7 +271,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         reads = Arrays.asList(read2);
 
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(reads, createTestReadProperties());
+        li = makeLTBS(reads, null, false);
 
         while(li.hasNext()) {
             AlignmentContext alignmentContext = li.next();
@@ -329,7 +319,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     @Test(enabled = true && ! DEBUG, dataProvider = "IndelLengthAndBasesTest")
     public void testIndelLengthAndBasesTest(GATKSAMRecord read, final CigarOperator op, final int eventSize, final String eventBases) {
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(Arrays.asList((GATKSAMRecord)read), createTestReadProperties());
+        li = makeLTBS(Arrays.asList((GATKSAMRecord)read), null, false);
 
         Assert.assertTrue(li.hasNext());
 
@@ -381,7 +371,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testLIBS(LIBSTest params) {
         // create the iterator by state with the fake reads and fake records
         final GATKSAMRecord read = params.makeRead();
-        li = makeLTBS(Arrays.asList((GATKSAMRecord)read), createTestReadProperties());
+        li = makeLTBS(Arrays.asList((GATKSAMRecord)read), null, false);
         final LIBS_position tester = new LIBS_position(read);
 
         int bpVisited = 0;
@@ -482,7 +472,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 
         final List<GATKSAMRecord> reads = bamBuilder.makeReads();
         li = new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
-                createTestReadProperties(downsampler, keepReads),
+                downsampler, true, keepReads,
                 genomeLocParser,
                 bamBuilder.getSamples());
 
@@ -643,7 +633,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         final WeakReadTrackingIterator iterator = new WeakReadTrackingIterator(nReadsPerLocus, readLength, payloadInBytes, header);
 
         li = new LocusIteratorByState(iterator,
-                createTestReadProperties(downsampler, false),
+                downsampler, true, false,
                 genomeLocParser,
                 samples);
 
@@ -734,7 +724,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testAdapterClipping(final int nClipsOnLeft, final int nReadContainingPileups, final int nClipsOnRight, final GATKSAMRecord read) {
 
         li = new LocusIteratorByState(new FakeCloseableIterator<>(Collections.singletonList(read).iterator()),
-                createTestReadProperties(DownsamplingMethod.NONE, false),
+                DownsamplingMethod.NONE, true, false,
                 genomeLocParser,
                 LocusIteratorByState.sampleListForSAMWithoutReadGroups());
 

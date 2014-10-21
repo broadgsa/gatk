@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.engine.datasources.providers;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.gatk.engine.datasources.reads.Shard;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import java.util.Collection;

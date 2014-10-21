@@ -25,9 +25,7 @@
 
 package org.broadinstitute.gatk.engine;
 
-import org.broadinstitute.gatk.utils.commandline.Hidden;
 import org.broadinstitute.gatk.engine.walkers.Walker;
-import org.broadinstitute.gatk.tools.walkers.qc.CountLoci;
 import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
@@ -47,8 +45,8 @@ public class WalkerManagerUnitTest {
 
     @Test
     public void testPresentWalker() {
-        Walker countLociWalker = walkerManager.createByName("CountLoci");
-        Assert.assertEquals(CountLoci.class,countLociWalker.getClass());
+        Walker instantiableWalker = walkerManager.createByName("InstantiableWalker");
+        Assert.assertEquals(InstantiableWalker.class, instantiableWalker.getClass());
     }
 
     @Test(expectedExceptions=UserException.class)
@@ -60,12 +58,4 @@ public class WalkerManagerUnitTest {
     public void testUninstantiableWalker() {
         walkerManager.createByName("UninstantiableWalker");
     }
-}
-
-@Hidden
-class UninstantiableWalker extends Walker<Integer,Long> {
-    // Private constructor will generate uninstantiable message
-    private UninstantiableWalker() {}
-    public Long reduceInit() { return 0L; }
-    public Long reduce(Integer value, Long accum) { return 0L; }
 }

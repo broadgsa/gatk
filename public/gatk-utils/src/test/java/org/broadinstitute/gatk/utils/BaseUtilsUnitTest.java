@@ -25,8 +25,6 @@
 
 package org.broadinstitute.gatk.utils;
 
-import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -159,8 +157,8 @@ public class BaseUtilsUnitTest extends BaseTest {
 
         final Object[][] result = new Object[testCount][];
 
-        GenomeAnalysisEngine.resetRandomGenerator();
-        final Random rnd = GenomeAnalysisEngine.getRandomGenerator();
+        Utils.resetRandomGenerator();
+        final Random rnd = Utils.getRandomGenerator();
 
         for (int i = 0; i < testCount; i++) {
             final int size = (int) Math.max(0,rnd.nextDouble() * testSizeDeviation + testSizeAverage);

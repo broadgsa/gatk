@@ -25,14 +25,13 @@
 
 package org.broadinstitute.gatk.engine;
 
+import org.broadinstitute.gatk.engine.walkers.TestCountReadsWalker;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.walkers.Walker;
-import org.broadinstitute.gatk.tools.walkers.qc.CountReads;
-import org.broadinstitute.gatk.tools.walkers.readutils.PrintReads;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -55,7 +54,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
     @Test(expectedExceptions=UserException.class)
     public void testEmptySamFileListHandling() throws Exception {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
-        testEngine.setWalker(new CountReads()); //generalizable to any walker requiring reads
+        testEngine.setWalker(new TestCountReadsWalker()); //generalizable to any walker requiring reads
 
         //supply command line args so validateSuppliedReads() knows whether reads were passed in
         GATKArgumentCollection testArgs = new GATKArgumentCollection();
@@ -115,7 +114,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
 
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
-        testEngine.setWalker(new PrintReads());
+        testEngine.setWalker(new TestCountReadsWalker());
         testEngine.setIntervals(new GenomeLocSortedSet(genomeLocParser));
 
         testEngine.validateSuppliedIntervals();

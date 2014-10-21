@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata;
+package org.broadinstitute.gatk.utils.refdata;
 
 import htsjdk.samtools.util.SequenceUtil;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.annotation.Strand;
 import htsjdk.tribble.dbsnp.OldDbSNPFeature;
 import htsjdk.tribble.gelitext.GeliTextFeature;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
 import org.broadinstitute.gatk.utils.codecs.hapmap.RawHapMapFeature;

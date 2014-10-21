@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata;
+package org.broadinstitute.gatk.utils.refdata;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.CloseableIterator;
-import org.broadinstitute.gatk.engine.iterators.PushbackIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
-import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.iterators.PushbackIterator;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;

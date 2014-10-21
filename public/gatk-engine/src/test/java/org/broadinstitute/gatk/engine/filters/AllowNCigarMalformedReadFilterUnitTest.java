@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.engine.filters;
 
 
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.utils.interval;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalList;
 import htsjdk.samtools.SAMFileHeader;
@@ -34,7 +35,6 @@ import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.commandline.IntervalArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.IntervalBinding;
-import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
@@ -42,6 +42,7 @@ import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.File;
@@ -347,8 +348,8 @@ public class IntervalUtils {
      * @return A map of contig names with their sizes.
      */
     public static Map<String, Integer> getContigSizes(File reference) {
-        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
-        List<GenomeLoc> locs = GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference().getSequenceDictionary()).toList();
+        final ReferenceSequenceFile referenceSequenceFile = createReference(reference);
+        List<GenomeLoc> locs = GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSequenceFile.getSequenceDictionary()).toList();
         Map<String, Integer> lengths = new LinkedHashMap<String, Integer>();
         for (GenomeLoc loc: locs)
             lengths.put(loc.getContig(), loc.size());
@@ -583,13 +584,13 @@ public class IntervalUtils {
      * Setup the intervals to be processed
      */
     public static GenomeLocSortedSet parseIntervalBindings(
-            final ReferenceDataSource referenceDataSource,
+            final ReferenceSequenceFile referenceSequenceFile,
             final List<IntervalBinding<Feature>> intervals,
             final IntervalSetRule intervalSetRule, final IntervalMergingRule intervalMergingRule, final int intervalPadding,
             final List<IntervalBinding<Feature>> excludeIntervals) {
 
         Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = parseIntervalBindingsPair(
-                referenceDataSource, intervals, intervalSetRule, intervalMergingRule, intervalPadding, excludeIntervals);
+                referenceSequenceFile, intervals, intervalSetRule, intervalMergingRule, intervalPadding, excludeIntervals);
 
         GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
         GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
@@ -601,7 +602,7 @@ public class IntervalUtils {
         }
     }
 
-    public static GenomeLocSortedSet parseIntervalArguments(final ReferenceDataSource referenceDataSource, IntervalArgumentCollection argCollection) {
+    public static GenomeLocSortedSet parseIntervalArguments(final ReferenceSequenceFile referenceSequenceFile, IntervalArgumentCollection argCollection) {
         GenomeLocSortedSet intervals = null;
 
         // return if no interval arguments at all
@@ -613,7 +614,7 @@ public class IntervalUtils {
         // if include argument isn't given, create new set of all possible intervals
 
         final Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
-                referenceDataSource,
+                referenceSequenceFile,
                 argCollection.intervals,
                 argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
                 argCollection.excludeIntervals);
@@ -643,15 +644,15 @@ public class IntervalUtils {
     }
 
     public static Pair<GenomeLocSortedSet, GenomeLocSortedSet> parseIntervalBindingsPair(
-            final ReferenceDataSource referenceDataSource,
+            final ReferenceSequenceFile referenceSequenceFile,
             final List<IntervalBinding<Feature>> intervals,
             final IntervalSetRule intervalSetRule, final IntervalMergingRule intervalMergingRule, final int intervalPadding,
             final List<IntervalBinding<Feature>> excludeIntervals) {
-        GenomeLocParser genomeLocParser = new GenomeLocParser(referenceDataSource.getReference());
+        GenomeLocParser genomeLocParser = new GenomeLocParser(referenceSequenceFile);
 
         // if include argument isn't given, create new set of all possible intervals
         GenomeLocSortedSet includeSortedSet = ((intervals == null || intervals.size() == 0) ?
-                GenomeLocSortedSet.createSetFromSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary()) :
+                GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSequenceFile.getSequenceDictionary()) :
                 loadIntervals(intervals, intervalSetRule, intervalMergingRule, intervalPadding, genomeLocParser));
 
         GenomeLocSortedSet excludeSortedSet = null;
@@ -778,8 +779,8 @@ public class IntervalUtils {
     }
 
     public static void writeFlankingIntervals(File reference, File inputIntervals, File flankingIntervals, int basePairs) {
-        ReferenceDataSource referenceDataSource = new ReferenceDataSource(reference);
-        GenomeLocParser parser = new GenomeLocParser(referenceDataSource.getReference());
+        final ReferenceSequenceFile referenceSequenceFile = createReference(reference);
+        GenomeLocParser parser = new GenomeLocParser(referenceSequenceFile);
         List<GenomeLoc> originalList = intervalFileToList(parser, inputIntervals.getAbsolutePath());
 
         if (originalList.isEmpty())
@@ -791,7 +792,7 @@ public class IntervalUtils {
             throw new UserException.MalformedFile(inputIntervals, "Unable to produce any flanks for the intervals");
 
         SAMFileHeader samFileHeader = new SAMFileHeader();
-        samFileHeader.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary());
+        samFileHeader.setSequenceDictionary(referenceSequenceFile.getSequenceDictionary());
         IntervalList intervalList = new IntervalList(samFileHeader);
         int i = 0;
         for (GenomeLoc loc: flankingList)
@@ -869,6 +870,10 @@ public class IntervalUtils {
         }
 
         return sortAndMergeIntervals(parser, expanded, IntervalMergingRule.ALL).toList();
+    }
+
+    private static ReferenceSequenceFile createReference(final File fastaFile) {
+        return CachingIndexedFastaSequenceFile.checkAndCreate(fastaFile);
     }
 
     private static LinkedHashMap<String, List<GenomeLoc>> splitByContig(List<GenomeLoc> sorted) {

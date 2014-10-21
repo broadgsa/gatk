@@ -29,6 +29,9 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 import org.broadinstitute.gatk.utils.BaseTest;
 import static org.testng.Assert.assertEquals;
+
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
 import org.testng.annotations.Test;
 
 import java.util.Iterator;

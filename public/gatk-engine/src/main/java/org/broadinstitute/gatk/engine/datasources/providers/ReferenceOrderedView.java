@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 
 public interface ReferenceOrderedView extends View {

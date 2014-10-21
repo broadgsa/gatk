@@ -29,11 +29,9 @@ import htsjdk.samtools.*;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.ReadProperties;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
+import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
-
-import java.util.Collections;
 
 /**
  * Filter out malformed reads.

@@ -27,6 +27,8 @@ package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.*;
 import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;

@@ -27,23 +27,20 @@ package org.broadinstitute.gatk.tools.walkers.coverage;
 
 import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.gatk.engine.walkers.*;
-import org.broadinstitute.gatk.utils.commandline.Advanced;
-import org.broadinstitute.gatk.utils.commandline.Argument;
-import org.broadinstitute.gatk.utils.commandline.Output;
+import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.refdata.SeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrack;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
-import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.SeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrack;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.gatk.utils.refdata.utils.RODRecordList;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.SampleUtils;
 import org.broadinstitute.gatk.utils.codecs.refseq.RefSeqCodec;
 import org.broadinstitute.gatk.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.gatk.utils.collections.Pair;
@@ -51,6 +48,7 @@ import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -336,7 +334,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     private HashSet<String> getSamplesFromToolKit(DoCOutputType.Partition type) {
         HashSet<String> partition = new HashSet<String>();
         if ( type == DoCOutputType.Partition.sample ) {
-            partition.addAll(SampleUtils.getSAMFileSamples(getToolkit()));
+            partition.addAll(ReadUtils.getSAMFileSamples(getToolkit().getSAMFileHeader()));
         } else if ( type == DoCOutputType.Partition.readgroup ) {
             for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
                 partition.add(rg.getSample()+"_rg_"+rg.getReadGroupId());

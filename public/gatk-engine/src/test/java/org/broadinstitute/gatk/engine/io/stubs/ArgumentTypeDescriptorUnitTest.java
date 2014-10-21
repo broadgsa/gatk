@@ -23,14 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.commandline;
+package org.broadinstitute.gatk.engine.io.stubs;
 
 import htsjdk.variant.variantcontext.VariantContext;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import htsjdk.samtools.SAMFileWriter;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.io.stubs.*;
+import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;

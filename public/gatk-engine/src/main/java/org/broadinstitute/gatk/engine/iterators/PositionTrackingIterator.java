@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 
 /**
  * Iterates through a list of elements, tracking the number of elements it has seen.

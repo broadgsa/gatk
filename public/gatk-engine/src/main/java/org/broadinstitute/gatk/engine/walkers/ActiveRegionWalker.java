@@ -29,11 +29,11 @@ import com.google.java.contract.Ensures;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.commandline.*;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
 import org.broadinstitute.gatk.engine.filters.*;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
@@ -125,7 +125,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         if( activeRegionBindings == null ) { return; }
         List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>(0);
         for ( IntervalBinding intervalBinding : activeRegionBindings ) {
-            List<GenomeLoc> intervals = intervalBinding.getIntervals(this.getToolkit());
+            List<GenomeLoc> intervals = intervalBinding.getIntervals(this.getToolkit().getGenomeLocParser());
 
             if ( intervals.isEmpty() ) {
                 logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");

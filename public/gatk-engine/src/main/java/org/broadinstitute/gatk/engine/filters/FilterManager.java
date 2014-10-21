@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.filters;
 
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.GATKDocUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 
@@ -72,6 +73,16 @@ public class FilterManager extends PluginManager<ReadFilter> {
         return String.format("Read filter %s not found. Available read filters:%n%n%s%n%n%s",pluginName,
                 userFriendlyListofReadFilters(availableFilters),
                 "Please consult the GATK Documentation (" + HelpConstants.GATK_DOCS_URL + ") for more information.");
+    }
+
+    /**
+     * Rather than use the default exception, return a MalformedReadFilterException.
+     * @param errorMessage error message from formatErrorMessage()
+     * @return - A MalformedReadFilterException with errorMessage
+     */
+    @Override
+    protected UserException createMalformedArgumentException(final String errorMessage) {
+        return new UserException.MalformedReadFilterException(errorMessage);
     }
 
     private String userFriendlyListofReadFilters(List<Class<? extends ReadFilter>> filters) {

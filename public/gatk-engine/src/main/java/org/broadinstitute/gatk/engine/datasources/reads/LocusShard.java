@@ -29,6 +29,7 @@ import htsjdk.samtools.SAMFileSpan;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.util.List;
 import java.util.Map;

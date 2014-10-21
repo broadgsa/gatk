@@ -27,8 +27,8 @@ package org.broadinstitute.gatk.engine.samples;
 
 import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.utils.SampleUtils;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -63,7 +63,7 @@ public class SampleDBBuilder {
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
     public SampleDBBuilder addSamplesFromSAMHeader(final SAMFileHeader header) {
-        addSamplesFromSampleNames(SampleUtils.getSAMFileSamples(header));
+        addSamplesFromSampleNames(ReadUtils.getSAMFileSamples(header));
         return this;
     }
 

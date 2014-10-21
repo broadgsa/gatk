@@ -507,7 +507,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getFreezeFields() {
             return String.format(
                     ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
-                            "  if (!org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
+                            "  if (!org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
                             "    %1$s = new File(%2$s.getPath + \"%3$s\")%n"),
                     auxFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
         }

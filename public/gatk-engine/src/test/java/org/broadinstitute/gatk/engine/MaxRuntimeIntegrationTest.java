@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.engine;
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Output;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.LocusWalker;
 import org.broadinstitute.gatk.utils.SimpleTimer;
 import org.testng.Assert;
@@ -104,7 +104,7 @@ public class MaxRuntimeIntegrationTest extends WalkerTest {
     @Test(enabled = true, dataProvider = "MaxRuntimeProvider", timeOut = 120 * 1000)
     public void testMaxRuntime(final MaxRuntimeTestProvider cfg) {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T PrintReads -R " + hg18Reference
+                "-T TestPrintReadsWalker -R " + hg18Reference
                         + " -I " + validationDataLocation + "NA12878.WEx.downsampled20x.bam -o /dev/null"
                         + " -maxRuntime " + cfg.maxRuntime + " -maxRuntimeUnits " + cfg.unit, 0,
                 Collections.<String>emptyList());

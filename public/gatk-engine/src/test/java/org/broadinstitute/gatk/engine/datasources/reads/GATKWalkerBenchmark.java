@@ -26,22 +26,22 @@
 package org.broadinstitute.gatk.engine.datasources.reads;
 
 import com.google.caliper.Param;
+import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.filters.UnmappedReadFilter;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.refdata.utils.RMDTriplet;
-import org.broadinstitute.gatk.engine.walkers.ReadWalker;
-import org.broadinstitute.gatk.engine.walkers.Walker;
-import org.broadinstitute.gatk.tools.walkers.qc.CountLoci;
-import org.broadinstitute.gatk.tools.walkers.qc.CountReads;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.utils.classloader.JVMUtils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Collections;
 
 /**
@@ -100,7 +100,7 @@ public class GATKWalkerBenchmark extends ReadProcessingBenchmark {
     private enum WalkerType {
         COUNT_READS {
             @Override
-            Walker create() { return new CountReads(); }
+            Walker create() { return new CountReadsPerformanceWalker(); }
         },
         COUNT_BASES_IN_READ {
             @Override
@@ -109,13 +109,28 @@ public class GATKWalkerBenchmark extends ReadProcessingBenchmark {
         COUNT_LOCI {
             @Override
             Walker create() {
-                CountLoci walker = new CountLoci();
-                JVMUtils.setFieldValue(JVMUtils.findField(CountLoci.class,"out"),walker,System.out);
+                CountLociPerformanceWalker walker = new CountLociPerformanceWalker();
+                JVMUtils.setFieldValue(JVMUtils.findField(CountLociPerformanceWalker.class,"out"),walker,System.out);
                 return walker;
             }
         };
         abstract Walker create();
     }
+}
+
+class CountLociPerformanceWalker extends TestCountLociWalker {
+    // NOTE: Added this output during porting. Previous version of test was reaching out of engine
+    // and into production o.b.g.tools.walkers.qc.CountLoci.
+    @Output
+    PrintStream out;
+
+    @Override
+    public void onTraversalDone(Long result) {
+        out.println(result);
+    }
+}
+
+class CountReadsPerformanceWalker extends TestCountReadsWalker {
 }
 
 class CountBasesInReadPerformanceWalker extends ReadWalker<Integer,Long> {

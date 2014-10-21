@@ -26,7 +26,6 @@
 package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.util.StringUtil;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 
@@ -596,7 +595,7 @@ public class BaseUtils {
      *              or {@code fromIndex} greater than {@code toIndex}.
      */
     public static void fillWithRandomBases(final byte[] dest, final int fromIndex, final int toIndex) {
-        final Random rnd = GenomeAnalysisEngine.getRandomGenerator();
+        final Random rnd = Utils.getRandomGenerator();
         if (dest == null)
             throw new IllegalArgumentException("the dest array cannot be null");
         if (fromIndex > toIndex)
@@ -620,7 +619,7 @@ public class BaseUtils {
         int randomBaseIndex = excludeBaseIndex;
 
         while (randomBaseIndex == excludeBaseIndex) {
-            randomBaseIndex = GenomeAnalysisEngine.getRandomGenerator().nextInt(4);
+            randomBaseIndex = Utils.getRandomGenerator().nextInt(4);
         }
 
         return randomBaseIndex;

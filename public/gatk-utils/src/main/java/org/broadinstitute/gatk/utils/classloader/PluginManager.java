@@ -27,8 +27,6 @@ package org.broadinstitute.gatk.utils.classloader;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.WalkerManager;
-import org.broadinstitute.gatk.engine.filters.FilterManager;
 import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -279,13 +277,7 @@ public class PluginManager<PluginType> {
         Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
         if( plugin == null ) {
             String errorMessage = formatErrorMessage(pluginCategory,pluginName);
-            if ( this.getClass().isAssignableFrom(FilterManager.class) ) {
-                throw new UserException.MalformedReadFilterException(errorMessage);
-            } else if ( this.getClass().isAssignableFrom(WalkerManager.class) ) {
-                throw new UserException.MalformedWalkerArgumentsException(errorMessage);
-            } else {
-                throw new UserException.CommandLineException(errorMessage);
-            }
+            throw createMalformedArgumentException(errorMessage);
         }
         try {
             return plugin.newInstance();
@@ -351,5 +343,14 @@ public class PluginManager<PluginType> {
      */
     protected String formatErrorMessage(String pluginCategory, String pluginName ) {
         return String.format("Could not find %s with name: %s", pluginCategory,pluginName);
+    }
+
+    /**
+     * Creates a UserException with the appropriate message for this instance.
+     * @param errorMessage formatted error message from formatErrorMessage().
+     * @return A UserException with the error message.
+     */
+    protected UserException createMalformedArgumentException(final String errorMessage) {
+        throw new UserException.CommandLineException(errorMessage);
     }
 }

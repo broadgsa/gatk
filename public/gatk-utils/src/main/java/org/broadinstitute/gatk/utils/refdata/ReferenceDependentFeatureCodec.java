@@ -23,9 +23,8 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata;
+package org.broadinstitute.gatk.utils.refdata;
 
-import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 /**

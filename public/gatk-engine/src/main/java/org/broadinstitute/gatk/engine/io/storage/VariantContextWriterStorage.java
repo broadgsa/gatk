@@ -31,7 +31,7 @@ import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.gatk.engine.io.stubs.VariantContextWriterStub;
-import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.bcf2.BCF2Utils;

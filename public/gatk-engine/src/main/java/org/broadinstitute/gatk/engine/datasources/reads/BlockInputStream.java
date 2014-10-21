@@ -29,6 +29,7 @@ import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -100,7 +101,7 @@ public class BlockInputStream extends InputStream {
      */
     BlockInputStream(final BGZFBlockLoadingDispatcher dispatcher, final SAMReaderID reader, final boolean validate) {
         this.reader = reader;
-        this.length = reader.samFile.length();
+        this.length = reader.getSamFile().length();
 
         buffer = ByteBuffer.wrap(new byte[64*1024]);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -122,7 +123,7 @@ public class BlockInputStream extends InputStream {
         try {
             if(validate) {
                 System.out.printf("BlockInputStream %s: BGZF block validation mode activated%n",this);
-                validatingInputStream = new BlockCompressedInputStream(reader.samFile);
+                validatingInputStream = new BlockCompressedInputStream(reader.getSamFile());
                 // A bug in ValidatingInputStream means that calling getFilePointer() immediately after initialization will result in an NPE.
                 // Poke the stream to start reading data.
                 validatingInputStream.available();

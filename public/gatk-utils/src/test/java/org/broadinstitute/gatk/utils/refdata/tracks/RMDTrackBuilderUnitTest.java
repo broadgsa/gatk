@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata.tracks;
+package org.broadinstitute.gatk.utils.refdata.tracks;
 
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;

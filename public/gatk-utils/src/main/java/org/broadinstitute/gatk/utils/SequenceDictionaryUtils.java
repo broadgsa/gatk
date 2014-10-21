@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.utils;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.arguments.ValidationExclusion;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 

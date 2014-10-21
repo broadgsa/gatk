@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.utils.locusiterator;
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import htsjdk.samtools.SAMFileHeader;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.QualityUtils;
 import org.broadinstitute.gatk.utils.Utils;
@@ -104,7 +104,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
             final org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState libs =
                     new org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState(
                             new LocusIteratorByStateBaseTest.FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
-                            LocusIteratorByStateBaseTest.createTestReadProperties(),
+                            null, true, false,
                             genomeLocParser,
                             LocusIteratorByState.sampleListForSAMWithoutReadGroups());
 

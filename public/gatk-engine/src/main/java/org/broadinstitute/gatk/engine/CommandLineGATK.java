@@ -25,14 +25,13 @@
 
 package org.broadinstitute.gatk.engine;
 
-import picard.PicardException;
 import htsjdk.samtools.SAMException;
 import htsjdk.tribble.TribbleException;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
-import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
+import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
 import org.broadinstitute.gatk.engine.walkers.Attribution;
 import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -112,9 +111,6 @@ public class CommandLineGATK extends CommandLineExecutable {
             // We can generate Tribble Exceptions in weird places when e.g. VCF genotype fields are
             //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
-        } catch(PicardException e) {
-            // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedGATKExceptions?
-            exitSystemWithError(e);
         } catch (SAMException e) {
             checkForMaskedUserErrors(e);
             exitSystemWithSamError(e);
@@ -176,16 +172,6 @@ public class CommandLineGATK extends CommandLineExecutable {
         header.add("Copyright (c) 2010 The Broad Institute");
         header.add("For support and documentation go to " + HelpConstants.BASE_GATK_URL);
         return header;
-    }
-
-    public static String getVersionNumber() {
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
-        return headerInfo.containsKey("org.broadinstitute.gatk.tools.version") ? headerInfo.getString("org.broadinstitute.gatk.tools.version") : "<unknown>";
-    }
-
-    public static String getBuildTime() {
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
-        return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
     }
 
     /**

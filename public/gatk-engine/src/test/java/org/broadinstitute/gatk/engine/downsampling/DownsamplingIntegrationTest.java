@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.downsampling;
 
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
@@ -34,7 +35,7 @@ public class DownsamplingIntegrationTest extends WalkerTest {
     @Test
     public void testDetectLowDcovValueWithLocusTraversal() {
         final WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-            "-T CountLoci -R " + publicTestDir + "exampleFASTA.fasta -I " + publicTestDir + "exampleBAM.bam -o %s " +
+            "-T TestCountLociWalker -R " + publicTestDir + "exampleFASTA.fasta -I " + publicTestDir + "exampleBAM.bam -o %s " +
             "-dcov " + (DownsamplingMethod.MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS - 1),
             1,
             UserException.class

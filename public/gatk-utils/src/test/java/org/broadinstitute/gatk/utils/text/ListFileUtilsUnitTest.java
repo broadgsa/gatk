@@ -28,14 +28,12 @@ package org.broadinstitute.gatk.utils.text;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.ParsingEngine;
 import org.broadinstitute.gatk.utils.commandline.Tags;
-import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.PrintWriter;
 import java.util.*;
 
 /**
@@ -146,10 +144,7 @@ public class ListFileUtilsUnitTest extends BaseTest {
         List<String> bamFiles = new ArrayList<String>();
         bamFiles.add(tempListFile.getAbsolutePath());
 
-        CommandLineGATK testInstance = new CommandLineGATK();
-        testInstance.setParser(new ParsingEngine(testInstance));
-
-        List<SAMReaderID> unpackedBAMFileList = ListFileUtils.unpackBAMFileList(bamFiles,new ParsingEngine(testInstance));
+        List<SAMReaderID> unpackedBAMFileList = ListFileUtils.unpackBAMFileList(bamFiles,new ParsingEngine(null));
 
         Assert.assertEquals(unpackedBAMFileList.size(), expectedUnpackedFileList.size(),
                             "Unpacked BAM file list contains extraneous lines");

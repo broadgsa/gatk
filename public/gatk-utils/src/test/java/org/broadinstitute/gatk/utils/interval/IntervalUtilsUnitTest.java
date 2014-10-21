@@ -34,9 +34,6 @@ import org.apache.commons.io.FileUtils;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.IntervalBinding;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
-import org.broadinstitute.gatk.engine.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
@@ -81,12 +78,11 @@ public class IntervalUtilsUnitTest extends BaseTest {
     public void init() {
         File hg18Ref = new File(BaseTest.hg18Reference);
         try {
-            ReferenceDataSource referenceDataSource = new ReferenceDataSource(hg18Ref);
+            final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(hg18Ref);
             hg18Header = new SAMFileHeader();
-            hg18Header.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary());
-            ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(hg18Ref);
+            hg18Header.setSequenceDictionary(seq.getSequenceDictionary());
             hg18GenomeLocParser = new GenomeLocParser(seq);
-            hg18ReferenceLocs = Collections.unmodifiableList(GenomeLocSortedSet.createSetFromSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary()).toList()) ;
+            hg18ReferenceLocs = Collections.unmodifiableList(GenomeLocSortedSet.createSetFromSequenceDictionary(seq.getSequenceDictionary()).toList()) ;
         }
         catch(FileNotFoundException ex) {
             throw new UserException.CouldNotReadInputFile(hg18Ref,ex);
@@ -94,12 +90,11 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
         File hg19Ref = new File(BaseTest.hg19Reference);
         try {
-            ReferenceDataSource referenceDataSource = new ReferenceDataSource(hg19Ref);
+            final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(hg19Ref);
             hg19Header = new SAMFileHeader();
-            hg19Header.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary());
-            ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(hg19Ref);
+            hg19Header.setSequenceDictionary(seq.getSequenceDictionary());
             hg19GenomeLocParser = new GenomeLocParser(seq);
-            hg19ReferenceLocs = Collections.unmodifiableList(GenomeLocSortedSet.createSetFromSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary()).toList()) ;
+            hg19ReferenceLocs = Collections.unmodifiableList(GenomeLocSortedSet.createSetFromSequenceDictionary(seq.getSequenceDictionary()).toList()) ;
 
             hg19exomeIntervals = Collections.unmodifiableList(IntervalUtils.parseIntervalArguments(hg19GenomeLocParser, Arrays.asList(hg19Intervals)));
         }
@@ -1032,29 +1027,27 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test(expectedExceptions=UserException.BadArgumentValue.class)
     public void testExceptionUponLegacyIntervalSyntax() throws Exception {
-        GenomeAnalysisEngine toolkit = new GenomeAnalysisEngine();
-        toolkit.setGenomeLocParser(new GenomeLocParser(new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference))));
+        final GenomeLocParser parser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference)));
 
         // Attempting to use the legacy -L "interval1;interval2" syntax should produce an exception:
         IntervalBinding<Feature> binding = new IntervalBinding<Feature>("1;2");
-        binding.getIntervals(toolkit);
+        binding.getIntervals(parser);
     }
 
     @DataProvider(name="invalidIntervalTestData")
     public Object[][] invalidIntervalDataProvider() throws Exception {
-        GATKArgumentCollection argCollection = new GATKArgumentCollection();
         File fastaFile = new File(publicTestDir + "exampleFASTA.fasta");
         GenomeLocParser genomeLocParser = new GenomeLocParser(new IndexedFastaSequenceFile(fastaFile));
 
         return new Object[][] {
-                new Object[] {argCollection, genomeLocParser, "chr1", 10000000, 20000000},
-                new Object[] {argCollection, genomeLocParser, "chr2", 1, 2},
-                new Object[] {argCollection, genomeLocParser, "chr1", -1, 50}
+                new Object[] {genomeLocParser, "chr1", 10000000, 20000000},
+                new Object[] {genomeLocParser, "chr2", 1, 2},
+                new Object[] {genomeLocParser, "chr1", -1, 50}
         };
     }
 
     @Test(dataProvider="invalidIntervalTestData")
-    public void testInvalidPicardIntervalHandling(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser,
+    public void testInvalidPicardIntervalHandling(GenomeLocParser genomeLocParser,
                                                   String contig, int intervalStart, int intervalEnd ) throws Exception {
 
         SAMFileHeader picardFileHeader = new SAMFileHeader();
@@ -1068,11 +1061,11 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<IntervalBinding<Feature>> intervalArgs = new ArrayList<IntervalBinding<Feature>>(1);
         intervalArgs.add(new IntervalBinding<Feature>(picardIntervalFile.getAbsolutePath()));
 
-        IntervalUtils.loadIntervals(intervalArgs, argCollection.intervalArguments.intervalSetRule, argCollection.intervalArguments.intervalMerging, argCollection.intervalArguments.intervalPadding, genomeLocParser);
+        IntervalUtils.loadIntervals(intervalArgs, IntervalSetRule.UNION, IntervalMergingRule.ALL, 0, genomeLocParser);
     }
 
     @Test(expectedExceptions=UserException.class, dataProvider="invalidIntervalTestData")
-    public void testInvalidGATKFileIntervalHandling(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser,
+    public void testInvalidGATKFileIntervalHandling(GenomeLocParser genomeLocParser,
                                                     String contig, int intervalStart, int intervalEnd ) throws Exception {
 
         File gatkIntervalFile = createTempFile("testInvalidGATKFileIntervalHandling", ".intervals",
@@ -1081,7 +1074,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<IntervalBinding<Feature>> intervalArgs = new ArrayList<IntervalBinding<Feature>>(1);
         intervalArgs.add(new IntervalBinding<Feature>(gatkIntervalFile.getAbsolutePath()));
 
-        IntervalUtils.loadIntervals(intervalArgs, argCollection.intervalArguments.intervalSetRule, argCollection.intervalArguments.intervalMerging, argCollection.intervalArguments.intervalPadding, genomeLocParser);
+        IntervalUtils.loadIntervals(intervalArgs, IntervalSetRule.UNION, IntervalMergingRule.ALL, 0, genomeLocParser);
     }
 
     private File createTempFile( String tempFilePrefix, String tempFileExtension, String... lines ) throws Exception {

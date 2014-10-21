@@ -33,7 +33,7 @@ import htsjdk.variant.vcf.VCFCodec;
 import org.apache.commons.lang.StringUtils;
 import org.broadinstitute.gatk.engine.CommandLineExecutable;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.crypt.CryptUtils;
 import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.MD5DB;
@@ -54,6 +54,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
+    public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
+
     private static final boolean GENERATE_SHADOW_BCF = true;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
@@ -64,7 +66,7 @@ public class WalkerTest extends BaseTest {
     @BeforeMethod
     public void initializeWalkerTests() {
         logger.debug("Initializing walker tests");
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
     }
 
     @AfterSuite

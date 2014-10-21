@@ -33,7 +33,7 @@ import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.Utils;
-import org.broadinstitute.gatk.utils.crypt.CryptUtils;
+import org.broadinstitute.gatk.engine.crypt.CryptUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.io.IOUtils;
 import org.broadinstitute.gatk.utils.io.Resource;

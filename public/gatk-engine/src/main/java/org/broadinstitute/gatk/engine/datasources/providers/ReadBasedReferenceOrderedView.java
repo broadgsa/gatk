@@ -27,19 +27,10 @@ package org.broadinstitute.gatk.engine.datasources.providers;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.engine.datasources.reads.ReadShard;
-import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.refdata.utils.LocationAwareSeekableRODIterator;
-import org.broadinstitute.gatk.engine.refdata.utils.RODRecordList;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.GenomeLocParser;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 /** a ROD view for reads. This provides the Read traversals a way of getting a RefMetaDataTracker */
 public class ReadBasedReferenceOrderedView extends IntervalReferenceOrderedView {

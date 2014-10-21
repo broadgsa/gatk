@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.refdata.utils;
+package org.broadinstitute.gatk.utils.refdata.utils;
 
 import htsjdk.tribble.CloseableTribbleIterator;
 import htsjdk.tribble.Feature;

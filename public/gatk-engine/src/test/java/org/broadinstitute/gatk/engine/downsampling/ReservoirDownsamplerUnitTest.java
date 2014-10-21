@@ -28,7 +28,9 @@ package org.broadinstitute.gatk.engine.downsampling;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.downsampling.ReadsDownsampler;
+import org.broadinstitute.gatk.utils.downsampling.ReservoirDownsampler;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -85,7 +87,7 @@ public class ReservoirDownsamplerUnitTest extends BaseTest {
     public void testReservoirDownsampler( ReservoirDownsamplerTest test ) {
         logger.warn("Running test: " + test);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         ReadsDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(test.reservoirSize);
 

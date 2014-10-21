@@ -23,21 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.utils.help;
+package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
-import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotationType;
-import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
 
 import java.util.List;
 
-/**
- * NON-javadoc/doclet help-related utility methods should go here. Anything with a com.sun.javadoc.* dependency
- * should go into DocletUtils for use only by doclets.
- */
-public class HelpUtils {
+public class AnnotationHelpUtils {
 
     /**
      * Simple method to print a list of available annotations.

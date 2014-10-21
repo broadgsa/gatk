@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.iterators;
 
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 
 /**

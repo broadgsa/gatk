@@ -25,8 +25,6 @@
 
 package org.broadinstitute.gatk.utils.commandline;
 
-import org.broadinstitute.gatk.engine.walkers.Multiplexer;
-
 import java.util.*;
 
 /**

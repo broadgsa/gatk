@@ -27,9 +27,9 @@ package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
 import htsjdk.samtools.util.IntervalTree;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.VariantEval;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
@@ -164,7 +164,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
         if ( walker.knownCNVsFile != null ) {
             knownCNVs = walker.createIntervalTreeByContig(walker.knownCNVsFile);
-            final List<GenomeLoc> locs = walker.knownCNVsFile.getIntervals(walker.getToolkit());
+            final List<GenomeLoc> locs = walker.knownCNVsFile.getIntervals(walker.getToolkit().getGenomeLocParser());
             logger.info(String.format("Creating known CNV list %s containing %d intervals covering %d bp",
                     walker.knownCNVsFile.getSource(), locs.size(), IntervalUtils.intervalSize(locs)));
         }

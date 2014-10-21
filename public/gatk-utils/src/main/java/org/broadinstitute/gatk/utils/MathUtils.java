@@ -29,7 +29,6 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.commons.math.distribution.ExponentialDistribution;
 import org.apache.commons.math.distribution.ExponentialDistributionImpl;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.math.BigDecimal;
@@ -109,7 +108,7 @@ public class MathUtils {
      * @return a random int >= min and <= max
      */
     public static int randomIntegerInRange( final int min, final int max ) {
-        return GenomeAnalysisEngine.getRandomGenerator().nextInt(max - min + 1) + min;
+        return Utils.getRandomGenerator().nextInt(max - min + 1) + min;
     }
 
     /**
@@ -1130,7 +1129,7 @@ public class MathUtils {
         ArrayList<Integer> chosen_balls = new ArrayList<Integer>(k);
         for (int i = 0; i < k; i++) {
             //Integer chosen_ball = balls[rand.nextInt(k)];
-            chosen_balls.add(GenomeAnalysisEngine.getRandomGenerator().nextInt(n));
+            chosen_balls.add(Utils.getRandomGenerator().nextInt(n));
             //balls.remove(chosen_ball);
         }
 
@@ -1151,7 +1150,7 @@ public class MathUtils {
             chosen_balls.add(i);
         }
 
-        Collections.shuffle(chosen_balls, GenomeAnalysisEngine.getRandomGenerator());
+        Collections.shuffle(chosen_balls, Utils.getRandomGenerator());
 
         //return (ArrayList<Integer>) chosen_balls.subList(0, k);
         return new ArrayList<Integer>(chosen_balls.subList(0, k));

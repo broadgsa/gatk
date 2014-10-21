@@ -23,11 +23,8 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.downsampling;
+package org.broadinstitute.gatk.utils.downsampling;
 
-import org.broadinstitute.gatk.engine.walkers.ActiveRegionWalker;
-import org.broadinstitute.gatk.engine.walkers.LocusWalker;
-import org.broadinstitute.gatk.engine.walkers.Walker;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 /**
@@ -99,24 +96,6 @@ public class DownsamplingMethod {
         // toFraction must be >= 0.0 and <= 1.0 when specified
         if ( toFraction != null && (toFraction < 0.0 || toFraction > 1.0) ) {
             throw new UserException("toFraction must be >= 0.0 and <= 1.0 when downsampling to a fraction of reads");
-        }
-    }
-
-    public void checkCompatibilityWithWalker( Walker walker ) {
-        boolean isLocusTraversal = walker instanceof LocusWalker || walker instanceof ActiveRegionWalker;
-
-        if ( isLocusTraversal && type == DownsampleType.ALL_READS && toCoverage != null ) {
-            throw new UserException("Downsampling to coverage with the ALL_READS method for locus-based traversals (eg., LocusWalkers) is not currently supported (though it is supported for ReadWalkers).");
-        }
-
-        // For locus traversals, ensure that the dcov value (if present) is not problematically low
-        if ( isLocusTraversal && type != DownsampleType.NONE && toCoverage != null &&
-             toCoverage < MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS ) {
-            throw new UserException(String.format("Locus-based traversals (ie., Locus and ActiveRegion walkers) require " +
-                                                  "a minimum -dcov value of %d when downsampling to coverage. Values less " +
-                                                  "than this can produce problematic downsampling artifacts while providing " +
-                                                  "only insignificant improvements in memory usage in most cases.",
-                                                  MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS));
         }
     }
 

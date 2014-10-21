@@ -25,11 +25,9 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads;
 
-import org.broadinstitute.gatk.engine.datasources.reads.LocusShard;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMReaderID;
+import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 
 import java.util.List;

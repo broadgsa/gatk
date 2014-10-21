@@ -29,7 +29,9 @@ import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.downsampling.DownsamplingReadsIterator;
+import org.broadinstitute.gatk.utils.downsampling.SimplePositionalDownsampler;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.gatk.utils.sam.ArtificialSingleSampleReadStream;
 import org.broadinstitute.gatk.utils.sam.ArtificialSingleSampleReadStreamAnalyzer;
@@ -97,7 +99,7 @@ public class DownsamplingReadsIteratorUnitTest extends BaseTest {
         int minDistanceBetweenStacks = 1;
         int maxDistanceBetweenStacks = maxReadLength + 1;
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
 
         // brute force testing!
         for ( int numContigs : Arrays.asList(1, 2, 5) ) {
@@ -133,7 +135,7 @@ public class DownsamplingReadsIteratorUnitTest extends BaseTest {
     public void runDownsamplingReadsIteratorTest( DownsamplingReadsIteratorTest test ) {
         logger.warn("Running test: " + test);
 
-        GenomeAnalysisEngine.resetRandomGenerator();
+        Utils.resetRandomGenerator();
         test.run();
     }
 }

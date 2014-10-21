@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.tools.walkers.genotyper;
+package org.broadinstitute.gatk.utils.genotyper;
 
 import htsjdk.variant.variantcontext.Allele;
 import org.broadinstitute.gatk.utils.collections.IndexedSet;

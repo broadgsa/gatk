@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.datasources.reads;
+package org.broadinstitute.gatk.utils.sam;
 
 import org.broadinstitute.gatk.utils.commandline.Tags;
 
@@ -40,12 +40,12 @@ public class SAMReaderID implements Comparable {
      * The SAM file at the heart of this reader.  SAMReaderID
      * currently supports only file-based readers.
      */
-    protected final File samFile;
+    private final File samFile;
 
     /**
      * A list of tags associated with this BAM file.
      */
-    protected final Tags tags;
+    private final Tags tags;
 
     /**
      * Creates an identifier for a SAM file based on read.
@@ -77,6 +77,15 @@ public class SAMReaderID implements Comparable {
         }
 
         return samFile.getAbsolutePath();
+    }
+
+    /**
+     * Gets the SAM file at the heart of this reader.  SAMReaderID
+     * currently supports only file-based readers.
+     * @return the SAM file at the heart of this reader.
+     */
+    public File getSamFile() {
+        return samFile;
     }
 
     /**

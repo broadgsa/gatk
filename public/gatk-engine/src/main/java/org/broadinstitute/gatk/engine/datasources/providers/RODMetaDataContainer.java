@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.providers;
 
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
 import org.broadinstitute.gatk.utils.collections.Pair;
 
 import java.util.*;

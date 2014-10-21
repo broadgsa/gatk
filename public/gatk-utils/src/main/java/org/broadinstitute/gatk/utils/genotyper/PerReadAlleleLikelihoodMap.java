@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.utils.genotyper;
 
 
 import com.google.java.contract.Ensures;
-import org.broadinstitute.gatk.engine.downsampling.AlleleBiasedDownsamplingUtils;
+import org.broadinstitute.gatk.utils.downsampling.AlleleBiasedDownsamplingUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.haplotype.Haplotype;

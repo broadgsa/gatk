@@ -25,11 +25,10 @@
 
 package org.broadinstitute.gatk.utils.commandline;
 
+import htsjdk.tribble.AbstractFeatureReader;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.gatk.engine.refdata.tracks.FeatureManager;
-import org.broadinstitute.gatk.engine.walkers.Multiplex;
-import org.broadinstitute.gatk.engine.walkers.Multiplexer;
+import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
 import org.broadinstitute.gatk.utils.classloader.JVMUtils;
 import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -69,6 +68,15 @@ public abstract class ArgumentTypeDescriptor {
                 return descriptor;
         }
         throw new ReviewedGATKException("Can't process command-line arguments of type: " + type.getName());
+    }
+
+    /**
+     * Returns true if the file will be compressed.
+     * @param writerFileName Name of the file
+     * @return true if the file will be compressed.
+     */
+    public static boolean isCompressed(String writerFileName) {
+        return writerFileName != null && AbstractFeatureReader.hasBlockCompressedExtension(writerFileName);
     }
 
     /**

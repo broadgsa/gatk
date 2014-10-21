@@ -26,7 +26,7 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.iterators.GATKSAMIterator;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;

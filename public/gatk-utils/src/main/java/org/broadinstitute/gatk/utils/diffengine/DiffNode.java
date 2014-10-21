@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.walkers.diffengine;
+package org.broadinstitute.gatk.utils.diffengine;
 
 import com.google.java.contract.Requires;
 import org.broadinstitute.gatk.utils.Utils;

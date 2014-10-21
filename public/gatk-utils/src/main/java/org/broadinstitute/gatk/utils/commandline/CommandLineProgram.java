@@ -29,11 +29,11 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.help.ApplicationDetails;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.help.HelpFormatter;
+import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.io.IOException;
 import java.util.*;
@@ -295,6 +295,17 @@ public abstract class CommandLineProgram {
         Logger.getRootLogger().setLevel(par);
     }
 
+    public static String getVersionNumber() {
+        // TODO: Confirm that version is available elsewhere not on tools.
+        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
+        return headerInfo.containsKey("org.broadinstitute.gatk.utils.version") ? headerInfo.getString("org.broadinstitute.gatk.utils.version") : "<unknown>";
+    }
+
+    public static String getBuildTime() {
+        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
+        return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
+    }
+
     /**
      * a function used to indicate an error occurred in the command line tool
      */
@@ -341,7 +352,7 @@ public abstract class CommandLineProgram {
      * Print help and exit.
      */
     private static void printVersionAndExit() {
-        System.out.println(CommandLineGATK.getVersionNumber().toString());
+        System.out.println(getVersionNumber().toString());
         System.exit(0);
     }
 
@@ -371,7 +382,7 @@ public abstract class CommandLineProgram {
         t.printStackTrace();
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A GATK RUNTIME ERROR has occurred (version %s):%n", CommandLineGATK.getVersionNumber());
+        errorPrintf("A GATK RUNTIME ERROR has occurred (version %s):%n", getVersionNumber());
         errorPrintf("%n");
         errorPrintf("This might be a bug. Please check the documentation guide to see if this is a known problem.%n");
         errorPrintf("If not, please post the error message, with stack trace, to the GATK forum.%n");
@@ -389,7 +400,7 @@ public abstract class CommandLineProgram {
             throw new ReviewedGATKException("UserException found with no message!", e);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A USER ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
+        errorPrintf("A USER ERROR has occurred (version %s): %n", getVersionNumber());
         errorPrintf("%n");
         errorPrintf("This means that one or more arguments or inputs in your command are incorrect.%n");
         errorPrintf("The error message below tells you what is the problem.%n");
@@ -411,7 +422,7 @@ public abstract class CommandLineProgram {
             throw new ReviewedGATKException("SamException found with no message!", t);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A BAM ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
+        errorPrintf("A BAM ERROR has occurred (version %s): %n", getVersionNumber());
         errorPrintf("%n");
         errorPrintf("This means that there is something wrong with the BAM file(s) you provided.%n");
         errorPrintf("The error message below tells you what is the problem.%n");
