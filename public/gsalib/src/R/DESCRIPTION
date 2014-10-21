@@ -8,6 +8,6 @@ Author: Kiran Garimella
 Maintainer: Mauricio Carneiro <carneiro@broadinstitute.org>
 BugReports: http://gatkforums.broadinstitute.org
 Description: Utility functions for GATK NGS analyses
-License: BSD
+License: MIT + file LICENSE
 LazyLoad: yes
 NeedsCompilation: no
