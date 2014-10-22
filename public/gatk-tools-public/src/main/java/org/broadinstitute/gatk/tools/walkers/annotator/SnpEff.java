@@ -45,15 +45,14 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * A set of genomic annotations based on the output of the SnpEff variant effect predictor tool
+ * Top effect from SnpEff functional predictions
  *
- * <p>See <a href='http://snpeff.sourceforge.net/'>http://snpeff.sourceforge.net/</a> for more information on the SnpEff tool</p>.
+ * <p>This annotation processes the output of the SnpEff functional prediction tool to select only the predicted effect with the highest biological impact. The SnpEff output must be provided on the command line by specifying "--snpEffFile filename.vcf". See <a href="http://snpeff.sourceforge.net/">http://snpeff.sourceforge.net/</a> for more information about the SnpEff tool</p>.
  *
- * <p>For each variant, this tool chooses one of the effects of highest biological impact from the SnpEff
- * output file (which must be provided on the command line via --snpEffFile filename.vcf),
- * and adds annotations on that effect.</p>
+ * <h3>Caveats</h3>
  *
- * @author David Roazen
+ * <ul><li>This annotation currently only supports output from SnpEff version 2.0.5.</li></ul>
+ *
  */
 public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotation {
 

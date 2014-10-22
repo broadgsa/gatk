@@ -50,11 +50,27 @@ import java.util.Map;
 /**
  * Allele balance across all samples
  *
- * <p>The allele balance is the fraction of ref bases over ref + alt bases.</p>
- *
+ * <p> This is an experimental annotation that attempts to estimate whether the data supporting a variant call fits allelic ratio expectations, or whether there might be some bias in the data. Each sample will contribute its allelic read depth (from the AD annotation) to either ABHom or ABHet depending on its genotype call: ABHom if the call is homozygous (REF/REF or ALT/ALT), and ABHet if the call is heterozygous (REF/ALT). Additionally, reads that support something other than the genotyped alleles (called "non-alleles") will be counted in the OND tag, which represents the overall fraction of data that diverges from the diploid hypothesis.</p>
+ * <h3>Calculations</h3>
+ * <p> $$ ABHom = \frac{# ALT alleles}{total # alleles} $$ <br />
+ *     $$ ABHet = \frac{# REF alleles}{# total alleles} $$ <br />
+ *     $$ OND = \frac{# genotyped alleles}{# alleles + # non-alleles} $$
+ * </p>
+ * <p> For ABHom, the value should be close to 1.00 because ideally, all the reads should support a single allele. For ABHet, the value should be close to 0.5, so half of the alleles support the ref allele and half of the alleles support the alt allele. Divergence from these expected ratios may indicate that there is some bias in favor of one allele. Note the caveats below regarding cancer and RNAseq analysis. </p>
  * <h3>Caveats</h3>
- * <p>Note that this annotation will only work properly for biallelic samples that are called as heterozygous.</p>
+ * <ul>
+ *     <li>This annotation will only work properly for biallelic variants where all samples are called heterozygous or homozygous.</li>
+ *     <li>This annotation cannot currently be calculated for indels.</li>
+ *     <li>tThe reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
+ *     <li>As stated above, this annotation is experimental and should be interpreted with caution as we cannot guarantee that it is appropriate. Basically, use it at your own risk.</li>
+ * </ul>
+ * <h3>Related annotations</h3>
+ * <ul>
+ *     <li><b><a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_AlleleBalanceBySample.php">AlleleBallanceBySample</a></b> calculates allele balance for each individual sample.</li>
+ *     <li><b><a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_DepthPerAlleleBySample.php">DepthPerAlleleBySample</a></b> calculates depth of coverage for each allele per sample.</li>
+ * </ul>
  */
+
 public class AlleleBalance extends InfoFieldAnnotation {
 
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
@@ -196,7 +212,7 @@ public class AlleleBalance extends InfoFieldAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList("ABHet","ABHom","OND"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("ABHet", 1, VCFHeaderLineType.Float, "Allele Balance for hets (ref/(ref+alt))"),
-            new VCFInfoHeaderLine("ABHom", 1, VCFHeaderLineType.Float, "Allele Balance for homs (A/(A+O))"),
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("ABHet", 1, VCFHeaderLineType.Float, "Allele Balance for heterozygous calls (ref/(ref+alt))"),
+            new VCFInfoHeaderLine("ABHom", 1, VCFHeaderLineType.Float, "Allele Balance for homozygous calls (A/(A+O)) where A is the allele (ref or alt) and O is anything other"),
             new VCFInfoHeaderLine("OND", 1, VCFHeaderLineType.Float, "Overall non-diploid ratio (alleles/(alleles+non-alleles))")); }
 }
