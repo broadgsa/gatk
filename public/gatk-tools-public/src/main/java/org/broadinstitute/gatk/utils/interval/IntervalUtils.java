@@ -371,7 +371,7 @@ public class IntervalUtils {
 
 	long totalBases = 0;
 	for(GenomeLoc loc : locs)
-	    totalBases += loc.getStop() - loc.getStart();
+	    totalBases += loc.size();
 
 	long idealBasesPerPart = totalBases / scatterParts.size();
 	if(idealBasesPerPart == 0)
