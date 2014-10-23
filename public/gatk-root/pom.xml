@@ -667,6 +667,38 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <!--
+                    The pom for com.pyx4j:maven-junction-plugin:1.0.3 points to
+                    sysinternals:junction:1.04:exe. This file is only hosted in the repo
+                    http://www.pyx4me.com/maven2, and the website keeps going down.
+
+                    This file is only used on windows, but the maven-plugin devs never finished
+                    implementing *plugin* dependency exclusions: http://jira.codehaus.org/browse/MNG-2163
+
+                    Until someone updates or replaces this 2007 plugin with a new plugin using Java 7's Files class,
+                    for now we copy over the artifact just in case the website is unavailable.
+
+                    See also: http://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html#createSymbolicLink(java.nio.file.Path,%20java.nio.file.Path,%20java.nio.file.attribute.FileAttribute...)
+                    -->
+                    <execution>
+                        <id>install-sysinternals-junction</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <file>${gatk.basedir}/public/repo/sysinternals/junction/1.04/junction-1.04.exe</file>
+                            <pomFile>${gatk.basedir}/public/repo/sysinternals/junction/1.04/junction-1.04.pom</pomFile>
+                            <packaging>exe</packaging>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
