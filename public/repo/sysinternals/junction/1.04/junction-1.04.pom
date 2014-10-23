@@ -1,0 +1,15 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>sysinternals</groupId>
+  <artifactId>junction</artifactId>
+  <version>1.04</version>
+  <url>http://www.sysinternals.com/Utilities/Junction.html</url>
+  <name>Junction (symbolic links on windows)</name>
+  <description>Directory symbolic links are known as NTFS junctions in Windows.</description>
+  <licenses>
+    <license>
+        <name>SYSINTERNALS SOFTWARE LICENSE</name>
+        <url>http://www.sysinternals.com/Licensing.html</url>
+    </license>
+  </licenses>
+</project>
