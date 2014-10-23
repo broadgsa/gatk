@@ -36,7 +36,7 @@ import org.ggf.drmaa.Session
 class GridEngineJobRunner(session: Session, function: CommandLineFunction) extends DrmaaJobRunner(session, function) with Logging {
   // Grid Engine disallows certain characters from being in job names.
   // This replaces all illegal characters with underscores
-  protected override val jobNameFilter = """[\n\t\r/:,@\\*?]"""
+  protected override val jobNameFilter = """[\s/:,@\\*?]"""
   protected override val minRunnerPriority = -1023
   protected override val maxRunnerPriority = 0
 
