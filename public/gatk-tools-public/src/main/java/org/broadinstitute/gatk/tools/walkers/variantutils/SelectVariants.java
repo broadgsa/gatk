@@ -147,7 +147,7 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   -bed family.ped \
+ *   -ped family.ped \
  *   -mvq 50 \
  *   -o violations.vcf
  *
