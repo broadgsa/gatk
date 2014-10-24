@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>samtools</groupId>
     <artifactId>htsjdk</artifactId>
-    <version>1.120.1620</version>
+    <version>1.123.1654</version>
     <name>htsjdk</name>
     <dependencies>
         <dependency>
