@@ -1054,7 +1054,7 @@ class CoveragePartitioner {
     private Map<DoCOutputType.Partition,List<String>> identifiersByType;
     private Set<String> allIdentifiers;
     public CoveragePartitioner(Collection<DoCOutputType.Partition> typesToUse, int start, int stop, int nBins) {
-        coverageProfiles = new HashMap<DoCOutputType.Partition,DepthOfCoverageStats>();
+        coverageProfiles = new TreeMap<DoCOutputType.Partition,DepthOfCoverageStats>();
         identifiersByType = new HashMap<DoCOutputType.Partition,List<String>>();
         types = typesToUse;
         for ( DoCOutputType.Partition type : types ) {

@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.engine.io.stubs;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.tribble.index.IndexCreator;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
 import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -108,6 +109,11 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     private boolean forceBCF = false;
 
     /**
+     * Should we write all of the fields in the FORMAT field, even if missing fields could be trimmed?
+     */
+    private boolean writeFullFormatField = false;
+
+    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
@@ -152,35 +158,35 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     }
 
     /**
-     * Retrieves the output stearm to which to (ultimately) write.
+     * Retrieves the output stream to which to (ultimately) write.
      * @return The file.  Can be null if genotypeFile is not.
      */
     public OutputStream getOutputStream() {
         return genotypeStream;
     }
 
-    /**
-     * Retrieves the output stearm to which to (ultimately) write.
-     * @return The file.  Can be null if genotypeFile is not.
-     */
     public boolean isCompressed() {
         return isCompressed;
     }
 
-    public void setCompressed(boolean compressed) {
+    public void setCompressed(final boolean compressed) {
         isCompressed = compressed;
     }
 
-    public void setSkipWritingCommandLineHeader(boolean skipWritingCommandLineHeader) {
+    public void setSkipWritingCommandLineHeader(final boolean skipWritingCommandLineHeader) {
         this.skipWritingCommandLineHeader = skipWritingCommandLineHeader;
     }
 
-    public void setDoNotWriteGenotypes(boolean doNotWriteGenotypes) {
+    public void setDoNotWriteGenotypes(final boolean doNotWriteGenotypes) {
         this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
-    public void setForceBCF(boolean forceBCF) {
+    public void setForceBCF(final boolean forceBCF) {
         this.forceBCF = forceBCF;
+    }
+
+    public void setWriteFullFormatField(final boolean writeFullFormatField) {
+        this.writeFullFormatField = writeFullFormatField;
     }
 
     public IndexCreator getIndexCreator() {
@@ -201,11 +207,12 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     }
 
     public EnumSet<Options> getWriterOptions(boolean indexOnTheFly) {
-        List<Options> options = new ArrayList<Options>();
+        final List<Options> options = new ArrayList<>();
 
         if ( doNotWriteGenotypes ) options.add(Options.DO_NOT_WRITE_GENOTYPES);
         if ( engine.lenientVCFProcessing() ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
         if ( indexOnTheFly) options.add(Options.INDEX_ON_THE_FLY);
+        if ( writeFullFormatField ) options.add(Options.WRITE_FULL_FORMAT_FIELD);
 
         if ( forceBCF || (getOutputFile() != null && VariantContextWriterFactory.isBCFOutput(getOutputFile())) )
             options.add(Options.FORCE_BCF);
@@ -227,6 +234,14 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      */
     public void register( OutputTracker outputTracker ) {
         this.outputTracker = outputTracker;
+    }
+
+    @Override
+    public void processArguments( final GATKArgumentCollection argumentCollection ) {
+        setDoNotWriteGenotypes(argumentCollection.sitesOnlyVCF);
+        setSkipWritingCommandLineHeader(argumentCollection.disableCommandLineInVCF);
+        setForceBCF(argumentCollection.forceBCFOutput);
+        setWriteFullFormatField(argumentCollection.neverTrimVCFFormatField);
     }
 
     public void writeHeader(VCFHeader header) {

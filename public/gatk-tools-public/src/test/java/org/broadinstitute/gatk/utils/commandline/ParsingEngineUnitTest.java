@@ -40,6 +40,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * Test suite for the parsing engine.
  */
@@ -135,7 +137,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.foo, 5, "Argument is not correctly initialized");
     }
 
-    @Test(expectedExceptions=MissingArgumentValueException.class)
+    @Test(expectedExceptions=InvalidArgumentValueException.class)
     public void primitiveArgumentNoValueTest() {
         final String[] commandLine = new String[] {"--foo"};
 
@@ -931,9 +933,8 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void argumentListTest() throws IOException {
-        File argsFile = BaseTest.createTempFile("args.", ".list");
+        File argsFile = BaseTest.createTempListFile("args.", "-I na12878.bam");
         try {
-            FileUtils.write(argsFile, "-I na12878.bam");
             final String[] commandLine = new String[] {"-args", argsFile.getPath()};
             parsingEngine.addArgumentSource(InputFileArgProvider.class);
             parsingEngine.parse(commandLine);
@@ -948,6 +949,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         }
     }
 
+    @SuppressWarnings("unused")
     private class NumericRangeArgProvider {
         @Argument(fullName = "intWithHardMinAndMax", minValue = 5, maxValue = 10)
         public int intWithHardMinAndMax;
@@ -1089,4 +1091,50 @@ public class ParsingEngineUnitTest extends BaseTest {
         NumericRangeArgProvider argProvider = new NumericRangeArgProvider();
         parsingEngine.loadArgumentsIntoObject(argProvider);
     }
+
+    @SuppressWarnings("unused")
+    private class VariedTypeArgProvider {
+        @Argument(fullName = "intVal", required=false)
+        private int anInt;
+
+        @Argument(fullName = "stringVal", required=false)
+        private String aString;
+
+        @Argument(fullName = "enumVal", required=false)
+        private TestEnum anEnum;
+
+        @Argument(fullName = "fileVal", required=false)
+        private File aFile;
+
+        @Argument(fullName = "stringSet", required=false)
+        private Set<String> someStrings;
+
+        @Argument(fullName = "intervalVal", required=false)
+        private IntervalBinding<Feature> anInterval;
+    }
+
+    @DataProvider(name = "MissingArgumentValueDataProvider")
+    public Object[][] missingArgumentDataProvider() {
+        return new Object[][]{
+                { new String[]{"--intVal"} },
+                { new String[]{"--stringVal"} },
+                { new String[]{"--enumVal"} },
+                { new String[]{"--fileVal"} },
+                { new String[]{"--stringSet"} },
+                { new String[]{"--stringSet", "aha", "--stringSet"} },
+                { new String[]{"--intervalVal"} }
+        };
+    }
+
+    @Test(dataProvider = "MissingArgumentValueDataProvider",
+          expectedExceptions = {InvalidArgumentValueException.class, MissingArgumentValueException.class})
+    public void testMissingArguments( final String[] commandLine ) {
+        parsingEngine.addArgumentSource( VariedTypeArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        VariedTypeArgProvider argProvider = new VariedTypeArgProvider();
+        parsingEngine.loadArgumentsIntoObject(argProvider);
+    }
+
 }

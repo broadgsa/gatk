@@ -281,18 +281,6 @@ class MuTect extends org.broadinstitute.gatk.queue.extensions.gatk.CommandLineGA
   @Gather(enabled=false)
   private var vcfIndex: File = _
 
-  /** Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests. */
-  @Argument(fullName="no_cmdline_in_header", shortName="no_cmdline_in_header", doc="Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required=false, exclusiveOf="", validation="")
-  var no_cmdline_in_header: Boolean = _
-
-  /** Just output sites without genotypes (i.e. only the first 8 columns of the VCF) */
-  @Argument(fullName="sites_only", shortName="sites_only", doc="Just output sites without genotypes (i.e. only the first 8 columns of the VCF)", required=false, exclusiveOf="", validation="")
-  var sites_only: Boolean = _
-
-  /** force BCF output, regardless of the file's extension */
-  @Argument(fullName="bcf", shortName="bcf", doc="force BCF output, regardless of the file's extension", required=false, exclusiveOf="", validation="")
-  var bcf: Boolean = _
-
   /** VCF file of DBSNP information */
   @Input(fullName="dbsnp", shortName="dbsnp", doc="VCF file of DBSNP information", required=false, exclusiveOf="", validation="")
   var dbsnp: Seq[File] = Nil

@@ -147,7 +147,7 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   -bed family.ped \
+ *   -ped family.ped \
  *   -mvq 50 \
  *   -o violations.vcf
  *
@@ -701,7 +701,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         builder.genotypes(newGC);
 
-        addAnnotations(builder, sub, vc.getAlleles().size() != sub.getAlleles().size());
+        addAnnotations(builder, vc, sub.getSampleNames());
 
         return builder.make();
     }
@@ -710,17 +710,42 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * Add annotations to the new VC
      *
      * @param builder     the new VC to annotate
-     * @param originalVC  the original -- but post-selection -- VC
-     * @param lostAllelesInSelection  true if the original (pre-selection) VC has more alleles than the new one
+     * @param originalVC  the original VC
+     * @param selectedSampleNames the post-selection list of sample names
      */
-    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC, final boolean lostAllelesInSelection) {
+    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC, final Set<String> selectedSampleNames) {
         if ( fullyDecode ) return; // TODO -- annotations are broken with fully decoded data
 
-        if ( KEEP_ORIGINAL_CHR_COUNTS && !lostAllelesInSelection ) {
+        if ( KEEP_ORIGINAL_CHR_COUNTS ) {
+            final int[] indexOfOriginalAlleleForNewAllele;
+            final List<Allele> newAlleles = builder.getAlleles();
+            final int numOriginalAlleles = originalVC.getNAlleles();
+
+            // if the alleles already match up, we can just copy the previous list of counts
+            if ( numOriginalAlleles == newAlleles.size() ) {
+                indexOfOriginalAlleleForNewAllele = null;
+            }
+            // otherwise we need to parse them and select out the correct ones
+            else {
+                indexOfOriginalAlleleForNewAllele = new int[newAlleles.size() - 1];
+                Arrays.fill(indexOfOriginalAlleleForNewAllele, -1);
+
+                // note that we don't care about the reference allele at position 0
+                for ( int newI = 1; newI < newAlleles.size(); newI++ ) {
+                    final Allele newAlt = newAlleles.get(newI);
+                    for ( int oldI = 0; oldI < numOriginalAlleles - 1; oldI++ ) {
+                        if ( newAlt.equals(originalVC.getAlternateAllele(oldI), false) ) {
+                            indexOfOriginalAlleleForNewAllele[newI - 1] = oldI;
+                            break;
+                        }
+                    }
+                }
+            }
+
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-                builder.attribute("AC_Orig", originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+                builder.attribute("AC_Orig", getReorderedAttributes(originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY), indexOfOriginalAlleleForNewAllele));
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                builder.attribute("AF_Orig", originalVC.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+                builder.attribute("AF_Orig", getReorderedAttributes(originalVC.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY), indexOfOriginalAlleleForNewAllele));
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
                 builder.attribute("AN_Orig", originalVC.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
@@ -729,7 +754,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         boolean sawDP = false;
         int depth = 0;
-        for (String sample : originalVC.getSampleNames()) {
+        for ( final String sample : selectedSampleNames ) {
             Genotype g = originalVC.getGenotype(sample);
 
             if ( ! g.isFiltered() ) {
@@ -742,5 +767,35 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         if ( sawDP )
             builder.attribute("DP", depth);
+    }
+
+    /**
+     * Pulls out the appropriate tokens from the old ordering of an attribute to the new ordering
+     *
+     * @param attribute               the non-null attribute (from the INFO field)
+     * @param oldToNewIndexOrdering   the mapping from new to old ordering
+     * @return non-null Object attribute
+     */
+    private Object getReorderedAttributes(final Object attribute, final int[] oldToNewIndexOrdering) {
+        // if the ordering is the same, then just use the original attribute
+        if ( oldToNewIndexOrdering == null )
+            return attribute;
+
+        // break the original attributes into separate tokens; unfortunately, this means being smart about class types
+        final Object[] tokens;
+        if ( attribute.getClass().isArray() )
+            tokens = (Object[])attribute;
+        else if ( List.class.isAssignableFrom(attribute.getClass()) )
+            tokens = ((List)attribute).toArray();
+        else
+            tokens = attribute.toString().split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR);
+
+        final List<Object> result = new ArrayList<>();
+        for ( final int index : oldToNewIndexOrdering ) {
+            if ( index >= tokens.length )
+                throw new IllegalArgumentException("the old attribute has an incorrect number of elements: " + attribute);
+            result.add(tokens[index]);
+        }
+        return result;
     }
 }

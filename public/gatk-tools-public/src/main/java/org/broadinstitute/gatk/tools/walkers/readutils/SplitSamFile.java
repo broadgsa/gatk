@@ -59,16 +59,15 @@ public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWrite
     @Argument(fullName="outputRoot", doc="output BAM file", required=false)
     public String outputRoot = "";
 
-    @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files", required = false)
-    public Integer BAMcompression = 5;    
+    private static final Logger logger = Logger.getLogger(SplitSamFile.class);
+    private static final String VERSION = "0.0.1";
 
-    private static Logger logger = Logger.getLogger(SplitSamFile.class);
-    private static String VERSION = "0.0.1";
-
+    @Override
     public void initialize() {
         logger.info("SplitSamFile version: " + VERSION);
     }
 
+    @Override
     public SAMRecord map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
         return read;
     }
@@ -78,36 +77,39 @@ public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWrite
     // Standard I/O routines
     //
     // --------------------------------------------------------------------------------------------------------------
+    @Override
     public void onTraversalDone(Map<String, SAMFileWriter> outputs) {
         for ( SAMFileWriter output : outputs.values() ) {
             output.close();
         }
     }
 
+    @Override
     public Map<String, SAMFileWriter> reduceInit() {
-        HashMap<String, SAMFileHeader> headers = new HashMap<String, SAMFileHeader>();
+        HashMap<String, SAMFileHeader> headers = new HashMap<>();
         for ( SAMReadGroupRecord readGroup : this.getToolkit().getSAMFileHeader().getReadGroups()) {
             final String sample = readGroup.getSample();
             if ( ! headers.containsKey(sample) ) {
                 SAMFileHeader header = duplicateSAMFileHeader(this.getToolkit().getSAMFileHeader());
                 logger.debug(String.format("Creating BAM header for sample %s", sample));
-                ArrayList<SAMReadGroupRecord> readGroups = new ArrayList<SAMReadGroupRecord>();
+                ArrayList<SAMReadGroupRecord> readGroups = new ArrayList<>();
                 header.setReadGroups(readGroups);
                 headers.put(sample, header);
             }
 
             SAMFileHeader header = headers.get(sample);
-            List<SAMReadGroupRecord> newReadGroups = new ArrayList<SAMReadGroupRecord>(header.getReadGroups());
+            List<SAMReadGroupRecord> newReadGroups = new ArrayList<>(header.getReadGroups());
             newReadGroups.add(readGroup);
             header.setReadGroups(newReadGroups);
         }
 
-        HashMap<String, SAMFileWriter> outputs = new HashMap<String, SAMFileWriter>();
+        HashMap<String, SAMFileWriter> outputs = new HashMap<>();
         for ( Map.Entry<String, SAMFileHeader> elt : headers.entrySet() ) {
             final String sample = elt.getKey();
             final String filename = outputRoot + sample + ".bam";
             logger.info(String.format("Creating BAM output file %s for sample %s", filename, sample));
-            SAMFileWriter output = ReadUtils.createSAMFileWriterWithCompression(elt.getValue(), true, filename, BAMcompression);
+
+            final SAMFileWriter output = ReadUtils.createSAMFileWriter(filename, getToolkit(), elt.getValue());
             outputs.put(sample, output);
         }
 
@@ -117,6 +119,7 @@ public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWrite
     /**
      * Write out the read
      */
+    @Override
     public Map<String, SAMFileWriter> reduce(SAMRecord read, Map<String, SAMFileWriter> outputs) {
         final String sample = read.getReadGroup().getSample();
         SAMFileWriter output = outputs.get(sample);

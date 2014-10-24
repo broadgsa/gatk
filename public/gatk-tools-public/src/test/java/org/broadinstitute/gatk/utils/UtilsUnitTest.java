@@ -26,9 +26,9 @@
 package org.broadinstitute.gatk.utils;
 
 import org.apache.commons.io.FileUtils;
+import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.io.IOUtils;
 import org.testng.Assert;
-import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -179,6 +179,54 @@ public class UtilsUnitTest extends BaseTest {
         Assert.assertEquals(actual, expected);
     }
 
+    @Test(dataProvider = "asIntegerListData")
+    public void testAsIntegerList(final int[] values) {
+        if (values == null) {
+            try {
+                Utils.asList((int[]) null);
+                Assert.fail("Should have thrown an exception");
+            } catch (final IllegalArgumentException ex) {
+                // good.
+            }
+        } else {
+            final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+            final int[] valuesClone = values.clone();
+            final List<Integer> list = Utils.asList(valuesClone);
+            Assert.assertNotNull(list);
+            Assert.assertEquals(list.size(),values.length);
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((int) list.get(i),values[i]);
+            for (int i = 0; i < values.length; i++)
+                valuesClone[rdn.nextInt(values.length)] = rdn.nextInt(1000);
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((int) list.get(i),valuesClone[i]);
+        }
+    }
+
+    @Test(dataProvider = "asDoubleListData")
+    public void testAsDoubleList(final double[] values) {
+        if (values == null) {
+            try {
+                Utils.asList((int[]) null);
+                Assert.fail("Should have thrown an exception");
+            } catch (final IllegalArgumentException ex) {
+                // good.
+            }
+        } else {
+            final Random rdn = GenomeAnalysisEngine.getRandomGenerator();
+            final double[] valuesClone = values.clone();
+            final List<Double> list = Utils.asList(valuesClone);
+            Assert.assertNotNull(list);
+            Assert.assertEquals(list.size(),values.length);
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((double) list.get(i),values[i]);
+            for (int i = 0; i < values.length; i++)
+                valuesClone[rdn.nextInt(values.length)] = rdn.nextDouble() * 1000;
+            for (int i = 0; i < values.length; i++)
+                Assert.assertEquals((double) list.get(i),valuesClone[i]);
+        }
+    }
+
     @Test
     public void testCalcMD5() throws Exception {
         final File source = new File(publicTestDir + "exampleFASTA.fasta");
@@ -254,5 +302,62 @@ public class UtilsUnitTest extends BaseTest {
                 new Object[]  { "ABCF".getBytes(), "ACBF".getBytes(), 0,0, 4, false}
         };
 
+    }
+
+    @Test(dataProvider = "skimArrayData")
+    public void testSkimArray(final String original, final String remove) {
+        final StringBuilder resultBuilder = new StringBuilder();
+        final boolean[] removeBoolean = new boolean[remove.length()];
+        for (int i = 0; i < original.length(); i++)
+            if (remove.charAt(i) == '1') {
+                resultBuilder.append(original.charAt(i));
+                removeBoolean[i] = false;
+            } else
+                removeBoolean[i] = true;
+
+        final String expected = resultBuilder.toString();
+        final byte[] resultBytes = Utils.skimArray(original.getBytes(),removeBoolean);
+        final String resultString = new String(resultBytes);
+        Assert.assertEquals(resultString,expected);
+    }
+
+    @DataProvider(name = "skimArrayData")
+    public Object[][] skimArrayData() {
+        return new Object[][] {
+                {"romeo+juliette" , "11111111111111" },
+                {"romeo+juliette" , "11111011111111" },
+                {"romeo+juliette" , "00000011111111" },
+                {"romeo+juliette" , "11111100000000" },
+                {"romeo+juliette" , "11111011111111" },
+                {"romeo+juliette" , "01111010000001" },
+                {"romeo+juliette" , "01100110000110" },
+                {"romeo+juliette" , "10101010101010" },
+                {"romeo+juliette" , "01010101010101" },
+                {"romeo+juliette" , "01111010111001" },
+        };
+    }
+
+
+    @DataProvider(name = "asIntegerListData")
+    public Object[][] asIntegerListData() {
+        return new Object[][] {
+                { null },
+                {new int[0]},
+                {new int[]{1, 2, 3, 4, 5}},
+                {new int[]{2}},
+                {new int[]{3,4}}
+        };
+    }
+
+    @DataProvider(name = "asDoubleListData")
+    public Object[][] asDoubleListData() {
+        return new Object[][] {
+                { null },
+                {new double[0]},
+                {new double[]{1, 2, 3, 4, 5}},
+                {new double[]{2}},
+                {new double[]{3,4}},
+                {new double[]{Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY}}
+        };
     }
 }

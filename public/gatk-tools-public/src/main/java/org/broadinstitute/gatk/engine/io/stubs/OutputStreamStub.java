@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.engine.io.stubs;
 
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
 
 import java.io.File;
@@ -100,6 +101,9 @@ public class OutputStreamStub extends OutputStream implements Stub<OutputStream>
     public void register( OutputTracker outputTracker ) {
         this.outputTracker = outputTracker;
     }
+
+    @Override
+    public void processArguments( final GATKArgumentCollection argumentCollection ) {}
 
     /**
      * @{inheritDoc}

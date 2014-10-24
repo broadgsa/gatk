@@ -26,20 +26,9 @@
 package org.broadinstitute.gatk.utils;
 
 import htsjdk.tribble.Tribble;
-import htsjdk.tribble.util.TabixUtils;
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.spi.LoggingEvent;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.gatk.utils.commandline.CommandLineUtils;
-import org.broadinstitute.gatk.utils.collections.Pair;
-import org.broadinstitute.gatk.utils.crypt.CryptUtils;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import org.broadinstitute.gatk.utils.io.IOUtils;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import htsjdk.tribble.util.TabixUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -47,12 +36,24 @@ import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.spi.LoggingEvent;
+import org.broadinstitute.gatk.utils.collections.Pair;
+import org.broadinstitute.gatk.utils.commandline.CommandLineUtils;
+import org.broadinstitute.gatk.utils.crypt.CryptUtils;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.io.IOUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
 import org.testng.Assert;
 import org.testng.Reporter;
 import org.testng.SkipException;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 /**
@@ -86,6 +87,12 @@ import java.util.*;
 public abstract class BaseTest {
     /** our log, which we want to capture anything from org.broadinstitute.sting */
     public static final Logger logger = CommandLineUtils.getStingLogger();
+
+    private static final String CURRENT_DIRECTORY = System.getProperty("user.dir");
+    public static final String gatkDirectory = System.getProperty("gatkdir", CURRENT_DIRECTORY) + "/";
+    public static final String baseDirectory = System.getProperty("basedir", CURRENT_DIRECTORY) + "/";
+    public static final String testType = System.getProperty("testType"); // May be null
+    public static final String testTypeSubDirectory = testType == null ? "" : ("/" + testType); // May be empty
 
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
@@ -123,15 +130,16 @@ public abstract class BaseTest {
     private static final boolean networkTempDirRootExists = new File(networkTempDirRoot).exists();
     private static final File networkTempDirFile;
 
-    private static final String privateTestDirRelative = "private/testdata/";
-    public static final String privateTestDir = new File(privateTestDirRelative).getAbsolutePath() + "/";
+    private static final String privateTestDirRelative = "private/gatk-tools-private/src/test/resources/";
+    public static final String privateTestDir = new File(gatkDirectory, privateTestDirRelative).getAbsolutePath() + "/";
     protected static final String privateTestDirRoot = privateTestDir.replace(privateTestDirRelative, "");
 
-    private static final String publicTestDirRelative = "public/testdata/";
-    public static final String publicTestDir = new File(publicTestDirRelative).getAbsolutePath() + "/";
+    private static final String publicTestDirRelative = "public/gatk-engine/src/test/resources/";
+    public static final String publicTestDir = new File(gatkDirectory, publicTestDirRelative).getAbsolutePath() + "/";
     protected static final String publicTestDirRoot = publicTestDir.replace(publicTestDirRelative, "");
 
     public static final String keysDataLocation = validationDataLocation + "keys/";
+
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
 
     public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";
@@ -301,6 +309,28 @@ public abstract class BaseTest {
             new File(file.getAbsolutePath().replaceAll(extension + "$", ".bai")).deleteOnExit();
 
             return file;
+        } catch (IOException ex) {
+            throw new ReviewedGATKException("Cannot create temp file: " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Creates a temp list file that will be deleted on exit after tests are complete.
+     * @param tempFilePrefix Prefix of the file.
+     * @param lines lines to write to the file.
+     * @return A list file in the temporary directory starting with tempFilePrefix, which will be deleted after the program exits.
+     */
+    public static File createTempListFile(final String tempFilePrefix, final String... lines) {
+        try {
+            final File tempListFile = createTempFile(tempFilePrefix, ".list");
+
+            final PrintWriter out = new PrintWriter(tempListFile);
+            for (final String line : lines) {
+                out.println(line);
+            }
+            out.close();
+
+            return tempListFile;
         } catch (IOException ex) {
             throw new ReviewedGATKException("Cannot create temp file: " + ex.getMessage(), ex);
         }

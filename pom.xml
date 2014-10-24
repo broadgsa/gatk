@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-root</artifactId>
-        <version>3.2</version>
+        <version>3.3-SNAPSHOT</version>
         <relativePath>public/gatk-root</relativePath>
     </parent>
 
@@ -412,131 +412,10 @@
                     </executions>
                 </plugin>
 
-                <!-- TODO: Remove temporary symbolic link creation, after fixing test paths to use local resources. -->
                 <plugin>
                     <groupId>com.pyx4j</groupId>
                     <artifactId>maven-junction-plugin</artifactId>
                     <executions>
-                        <execution>
-                            <id>link-public-testdata</id>
-                            <goals>
-                                <goal>link</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/public/testdata</dst>
-                                        <src>${gatk.basedir}/public/gatk-engine/src/test/resources</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>unlink-public-testdata</id>
-                            <goals>
-                                <goal>unlink</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/public/testdata</dst>
-                                        <src>${gatk.basedir}/public/gatk-engine/src/test/resources</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>link-private-testdata</id>
-                            <goals>
-                                <goal>link</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/private/testdata</dst>
-                                        <src>${gatk.basedir}/private/gatk-tools-private/src/test/resources</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>unlink-private-testdata</id>
-                            <goals>
-                                <goal>unlink</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/private/testdata</dst>
-                                        <src>${gatk.basedir}/private/gatk-tools-private/src/test/resources</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>link-public-qscript</id>
-                            <goals>
-                                <goal>link</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/public/scala/qscript</dst>
-                                        <src>${gatk.basedir}/public/gatk-queue-extensions-public/src/main/qscripts</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>unlink-public-qscript</id>
-                            <goals>
-                                <goal>unlink</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/public/scala/qscript</dst>
-                                        <src>${gatk.basedir}/public/gatk-queue-extensions-public/src/main/qscripts</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>link-private-qscript</id>
-                            <goals>
-                                <goal>link</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/private/scala/qscript</dst>
-                                        <src>${gatk.basedir}/private/gatk-queue-extensions-internal/src/main/qscripts</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>unlink-private-qscript</id>
-                            <goals>
-                                <goal>unlink</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <links>
-                                    <link>
-                                        <dst>${basedir}/private/scala/qscript</dst>
-                                        <src>${gatk.basedir}/private/gatk-queue-extensions-internal/src/main/qscripts</src>
-                                    </link>
-                                </links>
-                            </configuration>
-                        </execution>
                         <!--
                         HACK: Adding the source directory via build-helper-maven-plugin doesn't work with IntelliJ.
                         Add compatibility link from public's extensions source code to target/generated-sources.
@@ -746,6 +625,11 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <executions>
                     <execution>
+                        <!--
+                        TODO: Remove after 3.3+ release.
+                        Until then, will clean out symbolic links from users who download public/protected.
+                        Perhaps leave the script even longer.
+                        -->
                         <id>delete-mavens-links</id>
                         <goals>
                             <goal>exec</goal>
@@ -761,28 +645,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>com.pyx4j</groupId>
-                <artifactId>maven-junction-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>link-public-testdata</id>
-                        <phase>process-test-resources</phase>
-                    </execution>
-                    <execution>
-                        <id>unlink-public-testdata</id>
-                        <phase>clean</phase>
-                    </execution>
-                    <execution>
-                        <id>link-public-qscript</id>
-                        <phase>process-test-resources</phase>
-                    </execution>
-                    <execution>
-                        <id>unlink-public-qscript</id>
-                        <phase>clean</phase>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -869,33 +731,6 @@
             <modules>
                 <module>private</module>
             </modules>
-            <build>
-                <plugins>
-                    <!-- TODO: All tests require access to private. For now. -->
-                    <plugin>
-                        <groupId>com.pyx4j</groupId>
-                        <artifactId>maven-junction-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>link-private-testdata</id>
-                                <phase>process-test-resources</phase>
-                            </execution>
-                            <execution>
-                                <id>unlink-private-testdata</id>
-                                <phase>clean</phase>
-                            </execution>
-                            <execution>
-                                <id>link-private-qscript</id>
-                                <phase>process-test-resources</phase>
-                            </execution>
-                            <execution>
-                                <id>unlink-private-qscript</id>
-                                <phase>clean</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
 
         <!-- Collection of properties for use during package testing -->

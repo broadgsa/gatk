@@ -28,8 +28,6 @@ package org.broadinstitute.gatk.queue.extensions.gatk
 import org.broadinstitute.gatk.queue.function.scattergather.GatherFunction
 import org.broadinstitute.gatk.queue.extensions.picard.MergeSamFiles
 import org.broadinstitute.gatk.queue.function.RetryMemoryLimit
-import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor
-import org.broadinstitute.gatk.queue.util.ClassFieldCache
 import java.io.File
 
 /**
@@ -50,18 +48,9 @@ class BamGatherFunction extends MergeSamFiles with GatherFunction with RetryMemo
 
     // Whatever the original function can handle, merging *should* do less.
     this.memoryLimit = originalFunction.memoryLimit
-
-    // bam_compression and index_output_bam_on_the_fly from SAMFileWriterArgumentTypeDescriptor
-    // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
-
-    val compression = ClassFieldCache.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.COMPRESSION_FULLNAME)
-    this.compressionLevel = originalGATK.getFieldValue(compression).asInstanceOf[Option[Int]]
-
-    val disableIndex = ClassFieldCache.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME)
-    this.createIndex = Some(!originalGATK.getFieldValue(disableIndex).asInstanceOf[Boolean])
-
-    val enableMD5 = ClassFieldCache.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME)
-    this.createMD5 = Some(originalGATK.getFieldValue(enableMD5).asInstanceOf[Boolean])
+    this.compressionLevel = originalGATK.bam_compression
+    this.createIndex = Some(!originalGATK.disable_bam_indexing)
+    this.createMD5 = Some(originalGATK.generate_md5)
 
     super.freezeFieldValues()
   }

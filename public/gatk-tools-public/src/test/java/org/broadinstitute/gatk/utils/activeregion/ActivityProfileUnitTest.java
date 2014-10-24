@@ -51,6 +51,9 @@ public class ActivityProfileUnitTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
     private GenomeLoc startLoc;
 
+    private final static int MAX_PROB_PROPAGATION_DISTANCE = 50;
+    private final static double ACTIVE_PROB_THRESHOLD= 0.002;
+
     @BeforeClass
     public void init() throws FileNotFoundException {
         // sequence
@@ -86,10 +89,10 @@ public class ActivityProfileUnitTest extends BaseTest {
 
         public ActivityProfile makeProfile() {
             switch ( type ) {
-                case Base: return new ActivityProfile(genomeLocParser);
+                case Base: return new ActivityProfile(genomeLocParser, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);
                 case BandPass:
                     // zero size => equivalent to ActivityProfile
-                    return new BandPassActivityProfile(genomeLocParser, null, 0, 0.01, false);
+                    return new BandPassActivityProfile(genomeLocParser, null, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD, 0, 0.01, false);
                 default: throw new IllegalStateException(type.toString());
             }
         }
@@ -230,7 +233,7 @@ public class ActivityProfileUnitTest extends BaseTest {
 
     @Test(enabled = !DEBUG, dataProvider = "RegionCreationTests")
     public void testRegionCreation(final int start, final List<Boolean> probs, int maxRegionSize, final int nParts, final boolean forceConversion, final boolean waitUntilEnd) {
-        final ActivityProfile profile = new ActivityProfile(genomeLocParser);
+        final ActivityProfile profile = new ActivityProfile(genomeLocParser, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);
         Assert.assertNotNull(profile.toString());
 
         final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();
@@ -316,7 +319,7 @@ public class ActivityProfileUnitTest extends BaseTest {
 
     @Test(enabled = ! DEBUG, dataProvider = "SoftClipsTest")
     public void testSoftClips(final int start, int nPrecedingSites, final int softClipSize) {
-        final ActivityProfile profile = new ActivityProfile(genomeLocParser);
+        final ActivityProfile profile = new ActivityProfile(genomeLocParser, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);
 
         final int contigLength = genomeLocParser.getContigs().getSequences().get(0).getSequenceLength();
         final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();
@@ -450,7 +453,7 @@ public class ActivityProfileUnitTest extends BaseTest {
     private double[] makeGaussian(final int mean, final int range, final double sigma) {
         final double[] gauss = new double[range];
         for( int iii = 0; iii < range; iii++ ) {
-            gauss[iii] = MathUtils.normalDistribution(mean, sigma, iii) + ActivityProfile.ACTIVE_PROB_THRESHOLD;
+            gauss[iii] = MathUtils.normalDistribution(mean, sigma, iii) + ACTIVE_PROB_THRESHOLD;
         }
         return gauss;
     }
@@ -469,7 +472,7 @@ public class ActivityProfileUnitTest extends BaseTest {
 
     @Test(dataProvider = "ActiveRegionCutTests")
     public void testActiveRegionCutTests(final int minRegionSize, final int maxRegionSize, final int expectedRegionSize, final List<Double> probs) {
-        final ActivityProfile profile = new ActivityProfile(genomeLocParser);
+        final ActivityProfile profile = new ActivityProfile(genomeLocParser, MAX_PROB_PROPAGATION_DISTANCE, ACTIVE_PROB_THRESHOLD);
 
         final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();
         for ( int i = 0; i <= maxRegionSize + profile.getMaxProbPropagationDistance(); i++ ) {

@@ -208,14 +208,25 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");
 
         validateAnnotateUnionArguments();
-        if ( PRIORITY_STRING == null && genotypeMergeOption == null) {
-            genotypeMergeOption = GATKVariantContextUtils.GenotypeMergeType.UNSORTED;
+
+        final boolean sampleNamesAreUnique = SampleUtils.verifyUniqueSamplesNames(vcfRods);
+
+        if (genotypeMergeOption == null) {
+            if (!sampleNamesAreUnique)
+                throw new UserException("Duplicate sample names were discovered but no genotypemergeoption was supplied. " +
+                    "To combine samples without merging specify --genotypemergeoption UNIQUIFY. Merging duplicate samples " +
+                    "without specified priority is unsupported, but can be achieved by specifying --genotypemergeoption UNSORTED.");
+            else
+                genotypeMergeOption = GATKVariantContextUtils.GenotypeMergeType.UNSORTED;
+        }
+
+        if ( PRIORITY_STRING == null && genotypeMergeOption == GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE) {
             //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
             logger.info("Priority string is not provided, using arbitrary genotyping order: "+priority);
         }
 
         if (genotypeMergeOption == GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE &&
-                !SampleUtils.verifyUniqueSamplesNames(vcfRods))
+                !sampleNamesAreUnique)
             throw new IllegalStateException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered.");
 
         samples = sitesOnlyVCF ? Collections.<String>emptySet() : SampleUtils.getSampleList(vcfRods, genotypeMergeOption);

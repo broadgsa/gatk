@@ -151,6 +151,32 @@ public class MathUtils {
         return approximateLog10SumLog10(vals, vals.length);
     }
 
+    /**
+     * Calculate the approximate log10 sum of an array range.
+     * @param vals the input values.
+     * @param fromIndex the first inclusive index in the input array.
+     * @param toIndex index following the last element to sum in the input array (exclusive).
+     * @return the approximate sum.
+     * @throws IllegalArgumentException if {@code vals} is {@code null} or  {@code fromIndex} is out of bounds
+     * or if {@code toIndex} is larger than
+     * the length of the input array or {@code fromIndex} is larger than {@code toIndex}.
+     */
+    public static double approximateLog10SumLog10(final double[] vals, final int fromIndex, final int toIndex) {
+        if (fromIndex == toIndex) return Double.NEGATIVE_INFINITY;
+        final int maxElementIndex = MathUtils.maxElementIndex(vals,fromIndex,toIndex);
+        double approxSum = vals[maxElementIndex];
+
+        for (int i = fromIndex; i < toIndex; i++) {
+            final double val;
+            if (i == maxElementIndex || (val = vals[i]) == Double.NEGATIVE_INFINITY)
+                continue;
+            final double diff = approxSum - val;
+            if (diff < JacobianLogTable.MAX_TOLERANCE)
+                approxSum += JacobianLogTable.get(diff);
+        }
+        return approxSum;
+    }
+
     public static double approximateLog10SumLog10(final double[] vals, final int endIndex) {
 
         final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
@@ -267,11 +293,12 @@ public class MathUtils {
 
     public static double log10sumLog10(final double[] log10p, final int start, final int finish) {
 
+        if (start >= finish)
+            return Double.NEGATIVE_INFINITY;
         final int maxElementIndex = MathUtils.maxElementIndex(log10p, start, finish);
-        double maxValue = log10p[maxElementIndex];
-        if(maxValue == Double.NEGATIVE_INFINITY)   {
+        final double maxValue = log10p[maxElementIndex];
+        if(maxValue == Double.NEGATIVE_INFINITY)
             return maxValue;
-        }
         double sum = 1.0;
         for (int i = start; i < finish; i++) {
             double curVal = log10p[i];
@@ -862,6 +889,7 @@ public class MathUtils {
         if (start > endIndex) {
            throw new IllegalArgumentException("Start cannot be after end.");
         }
+
         int maxI = start;
         for (int i = (start+1); i < endIndex; i++) {
             if (array[i] > array[maxI])

@@ -63,7 +63,7 @@ public class AlignerTestHarness {
         int count = 0;
 
         SAMFileReader reader = new SAMFileReader(bamFile);
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setValidationStringency(ValidationStringency.SILENT);
 
         int mismatches = 0;
         int failures = 0;

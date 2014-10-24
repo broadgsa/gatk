@@ -55,19 +55,22 @@ public class BandPassActivityProfile extends ActivityProfile {
     /**
      * Create a new BandPassActivityProfile with default sigma and filter sizes
      *
-     * @see #BandPassActivityProfile(org.broadinstitute.gatk.utils.GenomeLocParser, org.broadinstitute.gatk.utils.GenomeLocSortedSet, int, double, boolean)
+     * @see #BandPassActivityProfile(org.broadinstitute.gatk.utils.GenomeLocParser, org.broadinstitute.gatk.utils.GenomeLocSortedSet, int, double, int, double, boolean)
      */
-    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals) {
-        this(parser, restrictToIntervals, MAX_FILTER_SIZE, DEFAULT_SIGMA, true);
+    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals,
+                                   final int maxProbPropagationDistance, final double activeProbThreshold) {
+        this(parser, restrictToIntervals, maxProbPropagationDistance, activeProbThreshold, MAX_FILTER_SIZE, DEFAULT_SIGMA);
     }
 
     /**
-     * @see #BandPassActivityProfile(org.broadinstitute.gatk.utils.GenomeLocParser, org.broadinstitute.gatk.utils.GenomeLocSortedSet, int, double, boolean)
+     * @see #BandPassActivityProfile(org.broadinstitute.gatk.utils.GenomeLocParser, org.broadinstitute.gatk.utils.GenomeLocSortedSet, int, double, int, double, boolean)
      *
      * sets adaptiveFilterSize to true
      */
-    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals, final int maxFilterSize, final double sigma) {
-        this(parser, restrictToIntervals, maxFilterSize, sigma, true);
+    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals,
+                                   final int maxProbPropagationDistance, final double activeProbThreshold,
+                                   final int maxFilterSize, final double sigma) {
+        this(parser, restrictToIntervals, maxProbPropagationDistance, activeProbThreshold, maxFilterSize, sigma, true);
     }
 
     /**
@@ -75,12 +78,15 @@ public class BandPassActivityProfile extends ActivityProfile {
      *
      * @param parser our genome loc parser
      * @param restrictToIntervals only include states that are within these intervals, if not null
+     * @param maxProbPropagationDistance region probability propagation distance beyond it's maximum size
+     * @param activeProbThreshold  threshold for the probability of a profile state being active
      * @param maxFilterSize the maximum size of the band pass filter we are allowed to create, regardless of sigma
      * @param sigma the variance of the Gaussian kernel for this band pass filter
      * @param adaptiveFilterSize if true, use the kernel itself to determine the best filter size
      */
-    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals, final int maxFilterSize, final double sigma, final boolean adaptiveFilterSize) {
-        super(parser, restrictToIntervals);
+    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals, final int maxProbPropagationDistance,
+                                   final double activeProbThreshold, final int maxFilterSize, final double sigma, final boolean adaptiveFilterSize) {
+        super(parser, maxProbPropagationDistance, activeProbThreshold, restrictToIntervals);
 
         if ( sigma < 0 ) throw new IllegalArgumentException("Sigma must be greater than or equal to 0 but got " + sigma);
 

@@ -83,7 +83,7 @@ class ExampleReadFilterQueueTest {
     val spec = new QueueTestSpec
     spec.name = "examplereadfilter"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleReadFilter.scala",
+      " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExampleReadFilter.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
     QueueTest.executeTest(spec)

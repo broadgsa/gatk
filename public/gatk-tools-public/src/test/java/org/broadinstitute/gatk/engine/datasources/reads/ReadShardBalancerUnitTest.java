@@ -88,7 +88,7 @@ public class ReadShardBalancerUnitTest extends BaseTest {
                                                          null,
                                                          new GenomeLocParser(header.getSequenceDictionary()),
                                                          false,
-                                                         SAMFileReader.ValidationStringency.SILENT,
+                                                         ValidationStringency.SILENT,
                                                          ReadShard.DEFAULT_MAX_READS,  // reset ReadShard.MAX_READS to ReadShard.DEFAULT_MAX_READS for each test
                                                          downsamplingMethod,
                                                          new ValidationExclusion(),

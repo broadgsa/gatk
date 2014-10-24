@@ -35,7 +35,7 @@ class ExampleCountReadsQueueTest {
     val spec = new QueueTestSpec
     spec.name = "countreads"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExampleCountReads.scala",
+      " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExampleCountReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
     QueueTest.executeTest(spec)

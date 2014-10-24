@@ -130,7 +130,7 @@ public class EventMapUnitTest extends BaseTest {
         final Haplotype hap = new Haplotype(haplotypeBases.getBytes(), false, 0, TextCigarCodec.getSingleton().decode(cigar));
         final GenomeLoc loc = new UnvalidatingGenomeLoc(CHR, 0, 1, refBases.length());
         final EventMap ee = new EventMap(hap, refBases.getBytes(), loc, NAME);
-        ee.replaceClumpedEventsWithBlockSubstititions();
+        ee.replaceClumpedEventsWithBlockSubstitutions();
         Assert.assertEquals(ee.getNumberOfEvents(), 1);
         final VariantContext actual = ee.getVariantContexts().iterator().next();
         Assert.assertTrue(GATKVariantContextUtils.equalSites(actual, expectedBlock), "Failed with " + actual);
@@ -159,7 +159,7 @@ public class EventMapUnitTest extends BaseTest {
         final Haplotype hap = new Haplotype(haplotypeBases.getBytes(), false, 0, TextCigarCodec.getSingleton().decode(cigar));
         final GenomeLoc loc = new UnvalidatingGenomeLoc(CHR, 0, 1, refBases.length());
         final EventMap ee = new EventMap(hap, refBases.getBytes(), loc, NAME);
-        ee.replaceClumpedEventsWithBlockSubstititions();
+        ee.replaceClumpedEventsWithBlockSubstitutions();
         Assert.assertEquals(ee.getNumberOfEvents(), expectedAlleles.size());
         final List<VariantContext> actuals = new ArrayList<VariantContext>(ee.getVariantContexts());
         for ( int i = 0; i < ee.getNumberOfEvents(); i++ ) {

@@ -302,7 +302,7 @@ public class MD5DB {
         if ( success ) {
             diffEngineOutput = baos.toString();
             BaseTest.log(diffEngineOutput);
-            System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R public/testdata/exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
+            System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R " + BaseTest.publicTestDir + "exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
                     pathToExpectedMD5File, pathToFileMD5File);
         }
         ps.close();

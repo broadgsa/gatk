@@ -174,8 +174,9 @@ public class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
 
     static DefinitionMatcher VerifiableDefinitionMatcher = new DefinitionMatcher() {
         public boolean matches( ArgumentDefinition definition, Object key ) {
-            // We can perform some sort of validation for anything that isn't a flag.
-            return !definition.isFlag;
+            // We can perform some sort of validation for anything that isn't a flag or enum.
+            // Because enums can have a default value, it might be valid to specify an enum argument with no value
+            return !definition.isFlag  && !definition.argumentType.isEnum();
         }        
     };
 }

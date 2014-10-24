@@ -25,10 +25,7 @@
 
 package org.broadinstitute.gatk.engine;
 
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMReadGroupRecord;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.tribble.readers.LineIterator;
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
@@ -210,7 +207,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
 
     private void testBadCompressArgument(final int compress) {
-        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I private/testdata/NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
+        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I " + privateTestDir + "NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
                 1, UserException.class);
         executeTest("badCompress " + compress, spec);
     }
@@ -308,7 +305,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         final File outputBam = executeTest("testGATKEngineConsolidatesCigars", spec).first.get(0);
         final SAMFileReader reader = new SAMFileReader(outputBam);
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setValidationStringency(ValidationStringency.SILENT);
         reader.setSAMRecordFactory(new GATKSamRecordFactory());
 
         final SAMRecord read = reader.iterator().next();
@@ -668,5 +665,72 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         public Integer reduce(Integer counter, Integer sum) {
             return counter + sum;
         }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test output file-specific options
+    //
+    // --------------------------------------------------------------------------------
+
+    //Returns the output file
+    private File testBAMFeatures(final String args, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference +
+                " -I " + privateTestDir + "NA20313.highCoverageRegion.bam"
+                + " --no_pg_tag -o %s " + args,
+                1, Arrays.asList(".bam"), Arrays.asList(md5));
+        return executeTest("testBAMFeatures: "+args, spec).first.get(0);
+    }
+
+    @Test
+    public void testSAMWriterFeatures() {
+        testBAMFeatures("-compress 0", "bb4b55b1f80423970bb9384cbf0d8793");
+        testBAMFeatures("-compress 9", "b85ee1636d62e1bb8ed65a245c307167");
+        testBAMFeatures("-simplifyBAM", "38f9c30a27dfbc085a2ff52a1617d579");
+
+        //Validate MD5
+        final String expectedMD5 = "6627b9ea33293a0083983feb94948c1d";
+        final File md5Target = testBAMFeatures("--generate_md5", expectedMD5);
+        final File md5File = new File(md5Target.getAbsoluteFile() + ".md5");
+        md5File.deleteOnExit();
+        Assert.assertTrue(md5File.exists(), "MD5 wasn't created");
+        try {
+            String md5 = new BufferedReader(new FileReader(md5File)).readLine();
+            Assert.assertEquals(md5, expectedMD5, "Generated MD5 doesn't match expected");
+        } catch (IOException e) {
+            Assert.fail("Can't parse MD5 file", e);
+        }
+
+        //Validate that index isn't created
+        final String unindexedBAM = testBAMFeatures("--disable_bam_indexing", expectedMD5).getAbsolutePath();
+        Assert.assertTrue(!(new File(unindexedBAM+".bai").exists()) &&
+                          !(new File(unindexedBAM.replace(".bam", ".bai")).exists()),
+                          "BAM index was created even though it was disabled");
+    }
+
+    private void testVCFFeatures(final String args, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "CEUtrioTest.vcf"
+                + " --no_cmdline_in_header -o %s " + args,
+                1, Arrays.asList(md5));
+        executeTest("testVCFFeatures: "+args, spec);
+    }
+
+    private void testVCFFormatHandling(final boolean writeFullFormat, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"
+                + " --no_cmdline_in_header -o %s "
+                + " --fullyDecode " //Without this parameter, the FORMAT fields will be emitted unchanged.  Oops
+                + (writeFullFormat ? "-writeFullFormat" : "") ,
+                1, Arrays.asList(md5));
+        executeTest("testVCFFormatHandling: "+(writeFullFormat ? "Untrimmed" : "Trimmed"), spec);
+    }
+
+    @Test
+    public void testVCFWriterFeatures() {
+        testVCFFeatures("--sites_only", "94bf1f2c0946e933515e4322323a5716");
+        testVCFFeatures("--bcf", "03f2d6988f54a332da48803c78f9c4b3");
+        testVCFFormatHandling(true, "2b0fa660b0cef4b0f45a10febb453b6c");
+        testVCFFormatHandling(false, "5960311fdd9ee6db88587efaaf4055a0");
     }
 }

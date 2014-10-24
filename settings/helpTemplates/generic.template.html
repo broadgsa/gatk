@@ -22,6 +22,15 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
+<?php
+
+    include '../../../include/common.php';
+    $module = modules::GATK;
+    printHeader($module, "GATK | Tool Documentation Index", "Guides");
+?>
+
+<div class='row-fluid' id="top">
+
 <#include "common.html"/>
 
 <#macro argumentlist name myargs>
@@ -32,7 +41,7 @@
         <#list myargs as arg>
             <tr>
                 <td><a href="#${arg.name}">${arg.name}</a><br />
-                	<#if arg.synonyms??>
+                	<#if arg.synonyms != "NA">
                 		<#if arg.name[2..] != arg.synonyms[1..]>
                 			&nbsp;<em>${arg.synonyms}</em>
                 		</#if>
@@ -59,10 +68,10 @@
 	<!--<#if arg.attributes??>
 		<p>${arg.attributes}</p> 
 	</#if>-->
-	<#if arg.rodTypes??>
+	<#if arg.rodTypes != "NA">
 		<p>${arg.name} binds reference ordered data. This argument supports ROD files of the following types: ${arg.rodTypes}</p>
 	</#if>
-	<#if arg.options??>
+	<#if arg.options?has_content>
 		<p>
 		The ${arg.name} argument is an enumerated type (${arg.type}), which can have one of the following values:
 		<dl class="enum">
@@ -73,25 +82,25 @@
 		</dl>
 		</p>
 	</#if>
-	<p><#if arg.required??>
+	<p><#if arg.required != "NA">
 			<#if arg.required == "yes">
 				<span class="badge badge-important">R</span>
 			</#if>
 		</#if>
 		<span class="label label-info ">${arg.type}</span> 
-		<#if arg.defaultValue??>
+		<#if arg.defaultValue?is_number>
 			&nbsp;<span class="label">${arg.defaultValue}</span>
 		</#if>
-		<#if arg.minValue??>
+		<#if arg.minValue?is_number>
 			&nbsp;<span class="label label-warning">[ [ ${arg.minValue}</span>
 		</#if>
-		<#if arg.minRecValue??>
+		<#if arg.minRecValue?is_number>
 			&nbsp;<span class="label label-success">[ ${arg.minRecValue}</span>
 		</#if>
-		<#if arg.maxRecValue??>
+		<#if arg.maxRecValue?is_number>
 			&nbsp;<span class="label label-success">${arg.maxRecValue} ]</span>
 		</#if>
-		<#if arg.maxValue??>
+		<#if arg.maxValue?is_number>
 			&nbsp;<span class="label label-warning">${arg.maxValue} ] ]</span>
 		</#if>
 	</p>
@@ -113,8 +122,11 @@
 </#macro>
 
 <?php $group = '${group}'; ?>
-<@makeHeader title="GATK | ${name} documentation" isIndex=false />
+
 <section class="span4">
+    <aside class="well">
+        <a href="index"><h4><i class='fa fa-chevron-left'></i> Back to Tool Docs Index</h4></a>
+    </aside>
     <aside class="well">
         <h2>Categories</h2>
         <@getCategories groups=groups />
@@ -159,6 +171,15 @@
 			<small>${annotinfo}</small>
 		</h3>
 	</#if>
+    <#if annotdescript?has_content >
+        <h3>Header info <br />
+            <small>
+                <#list annotdescript as line>
+                <li><pre>${line}</pre></li>
+            </#list>
+            </small>
+        </h3>
+    </#if>
 
 	<hr>
     <h2>Overview</h2>
@@ -300,4 +321,7 @@
 				<small>GTD: ${gotoDev}</small>
 			</#if>
 			<@footerClose />
-			<@pageFooter />
+
+</div>
+
+<?php printFooter($module); ?>

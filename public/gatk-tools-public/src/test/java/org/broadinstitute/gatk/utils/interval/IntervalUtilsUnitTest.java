@@ -671,17 +671,17 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<GenomeLoc> locs2 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(1).toString()));
         List<GenomeLoc> locs3 = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Arrays.asList(files.get(2).toString()));
 
-        Assert.assertEquals(locs1.size(), 1);
+        Assert.assertEquals(locs1.size(), 2);
         Assert.assertEquals(locs2.size(), 1);
-        Assert.assertEquals(locs3.size(), 2);
+        Assert.assertEquals(locs3.size(), 1);
 
         Assert.assertEquals(locs1.get(0), chr1);
-        Assert.assertEquals(locs2.get(0), chr2);
-        Assert.assertEquals(locs3.get(0), chr3);
-        Assert.assertEquals(locs3.get(1), chr4);
+        Assert.assertEquals(locs1.get(1), chr2);
+        Assert.assertEquals(locs2.get(0), chr3);
+        Assert.assertEquals(locs3.get(0), chr4);
     }
 
-    @Test(expectedExceptions=UserException.BadArgumentValue.class)
+    @Test(expectedExceptions=UserException.BadInput.class)
     public void testScatterContigIntervalsMoreFiles() {
         List<File> files = testFiles("contig_more.", 3, ".intervals");
         IntervalUtils.scatterContigIntervals(hg18Header, getLocs("chr1", "chr2"), files);
@@ -1043,7 +1043,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @DataProvider(name="invalidIntervalTestData")
     public Object[][] invalidIntervalDataProvider() throws Exception {
         GATKArgumentCollection argCollection = new GATKArgumentCollection();
-        File fastaFile = new File("public/testdata/exampleFASTA.fasta");
+        File fastaFile = new File(publicTestDir + "exampleFASTA.fasta");
         GenomeLocParser genomeLocParser = new GenomeLocParser(new IndexedFastaSequenceFile(fastaFile));
 
         return new Object[][] {

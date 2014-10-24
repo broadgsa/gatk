@@ -1,0 +1,16 @@
+##fileformat=VCFv4.1
+##fileDate=20140820
+##source=mutatrix population genome simulator
+##seed=100
+##reference=ref.fasta
+##phasing=true
+##commandline=mutatrix ref.fasta --file-prefix mutations/ --sample-prefix 0 -n 1 --ploidy 2 --random-seed 100 --snp-rate 0.001
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Alternate allele count">
+##INFO=<ID=TYPE,Number=A,Type=String,Description="Type of each allele (snp, ins, del, mnp, complex)">
+##INFO=<ID=NS,Number=1,Type=Integer,Description="Number of samples at the site">
+##INFO=<ID=NA,Number=1,Type=Integer,Description="Number of alternate alleles">
+##INFO=<ID=LEN,Number=A,Type=Integer,Description="Length of each alternate allele">
+##INFO=<ID=MICROSAT,Number=0,Type=Flag,Description="Generated at a sequence repeat loci">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	01
+20	10000000	.	T	TGTCTTAGTGTCGTATGGGCTTCCATATTCAACTTTCTTCTATAAGTAGAATATCTACACGTGATGCTCTGGTCTTTCTACTACACGTCTATTGTAGCTTAATCTTTTCCTCGGGGGGGAAGAGGCTGTTTAGAATCATACCTCCAACCGACATTAACCCTGTTGGATTATAACTAGGGGCAAATCCGGATATTGGTATACGGCCCTATTATTCTATGGGTCTACGCACCTAGTAGGCACCCACGCAGTCTCTGGCCCGACCCCA	99	.	AC=2;LEN=264;NA=1;NS=1;TYPE=ins	GT	1|1

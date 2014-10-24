@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.engine.walkers.diffengine;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.util.BlockCompressedInputStream;
 
 import java.io.*;
@@ -49,7 +50,7 @@ public class BAMDiffableReader implements DiffableReader {
     @Override
     public DiffElement readFromFile(File file, int maxElementsToRead) {
         final SAMFileReader reader = new SAMFileReader(file, null); // null because we don't want it to look for the index
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setValidationStringency(ValidationStringency.SILENT);
 
         DiffNode root = DiffNode.rooted(file.getName());
         SAMRecordIterator iterator = reader.iterator();

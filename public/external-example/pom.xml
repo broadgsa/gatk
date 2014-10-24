@@ -9,7 +9,7 @@
     <name>External Example</name>
 
     <properties>
-        <gatk.version>3.2</gatk.version>
+        <gatk.version>3.3-SNAPSHOT</gatk.version>
         <!--
         gatk.basedir property must point to your checkout of GATK/GATK until we can get all the
         dependencies out of the committed gatk repo and into central.
@@ -28,6 +28,7 @@
         <gatk.integrationtests.skipped>${gatk.committests.skipped}</gatk.integrationtests.skipped>
 
         <!-- This flag is used by the package tests to disable re-shading -->
+        <gatk.unpack.phase>process-resources</gatk.unpack.phase>
         <gatk.shade.phase>package</gatk.shade.phase>
     </properties>
 
@@ -73,7 +74,7 @@
                 <executions>
                     <execution>
                         <id>unpack</id>
-                        <phase>process-resources</phase>
+                        <phase>${gatk.unpack.phase}</phase>
                         <goals>
                             <goal>unpack</goal>
                         </goals>
@@ -185,6 +186,7 @@
                     <failIfNoTests>false</failIfNoTests>
                     <!-- Pass various system properties -->
                     <systemPropertyVariables>
+                        <gatkdir>${gatk.basedir}</gatkdir>
                         <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
@@ -204,6 +206,9 @@
                             <includes>
                                 <include>**/*UnitTest.class</include>
                             </includes>
+                            <systemPropertyVariables>
+                                <testType>unit</testType>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                 </executions>
@@ -220,6 +225,7 @@
                     <failIfNoTests>false</failIfNoTests>
                     <!-- Pass various system properties -->
                     <systemPropertyVariables>
+                        <gatkdir>${gatk.basedir}</gatkdir>
                         <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                     </systemPropertyVariables>
                 </configuration>
@@ -236,6 +242,9 @@
                             <includes>
                                 <include>**/*IntegrationTest.class</include>
                             </includes>
+                            <systemPropertyVariables>
+                                <testType>integrationtest</testType>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                 </executions>
@@ -253,6 +262,8 @@
                 </property>
             </activation>
             <properties>
+                <gatk.jar.phase>none</gatk.jar.phase>
+                <gatk.unpack.phase>none</gatk.unpack.phase>
                 <gatk.shade.phase>none</gatk.shade.phase>
             </properties>
         </profile>

@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-root</artifactId>
-        <version>3.2</version>
+        <version>3.3-SNAPSHOT</version>
         <relativePath>../gatk-root</relativePath>
     </parent>
 
@@ -102,6 +102,7 @@
                             <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
                             <additionalClasspathElements>
                                 <additionalClasspathElement>${gatk.basedir}/public/gatk-tools-public/target/gatk-tools-public-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-queue/target/gatk-queue-${project.version}-tests.jar</additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
                         <executions>
@@ -142,7 +143,8 @@
                             <testClassesDirectory>${gatk.packagetests.testClasses}</testClassesDirectory>
                             <!-- TODO: Using additionalClasspathElement while debugging exclusion issue above -->
                             <additionalClasspathElements>
-                                <additionalClasspathElement>${gatk.basedir}/public/gatk-framework/target/gatk-framework-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-tools-public/target/gatk-tools-public-${project.version}-tests.jar</additionalClasspathElement>
+                                <additionalClasspathElement>${gatk.basedir}/public/gatk-queue/target/gatk-queue-${project.version}-tests.jar</additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
                         <executions>

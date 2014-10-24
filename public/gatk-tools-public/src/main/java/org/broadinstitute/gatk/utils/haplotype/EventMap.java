@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.gatk.utils.haplotype;
 
@@ -74,7 +74,7 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
      * For testing.  Let's you set up a explicit configuration without having to process a haplotype and reference
      * @param stateForTesting
      */
-    protected EventMap(final Collection<VariantContext> stateForTesting) {
+    public EventMap(final Collection<VariantContext> stateForTesting) {
         haplotype = null;
         ref = null;
         refLoc = null;
@@ -176,99 +176,8 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
             }
         }
 
-        // handle the case where the event set for the haplotype is very complex
-        // TODO -- theoretically this should be part of the MergeVariantsAcrossHaplotypes class, but it's just so much more complicated to do so
-        if ( variationIsTooComplex(proposedEvents) ) {
-            addComplexVC(cigar, alignment, haplotype.getAlignmentStartHapwrtRef());
-        } else {
-            for ( final VariantContext proposedEvent : proposedEvents )
-                addVC(proposedEvent, true);
-        }
-    }
-
-    /**
-     * Determine whether the provided set of variants is too complex for breaking up into individual parts
-     *
-     * @param events  the individual events
-     * @return true if the cigar is too complex, false otherwise
-     */
-    private boolean variationIsTooComplex(final List<VariantContext> events) {
-        // TODO -- we've decided to disable this for now and try "physical phasing"
-        return false;
-
-        //int indelCount = 0;
-        //for ( final VariantContext event : events ) {
-        //    if ( event.isIndel() )
-        //        indelCount++;
-        //}
-        //
-        // don't allow too many indels
-        //return indelCount > MAX_INDELS_PER_HAPLOTYPE;
-    }
-
-    /**
-     * Add a complex variant context to the events given the haplotype and its cigar
-     *
-     * @param cigar      the cigar to convert
-     * @param haplotype  the bases of the alternate haplotype
-     * @param refPos     the position on the reference for this alignment
-     */
-    private void addComplexVC(final Cigar cigar, final byte[] haplotype, final int refPos) {
-        // ignore leading and trailing bases that match between this haplotype and the reference
-        final int matchingPrefix = numPrefixMatch(ref, haplotype, refPos, 0);
-        final int matchingSuffix = numSuffixMatch(ref, haplotype, refPos + cigar.getReferenceLength() - 1, haplotype.length - 1);
-
-        // edge case: too many matches
-        final int totalMatch = matchingPrefix + matchingSuffix;
-        if ( totalMatch >= haplotype.length || totalMatch >= ref.length )
-            return;
-
-        final byte[] refBases = Arrays.copyOfRange(ref, refPos + matchingPrefix, refPos + cigar.getReferenceLength() - matchingSuffix);
-        final byte[] altBases = Arrays.copyOfRange(haplotype, matchingPrefix, haplotype.length - matchingSuffix);
-
-        final List<Allele> alleles = new ArrayList<>();
-        alleles.add( Allele.create( refBases, true ) );
-        alleles.add( Allele.create( altBases, false ) );
-        final int start =  refLoc.getStart() + refPos + matchingPrefix;
-        addVC(new VariantContextBuilder(sourceNameToAdd, refLoc.getContig(), start, start + refBases.length - 1, alleles).make(), true);
-    }
-
-    /**
-     * calculates the extent of the prefix match between 2 sequences
-     *
-     * @param seq1         the first sequence
-     * @param seq2         the second sequence
-     * @param startPos1    the index on seq1 to start from
-     * @param startPos2    the index on seq2 to start from
-     * @return non-negative int representing the matching prefix
-     */
-    private int numPrefixMatch(final byte[] seq1, final byte[] seq2, final int startPos1, final int startPos2) {
-        int matchingBases = 0;
-        for ( int pos1 = startPos1, pos2 = startPos2; pos1 < seq1.length && pos2 < seq2.length; pos1++, pos2++ ) {
-            if ( seq1[pos1] != seq2[pos2] )
-                break;
-            matchingBases++;
-        }
-        return matchingBases;
-    }
-
-    /**
-     * calculates the extent of the suffix match between 2 sequences
-     *
-     * @param seq1         the first sequence
-     * @param seq2         the second sequence
-     * @param startPos1    the index on seq1 to start from
-     * @param startPos2    the index on seq2 to start from
-     * @return non-negative int representing the matching suffix
-     */
-    private int numSuffixMatch(final byte[] seq1, final byte[] seq2, final int startPos1, final int startPos2) {
-        int matchingBases = 0;
-        for ( int pos1 = startPos1, pos2 = startPos2; pos1 >=0 && pos2 >= 0; pos1--, pos2-- ) {
-            if ( seq1[pos1] != seq2[pos2] )
-                break;
-            matchingBases++;
-        }
-        return matchingBases;
+        for ( final VariantContext proposedEvent : proposedEvents )
+            addVC(proposedEvent, true);
     }
 
     /**
@@ -345,7 +254,7 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
 
     // TODO -- warning this is an O(N^3) algorithm because I'm just lazy.  If it's valuable we need to reengineer it
     @Requires("getNumberOfEvents() > 0")
-    protected void replaceClumpedEventsWithBlockSubstititions() {
+    protected void replaceClumpedEventsWithBlockSubstitutions() {
         if ( getNumberOfEvents() >= MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION) {
             int lastStart = -1;
             for ( boolean foundOne = true; foundOne; ) {

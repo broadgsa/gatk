@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.arguments;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
@@ -60,7 +60,7 @@ public class GATKArgumentCollection {
      * BAM file. Please see our online documentation for more details on input formatting requirements.
      */
     @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (SAM or BAM)", required = false)
-    public List<String> samFiles = new ArrayList<String>();
+    public List<String> samFiles = new ArrayList<>();
 
     @Hidden
     @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list files).")
@@ -77,15 +77,18 @@ public class GATKArgumentCollection {
 
     /**
      * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains basic
-     * non-identifying statistics (which tool was used, whether the run was successful etc.) that help us for debugging
-     * and development. You can use this option to turn off reporting if your run environment is not connected to the
-     * internet or if your data is subject to stringent confidentiality clauses (e.g. clinical patient data).
-     * To do so you will need to request a key using the online request form on our website.
+     * statistics about the run (which tool was used, whether the run was successful etc.) that help us for debugging
+     * and development. Up to version 3.2-2 the run report contains a record of the username and hostname associated
+     * with the run, but it does **NOT** contain any information that could be used to identify patient data.
+     * Nevertheless, if your data is subject to stringent confidentiality clauses (no outside communication) or if your
+     * run environment is not connected to the internet, you can disable the reporting system by seeting this option to
+     * "NO_ET". You will also need to request a key using the online request form on our website (se FAQs).
      */
     @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
     /**
-     * Please see the online documentation FAQs for more details on the key system and how to request a key.
+     * Please see the "phone_home" argument below and the online documentation FAQs for more details on the key system
+     * and how to request a key.
      */
     @Argument(fullName = "gatk_key", shortName = "K", doc="GATK key file required to run with -et NO_ET", required = false)
     public File gatkKeyFile = null;
@@ -116,7 +119,7 @@ public class GATKArgumentCollection {
      * is specified in each tool's documentation. The default filters cannot be disabled.
      */
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Filters to apply to reads before analysis", required = false)
-    public final List<String> readFilters = new ArrayList<String>();
+    public final List<String> readFilters = new ArrayList<>();
 
     @ArgumentCollection
     public IntervalArgumentCollection intervalArguments = new IntervalArgumentCollection();
@@ -361,7 +364,7 @@ public class GATKArgumentCollection {
      * Keep in mind that if you set this to LENIENT, we may refuse to provide you with support if anything goes wrong.
      */
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
-    public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
+    public ValidationStringency strictnessLevel = ValidationStringency.SILENT;
     /**
      * Some tools keep program records in the SAM header by default. Use this argument to override that behavior and discard program records for the SAM header.
      */
@@ -403,6 +406,51 @@ public class GATKArgumentCollection {
               doc = "Disable both auto-generation of index files and index file locking",
               required = false)
     public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
+
+    @Hidden
+    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.",
+              required = false)
+    public boolean disableCommandLineInVCF = false;
+
+    @Argument(fullName = "sites_only", shortName = "sites_only", doc = "Just output sites without genotypes (i.e. only the first 8 columns of the VCF)",
+              required = false)
+    public boolean sitesOnlyVCF = false;
+
+    /**
+     * <p>The VCF specification permits missing records to be dropped from the end of FORMAT fields, so long as GT is always output.
+     * This option prevents GATK from performing that trimming.</p>
+     *
+     * <p>For example, given a FORMAT of <pre>GT:AD:DP:PL</pre>, GATK will by default emit <pre>./.</pre> for a variant with
+     * no reads present (ie, the AD, DP, and PL fields are trimmed).  If you specify -writeFullFormat, this record
+     * would be emitted as <pre>./.:.:.:.</pre></p>
+     */
+    @Argument(fullName = "never_trim_vcf_format_field", shortName = "writeFullFormat", doc = "Always output all the records in VCF FORMAT fields, even if some are missing",
+              required = false)
+    public boolean neverTrimVCFFormatField = false;
+
+    @Hidden
+    @Argument(fullName = "bcf", shortName = "bcf", doc = "Force BCF output, regardless of the file's extension",
+              required = false)
+    public boolean forceBCFOutput = false;
+
+    @Advanced
+    @Argument(fullName = "bam_compression", shortName = "compress", doc = "Compression level to use for writing BAM files (0 - 9, higher is more compressed)",
+              minValue = 0, maxValue = 9, required = false)
+    public Integer bamCompression = null;
+
+    @Advanced
+    @Argument(fullName = "simplifyBAM", shortName = "simplifyBAM",
+              doc = "If provided, output BAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
+              required = false)
+    public boolean simplifyBAM = false;
+
+    @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM files.",
+            required = false)
+    public boolean disableBAMIndexing = false;
+
+    @Argument(fullName = "generate_md5", doc = "Enable on-the-fly creation of md5s for output BAM files.",
+            required = false)
+    public boolean enableBAMmd5 = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //

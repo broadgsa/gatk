@@ -33,14 +33,22 @@ import io.Source
  * A collection of various system utilities.
  */
 object SystemUtils extends Logging {
-  val inetAddress = InetAddress.getLocalHost.getHostAddress
-  val canonicalHostName = InetAddress.getLocalHost.getCanonicalHostName
+  private val localAddress = {
+    try {
+      InetAddress.getLocalHost
+    } catch {
+      case e: Exception =>
+        InetAddress.getLoopbackAddress
+    }
+  }
+  val inetAddress = localAddress.getHostAddress
+  val canonicalHostName = localAddress.getCanonicalHostName
 
   val hostName = {
     if (canonicalHostName != inetAddress)
       canonicalHostName
     else
-      InetAddress.getLocalHost.getHostName
+      localAddress.getHostName
   }
 
   val mailName = {

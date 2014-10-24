@@ -59,7 +59,7 @@ class ExamplePrintReadsQueueTest {
     val spec = new QueueTestSpec
     spec.name = "devnulloutput"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExamplePrintReads.scala",
+      " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExamplePrintReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -out /dev/null").mkString
@@ -72,7 +72,7 @@ class ExamplePrintReadsQueueTest {
     val spec = new QueueTestSpec
     spec.name = "cleanupbai"
     spec.args = Array(
-      " -S public/scala/qscript/org/broadinstitute/gatk/queue/qscripts/examples/ExamplePrintReads.scala",
+      " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExamplePrintReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -out exampleOut.bam").mkString

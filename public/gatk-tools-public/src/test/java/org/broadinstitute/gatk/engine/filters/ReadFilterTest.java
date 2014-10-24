@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2012 The Broad Institute
-*
+* 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-*
+* 
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-*
+* 
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -317,7 +317,7 @@ public class ReadFilterTest extends BaseTest {
         final ThreadAllocation ta = new ThreadAllocation();
         final Integer numFileHandles = 1; // I believe that any value would do but need to confirm.
         final boolean useOriginalBaseQualities = true;
-        final SAMFileReader.ValidationStringency strictness = SAMFileReader.ValidationStringency.LENIENT;
+        final ValidationStringency strictness = ValidationStringency.LENIENT;
         final Integer readBufferSize = 1; // not relevant.
         final DownsamplingMethod downsamplingMethod = DownsamplingMethod.NONE;
         final ValidationExclusion exclusionList = composeValidationExclusion();

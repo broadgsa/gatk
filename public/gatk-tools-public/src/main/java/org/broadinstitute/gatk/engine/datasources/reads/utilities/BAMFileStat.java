@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
 import htsjdk.samtools.BAMIndex;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -85,7 +86,7 @@ public class BAMFileStat extends CommandLineProgram {
         BAMIndex index;
 
         reader = new SAMFileReader(bamFile);
-        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setValidationStringency(ValidationStringency.SILENT);
         reader.enableIndexCaching(true);
         index = reader.getIndex();
 

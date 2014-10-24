@@ -55,11 +55,22 @@ import java.util.Set;
 /**
  * Allele balance per sample
  *
- * <p>The allele balance is the fraction of ref bases over ref + alt bases.</p>
- *
+ * <p> This is an experimental annotation that attempts to estimate whether the data supporting a heterozygous genotype call fits allelic ratio expectations, or whether there might be some bias in the data.</p>
+ * <h3>Calculation</h3>
+ * <p> $$ AB = \frac{# ALT alleles}{total # alleles} $$ </p>
+ * <p> Ideally, the value of AB should be close to 0.5, so half of the alleles support the ref allele and half of the alleles support the alt allele. Divergence from the expected ratio may indicate that there is some bias in favor of one allele. Note the caveats below regarding cancer and RNAseq analysis. </p>
  * <h3>Caveats</h3>
- * <p>Note that this annotation will only work properly for biallelic samples that are called as heterozygous.</p>
- * <h4>This is an experimental annotation. As such, it is unsupported; we do not make any guarantees that it will work properly, and you use it at your own risk.</h4>
+ * <ul>
+ *     <li>This annotation will only work properly for biallelic heterozygous calls.</li>
+ *     <li>This annotation cannot currently be calculated for indels.</li>
+ *     <li>tThe reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
+ *     <li>As stated above, this annotation is experimental and should be interpreted with caution as we cannot guarantee that it is appropriate. Basically, use it at your own risk.</li>
+ * </ul>
+ * <h3>Related annotations</h3>
+ * <ul>
+ *     <li><b><a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_AlleleBalance.php">AlleleBallance</a></b> is a generalization of this annotation over all samples.</li>
+ *     <li><b><a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_DepthPerAlleleBySample.php">DepthPerAlleleBySample</a></b> calculates depth of coverage for each allele per sample.</li>
+ * </ul>
  */
 public class AlleleBalanceBySample extends GenotypeAnnotation implements ExperimentalAnnotation {
 

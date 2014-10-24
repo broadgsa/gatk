@@ -60,9 +60,9 @@ public class SampleUtils {
      * @param header  the sam file header
      * @return list of strings representing the sample names
      */
-    public static Set<String> getSAMFileSamples(SAMFileHeader header) {
+    public static Set<String> getSAMFileSamples(final SAMFileHeader header) {
         // get all of the unique sample names
-        Set<String> samples = new TreeSet<String>();
+        final Set<String> samples = new TreeSet<String>();
         List<SAMReadGroupRecord> readGroups = header.getReadGroups();
         for ( SAMReadGroupRecord readGroup : readGroups )
             samples.add(readGroup.getSample());

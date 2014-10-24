@@ -30,10 +30,10 @@ import com.google.java.contract.Requires;
 import htsjdk.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -131,26 +131,24 @@ public class ReadUtils {
     public enum ReadAndIntervalOverlap {NO_OVERLAP_CONTIG, NO_OVERLAP_LEFT, NO_OVERLAP_RIGHT, NO_OVERLAP_HARDCLIPPED_LEFT, NO_OVERLAP_HARDCLIPPED_RIGHT, OVERLAP_LEFT, OVERLAP_RIGHT, OVERLAP_LEFT_AND_RIGHT, OVERLAP_CONTAINED}
 
     /**
-     * Creates a SAMFileWriter with the given compression level if you request a bam file. Creates a regular
-     * SAMFileWriter without compression otherwise.
-     *
-     * @param header
-     * @param presorted
-     * @param file
-     * @param compression
-     * @return a SAMFileWriter with the compression level if it is a bam.
+     * Creates a SAMFileWriter using all of the features currently set in the engine (command line arguments, ReadTransformers, etc)
+     * @param file the filename to write to
+     * @param engine the engine
+     * @return a SAMFileWriter with the correct options set
      */
-    public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
-        validateCompressionLevel(compression);
-        if (file.endsWith(".bam"))
-            return new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(header, presorted, new File(file), compression);
-        return new SAMFileWriterFactory().setCreateIndex(true).makeSAMOrBAMWriter(header, presorted, new File(file));
+    public static SAMFileWriter createSAMFileWriter(final String file, final GenomeAnalysisEngine engine) {
+        final SAMFileWriterStub output = new SAMFileWriterStub(engine, new File(file));
+        output.processArguments(engine.getArguments());
+        return output;
     }
 
-    public static int validateCompressionLevel(final int requestedCompressionLevel) {
-        if ( requestedCompressionLevel < 0 || requestedCompressionLevel > 9 )
-            throw new UserException.BadArgumentValue("compress", "Compression level must be 0-9 but got " + requestedCompressionLevel);
-        return requestedCompressionLevel;
+    /**
+     *  As {@link #createSAMFileWriter(String, org.broadinstitute.gatk.engine.GenomeAnalysisEngine)}, but also sets the header
+     */
+    public static SAMFileWriter createSAMFileWriter(final String file, final GenomeAnalysisEngine engine, final SAMFileHeader header) {
+        final SAMFileWriterStub output = (SAMFileWriterStub) createSAMFileWriter(file, engine);
+        output.writeHeader(header);
+        return output;
     }
 
     /**
