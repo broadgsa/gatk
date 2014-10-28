@@ -244,9 +244,10 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<RMDTrack,LocationAwareS
             }
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotReadInputFile(fileDescriptor.getName(), "it could not be found");
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             throw new ReviewedGATKException("Unable to create iterator for rod named " + fileDescriptor.getName(),e);
         }
+
     }
 
     @Override
