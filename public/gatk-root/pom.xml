@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>1.123.1654</htsjdk.version>
-        <picard.version>1.123.1612</picard.version>
+        <htsjdk.version>1.123.1658</htsjdk.version>
+        <picard.version>1.123.1620</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
