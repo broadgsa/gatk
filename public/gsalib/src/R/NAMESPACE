@@ -1,1 +1,1 @@
-exportPattern("^[^\\.]")
+export(gsa.read.gatkreport)
