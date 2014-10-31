@@ -25,19 +25,19 @@
 
 package org.broadinstitute.gatk.tools.walkers.variantutils;
 
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -134,7 +134,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
 
         final Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
         for ( final VariantContext vc : vcs ) {
-            final double random = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
+            final double random = Utils.getRandomGenerator().nextDouble();
             if(splitToMany){
                 final int index = (int)(numOfFiles * random);
                 writers[index].add(vc);

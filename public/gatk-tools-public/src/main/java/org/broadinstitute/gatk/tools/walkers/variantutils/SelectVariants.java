@@ -27,19 +27,18 @@ package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.walkers.TreeReducible;
-import org.broadinstitute.gatk.tools.walkers.annotator.ChromosomeCountConstants;
-import org.broadinstitute.gatk.utils.MendelianViolation;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.variant.ChromosomeCountConstants;
+import org.broadinstitute.gatk.engine.samples.MendelianViolation;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -528,7 +527,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 }
                 if ( !failedJexlMatch &&
                         !justRead &&
-                        ( !SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom ) ) {
+                        ( !SELECT_RANDOM_FRACTION || Utils.getRandomGenerator().nextDouble() < fractionRandom ) ) {
                     vcfWriter.add(sub);
                 }
             }

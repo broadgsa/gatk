@@ -49,7 +49,15 @@
 
         <dependency>
             <groupId>org.broadinstitute.gatk</groupId>
-            <artifactId>gatk-tools-public</artifactId>
+            <artifactId>gatk-utils</artifactId>
+            <version>${gatk.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.broadinstitute.gatk</groupId>
+            <artifactId>gatk-engine</artifactId>
             <version>${gatk.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -82,7 +90,7 @@
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>org.broadinstitute.gatk</groupId>
-                                    <artifactId>gatk-engine</artifactId>
+                                    <artifactId>gatk-utils</artifactId>
                                     <version>${gatk.version}</version>
                                     <classifier>example-resources</classifier>
                                     <type>tar.bz2</type>
@@ -112,8 +120,7 @@
                             <docletPath>${project.build.outputDirectory}</docletPath>
                             <docletArtifact>
                                 <groupId>org.broadinstitute.gatk</groupId>
-                                <!-- TODO: THIS IS SUPPOSED TO BE GATK-UTILS! -->
-                                <artifactId>gatk-tools-public</artifactId>
+                                <artifactId>gatk-utils</artifactId>
                                 <version>${gatk.version}</version>
                             </docletArtifact>
                             <maxmemory>2g</maxmemory>

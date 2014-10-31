@@ -130,6 +130,12 @@
                 <artifactId>reflections</artifactId>
                 <version>0.9.9-RC1</version>
             </dependency>
+            <!-- slf4j bindings must only be at the package level: http://www.slf4j.org/manual.html -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.6.1</version>
+            </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
@@ -404,6 +410,7 @@
                             <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
+                            <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -458,8 +465,7 @@
                             <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
-                            <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <pipeline.run>${gatk.queuetests.run}</pipeline.run>
+                            <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>

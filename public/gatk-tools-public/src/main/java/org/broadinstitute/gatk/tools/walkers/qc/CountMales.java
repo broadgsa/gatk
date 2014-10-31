@@ -27,8 +27,8 @@ package org.broadinstitute.gatk.tools.walkers.qc;
 
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.samples.Gender;
 import org.broadinstitute.gatk.engine.samples.Sample;
 import org.broadinstitute.gatk.engine.walkers.DataSource;

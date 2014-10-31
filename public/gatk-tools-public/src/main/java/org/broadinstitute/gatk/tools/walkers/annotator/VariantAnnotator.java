@@ -30,17 +30,17 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContextUtils;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContextUtils;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotationHelpUtils;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.*;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.help.HelpUtils;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.BaseUtils;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -206,7 +206,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public void initialize() {
 
         if ( LIST ) {
-            HelpUtils.listAnnotations();
+            AnnotationHelpUtils.listAnnotations();
             System.exit(0);
         }
 

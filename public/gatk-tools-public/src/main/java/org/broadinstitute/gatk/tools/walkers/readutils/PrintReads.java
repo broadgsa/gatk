@@ -28,18 +28,19 @@ package org.broadinstitute.gatk.tools.walkers.readutils;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMReadGroupRecord;
+import org.broadinstitute.gatk.engine.io.NWaySAMFileWriter;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Hidden;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.io.GATKSAMFileWriter;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.sam.GATKSAMFileWriter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformersMode;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.baq.BAQ;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -181,7 +182,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
         if (!sampleNames.isEmpty())
             samplesToChoose.addAll(sampleNames);
 
-        random = GenomeAnalysisEngine.getRandomGenerator();
+        random = Utils.getRandomGenerator();
 
         if (toolkit != null) {
             final SAMFileHeader outputHeader = toolkit.getSAMFileHeader().clone();
@@ -193,7 +194,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
             //Add the program record (if appropriate) and set up the writer
             final boolean preSorted = true;
             if (toolkit.getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
-                Utils.setupWriter(out, toolkit, outputHeader, preSorted, this, PROGRAM_RECORD_NAME);
+                NWaySAMFileWriter.setupWriter(out, toolkit, outputHeader, preSorted, this, PROGRAM_RECORD_NAME);
             } else {
                 out.writeHeader(outputHeader);
                 out.setPresorted(preSorted);

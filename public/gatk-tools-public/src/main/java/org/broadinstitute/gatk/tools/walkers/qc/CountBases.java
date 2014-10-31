@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.tools.walkers.qc;
 
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.DataSource;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.engine.walkers.Requires;

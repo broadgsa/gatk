@@ -40,7 +40,7 @@ import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import htsjdk.variant.vcf.VCFCodec;

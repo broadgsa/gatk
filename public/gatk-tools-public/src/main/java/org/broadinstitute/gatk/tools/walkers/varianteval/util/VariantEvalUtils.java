@@ -27,8 +27,8 @@ package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.VariantEval;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.StandardEval;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;

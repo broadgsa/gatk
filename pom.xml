@@ -32,6 +32,7 @@
         <resource.bundle.skip>false</resource.bundle.skip>
         <!-- TODO: Need a better a way to say "don't include hidden" by default -->
         <gatkdocs.include.hidden>-build-timestamp "${maven.build.timestamp}"</gatkdocs.include.hidden>
+        <gatk.shell.directory>${gatk.basedir}/public/src/main/scripts/shell</gatk.shell.directory>
 
         <!--
         Phases of the build that may be disabled to speed up compilation.
@@ -173,7 +174,7 @@
                                 <outputDirectory>${project.reporting.outputDirectory}/apidocs</outputDirectory>
                                 <resources>
                                     <resource>
-                                        <directory>${gatk.basedir}/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
+                                        <directory>${gatk.basedir}/public/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
                                     </resource>
                                 </resources>
                             </configuration>
@@ -198,8 +199,7 @@
                                 <docletPath>${project.build.outputDirectory}</docletPath>
                                 <docletArtifact>
                                     <groupId>${project.groupId}</groupId>
-                                    <!-- TODO: THIS IS SUPPOSED TO BE GATK-UTILS! -->
-                                    <artifactId>gatk-tools-public</artifactId>
+                                    <artifactId>gatk-utils</artifactId>
                                     <version>${project.version}</version>
                                 </docletArtifact>
                                 <maxmemory>2g</maxmemory>
@@ -626,6 +626,21 @@
                 <executions>
                     <execution>
                         <!--
+                        TODO: Separate maven modules into separate git repos?
+                        Until then, keep devs from accidentally mixing utils/engine/tools.
+                        -->
+                        <id>check-utils-engine-tools</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <executable>${gatk.shell.directory}/check_utils_engine_tools.sh</executable>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <!--
                         TODO: Remove after 3.3+ release.
                         Until then, will clean out symbolic links from users who download public/protected.
                         Perhaps leave the script even longer.
@@ -637,7 +652,7 @@
                         <phase>process-test-resources</phase>
                         <inherited>false</inherited>
                         <configuration>
-                            <executable>${gatk.basedir}/public/src/main/scripts/shell/delete_maven_links.sh</executable>
+                            <executable>${gatk.shell.directory}/delete_maven_links.sh</executable>
                         </configuration>
                     </execution>
                 </executions>
@@ -689,7 +704,7 @@
                         <!-- Only generate the GATK Docs across the parent aggregation, not the children too. -->
                         <inherited>false</inherited>
                         <configuration>
-                            <doclet>org.broadinstitute.gatk.utils.help.GATKDoclet</doclet>
+                            <doclet>org.broadinstitute.gatk.tools.walkers.help.WalkerDoclet</doclet>
                             <docletArtifact>
                                 <groupId>${project.groupId}</groupId>
                                 <artifactId>gatk-package-distribution</artifactId>

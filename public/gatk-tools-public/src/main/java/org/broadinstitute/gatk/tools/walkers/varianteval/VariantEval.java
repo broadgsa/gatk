@@ -36,9 +36,9 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
@@ -47,9 +47,9 @@ import org.broadinstitute.gatk.tools.walkers.varianteval.util.EvaluationContext;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -380,7 +380,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     public final Map<String, IntervalTree<GenomeLoc>> createIntervalTreeByContig(final IntervalBinding<Feature> intervals) {
         final Map<String, IntervalTree<GenomeLoc>> byContig = new HashMap<String, IntervalTree<GenomeLoc>>();
 
-        final List<GenomeLoc> locs = intervals.getIntervals(getToolkit());
+        final List<GenomeLoc> locs = intervals.getIntervals(getToolkit().getGenomeLocParser());
 
         // set up the map from contig -> interval tree
         for ( final String contig : getContigNames() )

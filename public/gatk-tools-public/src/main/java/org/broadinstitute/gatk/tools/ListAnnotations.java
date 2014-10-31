@@ -27,9 +27,9 @@ package org.broadinstitute.gatk.tools;
 
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotationHelpUtils;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.help.HelpUtils;
 
 /**
  * Utility program to print a list of available annotations
@@ -66,7 +66,7 @@ public class ListAnnotations extends CommandLineProgram {
     @Override
     protected int execute() throws Exception {
 
-        HelpUtils.listAnnotations();
+        AnnotationHelpUtils.listAnnotations();
         return 0;
     }
 
