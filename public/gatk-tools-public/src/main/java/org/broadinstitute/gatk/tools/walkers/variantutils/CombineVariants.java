@@ -211,7 +211,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
         final boolean sampleNamesAreUnique = SampleUtils.verifyUniqueSamplesNames(vcfRods);
 
-        if (genotypeMergeOption == null) {
+        if (genotypeMergeOption == null && !ASSUME_IDENTICAL_SAMPLES) {
             if (!sampleNamesAreUnique)
                 throw new UserException("Duplicate sample names were discovered but no genotypemergeoption was supplied. " +
                     "To combine samples without merging specify --genotypemergeoption UNIQUIFY. Merging duplicate samples " +
