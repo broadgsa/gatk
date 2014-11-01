@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.utils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -42,36 +43,46 @@ import java.util.List;
 public enum NGSPlatform {
     // note the order of elements here determines the order of matching operations, and therefore the
     // efficiency of getting a NGSPlatform from a string.
-    ILLUMINA("ILLUMINA", "SLX", "SOLEXA"),
-    SOLID("SOLID"),
-    LS454("454"),
-    COMPLETE_GENOMICS("COMPLETE"),
-    PACBIO("PACBIO"),
-    ION_TORRENT("IONTORRENT"),
-    CAPILLARY("CAPILLARY"),
-    HELICOS("HELICOS"),
-    UNKNOWN("UNKNOWN");
+    ILLUMINA(SequencerFlowClass.DISCRETE, "ILLUMINA", "SLX", "SOLEXA"),
+    SOLID(SequencerFlowClass.DISCRETE, "SOLID"),
+    LS454(SequencerFlowClass.FLOW, "454", "LS454"),
+    COMPLETE_GENOMICS(SequencerFlowClass.DISCRETE, "COMPLETE"),
+    PACBIO(SequencerFlowClass.DISCRETE, "PACBIO"),
+    ION_TORRENT(SequencerFlowClass.FLOW, "IONTORRENT"),
+    CAPILLARY(SequencerFlowClass.OTHER, "CAPILLARY"),
+    HELICOS(SequencerFlowClass.OTHER, "HELICOS"),
+    UNKNOWN(SequencerFlowClass.OTHER, "UNKNOWN");
 
     /**
      * Array of the prefix names in a BAM file for each of the platforms.
      */
     protected final String[] BAM_PL_NAMES;
+    protected final SequencerFlowClass sequencerType;
 
-    NGSPlatform(final String... BAM_PL_NAMES) {
+    NGSPlatform(final SequencerFlowClass type, final String... BAM_PL_NAMES) {
         if ( BAM_PL_NAMES.length == 0 ) throw new IllegalStateException("Platforms must have at least one name");
 
         for ( int i = 0; i < BAM_PL_NAMES.length; i++ )
             BAM_PL_NAMES[i] = BAM_PL_NAMES[i].toUpperCase();
 
         this.BAM_PL_NAMES = BAM_PL_NAMES;
+        this.sequencerType = type;
     }
 
     /**
      * Returns a representative PL string for this platform
-     * @return
+     * @return a representative PL string
      */
     public final String getDefaultPlatform() {
         return BAM_PL_NAMES[0];
+    }
+
+    /**
+     * The broad "type" of sequencer this platform represents (discrete or flow)
+     * @return a SequencerFlowClass
+     */
+    public final SequencerFlowClass getSequencerType() {
+        return sequencerType;
     }
 
     /**
@@ -126,10 +137,9 @@ public enum NGSPlatform {
      * @return the list of platform names
      */
     public static String knownPlatformsString() {
-        final List<String> names = new LinkedList<String>();
+        final List<String> names = new LinkedList<>();
         for ( final NGSPlatform pl : values() ) {
-            for ( final String name : pl.BAM_PL_NAMES )
-                names.add(name);
+            names.addAll(Arrays.asList(pl.BAM_PL_NAMES));
         }
         return Utils.join(",", names);
     }
