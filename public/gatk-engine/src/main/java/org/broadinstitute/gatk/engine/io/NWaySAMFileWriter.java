@@ -28,11 +28,11 @@ package org.broadinstitute.gatk.engine.io;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
+import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.GATKSAMFileWriter;
-import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
 import java.io.File;
 import java.util.*;
@@ -141,10 +141,8 @@ public class NWaySAMFileWriter implements SAMFileWriter {
      */
     public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
         final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
-        final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
         try {
-            final String version = headerInfo.getString("org.broadinstitute.gatk.engine.version");
-            programRecord.setProgramVersion(version);
+            programRecord.setProgramVersion(CommandLineProgram.getVersionNumber());
         } catch (MissingResourceException e) {
             // couldn't care less if the resource is missing...
         }

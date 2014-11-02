@@ -119,9 +119,9 @@
                             <!-- Required as doclet uses reflection to access classes for documentation, instead of source java-->
                             <docletPath>${project.build.outputDirectory}</docletPath>
                             <docletArtifact>
-                                <groupId>org.broadinstitute.gatk</groupId>
-                                <artifactId>gatk-utils</artifactId>
-                                <version>${gatk.version}</version>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>${project.artifactId}</artifactId>
+                                <version>${project.version}</version>
                             </docletArtifact>
                             <maxmemory>2g</maxmemory>
                             <useStandardDocletOptions>false</useStandardDocletOptions>
@@ -145,6 +145,7 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <!-- Explicitly include classes loaded via reflection from artifacts below -->
                             <filters>
                                 <filter>
@@ -258,6 +259,10 @@
             </plugin>
         </plugins>
     </build>
+
+    <reporting>
+        <excludeDefaults>true</excludeDefaults>
+    </reporting>
 
     <!-- These profiles are used by the GATK build in a multi-module setting. You do NOT need these profiles. -->
     <profiles>

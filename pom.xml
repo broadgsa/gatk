@@ -165,7 +165,6 @@
                         </execution>
                     </executions>
                 </plugin>
-                <!-- TODO: Change the ResourceBundleExtractorDoclet to not require log4j.properties file -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
@@ -183,25 +182,6 @@
                                 <goal>testResources</goal>
                             </goals>
                             <phase>${gatk.process-test-resources.phase}</phase>
-                        </execution>
-                        <execution>
-                            <id>copy-resource-bundle-log4j</id>
-                            <goals>
-                                <goal>copy-resources</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <!--
-                                Just before running the resource bundle generation, copy a simple log4j
-                                config file to the apidocs execution directory, so that logging prints out.
-                                -->
-                                <outputDirectory>${project.reporting.outputDirectory}/apidocs</outputDirectory>
-                                <resources>
-                                    <resource>
-                                        <directory>${gatk.basedir}/public/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
-                                    </resource>
-                                </resources>
-                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
@@ -223,7 +203,7 @@
                                 <docletPath>${project.build.outputDirectory}</docletPath>
                                 <docletArtifact>
                                     <groupId>${project.groupId}</groupId>
-                                    <artifactId>gatk-utils</artifactId>
+                                    <artifactId>${project.artifactId}</artifactId>
                                     <version>${project.version}</version>
                                 </docletArtifact>
                                 <maxmemory>2g</maxmemory>
@@ -402,6 +382,7 @@
                             <phase>none</phase>
                             <configuration>
                                 <minimizeJar>true</minimizeJar>
+                                <createDependencyReducedPom>false</createDependencyReducedPom>
                                 <artifactSet>
                                     <excludes>
                                         <exclude>org.broadinstitute.gatk:gsalib:tar.gz:*</exclude>

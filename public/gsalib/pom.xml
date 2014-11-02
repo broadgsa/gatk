@@ -32,6 +32,14 @@
                         </goals>
                         <phase>${gatk.generate-resources.phase}</phase>
                         <configuration>
+                            <!--
+                            Looking at the assembly plugin 2.4(.1) source code, <updateOnly>true</updateOnly>
+                            is equivalent to plexus_archiver.setForced(false). Unlike the docs say, this
+                            does work even if the file does not exist.
+                            Also, why..? "archiver.setUseJvmChmod( configSource.isUpdateOnly() );"
+                            Appears to only affect the plexus dir/DirectoryArchiver.
+                            -->
+                            <updateOnly>true</updateOnly>
                             <appendAssemblyId>false</appendAssemblyId>
                             <descriptors>
                                 <descriptor>src/assembly/gsalib.xml</descriptor>

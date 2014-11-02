@@ -26,7 +26,14 @@
 package org.broadinstitute.gatk.utils.io;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 
 /**
  * Stores a resource by path and a relative class.
@@ -34,6 +41,7 @@ import java.io.InputStream;
 public class Resource {
     private final String path;
     private final Class<?> relativeClass;
+    private final ClassLoader relativeClassLoader;
 
     /**
      * Create a resource with a path and a relative class.
@@ -45,10 +53,18 @@ public class Resource {
     public Resource(String path, Class<?> relativeClass) {
         this.path = path;
         this.relativeClass = relativeClass;
+        ClassLoader classLoader = null;
+        if (relativeClass != null)
+            classLoader = relativeClass.getClassLoader();
+        this.relativeClassLoader = classLoader != null ? classLoader : ClassLoader.getSystemClassLoader();
     }
 
     public Class<?> getRelativeClass() {
         return relativeClass;
+    }
+
+    public ClassLoader getRelativeClassLoader() {
+        return relativeClassLoader;
     }
 
     public String getPath() {
@@ -87,5 +103,40 @@ public class Resource {
         }
 
         return inputStream;
+    }
+
+    /**
+     * Get the contents of this resource as an InputStream
+     * @throws IllegalArgumentException if resource cannot be read
+     * @return an input stream that will read the contents of these resources
+     */
+    public List<InputStream> getAllResourcesContentsAsStreams() {
+        final List<InputStream> resourceStreams = new ArrayList<InputStream>();
+        try {
+            final Enumeration<URL> resources = getRelativeClassLoader().getResources(path);
+            while (resources.hasMoreElements()) {
+                try {
+                    resourceStreams.add(resources.nextElement().openStream());
+                } catch (IOException ignored) {
+                    /* skip exceptions, just like ClassLoader.getSystemResourceAsStream() */
+                }
+            }
+        } catch (IOException ignoredAlso) {
+            /* skip exceptions, just like ClassLoader.getSystemResourceAsStream() */
+        }
+        if (resourceStreams.isEmpty()) {
+            throw new IllegalArgumentException("Resource not found: " + path);
+        }
+        return resourceStreams;
+    }
+
+    /**
+     * Get the contents of this resource as an InputStream
+     * @throws IllegalArgumentException if resource cannot be read
+     * @return an input stream that will read the contents of these resources
+     */
+    public InputStream getAllResourcesContentsAsStream() {
+        final List<InputStream> resourceStreams = getAllResourcesContentsAsStreams();
+        return new SequenceInputStream(Collections.enumeration(resourceStreams));
     }
 }

@@ -39,6 +39,11 @@ import java.util.*;
  * @version 0.1
  */
 public class ResourceBundleExtractorDoclet {
+    // NOTE: Using log4j during javadoc generation requires
+    // a proper Log4J initialization (see CommandLineProgram),
+    // or a log4.properties file. This doclet has neither.
+    //private static Logger logger = Logger.getLogger(ResourceBundleExtractorDoclet.class);
+
     /**
      * Taglet for the particular version number.
      */
@@ -46,16 +51,12 @@ public class ResourceBundleExtractorDoclet {
     public static final String SUMMARY_TAGLET_NAME = "help.summary";
     public static final String DESCRIPTION_TAGLET_NAME = "help.description";
 
-    /**
-     * Maintains a collection of resources in memory as they're accumulated.
-     */
-    protected final Properties resourceText = new Properties();
+    private final RootDoc rootDoc;
+    private final Set<ClassDoc> classDocs;
+    private final Set<PackageDoc> packageDocs;
+    private final Set<Doc> allDocs;
 
-    /**
-     * Maintains a collection of classes that should really be documented.
-     */
-    protected final Set<String> undocumentedClasses = new HashSet<String>();
-
+    protected File outFile = null;
     protected String buildTimestamp = null, absoluteVersion = null;
 
     /**
@@ -65,68 +66,14 @@ public class ResourceBundleExtractorDoclet {
      * @throws IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
-        ResourceBundleExtractorDoclet doclet = new ResourceBundleExtractorDoclet();
-        PrintStream out = doclet.loadData(rootDoc, true);
-        doclet.processDocs(rootDoc, out);
+        ResourceBundleExtractorDoclet doclet = new ResourceBundleExtractorDoclet(rootDoc);
+        doclet.checkUndocumentedClasses();
+        if (doclet.isUpToDate()) {
+            rootDoc.printNotice("Docs up to date. Not regenerating.");
+            return true;
+        }
+        doclet.processDocs();
         return true;
-    }
-
-    protected PrintStream loadData(RootDoc rootDoc, boolean overwriteResourcesFile) {
-        PrintStream out = System.out;
-
-        for(String[] options: rootDoc.options()) {
-            if(options[0].equals("-out")) {
-                try {
-                    loadExistingResourceFile(options[1], rootDoc);
-                    if ( overwriteResourcesFile )
-                        out = new PrintStream(options[1]);
-                } catch ( FileNotFoundException e ) {
-                    throw new RuntimeException(e);
-                } catch ( IOException e ) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if(options[0].equals("-build-timestamp"))
-                buildTimestamp = options[1];
-            if (options[0].equals("-absolute-version"))
-                absoluteVersion = options[1];
-        }
-
-        resourceText.setProperty("build.timestamp",buildTimestamp);
-        return out;
-    }
-
-    protected void processDocs(RootDoc rootDoc, PrintStream out) {
-        // Cache packages as we see them, since there's no direct way to iterate over packages.
-        Set<PackageDoc> packages = new HashSet<PackageDoc>();
-
-        for(ClassDoc currentClass: rootDoc.classes()) {
-            PackageDoc containingPackage = currentClass.containingPackage();
-            packages.add(containingPackage);
-
-            if(isRequiredJavadocMissing(currentClass) && shouldDocument(currentClass))
-                undocumentedClasses.add(currentClass.name());
-
-            renderHelpText(DocletUtils.getClassName(currentClass),currentClass);
-        }
-
-        for(PackageDoc currentPackage: packages)
-            renderHelpText(currentPackage.name(),currentPackage);
-
-        try {
-            resourceText.store(out,"Strings displayed by the GATK help system");
-        } catch ( FileNotFoundException e ) {
-            throw new RuntimeException(e);
-        } catch ( IOException e ) {
-            throw new RuntimeException(e);
-        }
-
-        // ASCII codes for making text blink
-        final String blink = "\u001B\u005B\u0035\u006D";
-        final String reset = "\u001B\u005B\u006D";
-
-        if(undocumentedClasses.size() > 0)
-            Utils.warnUser(String.format("The following are currently undocumented: %s%s%s", blink, Utils.join(" ", undocumentedClasses), reset));
     }
 
     /**
@@ -134,6 +81,7 @@ public class ResourceBundleExtractorDoclet {
      * @param option Option to validate.
      * @return Number of potential parameters; 0 if not supported.
      */
+    @SuppressWarnings("unused") // Used by javadoc system
     public static int optionLength(String option) {
         if(option.equals("-build-timestamp") || option.equals("-out") || option.equals("-absolute-version") ) {
             return 2;
@@ -142,23 +90,109 @@ public class ResourceBundleExtractorDoclet {
     }
 
     /**
+     * Creates a new resource extractor doclet.
+     * @param  rootDoc           the documentation root.
+     */
+    private ResourceBundleExtractorDoclet(RootDoc rootDoc) {
+        this.rootDoc = rootDoc;
+        this.classDocs = new TreeSet<>();
+        this.packageDocs = new TreeSet<>();
+        this.allDocs = new TreeSet<>();
+        for (final ClassDoc classDoc: rootDoc.classes()) {
+            this.classDocs.add(classDoc);
+            // Cache packages as we see them, since there's no direct way to iterate over packages.
+            this.packageDocs.add(classDoc.containingPackage());
+        }
+        this.allDocs.addAll(classDocs);
+        this.allDocs.addAll(packageDocs);
+        for(final String[] options: rootDoc.options()) {
+            if(options[0].equals("-out"))
+                this.outFile = new File(options[1]);
+            if(options[0].equals("-build-timestamp"))
+                this.buildTimestamp = options[1];
+            if (options[0].equals("-absolute-version"))
+                this.absoluteVersion = options[1];
+        }
+    }
+
+    private void checkUndocumentedClasses() {
+        final Set<String> undocumentedClasses = new TreeSet<>();
+
+        for (final ClassDoc classDoc: classDocs) {
+            if(isRequiredJavadocMissing(classDoc) && shouldDocument(classDoc))
+                undocumentedClasses.add(classDoc.name());
+        }
+
+        if(undocumentedClasses.size() > 0) {
+            final String message = String.format("The following are currently undocumented: %s%s%s",
+                    Utils.TEXT_BLINK, Utils.join(" ", undocumentedClasses), Utils.TEXT_RESET);
+            for (final String line: Utils.warnUserLines(message)) {
+                rootDoc.printWarning(line);
+            }
+        }
+    }
+
+    private boolean isUpToDate() {
+        if (outFile == null)
+            return false;
+
+        final long outFileMillis = outFile.lastModified();
+
+        if (outFileMillis == 0L) {
+            return false;
+        }
+
+        for (final Doc doc: allDocs) {
+            final File docFile = doc.position() == null ? null : doc.position().file();
+            if (docFile != null && docFile.lastModified() > outFileMillis) {
+                rootDoc.printNotice("At least one item is out of date: " + docFile.getAbsolutePath());
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected void processDocs() throws IOException {
+        final PrintStream out;
+        if (outFile != null) {
+            out = new PrintStream(outFile);
+        } else {
+            out = System.out;
+        }
+        try {
+            // Maintains a collection of resources in memory as they're accumulated.
+            final Properties resourceText = new Properties();
+
+            loadExistingResourceFile(resourceText);
+
+            resourceText.setProperty("build.timestamp", buildTimestamp);
+
+            for (final ClassDoc currentClass : classDocs)
+                renderHelpText(resourceText, DocletUtils.getClassName(currentClass, false), currentClass);
+            for (final PackageDoc currentPackage : packageDocs)
+                renderHelpText(resourceText, currentPackage.name(), currentPackage);
+
+            resourceText.store(out, "Strings displayed by the GATK help system");
+        } finally {
+            if (outFile != null) {
+                out.close();
+            }
+        }
+    }
+
+    /**
      * Attempts to load the contents of the resource file named by resourceFileName into
      * our in-memory resource collection resourceText. If the resource file doesn't exist,
      * prints a notice to the user but does not throw an exception back to the calling method,
      * since we'll just create a new resource file from scratch in that case.
-     * @param  resourceFileName  name of the resource file to attempt to load.
-     * @param  rootDoc           the documentation root.
      * @throws IOException       if there is an I/O-related error other than FileNotFoundException
      *                           while attempting to read the resource file.
      */
-    private void loadExistingResourceFile( String resourceFileName, RootDoc rootDoc ) throws IOException {
+    private void loadExistingResourceFile(final Properties resourceText) throws IOException {
         try {
-            BufferedReader resourceFile = new BufferedReader(new FileReader(resourceFileName));
-            try {
+            try (final BufferedReader resourceFile = new BufferedReader(new FileReader(outFile))) {
                 resourceText.load(resourceFile);
-            }
-            finally {
-                resourceFile.close();
             }
         }
         catch ( FileNotFoundException e ) {
@@ -172,17 +206,23 @@ public class ResourceBundleExtractorDoclet {
      * @return True if the class should be documented.  False otherwise.
      */
     protected static boolean shouldDocument(ClassDoc classDoc) {
+        if (classDoc.isAbstract()) {
+            return false;
+        }
         // TODO: Code duplication with GATKDoclet, including DocletUtils.getClassForDoc().
         // TODO: Refactor common methods into DocletUtils, and possibly just use DocumentGATKFeatureObjects.
-        final Class<? extends Object> docClass;
+        final Class<?> docClass;
         try {
-            docClass = (Class<? extends Object>) DocletUtils.getClassForDoc(classDoc);
+            docClass = (Class<?>) DocletUtils.getClassForDoc(classDoc);
         } catch (ClassNotFoundException e) {
             return false;
         } catch (NoClassDefFoundError e) {
             return false;
         } catch (UnsatisfiedLinkError e) {
             return false; // naughty BWA bindings
+        }
+        if (Throwable.class.isAssignableFrom(docClass)) {
+            return false; // UserExceptions
         }
         final DocumentedGATKFeature f = docClass.getAnnotation(DocumentedGATKFeature.class);
         return f != null && f.enable();
@@ -199,10 +239,11 @@ public class ResourceBundleExtractorDoclet {
 
     /**
      * Renders all the help text required for a given name.
+     * @param resourceText resource text properties
      * @param elementName element name to use as the key
      * @param element Doc element to process.
      */
-    private void renderHelpText(String elementName, Doc element) {
+    private void renderHelpText(final Properties resourceText, final String elementName, final Doc element) {
         StringBuilder summaryBuilder = new StringBuilder();
         for(Tag tag: element.firstSentenceTags())
              summaryBuilder.append(tag.text());

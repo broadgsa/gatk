@@ -49,7 +49,7 @@ public class DocletUtils {
     }
 
     protected static Class getClassForDoc(ProgramElementDoc doc) throws ClassNotFoundException {
-        return Class.forName(getClassName(doc));
+        return Class.forName(getClassName(doc, true));
     }
 
     protected static Field getFieldForFieldDoc(FieldDoc fieldDoc) {
@@ -67,10 +67,14 @@ public class DocletUtils {
      * @param doc the Javadoc model for the given class.
      * @return The (string) class name of the given class.
      */
-    protected static String getClassName(ProgramElementDoc doc) {
+    protected static String getClassName(ProgramElementDoc doc, boolean binaryName) {
         PackageDoc containingPackage = doc.containingPackage();
+        String className = doc.name();
+        if (binaryName) {
+            className = className.replaceAll("\\.", "\\$");
+        }
         return containingPackage.name().length() > 0 ?
-                String.format("%s.%s", containingPackage.name(), doc.name()) :
-                String.format("%s", doc.name());
+                String.format("%s.%s", containingPackage.name(), className) :
+                String.format("%s", className);
     }
 }
