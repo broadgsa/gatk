@@ -42,19 +42,19 @@ import java.io.File;
  * Really unit tests, but these tests will only run on systems with LSF set up.
  */
 public class LibBatQueueTest extends BaseTest {
-    @BeforeClass
+    @BeforeClass(enabled=false)
     public void initLibBat() {
         Assert.assertFalse(LibBat.lsb_init("LibBatQueueTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
     }
 
-    @Test
+    @Test(enabled=false)
     public void testClusterName() {
         String clusterName = LibLsf.ls_getclustername();
         System.out.println("Cluster name: " + clusterName);
         Assert.assertNotNull(clusterName);
     }
 
-    @Test
+    @Test(enabled=false)
     public void testReadConfEnv() {
         LibLsf.config_param[] configParams = (LibLsf.config_param[]) new LibLsf.config_param().toArray(4);
 
@@ -77,7 +77,7 @@ public class LibBatQueueTest extends BaseTest {
         Assert.assertNull(configParams[3].paramValue);
     }
 
-    @Test
+    @Test(enabled=false)
     public void testReadQueueLimits() {
         String queue = "hour";
         StringArray queues = new StringArray(new String[] {queue});
@@ -92,7 +92,7 @@ public class LibBatQueueTest extends BaseTest {
         Assert.assertTrue(runLimit > 0, "LSF run limit is not greater than zero: " + runLimit);
     }
 
-    @Test
+    @Test(enabled=false)
     public void testSubmitEcho() throws Exception {
         if ( ! queueTestRunModeIsSet ) {
             throw new SkipException("Skipping testSubmitEcho because we are in queue test dry run mode");
