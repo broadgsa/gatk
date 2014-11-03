@@ -53,12 +53,12 @@ object QueueTest extends BaseTest with Logging {
   /**
    * All the job runners configured to run QueueTests at The Broad.
    */
-  final val allJobRunners = Seq("Lsf706", "GridEngine", "Shell")
+  final val allJobRunners = Seq("GridEngine", "Shell")
 
   /**
    * The default job runners to run.
    */
-  final val defaultJobRunners = Seq("Lsf706", "GridEngine")
+  final val defaultJobRunners = Seq("GridEngine")
 
   /**
    * Returns the top level output path to this test.
