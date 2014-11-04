@@ -1,13 +1,15 @@
 Package: gsalib
 Type: Package
-Title: Utility functions
-Version: 1.0
-Date: 2010-10-02
-Imports: gplots, ggplot2, png
+Title: Utility functions for GATK
+Version: 2.0
+Date: 2013-07-02
 Author: Kiran Garimella
-Maintainer: Mauricio Carneiro <carneiro@broadinstitute.org>
-BugReports: http://gatkforums.broadinstitute.org
-Description: Utility functions for GATK NGS analyses
+Maintainer: Geraldine Van der Auwera <vdauwera@broadinstitute.org>
+Description: Utility functions for GATK analyses of genome sequence
+        data
 License: MIT + file LICENSE
 LazyLoad: yes
+Packaged: 2013-07-02 07:56:13 UTC; gege
 NeedsCompilation: no
+Repository: CRAN
+Date/Publication: 2013-07-03 17:30:49
