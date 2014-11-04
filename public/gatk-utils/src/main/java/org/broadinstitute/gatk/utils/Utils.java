@@ -53,6 +53,14 @@ public class Utils {
     public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
     public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
 
+    private static final int TEXT_WARNING_WIDTH = 68;
+    private static final String TEXT_WARNING_PREFIX = "* ";
+    private static final String TEXT_WARNING_BORDER = dupString('*', TEXT_WARNING_PREFIX.length() + TEXT_WARNING_WIDTH);
+    private static final char ESCAPE_CHAR = '\u001B';
+    // ASCII codes for making text blink
+    public static final String TEXT_BLINK = ESCAPE_CHAR + "[5m";
+    public static final String TEXT_RESET = ESCAPE_CHAR + "[m";
+
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(Utils.class);
 
@@ -106,28 +114,66 @@ public class Utils {
     }
     
     public static void warnUser(final Logger logger, final String msg) {
-        logger.warn(String.format("********************************************************************************"));
-        logger.warn(String.format("* WARNING:"));
-        logger.warn(String.format("*"));
-        prettyPrintWarningMessage(logger, msg);
-        logger.warn(String.format("********************************************************************************"));
+        for (final String line: warnUserLines(msg))
+            logger.warn(line);
+    }
+
+    public static List<String> warnUserLines(final String msg) {
+        List<String> results = new ArrayList<>();
+        results.add(String.format(TEXT_WARNING_BORDER));
+        results.add(String.format(TEXT_WARNING_PREFIX + "WARNING:"));
+        results.add(String.format(TEXT_WARNING_PREFIX));
+        prettyPrintWarningMessage(results, msg);
+        results.add(String.format(TEXT_WARNING_BORDER));
+        return results;
     }
 
     /**
      * pretty print the warning message supplied
      *
-     * @param logger logger for the message
+     * @param results the pretty printed message
      * @param message the message
      */
-    private static void prettyPrintWarningMessage(Logger logger, String message) {
-        StringBuilder builder = new StringBuilder(message);
-        while (builder.length() > 70) {
-            int space = builder.lastIndexOf(" ", 70);
-            if (space <= 0) space = 70;
-            logger.warn(String.format("* %s", builder.substring(0, space)));
-            builder.delete(0, space + 1);
+    private static void prettyPrintWarningMessage(final List<String> results, final String message) {
+        for (final String line: message.split("\\r?\\n")) {
+            final StringBuilder builder = new StringBuilder(line);
+            while (builder.length() > TEXT_WARNING_WIDTH) {
+                int space = getLastSpace(builder, TEXT_WARNING_WIDTH);
+                if (space <= 0) space = TEXT_WARNING_WIDTH;
+                results.add(String.format("%s%s", TEXT_WARNING_PREFIX, builder.substring(0, space)));
+                builder.delete(0, space + 1);
+            }
+            results.add(String.format("%s%s", TEXT_WARNING_PREFIX, builder));
         }
-        logger.warn(String.format("* %s", builder));
+    }
+
+    /**
+     * Returns the last whitespace location in string, before width characters.
+     * @param message The message to break.
+     * @param width The width of the line.
+     * @return The last whitespace location.
+     */
+    private static int getLastSpace(final CharSequence message, int width) {
+        final int length = message.length();
+        int stopPos = width;
+        int currPos = 0;
+        int lastSpace = -1;
+        boolean inEscape = false;
+        while (currPos < stopPos && currPos < length) {
+            final char c = message.charAt(currPos);
+            if (c == ESCAPE_CHAR) {
+                stopPos++;
+                inEscape = true;
+            } else if (inEscape) {
+                stopPos++;
+                if (Character.isLetter(c))
+                    inEscape = false;
+            } else if (Character.isWhitespace(c)) {
+                lastSpace = currPos;
+            }
+            currPos++;
+        }
+        return lastSpace;
     }
 
     /**

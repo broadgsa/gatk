@@ -34,8 +34,7 @@ import org.broadinstitute.gatk.utils.classloader.PluginManager
 import org.broadinstitute.gatk.utils.exceptions.UserException
 import org.broadinstitute.gatk.utils.io.IOUtils
 import org.broadinstitute.gatk.utils.help.ApplicationDetails
-import java.util.{ResourceBundle, Arrays}
-import org.broadinstitute.gatk.utils.text.TextFormattingUtils
+import java.util.Arrays
 import org.apache.commons.io.FilenameUtils
 
 /**
@@ -260,31 +259,9 @@ class QCommandLine extends CommandLineProgram with Logging {
   }
 
   private def createQueueHeader() : Seq[String] = {
-    Seq(String.format("Queue v%s, Compiled %s", getQueueVersion, getBuildTimestamp),
+    Seq(String.format("Queue v%s, Compiled %s", CommandLineProgram.getVersionNumber, CommandLineProgram.getBuildTime),
          "Copyright (c) 2012 The Broad Institute",
          "For support and documentation go to http://www.broadinstitute.org/gatk")
-  }
-
-  private def getQueueVersion : String = {
-    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("GATKText")
-
-    if ( stingResources.containsKey("org.broadinstitute.gatk.queue.QueueVersion.version") ) {
-      stingResources.getString("org.broadinstitute.gatk.queue.QueueVersion.version")
-    }
-    else {
-      "<unknown>"
-    }
-  }
-
-  private def getBuildTimestamp : String = {
-    val stingResources : ResourceBundle = TextFormattingUtils.loadResourceBundle("GATKText")
-
-    if ( stingResources.containsKey("build.timestamp") ) {
-      stingResources.getString("build.timestamp")
-    }
-    else {
-      "<unknown>"
-    }
   }
 
   def shutdown() = {

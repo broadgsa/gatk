@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.utils.text;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.io.Resource;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -44,7 +45,12 @@ public class TextFormattingUtils {
     /**
      * our log, which we want to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(TextFormattingUtils.class);    
+    private static Logger logger = Logger.getLogger(TextFormattingUtils.class);
+
+    /**
+     * The contents of the GATK bundle.  If no such resource exists, warn the user and create an empty bundle.
+     */
+    public static final ResourceBundle GATK_RESOURCE_BUNDLE = loadResourceBundle("GATKText", null);
 
     /**
      * The default line width, for GATK output written to the screen.
@@ -96,14 +102,18 @@ public class TextFormattingUtils {
      * Load the contents of a resource bundle with the given name.  If no such resource exists, warn the user
      * and create an empty bundle.
      * @param bundleName The name of the bundle to load.
+     * @param relativeClass The relative class or null to load a bundle from the root.
      * @return The best resource bundle that can be found matching the given name.
      */
-    public static ResourceBundle loadResourceBundle(String bundleName) {
+    public static ResourceBundle loadResourceBundle(String bundleName, Class<?> relativeClass) {
+        final ResourceBundle.Control c = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT);
+        final String resourceName = c.toResourceName(c.toBundleName(bundleName, Locale.ROOT), "properties");
+        final Resource resource = new Resource(resourceName, relativeClass);
         ResourceBundle bundle;
         try {
-            bundle = ResourceBundle.getBundle(bundleName);
+            bundle = new PropertyResourceBundle(resource.getAllResourcesContentsAsStream());
         }
-        catch(MissingResourceException ex) {
+        catch(Exception ex) {
             //logger.warn("Unable to load help text.  Help output will be sparse.");
             // Generate an empty resource bundle.
             try {

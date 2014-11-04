@@ -28,7 +28,7 @@
         <gatk.integrationtests.skipped>${gatk.committests.skipped}</gatk.integrationtests.skipped>
 
         <!-- This flag is used by the package tests to disable re-shading -->
-        <gatk.unpack.phase>process-resources</gatk.unpack.phase>
+        <gatk.unpack.phase>prepare-package</gatk.unpack.phase>
         <gatk.shade.phase>package</gatk.shade.phase>
     </properties>
 
@@ -119,9 +119,9 @@
                             <!-- Required as doclet uses reflection to access classes for documentation, instead of source java-->
                             <docletPath>${project.build.outputDirectory}</docletPath>
                             <docletArtifact>
-                                <groupId>org.broadinstitute.gatk</groupId>
-                                <artifactId>gatk-utils</artifactId>
-                                <version>${gatk.version}</version>
+                                <groupId>${project.groupId}</groupId>
+                                <artifactId>${project.artifactId}</artifactId>
+                                <version>${project.version}</version>
                             </docletArtifact>
                             <maxmemory>2g</maxmemory>
                             <useStandardDocletOptions>false</useStandardDocletOptions>
@@ -145,6 +145,7 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <!-- Explicitly include classes loaded via reflection from artifacts below -->
                             <filters>
                                 <filter>
@@ -259,7 +260,32 @@
         </plugins>
     </build>
 
+    <reporting>
+        <excludeDefaults>true</excludeDefaults>
+    </reporting>
+
+    <!-- These profiles are used by the GATK build in a multi-module setting. You do NOT need these profiles. -->
     <profiles>
+        <!-- Optionally do not shade/package jars -->
+        <!--
+        NOTE: Profile id "fast" comes from comments in PR #771.
+        The name is meant to be memorable, but is highly non-specific. Users are forewarned that
+        behavior of this profile, or the identifier itself, may be heavily modified in the future.
+        Hardcode usage in non-VCS controlled scripts at your own risk.
+        -->
+        <profile>
+            <id>fast</id>
+            <activation>
+                <property>
+                    <name>disable.shadepackage</name>
+                </property>
+            </activation>
+            <properties>
+                <gatk.unpack.phase>none</gatk.unpack.phase>
+                <gatk.shade.phase>none</gatk.shade.phase>
+            </properties>
+        </profile>
+        <!-- Collection of properties for use during package testing -->
         <profile>
             <id>packagetests-enabled</id>
             <activation>

@@ -296,13 +296,12 @@ public abstract class CommandLineProgram {
     }
 
     public static String getVersionNumber() {
-        // TODO: Confirm that version is available elsewhere not on tools.
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
+        ResourceBundle headerInfo = TextFormattingUtils.GATK_RESOURCE_BUNDLE;
         return headerInfo.containsKey("org.broadinstitute.gatk.utils.version") ? headerInfo.getString("org.broadinstitute.gatk.utils.version") : "<unknown>";
     }
 
     public static String getBuildTime() {
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("GATKText");
+        ResourceBundle headerInfo = TextFormattingUtils.GATK_RESOURCE_BUNDLE;
         return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
     }
 

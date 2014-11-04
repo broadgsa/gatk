@@ -33,11 +33,14 @@
         <!-- TODO: Need a better a way to say "don't include hidden" by default -->
         <gatkdocs.include.hidden>-build-timestamp "${maven.build.timestamp}"</gatkdocs.include.hidden>
         <gatk.shell.directory>${gatk.basedir}/public/src/main/scripts/shell</gatk.shell.directory>
+        <gatk.assembly.directory>${gatk.basedir}/public/src/main/assembly</gatk.assembly.directory>
 
         <!--
         Phases of the build that may be disabled to speed up compilation.
         -->
         <gatk.jar.phase>package</gatk.jar.phase>
+        <gatk.unpack.phase>prepare-package</gatk.unpack.phase>
+        <gatk.shade.phase>package</gatk.shade.phase>
         <gatk.generate-resources.phase>generate-resources</gatk.generate-resources.phase>
         <gatk.process-resources.phase>process-resources</gatk.process-resources.phase>
         <gatk.process-test-resources.phase>process-test-resources</gatk.process-test-resources.phase>
@@ -66,6 +69,16 @@
         <gatk.serialqueuetests.skipped>${gatk.serialcommittests.skipped}</gatk.serialqueuetests.skipped>
         <gatk.seriallargescaletests.skipped>true</gatk.seriallargescaletests.skipped>
         <gatk.serialknowledgebasetests.skipped>true</gatk.serialknowledgebasetests.skipped>
+
+        <!-- Full path to write the executable MANIFEST.MF only jars, 10 seconds to create at 4KB each, and the accompanying lib directory -->
+        <gatk.executable.directory>${gatk.basedir}/target/executable</gatk.executable.directory>
+        <!-- Full path to write (symlinks to) the full shaded package jars, 1+ minute to create at 12MB+ each -->
+        <gatk.package.directory>${gatk.basedir}/target/package</gatk.package.directory>
+        <!--
+        Full path to write symlink to either an executable MANIFEST.MF only jar - OR - a fully shaded package jar.
+        NOTE: MANIFEST.MF only jars MUST be accompanied by the lib folder, or they will not run.
+        -->
+        <gatk.shortcut.directory>${gatk.basedir}/target</gatk.shortcut.directory>
     </properties>
 
     <dependencies>
@@ -139,9 +152,19 @@
                                 <excludes>${resource.bundle.path}</excludes>
                             </configuration>
                         </execution>
+                        <execution>
+                            <id>executable-jar-lib</id>
+                            <goals>
+                                <goal>copy-dependencies</goal>
+                            </goals>
+                            <phase>none</phase>
+                            <configuration>
+                                <outputDirectory>${gatk.executable.directory}/lib</outputDirectory>
+                                <includeScope>runtime</includeScope>
+                            </configuration>
+                        </execution>
                     </executions>
                 </plugin>
-                <!-- TODO: Change the ResourceBundleExtractorDoclet to not require log4j.properties file -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
@@ -159,25 +182,6 @@
                                 <goal>testResources</goal>
                             </goals>
                             <phase>${gatk.process-test-resources.phase}</phase>
-                        </execution>
-                        <execution>
-                            <id>copy-resource-bundle-log4j</id>
-                            <goals>
-                                <goal>copy-resources</goal>
-                            </goals>
-                            <phase>none</phase>
-                            <configuration>
-                                <!--
-                                Just before running the resource bundle generation, copy a simple log4j
-                                config file to the apidocs execution directory, so that logging prints out.
-                                -->
-                                <outputDirectory>${project.reporting.outputDirectory}/apidocs</outputDirectory>
-                                <resources>
-                                    <resource>
-                                        <directory>${gatk.basedir}/public/gatk-utils/src/main/config/org/broadinstitute/gatk/utils/help</directory>
-                                    </resource>
-                                </resources>
-                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
@@ -199,7 +203,7 @@
                                 <docletPath>${project.build.outputDirectory}</docletPath>
                                 <docletArtifact>
                                     <groupId>${project.groupId}</groupId>
-                                    <artifactId>gatk-utils</artifactId>
+                                    <artifactId>${project.artifactId}</artifactId>
                                     <version>${project.version}</version>
                                 </docletArtifact>
                                 <maxmemory>2g</maxmemory>
@@ -320,8 +324,38 @@
                     <artifactId>maven-jar-plugin</artifactId>
                     <executions>
                         <execution>
+                            <id>executable-jar</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                            <phase>none</phase>
+                            <configuration>
+                                <classesDirectory>${project.build.outputDirectory}/ignored_by_executable_jar</classesDirectory>
+                                <outputDirectory>${gatk.executable.directory}</outputDirectory>
+                                <finalName>${gatk.binary-dist.name}</finalName>
+                                <archive>
+                                    <manifest>
+                                        <mainClass>${app.main.class}</mainClass>
+                                        <addClasspath>true</addClasspath>
+                                        <classpathPrefix>lib/</classpathPrefix>
+                                    </manifest>
+                                </archive>
+                            </configuration>
+                        </execution>
+                        <execution>
                             <id>default-jar</id>
                             <phase>${gatk.jar.phase}</phase>
+                        </execution>
+                        <!--
+                        Maven keeps executing default-jar first, even if it's listed AFTER the executable-jar.
+                        So while packaging: run executable-jar, disable default-jar, then run unshaded-default-jar.
+                        -->
+                        <execution>
+                            <id>unshaded-default-jar</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                            <phase>none</phase>
                         </execution>
                         <execution>
                             <id>test-jar</id>
@@ -341,13 +375,14 @@
                     <artifactId>maven-shade-plugin</artifactId>
                     <executions>
                         <execution>
-                            <id>gatk-executable</id>
+                            <id>package-jar</id>
                             <goals>
                                 <goal>shade</goal>
                             </goals>
                             <phase>none</phase>
                             <configuration>
                                 <minimizeJar>true</minimizeJar>
+                                <createDependencyReducedPom>false</createDependencyReducedPom>
                                 <artifactSet>
                                     <excludes>
                                         <exclude>org.broadinstitute.gatk:gsalib:tar.gz:*</exclude>
@@ -405,7 +440,7 @@
                             <phase>none</phase>
                             <configuration>
                                 <descriptors>
-                                    <descriptor>src/main/assembly/binary-dist.xml</descriptor>
+                                    <descriptor>${gatk.assembly.directory}/binary-dist.xml</descriptor>
                                 </descriptors>
                             </configuration>
                         </execution>
@@ -437,7 +472,7 @@
                             </configuration>
                         </execution>
                         <execution>
-                            <id>link-binary-jar</id>
+                            <id>link-executable-jar</id>
                             <goals>
                                 <goal>link</goal>
                             </goals>
@@ -445,7 +480,26 @@
                             <configuration>
                                 <links>
                                     <link>
-                                        <dst>${gatk.basedir}/target/${gatk.binary-dist.name}.${project.packaging}</dst>
+                                        <dst>${gatk.shortcut.directory}/${gatk.binary-dist.name}.${project.packaging}</dst>
+                                        <src>${gatk.executable.directory}/${gatk.binary-dist.name}.${project.packaging}</src>
+                                    </link>
+                                </links>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>link-package-jar</id>
+                            <goals>
+                                <goal>link</goal>
+                            </goals>
+                            <phase>none</phase>
+                            <configuration>
+                                <links>
+                                    <link>
+                                        <dst>${gatk.package.directory}/${gatk.binary-dist.name}.${project.packaging}</dst>
+                                        <src>${project.build.directory}/${project.build.finalName}.${project.packaging}</src>
+                                    </link>
+                                    <link>
+                                        <dst>${gatk.shortcut.directory}/${gatk.binary-dist.name}.${project.packaging}</dst>
                                         <src>${project.build.directory}/${project.build.finalName}.${project.packaging}</src>
                                     </link>
                                 </links>
@@ -748,6 +802,26 @@
             </modules>
         </profile>
 
+        <!-- Optionally do not shade/package jars -->
+        <!--
+        NOTE: Profile id "fast" comes from comments in PR #771.
+        The name is meant to be memorable, but is highly non-specific. Users are forewarned that
+        behavior of this profile, or the identifier itself, may be heavily modified in the future.
+        Hardcode usage in non-VCS controlled scripts at your own risk.
+        -->
+        <profile>
+            <id>fast</id>
+            <activation>
+                <property>
+                    <name>disable.shadepackage</name>
+                </property>
+            </activation>
+            <properties>
+                <gatk.unpack.phase>none</gatk.unpack.phase>
+                <gatk.shade.phase>none</gatk.shade.phase>
+            </properties>
+        </profile>
+
         <!-- Collection of properties for use during package testing -->
         <profile>
             <id>packagetests-enabled</id>
@@ -761,6 +835,8 @@
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <gatk.generate-gatk-extensions.skipped>true</gatk.generate-gatk-extensions.skipped>
                 <gatk.jar.phase>none</gatk.jar.phase>
+                <gatk.unpack.phase>none</gatk.unpack.phase>
+                <gatk.shade.phase>none</gatk.shade.phase>
                 <gatk.generate-resources.phase>none</gatk.generate-resources.phase>
                 <gatk.process-resources.phase>none</gatk.process-resources.phase>
                 <gatk.process-test-resources.phase>none</gatk.process-test-resources.phase>

@@ -54,7 +54,7 @@ public class WalkerManager extends PluginManager<Walker> {
 
     public WalkerManager() {
         super(Walker.class,"walker","");
-        helpText = TextFormattingUtils.loadResourceBundle("GATKText");
+        helpText = TextFormattingUtils.GATK_RESOURCE_BUNDLE;
     }
 
     /**
