@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.utils.sam;
 import htsjdk.samtools.*;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.gatk.utils.Utils;
-import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -570,6 +569,8 @@ public class AlignmentUtilsUnitTest {
     //////////////////////////////////////////
     // Test AlignmentUtils.leftAlignIndel() //
     //////////////////////////////////////////
+
+
 
     @DataProvider(name = "LeftAlignIndelDataProvider")
     public Object[][] makeLeftAlignIndelDataProvider() {

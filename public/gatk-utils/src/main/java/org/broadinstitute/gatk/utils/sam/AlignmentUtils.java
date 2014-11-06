@@ -82,10 +82,12 @@ public final class AlignmentUtils {
      */
     public static GATKSAMRecord createReadAlignedToRef(final GATKSAMRecord originalRead,
                                                        final Haplotype haplotype,
+                                                       final Haplotype refHaplotype,
                                                        final int referenceStart,
                                                        final boolean isInformative) {
         if ( originalRead == null ) throw new IllegalArgumentException("originalRead cannot be null");
         if ( haplotype == null ) throw new IllegalArgumentException("haplotype cannot be null");
+        if ( refHaplotype == null ) throw new IllegalArgumentException("ref haplotype cannot be null");
         if ( haplotype.getCigar() == null ) throw new IllegalArgumentException("Haplotype cigar not set " + haplotype);
         if ( referenceStart < 1 ) throw new IllegalArgumentException("reference start much be >= 1 but got " + referenceStart);
 
@@ -115,7 +117,7 @@ public final class AlignmentUtils {
         final Cigar haplotypeToRef = trimCigarByBases(extendedHaplotypeCigar, swPairwiseAlignment.getAlignmentStart2wrt1(), extendedHaplotypeCigar.getReadLength() - 1);
         final Cigar readToRefCigarRaw = applyCigarToCigar(swCigar, haplotypeToRef);
         final Cigar readToRefCigarClean = cleanUpCigar(readToRefCigarRaw);
-        final Cigar readToRefCigar = leftAlignIndel(readToRefCigarClean, haplotype.getBases(),
+        final Cigar readToRefCigar = leftAlignIndel(readToRefCigarClean, refHaplotype.getBases(),
                 originalRead.getReadBases(), swPairwiseAlignment.getAlignmentStart2wrt1(), 0, true);
 
         read.setCigar(readToRefCigar);
