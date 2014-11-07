@@ -104,7 +104,7 @@ import java.util.*;
  *   -se 'SAMPLE.+PARC'
  *   -select "QD > 10.0"
  *
- * Select a sample and exclude non-variant loci and filtered loci:
+ * Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default):
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T SelectVariants \
@@ -113,6 +113,16 @@ import java.util.*;
  *   -sn SAMPLE_1_ACTG \
  *   -env \
  *   -ef
+ *
+ * Select a sample, subset remaining alleles, but don't trim:
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -sn SAMPLE_1_ACTG \
+ *   -env \
+ *   -noTrim
  *
  * Select a sample and restrict the output vcf to a set of intervals:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
@@ -233,6 +243,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
     protected boolean EXCLUDE_FILTERED = false;
+
+    /**
+     * Default is to remove bases common to all remaining alleles, leaving only their minimal representation.
+     * If this argument is set, original alleles from input VCF will be preserved.
+     */
+    @Argument(fullName="preserveAlleles", shortName="noTrim", doc="Preserve original alleles, do not trim", required=false)
+    protected boolean preserveAlleles = false;
 
     /**
      * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a vcf.
@@ -509,7 +526,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if ( containsIndelLargerThan(vc, maxIndelSize) )
                 continue;
 
-            VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
+            VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS, preserveAlleles);
 
             if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
                 boolean failedJexlMatch = false;
@@ -665,7 +682,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * @param excludeNonVariants should we exclude sites that have AC=0 for any alternate alleles?
      * @return the subsetted VariantContext
      */
-    private VariantContext subsetRecord(final VariantContext vc, final boolean excludeNonVariants) {
+    private VariantContext subsetRecord(final VariantContext vc, final boolean excludeNonVariants, final boolean preserveAlleles) {
         if ( NO_SAMPLES_SPECIFIED || samples.isEmpty() )
             return vc;
 
@@ -702,7 +719,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         addAnnotations(builder, vc, sub.getSampleNames());
 
-        return builder.make();
+        final VariantContext subset = builder.make();
+
+        final VariantContext trimmed = preserveAlleles? subset : GATKVariantContextUtils.trimAlleles(subset,true,true);
+
+        return trimmed;
     }
 
     /*
