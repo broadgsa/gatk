@@ -397,13 +397,17 @@ public class PerReadAlleleLikelihoodMap {
 
         // we need to remap the Alleles back to the Haplotypes; inefficient but unfortunately this is a requirement currently
         final Map<Allele, Haplotype> alleleToHaplotypeMap = new HashMap<>(haplotypes.size());
-        for ( final Haplotype haplotype : haplotypes )
+        Haplotype refHaplotype = null;
+        for ( final Haplotype haplotype : haplotypes ) {
             alleleToHaplotypeMap.put(Allele.create(haplotype.getBases()), haplotype);
+            if (refHaplotype == null && haplotype.isReference())
+                refHaplotype = haplotype;
+        }
 
         final Map<GATKSAMRecord, Map<Allele, Double>> newLikelihoodReadMap = new LinkedHashMap<>(likelihoodReadMap.size());
         for( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
             final MostLikelyAllele bestAllele = PerReadAlleleLikelihoodMap.getMostLikelyAllele(entry.getValue());
-            final GATKSAMRecord alignedToRef = AlignmentUtils.createReadAlignedToRef(entry.getKey(), alleleToHaplotypeMap.get(bestAllele.getMostLikelyAllele()), paddedReferenceLoc.getStart(), bestAllele.isInformative());
+            final GATKSAMRecord alignedToRef = AlignmentUtils.createReadAlignedToRef(entry.getKey(), alleleToHaplotypeMap.get(bestAllele.getMostLikelyAllele()), refHaplotype,  paddedReferenceLoc.getStart(), bestAllele.isInformative());
             newLikelihoodReadMap.put(alignedToRef, entry.getValue());
         }
 
