@@ -3,13 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>picard</groupId>
     <artifactId>picard</artifactId>
-    <version>1.123.1620</version>
+    <version>1.127.1667</version>
     <name>picard</name>
     <dependencies>
         <dependency>
             <groupId>samtools</groupId>
             <artifactId>htsjdk</artifactId>
-            <version>1.123.1658</version>
+            <version>1.127.1690</version>
         </dependency>
         <!-- TODO: Picard is using a custom zip with just ant's BZip2 classes. See also: http://www.kohsuke.org/bzip2 -->
         <dependency>

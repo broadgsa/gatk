@@ -32,10 +32,11 @@ import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.BaseUtils;
-import htsjdk.variant.vcf.VCFHeaderLineType;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -70,7 +71,6 @@ public class NBaseCount extends InfoFieldAnnotation {
 
         for( final AlignmentContext context : stratifiedContexts.values() ) {
             for( final PileupElement p : context.getBasePileup()) {
-                final String platform = p.getRead().getReadGroup().getPlatform();
                 if( BaseUtils.isNBase( p.getBase() ) ) {
                     countNBase++;
                 } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
@@ -78,12 +78,12 @@ public class NBaseCount extends InfoFieldAnnotation {
                 }
             }
         }
-        final Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new HashMap<>();
         map.put(getKeyNames().get(0), String.format("%.4f", (double)countNBase / (double)(countNBase + countRegularBase + 1)));
         return map;
     }
 
-    public List<String> getKeyNames() { return Arrays.asList("PercentNBase"); }
+    public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.N_BASE_COUNT_KEY); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("PercentNBase", 1, VCFHeaderLineType.Float, "Percentage of N bases in the pileup")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(GATKVCFHeaderLines.getInfoLine(getKeyNames().get(0))); }
 }

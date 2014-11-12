@@ -41,6 +41,8 @@ import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
 import java.util.*;
 
@@ -129,25 +131,22 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
     private final double MIN_PROB_ERROR = 0.000001;
     private final double MAX_GENOTYPE_QUALITY = -6.0;
 
-    private final static String BEAGLE_MONO_FILTER_STRING = "BGL_SET_TO_MONOMORPHIC";
-    private final static String ORIGINAL_ALT_ALLELE_INFO_KEY = "OriginalAltAllele";
-
     public void initialize() {
 
         // setup the header fields
 
-        final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        final Set<VCFHeaderLine> hInfo = new HashSet<>();
         hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFFormatHeaderLine("OG",1, VCFHeaderLineType.String, "Original Genotype input to Beagle"));
-        hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beagle on each site"));
-        hInfo.add(new VCFInfoHeaderLine("NumGenotypesChanged", 1, VCFHeaderLineType.Integer, "The number of genotypes changed by Beagle"));
-        hInfo.add(new VCFInfoHeaderLine(ORIGINAL_ALT_ALLELE_INFO_KEY, 1, VCFHeaderLineType.String, "The original alt allele for a site set to monomorphic by Beagle"));
-        hInfo.add(new VCFFilterHeaderLine(BEAGLE_MONO_FILTER_STRING, "This site was set to monomorphic by Beagle"));
+        hInfo.add(GATKVCFHeaderLines.getFormatLine(GATKVCFConstants.ORIGINAL_GENOTYPE_KEY));
+        hInfo.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.BEAGLE_R2_KEY));
+        hInfo.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.NUM_GENOTYPES_CHANGED_KEY));
+        hInfo.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_ALT_ALLELE_INFO_KEY));
+        hInfo.add(GATKVCFHeaderLines.getFilterLine(GATKVCFConstants.BEAGLE_MONO_FILTER_NAME));
 
         if ( comp.isBound() ) {
-            hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
-            hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
-            hInfo.add(new VCFInfoHeaderLine("AFH", 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
+            hInfo.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.BEAGLE_AC_COMP_KEY));
+            hInfo.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.BEAGLE_AF_COMP_KEY));
+            hInfo.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.BEAGLE_AN_COMP_KEY));
         }
 
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(variantCollection.variants.getName()));
@@ -237,7 +236,7 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
 
             // We have phased genotype in hp. Need to set the isRef field in the allele.
-            List<Allele> alleles = new ArrayList<Allele>();
+            List<Allele> alleles = new ArrayList<>();
 
             String alleleA = beagleGenotypePairs.get(0);
             String alleleB = beagleGenotypePairs.get(1);
@@ -298,7 +297,7 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
             else
                 genotypeQuality = log10(probWrongGenotype);
 
-            HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getExtendedAttributes());
+            HashMap<String,Object> originalAttributes = new HashMap<>(g.getExtendedAttributes());
 
             // get original encoding and add to keynotype attributes
             String a1, a2, og;
@@ -320,11 +319,11 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
             // See if Beagle switched genotypes
             if (! originalAlleleA.equals(Allele.NO_CALL) && beagleSwitchedGenotypes(bglAlleleA,originalAlleleA,bglAlleleB,originalAlleleB)){
-                originalAttributes.put("OG",og);
+                originalAttributes.put(GATKVCFConstants.ORIGINAL_GENOTYPE_KEY, og);
                 numGenotypesChangedByBeagle++;
             }
             else {
-                originalAttributes.put("OG",".");
+                originalAttributes.put(GATKVCFConstants.ORIGINAL_GENOTYPE_KEY, ".");
             }
             Genotype imputedGenotype = new GenotypeBuilder(g).alleles(alleles).log10PError(genotypeQuality).attributes(originalAttributes).phased(genotypeIsPhased).make();
             if ( imputedGenotype.isHet() || imputedGenotype.isHomVar() ) {
@@ -336,8 +335,8 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
         final VariantContextBuilder builder = new VariantContextBuilder(vc_input).source("outputvcf").genotypes(genotypes);
         if ( ! ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES ) ) {
-            builder.attribute(ORIGINAL_ALT_ALLELE_INFO_KEY, vc_input.getAlternateAllele(0));
-            builder.alleles(Collections.singleton(vc_input.getReference())).filter(BEAGLE_MONO_FILTER_STRING);
+            builder.attribute(GATKVCFConstants.ORIGINAL_ALT_ALLELE_INFO_KEY, vc_input.getAlternateAllele(0));
+            builder.alleles(Collections.singleton(vc_input.getReference())).filter(GATKVCFConstants.BEAGLE_MONO_FILTER_NAME);
         }
 
         // re-compute chromosome counts
@@ -345,15 +344,15 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
         // Get Hapmap AC and AF
         if (vc_comp != null) {
-            builder.attribute("ACH", alleleCountH.toString() );
-            builder.attribute("ANH", chrCountH.toString() );
-            builder.attribute("AFH", String.format("%4.2f", (double)alleleCountH/chrCountH) );
+            builder.attribute(GATKVCFConstants.BEAGLE_AC_COMP_KEY, alleleCountH.toString() );
+            builder.attribute(GATKVCFConstants.BEAGLE_AN_COMP_KEY, chrCountH.toString() );
+            builder.attribute(GATKVCFConstants.BEAGLE_AF_COMP_KEY, String.format("%4.2f", (double)alleleCountH/chrCountH) );
 
         }
 
-        builder.attribute("NumGenotypesChanged", numGenotypesChangedByBeagle );
+        builder.attribute(GATKVCFConstants.NUM_GENOTYPES_CHANGED_KEY, numGenotypesChangedByBeagle );
         if( !beagleR2Feature.getR2value().equals(Double.NaN) ) {
-            builder.attribute("R2", beagleR2Feature.getR2value().toString() );
+            builder.attribute(GATKVCFConstants.BEAGLE_R2_KEY, beagleR2Feature.getR2value().toString() );
         }
 
         vcfWriter.add(builder.make());

@@ -39,6 +39,8 @@ import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.engine.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -422,9 +424,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            headerLines.add(new VCFInfoHeaderLine("AC_Orig", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Original AC"));
-            headerLines.add(new VCFInfoHeaderLine("AF_Orig", VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Original AF"));
-            headerLines.add(new VCFInfoHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AC_KEY));
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AF_KEY));
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AN_KEY));
         }
         headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
         headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.DEPTH_KEY));
@@ -695,8 +697,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
         if ( vc.getNSamples() != sub.getNSamples() ) {
-            builder.rmAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY);
-            builder.rmAttribute(VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
+            builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY);
+            builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_FREQUENCY_KEY);
         }
 
         // Remove a fraction of the genotypes if needed
@@ -763,11 +765,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             }
 
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-                builder.attribute("AC_Orig", getReorderedAttributes(originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY), indexOfOriginalAlleleForNewAllele));
+                builder.attribute(GATKVCFConstants.ORIGINAL_AC_KEY, getReorderedAttributes(originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY), indexOfOriginalAlleleForNewAllele));
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                builder.attribute("AF_Orig", getReorderedAttributes(originalVC.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY), indexOfOriginalAlleleForNewAllele));
+                builder.attribute(GATKVCFConstants.ORIGINAL_AF_KEY, getReorderedAttributes(originalVC.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY), indexOfOriginalAlleleForNewAllele));
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY) )
-                builder.attribute("AN_Orig", originalVC.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
+                builder.attribute(GATKVCFConstants.ORIGINAL_AN_KEY, originalVC.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
         }
 
         VariantContextUtils.calculateChromosomeCounts(builder, false);
@@ -786,7 +788,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         if ( sawDP )
-            builder.attribute("DP", depth);
+            builder.attribute(VCFConstants.DEPTH_KEY, depth);
     }
 
     /**
