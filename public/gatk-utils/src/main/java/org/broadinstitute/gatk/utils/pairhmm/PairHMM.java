@@ -68,6 +68,33 @@ public abstract class PairHMM {
         ARRAY_LOGLESS
     }
 
+    /* Instruction sets for computing VectorLoglessHMM */
+    public enum HMM_SUB_IMPLEMENTATION {
+        /* standard un-vectorized instructions */
+        UNVECTORIZED(0x0L, false),
+        /* Streaming SIMD Extensions (SSE), version 4.1 */
+        SSE41(0x1L, true),
+        /* Streaming SIMD Extensions (SSE), version 4.2 */
+        SSE42(0x2L, true),
+        /* Advanced Vector Extensions (AVX) */
+        AVX(0x4L, true),
+        /* For testing only, set bit beyond hardware capabilities */
+        TEST_BEYOND_CAPABILITIES(0x400L, true),
+        /* Enable all implementations */
+        ENABLE_ALL(0xFFFFFFFFFFFFFFFFl, false);
+
+        /* Masks for machine capabilities */
+        private final long mask;
+        /* Is a specific hardware instruction set requested? */
+        private final boolean isSpecificHardwareRequest;
+        HMM_SUB_IMPLEMENTATION(long mask, boolean isSpecificHardwareRequest) {
+            this.mask = mask;
+            this.isSpecificHardwareRequest = isSpecificHardwareRequest;
+        }
+        long getMask() { return mask; }
+        boolean getIsSpecificHardwareRequest() { return isSpecificHardwareRequest; }
+    }
+
     protected int maxHaplotypeLength, maxReadLength;
     protected int paddedMaxReadLength, paddedMaxHaplotypeLength;
     protected int paddedReadLength, paddedHaplotypeLength;
@@ -93,8 +120,9 @@ public abstract class PairHMM {
      *
      * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
      * @param readMaxLength the max length of reads we want to use with this PairHMM
+     * @throws IllegalArgumentException if readMaxLength or haplotypeMaxLength is less than or equal to zero
      */
-    public void initialize( final int readMaxLength, final int haplotypeMaxLength ) {
+    public void initialize( final int readMaxLength, final int haplotypeMaxLength ) throws IllegalArgumentException {
         if ( readMaxLength <= 0 ) throw new IllegalArgumentException("READ_MAX_LENGTH must be > 0 but got " + readMaxLength);
         if ( haplotypeMaxLength <= 0 ) throw new IllegalArgumentException("HAPLOTYPE_MAX_LENGTH must be > 0 but got " + haplotypeMaxLength);
 
@@ -178,8 +206,6 @@ public abstract class PairHMM {
      *             conditional to {@code alleles[a]}.
      * @param gcp penalty for gap continuations base array map for processed reads.
      *
-     * @throws IllegalArgumentException
-     *
      * @return never {@code null}.
      */
     public void computeLikelihoods(final ReadLikelihoods.Matrix<Haplotype> likelihoods,
@@ -248,6 +274,10 @@ public abstract class PairHMM {
      * @param overallGCP the phred-scaled gap continuation penalties scores of read.  Must be the same length as readBases
      * @param recacheReadValues if false, we don't recalculate any cached results, assuming that readBases and its associated
      *                          parameters are the same, and only the haplotype bases are changing underneath us
+     * @throws IllegalStateException  if did not call initialize() beforehand
+     * @throws IllegalArgumentException haplotypeBases is null or greater than maxHaplotypeLength
+     * @throws IllegalArgumentException readBases is null or greater than maxReadLength
+     * @throws IllegalArgumentException readBases, readQuals, insertionGOP, deletionGOP and overallGCP are not the same size
      * @return the log10 probability of read coming from the haplotype under the provided error model
      */
     protected final double computeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
@@ -257,7 +287,7 @@ public abstract class PairHMM {
                                                                   final byte[] deletionGOP,
                                                                   final byte[] overallGCP,
                                                                   final boolean recacheReadValues,
-                                                                  final byte[] nextHaploytpeBases) {
+                                                                  final byte[] nextHaploytpeBases) throws IllegalStateException, IllegalArgumentException {
 
         if ( ! initialized ) throw new IllegalStateException("Must call initialize before calling computeReadLikelihoodGivenHaplotypeLog10");
         if ( haplotypeBases == null ) throw new IllegalArgumentException("haplotypeBases cannot be null");
@@ -318,9 +348,10 @@ public abstract class PairHMM {
      *
      * @param haplotype1 the first haplotype1
      * @param haplotype2 the second haplotype1
+     * @throws IllegalArgumentException if haplotype1 or haplotype2 are null or zero length
      * @return the index of the first position in haplotype1 and haplotype2 where the byte isn't the same
      */
-    public static int findFirstPositionWhereHaplotypesDiffer(final byte[] haplotype1, final byte[] haplotype2) {
+    public static int findFirstPositionWhereHaplotypesDiffer(final byte[] haplotype1, final byte[] haplotype2) throws IllegalArgumentException {
         if ( haplotype1 == null || haplotype1.length == 0 ) throw new IllegalArgumentException("Haplotype1 is bad " + Arrays.toString(haplotype1));
         if ( haplotype2 == null || haplotype2.length == 0 ) throw new IllegalArgumentException("Haplotype2 is bad " + Arrays.toString(haplotype2));
 

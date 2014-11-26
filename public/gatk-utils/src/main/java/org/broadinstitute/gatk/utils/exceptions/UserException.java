@@ -482,4 +482,13 @@ public class UserException extends ReviewedGATKException {
             super(s);
         }
     }
+
+    /**
+     * A trivial specialization of  UserException to mark that a hardware feature is not supported
+     */
+    public static class HardwareFeatureException extends UserException {
+        public HardwareFeatureException(String message) {
+            super(message);
+        }
+    }
 }

@@ -69,7 +69,7 @@ public class Sandbox {
      * change per JVM session
      * @param readDataHolderClass class type of JNIReadDataHolderClass
      * @param haplotypeDataHolderClass class type of JNIHaplotypeDataHolderClass
-     * @param mask mask is a 64 bit integer identical to the one received from jniGetMachineType(). Users can disable usage of some hardware features by zeroing some bits in the mask
+     * @param mask 64 bit integer identical to the one received from jniGetMachineType(). Users can disable usage of some hardware features by zeroing bits in the mask
      * */
     private native void jniInitializeClassFieldsAndMachineMask(Class<?> readDataHolderClass, Class<?> haplotypeDataHolderClass, long mask);
 
