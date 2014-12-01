@@ -25,12 +25,8 @@
 
 package org.broadinstitute.gatk.utils.help;
 
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.annotations.Expose;
-import com.google.gson.stream.JsonWriter;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
 import freemarker.template.Configuration;
@@ -82,6 +78,11 @@ public abstract class GATKDoclet {
     final protected static File DESTINATION_DIR = new File("gatkdocs");
 
     final private static String FORUM_KEY_PATH = "/local/gsa-engineering/gatkdocs_publisher/forum.key";
+
+    final private static String OUTPUT_FILE_EXTENSION = "php";
+
+    /** Controls the extension of the non-json output files, and also the HREFs to these files.  Default: php */
+    final private static String OUTPUT_FILE_EXTENSION_OPTION = "-output-file-extension";
     // ----------------------------------------------------------------------
     //
     // Global variables that are set on the command line by javadoc
@@ -92,6 +93,7 @@ public abstract class GATKDoclet {
     protected static String forumKeyPath = FORUM_KEY_PATH;
     protected static String buildTimestamp = null, absoluteVersion = null;
     protected static boolean showHiddenFeatures = false;
+    protected static String outputFileExtension = OUTPUT_FILE_EXTENSION;
 
     protected static boolean testOnly = false;
 
@@ -148,6 +150,9 @@ public abstract class GATKDoclet {
                 showHiddenFeatures = true;
             if (options[0].equals("-test"))
                 testOnly = true;
+            if (options[0].equals(OUTPUT_FILE_EXTENSION_OPTION)) {
+                outputFileExtension = options[1];
+            }
         }
 
         if (!settingsDir.exists())
@@ -173,7 +178,8 @@ public abstract class GATKDoclet {
                 option.equals("-forum-key-path") ||
                 option.equals("-build-timestamp") ||
                 option.equals("-absolute-version") ||
-                option.equals("-include-hidden")) {
+                option.equals("-include-hidden") ||
+                option.equals(OUTPUT_FILE_EXTENSION_OPTION)) {
             return 2;
         } else if (option.equals("-test"))
             return 1;
@@ -392,7 +398,7 @@ public abstract class GATKDoclet {
         Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
-        Writer out = new OutputStreamWriter(new FileOutputStream(new File(destinationDir + "/index.php")));
+        Writer out = new OutputStreamWriter(new FileOutputStream(new File(destinationDir + "/index." + outputFileExtension)));
         try {
             temp.process(groupIndexData(indexData), out);
             out.flush();
