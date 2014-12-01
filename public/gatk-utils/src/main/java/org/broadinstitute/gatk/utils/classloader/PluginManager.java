@@ -61,7 +61,7 @@ public class PluginManager<PluginType> {
 
         URL cwd;
         try {
-            cwd = new File(".").getAbsoluteFile().toURI().toURL();
+            cwd = new File("").getAbsoluteFile().toURI().toURL();
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
