@@ -117,10 +117,13 @@ public class GATKArgumentCollection {
      * documentation. Note that the read name format is e.g. MalformedReadFilter, but at the command line the filter
      * name should be given without the Filter suffix; e.g. -rf MalformedRead (NOT -rf MalformedReadFilter, which is not
      * recognized by the program). Note also that some read filters are applied by default for some analysis tools; this
-     * is specified in each tool's documentation. The default filters cannot be disabled.
+     * is specified in each tool's documentation. The default filters can only be disabled if they are DisableableReadFilters.
      */
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Filters to apply to reads before analysis", required = false)
     public final List<String> readFilters = new ArrayList<>();
+
+    @Argument(fullName = "disable_read_filter", shortName = "drf", doc = "Read filters to disable", required = false)
+    public final List<String> disabledReadFilters = new ArrayList<>();
 
     @ArgumentCollection
     public IntervalArgumentCollection intervalArguments = new IntervalArgumentCollection();
