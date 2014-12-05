@@ -30,6 +30,8 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.gatk.engine.io.DirectOutputTracker;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
 import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
@@ -104,6 +106,7 @@ public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWrite
         }
 
         HashMap<String, SAMFileWriter> outputs = new HashMap<>();
+        final OutputTracker outputTracker = new DirectOutputTracker();
         for ( Map.Entry<String, SAMFileHeader> elt : headers.entrySet() ) {
             final String sample = elt.getKey();
             final String filename = outputRoot + sample + ".bam";
@@ -111,6 +114,7 @@ public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWrite
 
             final SAMFileWriter output = SAMFileWriterStub.createSAMFileWriter(filename, getToolkit(), elt.getValue());
             outputs.put(sample, output);
+            outputTracker.addOutput( (SAMFileWriterStub) output);
         }
 
         return outputs;
