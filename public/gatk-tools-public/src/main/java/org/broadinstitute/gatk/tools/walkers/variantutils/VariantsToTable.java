@@ -351,7 +351,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         }
         // otherwise, add the original value to all of the records
         else {
-            final String valStr = val.toString();
+            final String valStr = prettyPrintObject(val);
             for ( List<String> record : result )
                 record.add(valStr);
         }
