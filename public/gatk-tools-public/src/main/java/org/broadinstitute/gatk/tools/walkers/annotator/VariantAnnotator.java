@@ -224,7 +224,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         final Set<VCFHeaderLine> hInfo = new HashSet<>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( final VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
+        for ( final VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), rodName) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
@@ -256,6 +256,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             }
         }
 
+        engine.makeHeaderInfoMap(hInfo);
         engine.invokeAnnotationInitializationMethods(hInfo);
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
@@ -293,8 +294,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         if ( tracker == null )
             return 0;
 
+        // get the variant contexts for all the variants at the location
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
-        if ( VCs.size() == 0 )
+        if ( VCs.isEmpty() )
             return 0;
 
         Collection<VariantContext> annotatedVCs = VCs;
