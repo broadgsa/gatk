@@ -254,6 +254,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     protected boolean preserveAlleles = false;
 
     /**
+     * When this argument is present, all alternate alleles that are not present in the (output) samples will be removed.
+     * Note that this even extends to biallelic SNPs - if the alternate allele is not present in any sample, it will be
+     * removed and the record will contain a '.' in the ALT column.  Also note that sites-only VCFs, by definition, do
+     * not include the alternate allele in any genotype calls.
+     */
+    @Argument(fullName="removeUnusedAlternates", shortName="trimAlternates", doc="Remove alternate alleles not present in any genotypes", required=false)
+    protected boolean removeUnusedAlternates = false;
+
+    /**
      * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a vcf.
      * For example, a multiallelic record such as:
      * 1    100 .   A   AAA,AAAAA
@@ -528,7 +537,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if ( containsIndelLargerThan(vc, maxIndelSize) )
                 continue;
 
-            VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS, preserveAlleles);
+            VariantContext sub = subsetRecord(vc, preserveAlleles, removeUnusedAlternates);
 
             if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
                 boolean failedJexlMatch = false;
@@ -681,25 +690,30 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * Helper method to subset a VC record, modifying some metadata stored in the INFO field (i.e. AN, AC, AF).
      *
      * @param vc       the VariantContext record to subset
-     * @param excludeNonVariants should we exclude sites that have AC=0 for any alternate alleles?
+     * @param preserveAlleles should we trim constant sequence from the beginning and/or end of all alleles, or preserve it?
+     * @param removeUnusedAlternates removes alternate alleles with AC=0
      * @return the subsetted VariantContext
      */
-    private VariantContext subsetRecord(final VariantContext vc, final boolean excludeNonVariants, final boolean preserveAlleles) {
-        if ( NO_SAMPLES_SPECIFIED || samples.isEmpty() )
+    private VariantContext subsetRecord(final VariantContext vc, final boolean preserveAlleles, final boolean removeUnusedAlternates) {
+        //subContextFromSamples() always decodes the vc, which is a fairly expensive operation.  Avoid if possible
+        if ( NO_SAMPLES_SPECIFIED && !removeUnusedAlternates )
             return vc;
 
-        final VariantContext sub = vc.subContextFromSamples(samples, excludeNonVariants); // strip out the alternate alleles that aren't being used
+        // strip out the alternate alleles that aren't being used
+        final VariantContext sub = vc.subContextFromSamples(samples, removeUnusedAlternates);
+
+        //If no subsetting happened, exit now
+        if ( sub.getNSamples() == vc.getNSamples() && sub.getNAlleles() == vc.getNAlleles() )
+            return vc;
 
         final VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         // if there are fewer alternate alleles now in the selected VC, we need to fix the PL and AD values
         GenotypesContext newGC = GATKVariantContextUtils.updatePLsAndAD(sub, vc);
 
-        // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
-        if ( vc.getNSamples() != sub.getNSamples() ) {
-            builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY);
-            builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_FREQUENCY_KEY);
-        }
+        // since the VC has been subset (either by sample or allele), we need to strip out the MLE tags
+        builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY);
+        builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_FREQUENCY_KEY);
 
         // Remove a fraction of the genotypes if needed
         if ( fractionGenotypes > 0 ){
