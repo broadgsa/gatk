@@ -385,6 +385,6 @@ public abstract class PairHMM {
     public void close()
     {
         if(doProfiling)
-            System.err.println("Total compute time in PairHMM computeLikelihoods() : "+(pairHMMComputeTime*1e-9));
+            logger.info("Total compute time in PairHMM computeLikelihoods() : "+(pairHMMComputeTime*1e-9));
     }
 }
