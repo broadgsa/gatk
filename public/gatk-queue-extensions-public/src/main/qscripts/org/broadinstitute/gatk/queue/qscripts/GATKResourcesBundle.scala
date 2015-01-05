@@ -167,6 +167,9 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
 
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Affymetrix_Axiom/Axiom_Exome_Plus.sites_only.all_populations.poly.vcf",
+      "Axiom_Exome_Plus.sites_only.all_populations.poly", b37, true, false))
+
     //
     // CEU trio (NA12878,NA12891,NA12892) best practices results
     //
