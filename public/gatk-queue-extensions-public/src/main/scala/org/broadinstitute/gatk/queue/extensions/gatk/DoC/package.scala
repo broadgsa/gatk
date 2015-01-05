@@ -40,6 +40,7 @@ import org.broadinstitute.gatk.utils.downsampling.DownsampleType
 // due to ongoing bugs with inner classes/objects in package objects:
 //   https://issues.scala-lang.org/browse/SI-4344
 //   https://issues.scala-lang.org/browse/SI-5954
+
   class DoC(val bams: List[File], val DoC_output: File, val countType: CoverageUtils.CountPileupType, val MAX_DEPTH: Int, val minMappingQuality: Int, val minBaseQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int], val sampleRenameMappingFile: Option[File] = None) extends CommandLineGATK with ScatterGatherableFunction {
     val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
 
