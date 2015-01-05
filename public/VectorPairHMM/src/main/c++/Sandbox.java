@@ -173,7 +173,7 @@ public class Sandbox {
       }
       catch(FileNotFoundException e)
       {
-          logger.info("File "+filename + " cannot be found/read");
+          logger.error("File "+filename + " cannot be found/read");
           return;
       }
       int idx = 0;
