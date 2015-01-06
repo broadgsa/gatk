@@ -25,7 +25,6 @@
 
 package org.broadinstitute.gatk.utils.vectorpairhmm;
 
-import org.apache.log4j.Logger;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Map;
@@ -37,8 +36,6 @@ import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 
 public class Sandbox {
-
-    protected final static Logger logger = Logger.getLogger(Sandbox.class);
 
     private long setupTime = 0;
     private long computeTime = 0;
@@ -159,7 +156,7 @@ public class Sandbox {
     public native void jniClose();
     public void close()
     {
-        logger.info("Time spent in setup for JNI call : "+(setupTime*1e-9)+" compute time : "+(computeTime*1e-9));
+        System.err.println("Time spent in setup for JNI call : " + (setupTime * 1e-9) + " compute time : " + (computeTime * 1e-9));
         jniClose();
     }
 
@@ -173,7 +170,7 @@ public class Sandbox {
       }
       catch(FileNotFoundException e)
       {
-          logger.error("File "+filename + " cannot be found/read");
+          System.err.println("File "+filename + " cannot be found/read");
           return;
       }
       int idx = 0;
