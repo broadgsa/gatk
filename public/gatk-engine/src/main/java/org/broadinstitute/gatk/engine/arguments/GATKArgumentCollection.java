@@ -244,11 +244,14 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
     /**
-     * This flag tells GATK to refactor cigar string with NDN elements to one element. It intended primarily for use in
-     * a RNAseq pipeline since the problem might come up when using RNAseq aligner such as Tophat2 with provided transcriptoms.
-     * You should only use this if you know that your reads have that problem.
+     * Some RNAseq aligners that use a known transcriptome resource (such as TopHat2) produce NDN elements in read CIGARS
+     * when a small exon is entirely deleted during transcription, which ends up looking like [exon1]NDN[exon3]. These
+     * rarely happen, but when they do they cause GATK to fail with an error. Setting this flag tells the GATK to
+     * reduce "NDN" to a simpler CIGAR representation with one N element (with total length of the three refactored
+     * elements). From the point of view of variant calling, there is no meaningful difference between the two
+     * representations.
      */
-    @Argument(fullName = "refactor_NDN_cigar_string", shortName = "fixNDN", doc = "refactor cigar string with NDN elements to one element", required = false)
+    @Argument(fullName = "refactor_NDN_cigar_string", shortName = "fixNDN", doc = "Reduce NDN elements in CIGAR string", required = false)
     public boolean REFACTOR_NDN_CIGAR_READS = false;
 
     // --------------------------------------------------------------------------------------------------------------
