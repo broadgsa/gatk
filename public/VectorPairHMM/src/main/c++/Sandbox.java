@@ -156,7 +156,7 @@ public class Sandbox {
     public native void jniClose();
     public void close()
     {
-        System.out.println("Time spent in setup for JNI call : "+(setupTime*1e-9)+" compute time : "+(computeTime*1e-9));
+        System.err.println("Time spent in setup for JNI call : " + (setupTime * 1e-9) + " compute time : " + (computeTime * 1e-9));
         jniClose();
     }
 
@@ -170,8 +170,8 @@ public class Sandbox {
       }
       catch(FileNotFoundException e)
       {
-        System.err.println("File "+filename+" cannot be found/read");
-        return;
+          System.err.println("File "+filename + " cannot be found/read");
+          return;
       }
       int idx = 0;
       int numReads = 0;
