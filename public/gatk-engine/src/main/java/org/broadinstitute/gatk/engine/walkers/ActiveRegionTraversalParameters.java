@@ -85,7 +85,7 @@ public @interface ActiveRegionTraversalParameters {
      * of coverage in the engine.
      * @return the maximum number of reads we're willing to hold in memory
      */
-    public int maxReadsToHoldInMemoryPerSample() default 3000;
+    public int maxReadsToHoldInMemoryPerSample() default 30000;
 
     /**
      * No matter what the per sample value says, we will never hold more than this
@@ -93,5 +93,5 @@ public @interface ActiveRegionTraversalParameters {
      * of reads in the case where we have a lot of samples.
      * @return the maximum number of reads to hold in memory
      */
-    public int maxReadsToHoldTotal() default 1000000;
+    public int maxReadsToHoldTotal() default 10000000;
 }
