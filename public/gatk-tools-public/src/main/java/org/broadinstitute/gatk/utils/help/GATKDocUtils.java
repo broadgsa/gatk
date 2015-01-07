@@ -50,7 +50,11 @@ public class GATKDocUtils {
      * @return
      */
     public static String phpFilenameForClass(Class c) {
-        return c.getName().replace(".", "_") + ".php";
+        return phpFilenameForClass(c, "php");
+    }
+
+    public static String phpFilenameForClass(Class c, String extension) {
+        return c.getName().replace(".", "_") + "." + extension;
     }
 
     /**

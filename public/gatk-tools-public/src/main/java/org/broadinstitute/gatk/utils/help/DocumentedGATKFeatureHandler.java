@@ -72,7 +72,7 @@ public abstract class DocumentedGATKFeatureHandler {
      * @return
      */
     public String getDestinationFilename(ClassDoc doc, Class clazz) {
-        return GATKDocUtils.phpFilenameForClass(clazz);
+        return GATKDocUtils.phpFilenameForClass(clazz, GATKDoclet.outputFileExtension);
     }
 
     /**
