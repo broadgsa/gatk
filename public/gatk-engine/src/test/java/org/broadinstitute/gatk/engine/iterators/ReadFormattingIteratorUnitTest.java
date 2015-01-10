@@ -40,7 +40,7 @@ public class ReadFormattingIteratorUnitTest extends BaseTest {
 
     @Test
     public void testIteratorConsolidatesCigars() {
-        final Cigar unconsolidatedCigar = TextCigarCodec.getSingleton().decode("3M0M5M0M");
+        final Cigar unconsolidatedCigar = TextCigarCodec.decode("3M0M5M0M");
         final SAMRecord unconsolidatedRead = ArtificialSAMUtils.createArtificialRead(unconsolidatedCigar);
 
         final GATKSAMIterator readIterator = GATKSAMIteratorAdapter.adapt(Arrays.asList(unconsolidatedRead).iterator());

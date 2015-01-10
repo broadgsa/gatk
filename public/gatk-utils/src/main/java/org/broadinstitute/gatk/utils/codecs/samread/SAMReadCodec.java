@@ -95,7 +95,7 @@ public class SAMReadCodec extends AsciiFeatureCodec<SAMReadFeature> {
         final byte[] qualities = StringUtil.stringToBytes(tokens[10]);
 
         // Infer the alignment end.
-        Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+        Cigar cigar = TextCigarCodec.decode(cigarString);
         int alignmentEnd = alignmentStart + cigar.getReferenceLength() - 1;
 
         // Remove printable character conversion from the qualities.

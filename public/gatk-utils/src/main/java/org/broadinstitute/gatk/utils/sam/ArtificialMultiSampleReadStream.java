@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.utils.sam;
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SamFileHeaderMerger;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
@@ -69,13 +69,13 @@ public class ArtificialMultiSampleReadStream implements Iterable<SAMRecord> {
     }
 
     private void initialize() {
-        Collection<SAMFileReader> perSampleSAMReaders = new ArrayList<SAMFileReader>(perSampleArtificialReadStreams.size());
-        Collection<SAMFileHeader> headers = new ArrayList<SAMFileHeader>(perSampleArtificialReadStreams.size());
+        Collection<SamReader> perSampleSAMReaders = new ArrayList<>(perSampleArtificialReadStreams.size());
+        Collection<SAMFileHeader> headers = new ArrayList<>(perSampleArtificialReadStreams.size());
 
         for ( ArtificialSingleSampleReadStream readStream : perSampleArtificialReadStreams ) {
             Collection<SAMRecord> thisStreamReads = readStream.makeReads();
 
-            SAMFileReader reader = new ArtificialSAMFileReader(readStream.getHeader(),
+            ArtificialSAMFileReader reader = new ArtificialSAMFileReader(readStream.getHeader(),
                                                                thisStreamReads.toArray(new SAMRecord[thisStreamReads.size()]));
             perSampleSAMReaders.add(reader);
             headers.add(reader.getFileHeader());
