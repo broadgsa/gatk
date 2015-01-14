@@ -28,7 +28,6 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 import htsjdk.samtools.seekablestream.SeekableBufferedStream;
 import htsjdk.samtools.seekablestream.SeekableFileStream;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -77,9 +76,13 @@ public class SeekableBufferedStreamUnitTest extends BaseTest {
     // These tests fail because SeekableBuffered stream may return _less_ than the amount you are asking for.
     // make sure that you wrap reads with while-loops.  If these test start failing (meaning that the reads work properly,
     // the layer of protection built into GATKBamIndex can be removed.
+    //
+    // pdexheimer, Jan 2015 - SeekableBufferedStream no longer returns less than the expected amount.
+    // Renaming testIndivisableSmallReadsFAIL to testIndivisableSmallReadsPASS and removing the expected exception
+    // If this bug regresses, the while loop will need to be re-introduced into GATKBamIndex.read()
 
-    @Test(dataProvider = "BasicArgumentsIndivisibleAndSmall", enabled = true, expectedExceptions = java.lang.AssertionError.class)
-    public void testIndivisableSmallReadsFAIL(Integer readLength) throws IOException {
+    @Test(dataProvider = "BasicArgumentsIndivisibleAndSmall", enabled = true)
+    public void testIndivisableSmallReadsPASS(Integer readLength) throws IOException {
         testReadsLength(readLength);
     }
 

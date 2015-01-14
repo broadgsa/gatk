@@ -55,9 +55,6 @@ public class GATKVariantContextUtils {
     @Deprecated
     public final static List<Allele> NO_CALL_ALLELES = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
-    public final static String NON_REF_SYMBOLIC_ALLELE_NAME = "NON_REF";
-    public final static Allele NON_REF_SYMBOLIC_ALLELE = Allele.create("<"+NON_REF_SYMBOLIC_ALLELE_NAME+">", false); // represents any possible non-ref allele at this site
-
     public final static String MERGE_FILTER_PREFIX = "filterIn";
     public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";

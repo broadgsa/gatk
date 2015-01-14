@@ -564,7 +564,7 @@ public class SAMDataSource {
      */
     private GATKSAMIterator getIterator(SAMReaders readers, Shard shard, boolean enableVerification) {
         // Set up merging to dynamically merge together multiple BAMs.
-        Map<SAMFileReader,CloseableIterator<SAMRecord>> iteratorMap = new HashMap<SAMFileReader,CloseableIterator<SAMRecord>>();
+        Map<SamReader,CloseableIterator<SAMRecord>> iteratorMap = new HashMap<>();
 
         for(SAMReaderID id: getReaderIDs()) {
             CloseableIterator<SAMRecord> iterator = null;
@@ -1000,7 +1000,7 @@ public class SAMDataSource {
          * @param iteratorMap A map of readers to iterators.
          * @return An iterator which will merge those individual iterators.
          */
-        public MergingSamRecordIterator createMergingIterator(final Map<SAMFileReader,CloseableIterator<SAMRecord>> iteratorMap) {
+        public MergingSamRecordIterator createMergingIterator(final Map<SamReader,CloseableIterator<SAMRecord>> iteratorMap) {
             return new MergingSamRecordIterator(headerMerger,iteratorMap,true);
         }
 

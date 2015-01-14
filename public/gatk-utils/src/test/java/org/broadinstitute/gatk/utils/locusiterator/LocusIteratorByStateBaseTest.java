@@ -98,7 +98,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
         final private List<CigarElement> elements;
 
         public LIBSTest(final String cigarString) {
-            final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+            final Cigar cigar = TextCigarCodec.decode(cigarString);
             this.cigarString = cigarString;
             this.elements = cigar.getCigarElements();
             this.readLength = cigar.getReadLength();

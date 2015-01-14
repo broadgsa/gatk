@@ -43,6 +43,8 @@ import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -92,7 +94,7 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
         // and isBiallelic() while ignoring the <NON_REF> allele
         boolean biallelicSNP = vc.isSNP() && vc.isBiallelic();
 
-        if(vc.hasAllele(GVCF_NONREF)){
+        if(vc.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE)){
             // If we have the GVCF <NON_REF> allele, then the SNP is biallelic
             // iff there are 3 alleles and both the reference and first alt
             // allele are length 1.
@@ -117,8 +119,6 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
 
         gb.attribute(getKeyNames().get(0), Double.valueOf(String.format("%.2f", ratio)));
     }
-
-    private static final Allele GVCF_NONREF = Allele.create("<NON_REF>", false);
 
     private Double annotateWithPileup(final AlignmentContext stratifiedContext, final VariantContext vc) {
 
@@ -175,7 +175,7 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
 
     }
 
-    public List<String> getKeyNames() { return Arrays.asList("AB"); }
+    public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.ALLELE_BALANCE_KEY); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Allele balance for each het genotype")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(GATKVCFHeaderLines.getFormatLine(getKeyNames().get(0))); }
 }

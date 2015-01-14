@@ -29,6 +29,8 @@ import htsjdk.samtools.liftover.LiftOver;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.Output;
@@ -41,9 +43,10 @@ import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.engine.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.variantcontext.writer.Options;
-import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -109,12 +112,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
         Map<String, VCFHeader> vcfHeaders = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
+        Set<VCFHeaderLine> metaData = new HashSet<>();
         if ( vcfHeaders.containsKey(trackName) )
             metaData.addAll(vcfHeaders.get(trackName).getMetaDataInSortedOrder());
         if ( RECORD_ORIGINAL_LOCATION ) {
-            metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
-            metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));
+            metaData.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_CONTIG_KEY));
+            metaData.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_START_KEY));
         }
 
 
@@ -140,8 +143,8 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
             if ( RECORD_ORIGINAL_LOCATION ) {
                 vc = new VariantContextBuilder(vc)
-                        .attribute("OriginalChr", fromInterval.getSequence())
-                        .attribute("OriginalStart", fromInterval.getStart()).make();
+                        .attribute(GATKVCFConstants.ORIGINAL_CONTIG_KEY, fromInterval.getSequence())
+                        .attribute(GATKVCFConstants.ORIGINAL_START_KEY, fromInterval.getStart()).make();
             }
 
             if ( originalVC.isSNP() && originalVC.isBiallelic() && GATKVariantContextUtils.getSNPSubstitutionType(originalVC) != GATKVariantContextUtils.getSNPSubstitutionType(vc) ) {

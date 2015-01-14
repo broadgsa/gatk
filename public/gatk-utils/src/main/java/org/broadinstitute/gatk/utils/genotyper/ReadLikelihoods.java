@@ -33,7 +33,7 @@ import org.broadinstitute.gatk.utils.downsampling.AlleleBiasedDownsamplingUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
-import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.util.*;
 
@@ -1081,13 +1081,13 @@ public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList
      * @param nonRefAllele the non-ref allele.
      *
      * @throws IllegalArgumentException if {@code nonRefAllele} is anything but the designated &lt;NON_REF&gt;
-     * symbolic allele {@link GATKVariantContextUtils#NON_REF_SYMBOLIC_ALLELE}.
+     * symbolic allele {@link org.broadinstitute.gatk.utils.variant.GATKVCFConstants#NON_REF_SYMBOLIC_ALLELE}.
      */
     public void addNonReferenceAllele(final A nonRefAllele) {
 
         if (nonRefAllele == null)
             throw new IllegalArgumentException("non-ref allele cannot be null");
-        if (!nonRefAllele.equals(GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE))
+        if (!nonRefAllele.equals(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE))
             throw new IllegalArgumentException("the non-ref allele is not valid");
         // Already present?
         if (alleles.alleleIndex(nonRefAllele) != -1)

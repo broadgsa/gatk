@@ -336,7 +336,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         final int readLen = pre + contigLen + post;
         final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read1", 0, 1, readLen);
         read.setAlignmentStart(1);
-        read.setCigar(TextCigarCodec.getSingleton().decode(pre + "S" + contigLen + "M" + post + "S"));
+        read.setCigar(TextCigarCodec.decode(pre + "S" + contigLen + "M" + post + "S"));
         read.setBaseQualities(Utils.dupBytes((byte) 30, readLen));
         read.setReadBases(Utils.dupBytes((byte)'A', readLen));
         read.setMappingQuality(60);

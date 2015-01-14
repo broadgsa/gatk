@@ -39,6 +39,7 @@ import org.broadinstitute.gatk.utils.variant.ChromosomeCountConstants;
 import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.engine.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -337,7 +338,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             if ( mergedVC == null )
                 continue;
 
-            if ( mergedVC.hasAllele(GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE) )
+            if ( mergedVC.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE) )
                 throw new UserException("CombineVariants should not be used to merge gVCFs produced by the HaplotypeCaller; use CombineGVCFs instead");
 
             final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);

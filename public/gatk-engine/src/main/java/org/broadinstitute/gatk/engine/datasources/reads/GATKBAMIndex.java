@@ -363,6 +363,8 @@ public class GATKBAMIndex {
 
     private void read(final ByteBuffer buffer) {
         final int bytesRequested = buffer.limit();
+        if (bytesRequested == 0)
+            return;
 
         try {
 
@@ -379,25 +381,19 @@ public class GATKBAMIndex {
                         mFile));
             }
 
-            int totalBytesRead = 0;
-            // This while loop must terminate since we demand that we read at least one byte from the file at each iteration
-           while (totalBytesRead < bytesRequested) {
-                //  bufferedStream.read may return less than the requested amount of byte despite
-                // not reaching the end of the file, hence the loop.
-                int bytesRead = bufferedStream.read(byteArray, totalBytesRead, bytesRequested-totalBytesRead);
+            int bytesRead = bufferedStream.read(byteArray, 0, bytesRequested);
 
-                // We have a rigid expectation here to read in exactly the number of bytes we've limited
-                // our buffer to -- if we encounter EOF (-1), the index
-                // must be truncated or otherwise corrupt:
-                if (bytesRead <= 0) {
-                throw new UserException.MalformedFile(mFile, String.format("Premature end-of-file while reading BAM index file %s. " +
-                                                                           "It's likely that this file is truncated or corrupt -- " +
-                                                                           "Please try re-indexing the corresponding BAM file.",
-                                                                           mFile));
-                }
-                totalBytesRead += bytesRead;
+            // We have a rigid expectation here to read in exactly the number of bytes we've limited
+            // our buffer to -- if we encounter EOF (-1), the index
+            // must be truncated or otherwise corrupt:
+            if (bytesRead <= 0) {
+            throw new UserException.MalformedFile(mFile, String.format("Premature end-of-file while reading BAM index file %s. " +
+                                                                       "It's likely that this file is truncated or corrupt -- " +
+                                                                       "Please try re-indexing the corresponding BAM file.",
+                                                                       mFile));
             }
-            if(totalBytesRead != bytesRequested)
+
+            if(bytesRead != bytesRequested)
                 throw new RuntimeException("Read amount different from requested amount. This should not happen.");
 
             buffer.put(byteArray, 0, bytesRequested);
@@ -435,7 +431,7 @@ public class GATKBAMIndex {
             long skipped =  bufferedStream.skip(count);
 
             if( skipped != count ) { //if not managed to skip the requested amount
-		throw new ReviewedGATKException("Index: unable to reposition file channel of index file " + mFile);
+                throw new ReviewedGATKException("Index: unable to reposition file channel of index file " + mFile);
             }
         }
         catch(IOException ex) {

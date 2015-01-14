@@ -33,12 +33,13 @@ import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.GenotypeAnnota
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
-import htsjdk.variant.vcf.VCFHeaderLineType;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypeBuilder;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
 import java.util.Arrays;
 import java.util.List;
@@ -76,11 +77,9 @@ public class MappingQualityZeroBySample extends GenotypeAnnotation {
         gb.attribute(getKeyNames().get(0), mq0);
     }
 
-    public List<String> getKeyNames() { return Arrays.asList(VCFConstants.MAPPING_QUALITY_ZERO_KEY); }
+    public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.MAPPING_QUALITY_ZERO_BY_SAMPLE_KEY); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(
-            new VCFFormatHeaderLine(getKeyNames().get(0), 1,
-                    VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(GATKVCFHeaderLines.getFormatLine(getKeyNames().get(0))); }
 
 
 }

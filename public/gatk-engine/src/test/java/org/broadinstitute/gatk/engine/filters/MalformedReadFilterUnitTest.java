@@ -117,7 +117,7 @@ public class MalformedReadFilterUnitTest extends ReadFilterTest {
     }
 
     protected SAMRecord buildSAMRecord(final String cigarString) {
-        final Cigar nContainingCigar = TextCigarCodec.getSingleton().decode(cigarString);
+        final Cigar nContainingCigar = TextCigarCodec.decode(cigarString);
         return  this.createRead(nContainingCigar, 1, 0, 10);
     }
 
