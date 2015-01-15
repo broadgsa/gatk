@@ -37,19 +37,24 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 /**
- * A read transformer that refactor NDN cigar elements to one N element.
+ * Reduce NDN cigar elements to one N element.
  *
- *  <p>
- *     This read transformer will refactor cigar strings that contain N-D-N elements to one N element (with total length of the three refactored elements).
- *     This is intended primarily for users of RNA-Seq data handling programs such as TopHat2.
- *     Currently we consider that the internal N-D-N motif is illegal and we error out when we encounter it. By refactoring the cigar string of
- *     those specific reads, users of TopHat and other tools can circumvent this problem without affecting the rest of their dataset.
+ * <p>This read transformer will refactor cigar strings that contain N-D-N elements to one N element (with total length
+ * of the three refactored elements). The engine parameter that activate this read transformer is
+ * `--refactor_NDN_cigar_string` / `-fixNDN`</p>
  *
- *     NOTE: any walker that need that functionality should apply that read transformer in its map function, since it won't be activated by the GATK engine.
+ * <h3>Rationale</h3>
+ * <p>Some RNAseq aligners that use a known transcriptome resource (such as TopHat2) produce NDN elements in read CIGARS
+ * when a small exon is entirely deleted during transcription, which ends up looking like [exon1]NDN[exon3]. Currently
+ * we consider that the internal N-D-N motif is illegal and we error out when we encounter it. By refactoring the cigar string of
+ * those specific reads, this read transformer allows users of TopHat and other tools to circumvent this problem without
+ * affecting the rest of their dataset. From the point of view of variant calling, there is no meaningful difference between
+ * the two representations.</p>
  *
- *     The engine parameter that activate this read transformer is --refactor_NDN_cigar_string or -fixNDN
- *  </p>
- *
+ * <h3>Developer notes</h3>
+ * <ul>
+ *     <li>Any walker that needs to apply this functionality should apply that read transformer in its map function, since it won't be activated by the GATK engine.</li>
+ * </ul>
  *
  *
  * @author ami
