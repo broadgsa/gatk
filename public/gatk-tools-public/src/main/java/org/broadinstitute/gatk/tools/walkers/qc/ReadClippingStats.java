@@ -109,11 +109,13 @@ public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClipping
                     info.nClippingEvents++;
                     info.nClippedBases += elt.getLength();
                     break;
-                case M :
+                case EQ : // sequence match
+                case M : // alignment match
                 case D : // deletion w.r.t. the reference
                 case P : // ignore pads
                 case I : // insertion w.r.t. the reference
                 case N : // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
+                case X : // sequence mismatch
                     break;
                 default : throw new IllegalStateException("Case statement didn't deal with cigar op: " + elt.getOperator());
             }

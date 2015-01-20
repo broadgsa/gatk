@@ -625,7 +625,7 @@ public class BAQ {
                     readI += l;
                     break;
                 case D : refI += l; break;
-                case M :
+                case M : case EQ: case X:
                     for (int i = readI; i < readI + l; i++) {
                         int expectedPos = refI - refOffset + (i - readI);
                         baqResult.bq[i] = capBaseByBAQ( baqResult.rawQuals[i], baqResult.bq[i], baqResult.state[i], expectedPos );
