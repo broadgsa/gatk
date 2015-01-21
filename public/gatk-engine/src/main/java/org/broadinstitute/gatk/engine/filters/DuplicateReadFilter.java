@@ -59,7 +59,7 @@ import htsjdk.samtools.SAMRecord;
  * @since Dec 9, 2009
  */
 
-public class DuplicateReadFilter extends ReadFilter {
+public class DuplicateReadFilter extends DisableableReadFilter {
     public boolean filterOut( final SAMRecord read ) {
         return read.getDuplicateReadFlag();
     }

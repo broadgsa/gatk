@@ -32,6 +32,7 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.filters.MappingQualityUnavailableFilter;
+import org.broadinstitute.gatk.engine.filters.DuplicateReadFilter;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -150,8 +151,9 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     //
     // --------------------------------------------------------------------------------
 
-    @ReadFilters({MappingQualityUnavailableFilter.class})
-    public static class DummyReadWalkerWithMapqUnavailableFilter extends ReadWalker<Integer, Integer> {
+    @ReadFilters({MappingQualityUnavailableFilter.class, DuplicateReadFilter.class})
+    @DisabledReadFilters({DuplicateReadFilter.class})
+    public static class DummyReadWalkerWithFilters extends ReadWalker<Integer, Integer> {
         @Output
         PrintStream out;
 
@@ -179,9 +181,25 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testUserReadFilterAppliedBeforeWalker() {
         WalkerTestSpec spec = new WalkerTestSpec("-R " + b37KGReference + " -I " + privateTestDir + "allMAPQ255.bam"
-                + " -T DummyReadWalkerWithMapqUnavailableFilter -o %s -L MT -rf ReassignMappingQuality",
+                + " -T DummyReadWalkerWithFilters -o %s -L MT -rf ReassignMappingQuality",
                 1, Arrays.asList("ecf27a776cdfc771defab1c5d19de9ab"));
         executeTest("testUserReadFilterAppliedBeforeWalker", spec);
+    }
+
+    @Test(enabled = true)
+    public void testUserReadFilterDisabledAppliedBeforeWalker() {
+        WalkerTestSpec spec = new WalkerTestSpec("-R " + b37KGReference + " -I " + privateTestDir + "allMAPQ255.bam"
+                + " -T DummyReadWalkerWithFilters -o %s -L MT -drf DuplicateRead",
+                1, Arrays.asList("897316929176464ebc9ad085f31e7284"));
+        executeTest("testUserReadFilterDisabledAppliedBeforeWalker", spec);
+    }
+
+    @Test( enabled = true, expectedExceptions = RuntimeException.class )
+    public void testUserReadFilterDisabledAppliedBeforeWalkerException() {
+        WalkerTestSpec spec = new WalkerTestSpec("-R " + b37KGReference + " -I " + privateTestDir + "allMAPQ255.bam"
+                + " -T DummyReadWalkerWithFilters -o %s -L MT -drf ReassignMappingQuality",
+                1, Arrays.asList(""));
+        executeTest("testUserReadFilterDisabledAppliedBeforeWalkerException", spec);
     }
 
     @Test

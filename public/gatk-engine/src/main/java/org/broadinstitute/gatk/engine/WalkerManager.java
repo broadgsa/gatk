@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.engine;
 
+import org.broadinstitute.gatk.engine.filters.DisableableReadFilter;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.commandline.Hidden;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
@@ -420,10 +421,18 @@ public class WalkerManager extends PluginManager<Walker> {
     public static Collection<Class<? extends ReadFilter>> getReadFilterTypes(Class<?> walkerClass) {
         List<Class<? extends ReadFilter>> filterTypes = new ArrayList<Class<? extends ReadFilter>>();
         while(walkerClass != null) {
+            // Add the read filters in the ReadFilters annotation
             if(walkerClass.isAnnotationPresent(ReadFilters.class)) {
                 for ( Class c : walkerClass.getAnnotation(ReadFilters.class).value() ) {
                     if( !filterTypes.contains(c) )
                         filterTypes.add(c);
+                }
+            }
+            // Remove read filters in the DisabledReadFilters annotation
+            if(walkerClass.isAnnotationPresent(DisabledReadFilters.class)) {
+                for ( Class c : walkerClass.getAnnotation(DisabledReadFilters.class).value() ) {
+                    if ( filterTypes.contains(c) )
+                        filterTypes.remove(c);
                 }
             }
             walkerClass = walkerClass.getSuperclass();

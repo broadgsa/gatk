@@ -34,6 +34,7 @@ import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.variant.vcf.VCFConstants;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
+import org.broadinstitute.gatk.engine.filters.DisableableReadFilter;
 import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
 import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.*;
@@ -354,7 +355,7 @@ public class GenomeAnalysisEngine {
         final List<ReadFilter> filters = new LinkedList<>();
 
         // First add the user requested filters
-        if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
+        if (this.getArguments().readGroupBlackList != null && !this.getArguments().readGroupBlackList.isEmpty())
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
         for(final String filterName: this.getArguments().readFilters)
             filters.add(this.getFilterManager().createByName(filterName));
@@ -362,6 +363,20 @@ public class GenomeAnalysisEngine {
         // now add the walker default filters.  This ordering is critical important if
         // users need to apply filters that fix up reads that would be removed by default walker filters
         filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
+
+        // disable user-specified read filters, if allowed
+        for(final String filterName: this.getArguments().disabledReadFilters) {
+            ReadFilter filterToDisable = this.getFilterManager().createByName(filterName);
+            if (! (filterToDisable instanceof DisableableReadFilter))
+                throw new IllegalStateException(filterToDisable + " cannot be disabled");
+
+            // so we're not trying to modify the list we're iterating over
+            List<ReadFilter> filtersCopy = new ArrayList<>(filters);
+            for (ReadFilter filter : filtersCopy) {
+                if (filter.getClass() == filterToDisable.getClass())
+                    filters.remove(filter);
+            }
+        }
 
         return Collections.unmodifiableList(filters);
     }
