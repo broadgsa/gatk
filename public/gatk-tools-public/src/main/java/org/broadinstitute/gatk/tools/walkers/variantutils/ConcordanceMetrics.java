@@ -46,9 +46,9 @@ public class ConcordanceMetrics {
     final PrintStream sitesFile;
 
     public ConcordanceMetrics(VCFHeader evaluate, VCFHeader truth, PrintStream inputSitesFile) {
-        HashSet<String> overlappingSamples = new HashSet<String>(evaluate.getGenotypeSamples());
+        HashSet<String> overlappingSamples = new HashSet<>(evaluate.getGenotypeSamples());
         overlappingSamples.retainAll(truth.getGenotypeSamples());
-        perSampleGenotypeConcordance = new HashMap<String, GenotypeConcordanceTable>(overlappingSamples.size());
+        perSampleGenotypeConcordance = new HashMap<>(overlappingSamples.size());
         for ( String sample : overlappingSamples ) {
             perSampleGenotypeConcordance.put(sample,new GenotypeConcordanceTable());
         }
@@ -82,7 +82,7 @@ public class ConcordanceMetrics {
     }
 
     public Map<String,Double> getPerSampleNRD() {
-        Map<String,Double> nrd = new HashMap<String,Double>(perSampleGenotypeConcordance.size());
+        Map<String,Double> nrd = new HashMap<>(perSampleGenotypeConcordance.size());
         for ( Map.Entry<String,GenotypeConcordanceTable> sampleTable : perSampleGenotypeConcordance.entrySet() ) {
             nrd.put(sampleTable.getKey(),calculateNRD(sampleTable.getValue()));
         }
@@ -91,7 +91,7 @@ public class ConcordanceMetrics {
     }
 
     public Map<String,Double> getPerSampleOGC() {
-        Map<String,Double> ogc = new HashMap<String,Double>(perSampleGenotypeConcordance.size());
+        Map<String,Double> ogc = new HashMap<>(perSampleGenotypeConcordance.size());
         for ( Map.Entry<String,GenotypeConcordanceTable> sampleTable : perSampleGenotypeConcordance.entrySet() ) {
             ogc.put(sampleTable.getKey(),calculateOGC(sampleTable.getValue()));
         }
@@ -108,7 +108,7 @@ public class ConcordanceMetrics {
     }
 
     public Map<String,Double> getPerSampleNRS() {
-        Map<String,Double> nrs = new HashMap<String,Double>(perSampleGenotypeConcordance.size());
+        Map<String,Double> nrs = new HashMap<>(perSampleGenotypeConcordance.size());
         for ( Map.Entry<String,GenotypeConcordanceTable> sampleTable : perSampleGenotypeConcordance.entrySet() ) {
             nrs.put(sampleTable.getKey(),calculateNRS(sampleTable.getValue()));
         }
@@ -121,25 +121,20 @@ public class ConcordanceMetrics {
     }
 
     @Requires({"eval != null","truth != null"})
-    public void update(VariantContext eval, VariantContext truth) {
-        boolean doPrint = false;
+    public void update(final VariantContext eval, final VariantContext truth) {
         overallSiteConcordance.update(eval,truth);
-        Set<String> alleleTruth = new HashSet<String>(8);
-        String truthRef = truth.getReference().getBaseString();
-        alleleTruth.add(truthRef);
-        for ( Allele a : truth.getAlternateAlleles() ) {
-            alleleTruth.add(a.getBaseString());
-        }
-        for ( String sample : perSampleGenotypeConcordance.keySet() ) {
-            Genotype evalGenotype = eval.getGenotype(sample);
-            Genotype truthGenotype = truth.getGenotype(sample);
+        final Set<Allele> truthAlleles = new HashSet<>(truth.getAlleles());
+        for ( final String sample : perSampleGenotypeConcordance.keySet() ) {
+            final Genotype evalGenotype = eval.getGenotype(sample);
+            final Genotype truthGenotype = truth.getGenotype(sample);
             // ensure genotypes are either no-call ("."), missing (empty alleles), or diploid
             if ( ( ! evalGenotype.isNoCall() && evalGenotype.getPloidy() != 2 && evalGenotype.getPloidy() > 0) ||
                  ( ! truthGenotype.isNoCall() && truthGenotype.getPloidy() != 2 && truthGenotype.getPloidy() > 0) ) {
                 throw new UserException(String.format("Concordance Metrics is currently only implemented for DIPLOID genotypes, found eval ploidy: %d, comp ploidy: %d",evalGenotype.getPloidy(),truthGenotype.getPloidy()));
             }
-            perSampleGenotypeConcordance.get(sample).update(evalGenotype,truthGenotype,alleleTruth,truthRef);
-            doPrint = overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth,truthRef);
+            final boolean allelesMatch = doAllelesMatch(evalGenotype, truthGenotype, truth.getReference(), truthAlleles);
+            perSampleGenotypeConcordance.get(sample).update(allelesMatch, evalGenotype, truthGenotype);
+            final boolean doPrint = overallGenotypeConcordance.update(allelesMatch, evalGenotype, truthGenotype);
             if(sitesFile != null && doPrint)
                 sitesFile.println(eval.getChr() + ":" + eval.getStart() + "\t" + sample + "\t" + truthGenotype.getType() + "\t" + evalGenotype.getType());
         }
@@ -211,6 +206,29 @@ public class ConcordanceMetrics {
         return total == 0l ? 0.0 : ( (double) confirmedVariant ) / ( (double) ( total ) );
     }
 
+    private boolean doAllelesMatch(final Genotype eval, final Genotype truth,
+                                   final Allele truthRef, final Set<Allele> truthSiteAlleles) {
+        // When determining if alleles match, there are a number of cases to consider.  In order:
+        //  1) If either genotype is uncalled or unavailable, the alleles MATCH
+        //  2) If the truth genotype is hom ref, then:
+        //     a) If the truth variant is mononallelic (no alternate alleles), the alleles MATCH
+        //     b) Otherwise, the alleles match IFF the alleles in the eval genotype are a subset
+        //        of the alleles in the truth VARIANT
+        //  3) Otherwise, the alleles match IFF the alleles in the eval genotype are a subset
+        //     of the alleles in (the truth GENOTYPE + the truth REF allele)
+        boolean matching = true;
+        if (eval.isCalled() && truth.isCalled()) { // Case 1
+            if (truth.isHomRef()) { // Case 2
+                matching = truthSiteAlleles.size() == 1 || truthSiteAlleles.containsAll(eval.getAlleles());
+            } else { // Case 3
+                final Set<Allele> truthAlleles = new HashSet<>(truth.getAlleles());
+                truthAlleles.add(truthRef);
+                matching = truthAlleles.containsAll(eval.getAlleles());
+            }
+        }
+        return matching;
+    }
+
 
     class GenotypeConcordanceTable {
 
@@ -223,38 +241,10 @@ public class ConcordanceMetrics {
         }
 
         @Requires({"eval!=null","truth != null","truthAlleles != null"})
-        public Boolean update(Genotype eval, Genotype truth, Set<String> truthAlleles, String truthRef) {
-            // this is slow but correct.
-
-            // NOTE: a reference call in "truth" is a special case, the eval can match *any* of the truth alleles
-            // that is, if the reference base is C, and a sample is C/C in truth, A/C, A/A, T/C, T/T will
-            // all match, so long as A and T are alleles in the truth callset.
-            boolean matchingAlt = true;
-            int evalGT, truthGT;
-            if ( eval.isCalled() && truth.isCalled() && truth.isHomRef() ) {
-                // by default, no-calls "match" between alleles, so if
-                // one or both sites are no-call or unavailable, the alt alleles match
-                // otherwise, check explicitly: if the eval has an allele that's not ref, no-call, or present in truth
-                // the alt allele is mismatching - regardless of whether the genotype is correct.
-                for ( Allele evalAllele : eval.getAlleles() ) {
-                    matchingAlt &= truthAlleles.contains(evalAllele.getBaseString());
-                }
-            } else if ( eval.isCalled() && truth.isCalled() ) {
-                // otherwise, the eval genotype has to match either the alleles in the truth genotype, or the truth reference allele
-                // todo -- this can be sped up by caching the truth allele sets
-                Set<String> genoAlleles = new HashSet<String>(3);
-                genoAlleles.add(truthRef);
-                for ( Allele truthGenoAl : truth.getAlleles() ) {
-                    genoAlleles.add(truthGenoAl.getBaseString());
-                }
-                for ( Allele evalAllele : eval.getAlleles() ) {
-                    matchingAlt &= genoAlleles.contains(evalAllele.getBaseString());
-                }
-            }
-
+        public Boolean update(final boolean matchingAlt, final Genotype eval, final Genotype truth) {
             if ( matchingAlt ) {
-                evalGT = eval.getType().ordinal();
-                truthGT = truth.getType().ordinal();
+                final int evalGT = eval.getType().ordinal();
+                final int truthGT = truth.getType().ordinal();
                 genotypeCounts[evalGT][truthGT]++;
                 if(evalGT != truthGT)  //report variants where genotypes don't match
                     return true;
