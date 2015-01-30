@@ -73,16 +73,16 @@ public class ListFileUtils {
                     throw new UserException.CouldNotReadInputFile(new File(inputFileName), "Unable to find file while unpacking reads", ex);
                 }
             }
-            else if(inputFileName.toLowerCase().endsWith(".bam")) {
+            else if(inputFileName.toLowerCase().endsWith(".bam") || inputFileName.toLowerCase().endsWith(".cram")) {
                 unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
             }
             else if(inputFileName.endsWith("stdin")) {
                 unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
             }
             else {
-                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I, --input_file) supports only BAM files with the .bam extension and lists of BAM files " +
-                        "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                        "of BAM files is in the correct format, update the extension, and try again.",inputFileName));
+                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I, --input_file) supports only BAM/CRAM files with the .bam/.cram extension and lists of BAM/CRAM files " +
+                        "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM/CRAM file or list " +
+                        "of BAM/CRAM files is in the correct format, update the extension, and try again.",inputFileName));
             }
         }
         return unpackedReads;

@@ -23,27 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.datasources.reads;
+package org.broadinstitute.gatk.utils.io;
 
-import org.broadinstitute.gatk.utils.sam.SAMReaderID;
-import org.broadinstitute.gatk.engine.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.GenomeLocParser;
+import java.io.File;
 
-import java.util.List;
-import java.util.Collections;
-
-/**
- * A mock locus shard, usable for infrastructure that requires a shard to behave properly.
- *
- * @author mhanna
- * @version 0.1
- */
-public class MockLocusShard extends LocusShard {
-    public MockLocusShard(final GenomeLocParser genomeLocParser,final List<GenomeLoc> intervals) {
-        super(  genomeLocParser,
-                new SAMDataSource(null, Collections.<SAMReaderID>emptyList(),new ThreadAllocation(),null,genomeLocParser),
-                intervals,
-                null);
-    }
+public interface ReferenceBacked {
+    public File getReferenceFile();
+    public void setReferenceFile(final File reference);
 }

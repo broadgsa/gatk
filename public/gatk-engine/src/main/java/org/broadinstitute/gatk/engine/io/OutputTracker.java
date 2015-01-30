@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.engine.io;
 
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.ValidationStringency;
+import org.broadinstitute.gatk.utils.io.ReferenceBacked;
 import org.broadinstitute.gatk.utils.commandline.ArgumentSource;
 import org.broadinstitute.gatk.engine.io.storage.Storage;
 import org.broadinstitute.gatk.engine.io.storage.StorageFactory;
@@ -37,7 +37,7 @@ import org.broadinstitute.gatk.utils.classloader.JVMUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.io.IOUtils;
-import org.broadinstitute.gatk.utils.sam.SAMFileReaderBuilder;
+import org.broadinstitute.gatk.utils.sam.SAMReaderBuilder;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -49,7 +49,12 @@ import java.util.Map;
  * Manages the output and err streams that are created specifically for walker
  * output.
  */
-public abstract class OutputTracker {
+public abstract class OutputTracker implements ReferenceBacked {
+    /**
+     * The reference file.
+     */
+    private File referenceFile;
+
     /**
      * The streams to which walker users should be reading directly.
      */
@@ -78,6 +83,16 @@ public abstract class OutputTracker {
      */
     public abstract <T> T getStorage( Stub<T> stub );
 
+    @Override
+    public File getReferenceFile() {
+        return referenceFile;
+    }
+
+    @Override
+    public void setReferenceFile(final File referenceFile) {
+        this.referenceFile = referenceFile;
+    }
+
     public void prepareWalker( Walker walker, ValidationStringency strictnessLevel ) {
         for( Map.Entry<ArgumentSource,Object> io: inputs.entrySet() ) {
             ArgumentSource targetField = io.getKey();
@@ -85,8 +100,8 @@ public abstract class OutputTracker {
 
             // Ghastly hack: reaches in and finishes building out the SAMFileReader.
             // TODO: Generalize this, and move it to its own initialization step.
-            if( targetValue instanceof SAMFileReaderBuilder) {
-                SAMFileReaderBuilder builder = (SAMFileReaderBuilder)targetValue;
+            if( targetValue instanceof SAMReaderBuilder) {
+                SAMReaderBuilder builder = (SAMReaderBuilder)targetValue;
                 builder.setValidationStringency(strictnessLevel);
                 targetValue = builder.build();
             }

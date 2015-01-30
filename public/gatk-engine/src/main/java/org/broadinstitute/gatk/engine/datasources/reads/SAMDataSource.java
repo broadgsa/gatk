@@ -29,6 +29,7 @@ import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SamFileHeaderMerger;
 import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloseableIterator;
+import htsjdk.samtools.util.CloserUtil;
 import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.ReadMetrics;
@@ -49,7 +50,8 @@ import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
 import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.iterators.GATKSAMIteratorAdapter;
 import org.broadinstitute.gatk.utils.sam.GATKSAMReadGroupRecord;
-import org.broadinstitute.gatk.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.sam.GATKSAMRecordIterator;
 import org.broadinstitute.gatk.utils.sam.SAMReaderID;
 
 import java.io.File;
@@ -64,7 +66,8 @@ import java.util.concurrent.Callable;
  * Converts shards to SAM iterators over the specified region
  */
 public class SAMDataSource {
-    final private static GATKSamRecordFactory factory = new GATKSamRecordFactory();
+    /** Reference file */
+    private final File referenceFile;
 
     /** Backing support for reads. */
     protected final ReadProperties readProperties;
@@ -177,8 +180,11 @@ public class SAMDataSource {
      *
      * @param samFiles list of reads files.
      */
-    public SAMDataSource(Collection<SAMReaderID> samFiles, ThreadAllocation threadAllocation, Integer numFileHandles, GenomeLocParser genomeLocParser) {
+    public SAMDataSource(final File referenceFile, final Collection<SAMReaderID> samFiles,
+                         final ThreadAllocation threadAllocation, final Integer numFileHandles,
+                         final GenomeLocParser genomeLocParser) {
         this(
+                referenceFile,
                 samFiles,
                 threadAllocation,
                 numFileHandles,
@@ -198,6 +204,7 @@ public class SAMDataSource {
      * For testing purposes
      */
     public SAMDataSource(
+            final File referenceFile,
             Collection<SAMReaderID> samFiles,
             ThreadAllocation threadAllocation,
             Integer numFileHandles,
@@ -209,7 +216,8 @@ public class SAMDataSource {
             ValidationExclusion exclusionList,
             Collection<ReadFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci) {
-        this(   samFiles,
+        this(   referenceFile,
+                samFiles,
                 threadAllocation,
                 numFileHandles,
                 genomeLocParser,
@@ -230,6 +238,7 @@ public class SAMDataSource {
 
     /**
      * Create a new SAM data source given the supplied read metadata.
+     * @param referenceFile reference file.
      * @param samFiles list of reads files.
      * @param useOriginalBaseQualities True if original base qualities should be used.
      * @param strictness Stringency of reads file parsing.
@@ -247,6 +256,7 @@ public class SAMDataSource {
      * @param intervalMergingRule how are adjacent intervals merged by the sharder
      */
     public SAMDataSource(
+            final File referenceFile,
             Collection<SAMReaderID> samFiles,
             ThreadAllocation threadAllocation,
             Integer numFileHandles,
@@ -265,6 +275,7 @@ public class SAMDataSource {
             final Map<String, String> sampleRenameMap,
             final IntervalMergingRule intervalMergingRule) {
 
+        this.referenceFile = referenceFile;
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
         this.intervalMergingRule = intervalMergingRule;
@@ -303,7 +314,7 @@ public class SAMDataSource {
                         "Please check that the file is present and readable and try again.");
 
             // Get the sort order, forcing it to coordinate if unsorted.
-            SAMFileReader reader = readers.getReader(readerID);
+            SamReader reader = readers.getReader(readerID);
             SAMFileHeader header = reader.getFileHeader();
 
             headers.put(readerID,header);
@@ -343,7 +354,7 @@ public class SAMDataSource {
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.
         for(SAMReaderID id: readerIDs) {
-            SAMFileReader reader = readers.getReader(id);
+            SamReader reader = readers.getReader(id);
 
             ReadGroupMapping mappingToMerged = new ReadGroupMapping();
 
@@ -385,8 +396,8 @@ public class SAMDataSource {
     public void close() {
         SAMReaders readers = resourcePool.getAvailableReaders();
         for(SAMReaderID readerID: readerIDs) {
-            SAMFileReader reader = readers.getReader(readerID);
-            reader.close();
+            SamReader reader = readers.getReader(readerID);
+            CloserUtil.close(reader);
         }
     }
 
@@ -464,20 +475,50 @@ public class SAMDataSource {
     }
 
     /**
-     * True if all readers have an index.
-     * @return True if all readers have an index.
-     */
-    public boolean hasIndex() {
-        return readerIDs.size() == bamIndices.size();
-    }
-
-    /**
      * Gets the index for a particular reader.  Always preloaded.
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
      */
     public GATKBAMIndex getIndex(final SAMReaderID id) {
         return bamIndices.get(id);
+    }
+
+    /**
+     * Return true if the index for a particular reader exists.
+     * @param id Id of the reader.
+     * @return True if the index exists.
+     */
+    public boolean hasIndex(final SAMReaderID id) {
+        return bamIndices.containsKey(id);
+    }
+
+    /**
+     * True if all readers that require an index for SAMFileSpan creation have an index.
+     * @return True if all readers that require an index for SAMFileSpan creation have an index.
+     */
+    public boolean hasIndex() {
+        for (final SAMReaderID readerID: readerIDs)
+            if (isSAMFileSpanSupported(readerID))
+                if (!hasIndex(readerID))
+                    return false;
+        return true;
+    }
+    /**
+     * Returns true if the reader can use file spans.
+     * @return true if file spans are supported.
+     */
+    private boolean isSAMFileSpanSupported(final SAMReaderID readerID) {
+        // example: https://github.com/samtools/htsjdk/blob/ee4308ede60962f3ab4275473ac384724b471149/src/java/htsjdk/samtools/BAMFileReader.java#L341
+        return readerID.getSamFile().getName().toLowerCase().endsWith(SamReader.Type.BAM_TYPE.fileExtension());
+    }
+
+    /**
+     * Returns true if the reader caches its SAMFileHeader for each iterator.
+     * @return true if this reader caches its SAMFileHeader for each iterator.
+     */
+    private boolean isIteratorSAMFileHeaderCached(final SAMReaderID readerID) {
+        // example: https://github.com/samtools/htsjdk/blob/ee4308ede60962f3ab4275473ac384724b471149/src/java/htsjdk/samtools/CRAMFileReader.java#L183
+        return !readerID.getSamFile().getName().toLowerCase().endsWith(SamReader.Type.CRAM_TYPE.fileExtension());
     }
 
     /**
@@ -538,7 +579,17 @@ public class SAMDataSource {
         SAMReaders readers = resourcePool.getAvailableReaders();
 
         for ( SAMReaderID id: getReaderIDs() ) {
-            initialPositions.put(id, new GATKBAMFileSpan(readers.getReader(id).getFilePointerSpanningReads()));
+            GATKBAMFileSpan span;
+            try {
+                span = new GATKBAMFileSpan(readers.getReader(id).indexing().getFilePointerSpanningReads());
+            } catch (RuntimeException e) {
+                if ("Not implemented.".equals(e.getMessage())) { https://github.com/samtools/htsjdk/blob/035d4319643657d715e93c53c13fe4a1f64e0188/src/java/htsjdk/samtools/CRAMFileReader.java#L197
+                    span = new GATKBAMFileSpan(new GATKChunk(0, Long.MAX_VALUE));
+                } else {
+                    throw e;
+                }
+            }
+            initialPositions.put(id, span);
         }
 
         resourcePool.releaseReaders(readers);
@@ -567,7 +618,7 @@ public class SAMDataSource {
         Map<SamReader,CloseableIterator<SAMRecord>> iteratorMap = new HashMap<>();
 
         for(SAMReaderID id: getReaderIDs()) {
-            CloseableIterator<SAMRecord> iterator = null;
+            CloseableIterator<SAMRecord> iterator;
 
             // TODO: null used to be the signal for unmapped, but we've replaced that with a simple index query for the last bin.
             // TODO: Kill this check once we've proven that the design elements are gone.
@@ -576,19 +627,33 @@ public class SAMDataSource {
 
             try {
                 if(threadAllocation.getNumIOThreads() > 0) {
+                    // TODO: need to add friendly error if -nit is used with non BAM. Later, possibly add this capability with CRAM when htsjdk supports CRAM file spans are supported.
                     BlockInputStream inputStream = readers.getInputStream(id);
                     inputStream.submitAccessPlan(new BAMAccessPlan(id, inputStream, (GATKBAMFileSpan) shard.getFileSpans().get(id)));
-                    BAMRecordCodec codec = new BAMRecordCodec(getHeader(id),factory);
+                    BAMRecordCodec codec = new BAMRecordCodec(getHeader(id));
                     codec.setInputStream(inputStream);
                     iterator = new BAMCodecIterator(inputStream,readers.getReader(id),codec);
                 }
                 else {
-                    iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+                    final SamReader reader = readers.getReader(id);
+                    try {
+                        iterator = ((SamReader.Indexing)reader).iterator(shard.getFileSpans().get(id));
+                    } catch (RuntimeException re) {
+                        if ("Not implemented.".equals(re.getMessage())) { // https://github.com/samtools/htsjdk/blob/429f2a8585d9c98a3efd4cedc5188b60b1e66ac5/src/java/htsjdk/samtools/CRAMFileReader.java#L192
+                            // No way to jump into the file span. Query the whole file.
+                            iterator = readers.getReader(id).iterator();
+                        } else {
+                            throw re;
+                        }
+                    }
                 }
             } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFormatExceptions) sometimes
                 throw new UserException.MalformedBAM(id.getSamFile(), e.getMessage());
             }
 
+            // At the moment, too many other classes to change for GATKSAMRecordIterator converter.
+            // Force the compiler to just let the conversion happen, since generics are erased anyway.
+            iterator = (CloseableIterator<SAMRecord>)(Object)new GATKSAMRecordIterator(iterator);
             iterator = new MalformedBAMErrorReformatingIterator(id.getSamFile(), iterator);
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
@@ -614,11 +679,11 @@ public class SAMDataSource {
 
     private class BAMCodecIterator implements CloseableIterator<SAMRecord> {
         private final BlockInputStream inputStream;
-        private final SAMFileReader reader;
+        private final SamReader reader;
         private final BAMRecordCodec codec;
         private SAMRecord nextRead;
 
-        private BAMCodecIterator(final BlockInputStream inputStream, final SAMFileReader reader, final BAMRecordCodec codec) {
+        private BAMCodecIterator(final BlockInputStream inputStream, final SamReader reader, final BAMRecordCodec codec) {
             this.inputStream = inputStream;
             this.reader = reader;
             this.codec = codec;
@@ -823,7 +888,7 @@ public class SAMDataSource {
     /**
      * A collection of readers derived from a reads metadata structure.
      */
-    private class SAMReaders implements Iterable<SAMFileReader> {
+    private class SAMReaders implements Iterable<SamReader> {
         /**
          * Cached representation of the merged header used to generate a merging iterator.
          */
@@ -832,7 +897,7 @@ public class SAMDataSource {
         /**
          * Internal storage for a map of id -> reader.
          */
-        private final Map<SAMReaderID,SAMFileReader> readers = new LinkedHashMap<SAMReaderID,SAMFileReader>();
+        private final Map<SAMReaderID,SamReader> readers = new LinkedHashMap<>();
 
         /**
          * The inptu streams backing
@@ -860,7 +925,11 @@ public class SAMDataSource {
 
                 checkForUnsupportedBamFile(init.reader.getFileHeader());
 
-                if (removeProgramRecords) {
+                if (removeProgramRecords && isIteratorSAMFileHeaderCached(readerID)) {
+                    // Only works when the SamReader implementation caches its header.
+                    // Some implementations (ex: CRAM) rewrite the new underlying file header in reader.getIterator().
+                    // Later, when MergingSamRecordIterator goes to check the headers with .contains()/.equals(),
+                    // it will error out complaining it can't find the unmodified version of the header.
                     init.reader.getFileHeader().setProgramRecords(new ArrayList<SAMProgramRecord>());
                 }
 
@@ -883,9 +952,9 @@ public class SAMDataSource {
 
             // Examine the bam headers, perform any requested sample renaming on them, and add
             // them to the list of headers to pass to the Picard SamFileHeaderMerger:
-            for ( final Map.Entry<SAMReaderID, SAMFileReader> readerEntry : readers.entrySet() ) {
+            for ( final Map.Entry<SAMReaderID, SamReader> readerEntry : readers.entrySet() ) {
                 final SAMReaderID readerID = readerEntry.getKey();
-                final SAMFileReader reader = readerEntry.getValue();
+                final SamReader reader = readerEntry.getValue();
                 final SAMFileHeader header = reader.getFileHeader();
 
                 // The remappedSampleName will be null if either no on-the-fly sample renaming was requested,
@@ -1009,7 +1078,7 @@ public class SAMDataSource {
          * @param id The ID of the reader to retrieve.
          * @return the reader associated with the given id.
          */
-        public SAMFileReader getReader(SAMReaderID id) {
+        public SamReader getReader(SAMReaderID id) {
             if(!readers.containsKey(id))
                 throw new NoSuchElementException("No reader is associated with id " + id);
             return readers.get(id);
@@ -1030,7 +1099,7 @@ public class SAMDataSource {
          * @return The id associated the given reader, or null if the reader is not present in this collection.
          */
         protected SAMReaderID getReaderID(SamReader reader) {
-            for(Map.Entry<SAMReaderID,SAMFileReader> entry: readers.entrySet()) {
+            for(Map.Entry<SAMReaderID,SamReader> entry: readers.entrySet()) {
                 if(reader == entry.getValue())
                     return entry.getKey();
             }
@@ -1042,7 +1111,7 @@ public class SAMDataSource {
          * Returns an iterator over all readers in this structure.
          * @return An iterator over readers.
          */
-        public Iterator<SAMFileReader> iterator() {
+        public Iterator<SamReader> iterator() {
             return readers.values().iterator();
         }
 
@@ -1058,18 +1127,23 @@ public class SAMDataSource {
     class ReaderInitializer implements Callable<ReaderInitializer> {
         final SAMReaderID readerID;
         BlockInputStream blockInputStream = null;
-        SAMFileReader reader;
+        SamReader reader;
 
         public ReaderInitializer(final SAMReaderID readerID) {
             this.readerID = readerID;
         }
 
         public ReaderInitializer call() {
-            final File indexFile = findIndexFile(readerID.getSamFile());
             try {
                 if (threadAllocation.getNumIOThreads() > 0)
                     blockInputStream = new BlockInputStream(dispatcher,readerID,false);
-                reader = new SAMFileReader(readerID.getSamFile(),indexFile,false);
+                reader = SamReaderFactory.makeDefault()
+                        .referenceSequence(referenceFile)
+                        .validationStringency(validationStringency)
+                        .setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+                        .setOption(SamReaderFactory.Option.INCLUDE_SOURCE_IN_RECORDS, true)
+                        .open(readerID.getSamFile());
+
             } catch ( RuntimeIOException e ) {
                 throw new UserException.CouldNotReadInputFile(readerID.getSamFile(), e);
             } catch ( SAMFormatException e ) {
@@ -1081,9 +1155,6 @@ public class SAMDataSource {
             catch ( RuntimeException e ) {
                 throw new UserException.MalformedBAM(readerID.getSamFile(), e.getMessage());
             }
-            reader.setSAMRecordFactory(factory);
-            reader.enableFileSource(true);
-            reader.setValidationStringency(validationStringency);
             return this;
         }
     }

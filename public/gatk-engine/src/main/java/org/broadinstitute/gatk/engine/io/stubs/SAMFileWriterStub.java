@@ -32,6 +32,7 @@ import htsjdk.samtools.util.ProgressLoggerInterface;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.utils.io.ReferenceBacked;
 import org.broadinstitute.gatk.utils.sam.GATKSAMFileWriter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.utils.baq.BAQ;
@@ -50,7 +51,7 @@ import java.util.List;
  * @author mhanna
  * @version 0.1
  */
-public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter {
+public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter, ReferenceBacked {
     /**
      * Engine to use for collecting attributes for the output SAM file.
      */
@@ -66,6 +67,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter
      * whatever happens to create the StreamConnector.
      */
     private final File samFile;
+
+    /**
+     * The reference file for stub.
+     */
+    private File referenceFile;
 
     /**
      * The target output stream, to be used in place of the SAM file.
@@ -187,6 +193,16 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, GATKSAMFileWriter
 
     public OutputStream getOutputStream() {
         return samOutputStream;
+    }
+
+    @Override
+    public File getReferenceFile() {
+        return referenceFile;
+    }
+
+    @Override
+    public void setReferenceFile(final File referenceFile) {
+        this.referenceFile = referenceFile;
     }
 
     /**

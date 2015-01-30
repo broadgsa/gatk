@@ -63,6 +63,7 @@ public class SAMDataSourceUnitTest extends BaseTest {
     // TODO: These legacy tests should really be replaced with a more comprehensive suite of tests for SAMDataSource
 
     private List<SAMReaderID> readers;
+    private File referenceFile;
     private IndexedFastaSequenceFile seq;
     private GenomeLocParser genomeLocParser;
 
@@ -76,7 +77,8 @@ public class SAMDataSourceUnitTest extends BaseTest {
         readers = new ArrayList<SAMReaderID>();
 
         // sequence
-        seq = new CachingIndexedFastaSequenceFile(new File(b36KGReference));
+        referenceFile = new File(b36KGReference);
+        seq = new CachingIndexedFastaSequenceFile(referenceFile);
         genomeLocParser = new GenomeLocParser(seq.getSequenceDictionary());
     }
 
@@ -101,7 +103,9 @@ public class SAMDataSourceUnitTest extends BaseTest {
         readers.add(new SAMReaderID(new File(validationDataLocation+"/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),new Tags()));
 
         // the sharding strat.
-        SAMDataSource data = new SAMDataSource(readers,
+        SAMDataSource data = new SAMDataSource(
+                referenceFile,
+                readers,
                 new ThreadAllocation(),
                 null,
                 genomeLocParser,
@@ -155,7 +159,9 @@ public class SAMDataSourceUnitTest extends BaseTest {
         readers.add(new SAMReaderID(new File(b37GoodBAM),new Tags()));
 
         // use defaults
-        SAMDataSource data = new SAMDataSource(readers,
+        SAMDataSource data = new SAMDataSource(
+                referenceFile,
+                readers,
                 new ThreadAllocation(),
                 null,
                 genomeLocParser,
@@ -171,7 +177,9 @@ public class SAMDataSourceUnitTest extends BaseTest {
         assertTrue(defaultProgramRecords.size() != 0, "testRemoveProgramRecords: No program records found when using default constructor");
 
         boolean removeProgramRecords = false;
-        data = new SAMDataSource(readers,
+        data = new SAMDataSource(
+                referenceFile,
+                readers,
                 new ThreadAllocation(),
                 null,
                 genomeLocParser,
@@ -192,7 +200,9 @@ public class SAMDataSourceUnitTest extends BaseTest {
         assertEquals(dontRemoveProgramRecords, defaultProgramRecords, "testRemoveProgramRecords: default program records differ from removeProgramRecords = false");
 
         removeProgramRecords = true;
-        data = new SAMDataSource(readers,
+        data = new SAMDataSource(
+                referenceFile,
+                readers,
                 new ThreadAllocation(),
                 null,
                 genomeLocParser,
@@ -217,7 +227,9 @@ public class SAMDataSourceUnitTest extends BaseTest {
     public void testFailOnReducedReads() {
         readers.add(new SAMReaderID(new File(privateTestDir + "old.reduced.bam"), new Tags()));
 
-        SAMDataSource data = new SAMDataSource(readers,
+        SAMDataSource data = new SAMDataSource(
+                referenceFile,
+                readers,
                 new ThreadAllocation(),
                 null,
                 genomeLocParser,
@@ -234,7 +246,9 @@ public class SAMDataSourceUnitTest extends BaseTest {
     public void testFailOnReducedReadsRemovingProgramRecords() {
         readers.add(new SAMReaderID(new File(privateTestDir + "old.reduced.bam"), new Tags()));
 
-        SAMDataSource data = new SAMDataSource(readers,
+        SAMDataSource data = new SAMDataSource(
+                referenceFile,
+                readers,
                 new ThreadAllocation(),
                 null,
                 genomeLocParser,

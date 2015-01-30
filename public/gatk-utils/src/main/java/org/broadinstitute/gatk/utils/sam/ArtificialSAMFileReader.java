@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
+import htsjdk.samtools.cram.build.CramIO;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -149,7 +150,7 @@ public class ArtificialSAMFileReader extends SAMFileReader {
             byte[] byteArray = "".getBytes("ISO-8859-1");
             return new ByteArrayInputStream(byteArray);
         }
-        catch( UnsupportedEncodingException ex ) {
+        catch( Exception ex ) {
             throw new ReviewedGATKException("Unable to build empty input stream",ex);
         }
     }

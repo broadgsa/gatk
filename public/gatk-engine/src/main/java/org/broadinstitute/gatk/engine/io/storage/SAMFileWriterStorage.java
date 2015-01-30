@@ -35,6 +35,9 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.SimplifyingSAMFileWriter;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -46,6 +49,7 @@ import java.lang.reflect.Method;
  */
 public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWriter> {
     private final File file;
+    private File referenceFasta;
     private SAMFileWriter writer;
 
     private static Logger logger = Logger.getLogger(SAMFileWriterStorage.class);
@@ -55,6 +59,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
     }
 
     public SAMFileWriterStorage( SAMFileWriterStub stub, File file ) {
+        this.referenceFasta = stub.getReferenceFile();
         this.file = file;
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         // Enable automatic index creation for pre-sorted BAMs.
@@ -69,9 +74,14 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
 
         if(stub.getOutputFile() != null) {
             try {
-                this.writer = createBAMWriter(factory,stub.getFileHeader(),stub.isPresorted(),file,stub.getCompressionLevel());
-            }
-            catch(RuntimeIOException ex) {
+                if (stub.getOutputFile().getName().toLowerCase().endsWith(".cram")) {
+                    this.writer = createCRAMWriter(factory, stub.getFileHeader(), new FileOutputStream(file), this.referenceFasta);
+                } else {
+                    this.writer = createBAMWriter(factory,stub.getFileHeader(),stub.isPresorted(),file,stub.getCompressionLevel());
+                }
+            } catch(IOException ex) {
+                throw new UserException.CouldNotCreateOutputFile(file, "file could not be created", ex);
+            } catch(RuntimeIOException ex) {
                 throw new UserException.CouldNotCreateOutputFile(file,"file could not be created",ex);
             }
         }
@@ -115,6 +125,13 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             reader.close();
             file.delete();
         }
+    }
+
+    private SAMFileWriter createCRAMWriter(final SAMFileWriterFactory factory,
+                                           final SAMFileHeader header,
+                                           final OutputStream outputStream,
+                                           final File referenceFasta) {
+        return factory.makeCRAMWriter(header, outputStream, referenceFasta);
     }
 
     private SAMFileWriter createBAMWriter(final SAMFileWriterFactory factory,

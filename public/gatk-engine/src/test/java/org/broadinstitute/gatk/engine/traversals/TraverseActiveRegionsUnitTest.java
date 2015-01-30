@@ -79,6 +79,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return traversals.toArray(new Object[][]{});
     }
 
+    private File referenceFile;
     private IndexedFastaSequenceFile reference;
     private SAMSequenceDictionary dictionary;
     private GenomeLocParser genomeLocParser;
@@ -90,7 +91,8 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     @BeforeClass
     private void init() throws IOException {
         //reference = new CachingIndexedFastaSequenceFile(new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta")); // hg19Reference));
-        reference = new CachingIndexedFastaSequenceFile(new File(hg19Reference));
+        referenceFile = new File(hg19Reference);
+        reference = new CachingIndexedFastaSequenceFile(referenceFile);
         dictionary = reference.getSequenceDictionary();
         genomeLocParser = new GenomeLocParser(dictionary);
 
@@ -470,7 +472,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         SAMReaderID readerID = new SAMReaderID(bamFile, new Tags());
         samFiles.add(readerID);
 
-        SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+        SAMDataSource dataSource = new SAMDataSource(referenceFile, samFiles, new ThreadAllocation(), null, genomeLocParser,
                 false,
                 ValidationStringency.STRICT,
                 null,
