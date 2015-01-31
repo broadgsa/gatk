@@ -36,4 +36,5 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 public @interface PartitionBy {
     PartitionType value();
+    boolean includeUnmapped() default true;
 }

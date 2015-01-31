@@ -48,7 +48,7 @@ trait GATKScatterFunction extends ScatterFunction {
   protected var originalGATK: CommandLineGATK = _
 
   /** Whether the last scatter job should also include any unmapped reads. */
-  protected var includeUnmapped: Boolean = _
+  var includeUnmapped: Boolean = _
 
   override def init() {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
