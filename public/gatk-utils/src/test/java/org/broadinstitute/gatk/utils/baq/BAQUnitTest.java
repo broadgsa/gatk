@@ -141,7 +141,7 @@ public class BAQUnitTest extends BaseTest {
                                 "A?>>@>AA?@@>A?>A@?>@>>?=>?'>?=>7=?A9"));
 
         // raw base qualities are low -- but they shouldn't be capped
-        params.add(new BAQTest(-3, 9999993l, "36M",
+        params.add(new BAQTest(-3, 9999993l, "4=13X2=3X1=4X2=4X1=2X",
                                 "CCACCACGCCTGGCCAATTTTTTTGTATTTTTAGTAGAGATA",
                                 "CCACGCTTGGCAAAGTTTTCCGTACGTTTAGCCGAG",
                                 "33'/(7+270&4),(&&-)$&,%7$',-/61(,6?8",
