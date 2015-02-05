@@ -12,8 +12,8 @@ Utility functions for analysis of genome sequence data with the GATK
 \tabular{ll}{
 Package: \tab gsalib\cr
 Type: \tab Package\cr
-Version: \tab 2.1\cr
-Date: \tab 2014-12-09\cr
+Version: \tab 2.2\cr
+Date: \tab 2015-03-17\cr
 License: \tab MIT\cr
 LazyLoad: \tab yes\cr
 }
