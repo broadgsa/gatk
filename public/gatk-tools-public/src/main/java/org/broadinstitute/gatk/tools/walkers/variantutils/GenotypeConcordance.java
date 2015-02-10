@@ -74,8 +74,8 @@ import java.util.*;
  *  <h4>Tables</h4>
  *  <p>
  *  Headers for the (non-moltenized -- see below) GenotypeConcordance counts and proportions tables give the genotype of
- *  the COMP callset followed by the genotype of the EVAL callset. For example the value corresponding to HOM_REF_HET
- *  reflects variants called HOM_REF in the COMP callset and HET in the EVAL callset. Variants for which the alternate
+ *  the EVAL callset followed by the genotype of the COMP callset. For example the value corresponding to HOM_REF_HET
+ *  reflects variants called HOM_REF in the EVAL callset and HET in the COMP callset. Variants for which the alternate
  *  alleles between the EVAL and COMP sample did not match are excluded from genotype comparisons and given in the
  *  "Mismatching_Alleles" field.
  *  </p>
