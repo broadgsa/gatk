@@ -37,6 +37,6 @@ public class MateSameStrandFilter extends ReadFilter {
 
     public boolean filterOut(SAMRecord read) {
         return (! read.getReadPairedFlag() ) || read.getMateUnmappedFlag() || read.getDuplicateReadFlag() ||
-                read.getReadFailsVendorQualityCheckFlag() || read.getMateNegativeStrandFlag() != read.getReadNegativeStrandFlag();
+                read.getReadFailsVendorQualityCheckFlag() || (read.getMateNegativeStrandFlag() == read.getReadNegativeStrandFlag());
     }
 }
