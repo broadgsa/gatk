@@ -259,13 +259,16 @@ public class GenomeAnalysisEngine {
 
         // validate our parameters
         if (args == null) {
-            throw new ReviewedGATKException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
+            throw new ReviewedGATKException("The GATKArgumentCollection passed to GenomeAnalysisEngine cannot be null.");
         }
 
         // validate our parameters              
         if (this.walker == null)
-            throw new ReviewedGATKException("The walker passed to GenomeAnalysisEngine can not be null.");
+            throw new ReviewedGATKException("The walker passed to GenomeAnalysisEngine cannot be null.");
 
+        // check that active region walkers do not use the downsampling to coverage argument
+        checkDownSamplingToCoverage();
+        
         if (args.nonDeterministicRandomSeed)
             Utils.resetRandomGenerator(System.currentTimeMillis());
 
@@ -465,8 +468,6 @@ public class GenomeAnalysisEngine {
         return this.threadAllocation == null ? 1 : threadAllocation.getTotalNumThreads();
     }
 
-
-
     /**
      * Allow subclasses and others within this package direct access to the walker manager.
      * @return The walker manager used by this package.
@@ -554,6 +555,17 @@ public class GenomeAnalysisEngine {
 
         // Make sure no SAM files were specified multiple times by the user.
         checkForDuplicateSamFiles();
+    }
+
+    /**
+     * Check that active region walkers do not use the downsampling to coverage argument
+     *
+     * @throws UserException if an active region walker is using the -dcov or --downsample_to_coverage downsampling arguments
+     */
+    private void checkDownSamplingToCoverage() {
+        if (argCollection.downsampleCoverage != null && walker instanceof ActiveRegionWalker) {
+            throw new UserException.CommandLineException("Cannot use -dcov or --downsample_to_coverage for ActiveRegionWalkers, use another downsampling argument");
+        }
     }
 
     /**
