@@ -203,9 +203,8 @@ public class CommandLineGATK extends CommandLineExecutable {
 
         // If no analysis name is present, fill in extra help on the walkers.
         WalkerManager walkerManager = engine.getWalkerManager();
-        String analysisName = getAnalysisName();
-        if(analysisName != null && walkerManager.exists(getAnalysisName()))
-            additionalHelp = getWalkerHelp(walkerManager.getWalkerClassByName(getAnalysisName()));
+        if(analysisName != null && walkerManager.exists(analysisName))
+            additionalHelp = getWalkerHelp(walkerManager.getWalkerClassByName(analysisName));
         else
             additionalHelp = getAllWalkerHelp();
 
