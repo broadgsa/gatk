@@ -218,17 +218,19 @@ public class VariantAnnotatorEngine {
         return annotateDBs(tracker, annotated);
     }
 
-    public VariantContext annotateContextForActiveRegion(final RefMetaDataTracker tracker,
+    public VariantContext annotateContextForActiveRegion(final ReferenceContext referenceContext,
+                                                         final RefMetaDataTracker tracker,
                                                          final ReadLikelihoods<Allele> readLikelihoods,
                                                          final VariantContext vc) {
         //TODO we transform the read-likelihood into the Map^2 previous version for the sake of not changing of not changing annotation interface.
         //TODO should we change those interfaces?
 
         final Map<String, PerReadAlleleLikelihoodMap> annotationLikelihoods = readLikelihoods.toPerReadAlleleLikelihoodMap();
-        return annotateContextForActiveRegion(tracker, annotationLikelihoods, vc);
+        return annotateContextForActiveRegion(referenceContext, tracker, annotationLikelihoods, vc);
     }
 
-    public VariantContext annotateContextForActiveRegion(final RefMetaDataTracker tracker,
+    public VariantContext annotateContextForActiveRegion(final ReferenceContext referenceContext,
+                                                         final RefMetaDataTracker tracker,
                                                          final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap,
                                                          final VariantContext vc) {
         final Map<String, Object> infoAnnotations = new LinkedHashMap<>(vc.getAttributes());
@@ -238,7 +240,7 @@ public class VariantAnnotatorEngine {
             if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
                 continue;
 
-            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(perReadAlleleLikelihoodMap, vc);
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(referenceContext, perReadAlleleLikelihoodMap, vc);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
             }
