@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.engine.filters;
 import htsjdk.samtools.SAMRecord;
 
 /**
- * Filter out duplicate reads.
+ * Filter out reads that are secondary alignments (not one of the best alignments)
  *
  * @author rpoplin
  * @since Dec 9, 2009
