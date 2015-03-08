@@ -27,8 +27,12 @@ package org.broadinstitute.gatk.tools.walkers.coverage;
 
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.testng.annotations.Test;
+import org.testng.Assert;
+
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -178,4 +182,33 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
     @Test public void testRefNWithNs() { testRefNHandling(true, "24cd2da2e4323ce6fd76217ba6dc2834"); }
     @Test public void testRefNWithoutNs() { testRefNHandling(false, "4fc0f1a2e968f777d693abcefd4fb7af"); }
+
+
+    @Test
+    public void testIncompatibleArgs() throws IOException {
+        final String[] intervals = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/fhs_jhs_30_targts.interval_list"};
+        final String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/FHS_indexed_subset.bam"};
+        final String refSeqGeneListFile = privateTestDir + "geneTrackHg18Chr1Interval.refSeq";
+
+        final String logFileName = new String("testIncompatibleArgs.log");
+        final String cmd = buildRootCmd(hg18Reference,new ArrayList<>(Arrays.asList(bams)),new ArrayList<>(Arrays.asList(intervals))) + " --omitIntervalStatistics --calculateCoverageOverGenes " + refSeqGeneListFile + " -log " + logFileName;
+        final WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
+
+        // output file
+        final File outputFile = createTempFile("DepthOfCoverageIncompatibleArgs",".tmp");
+        spec.setOutputFileLocation(outputFile);
+
+        execute("testIncompatibleArgs",spec);
+
+        // check that only the sample gene summary output file is empty
+        Assert.assertEquals( createTempFileFromBase(outputFile.getAbsolutePath()+".sample_gene_summary").length(), 0 );
+        Assert.assertNotEquals( createTempFileFromBase(outputFile.getAbsolutePath()+".sample_cumulative_coverage_counts").length(), 0 );
+        Assert.assertNotEquals( createTempFileFromBase(outputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions").length(), 0 );
+        Assert.assertNotEquals( createTempFileFromBase(outputFile.getAbsolutePath()+".sample_statistics").length(), 0 );
+        Assert.assertNotEquals( createTempFileFromBase(outputFile.getAbsolutePath()+".sample_summary").length(), 0 );
+
+        // check the log for the warning message
+        File file = new File(logFileName);
+        Assert.assertTrue(FileUtils.readFileToString(file).contains(DepthOfCoverage.incompatibleArgsMsg()));
+    }
 }
