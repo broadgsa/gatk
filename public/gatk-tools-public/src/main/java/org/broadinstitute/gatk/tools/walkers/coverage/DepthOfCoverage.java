@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.tools.walkers.coverage;
 
 import htsjdk.samtools.SAMReadGroupRecord;
+import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
@@ -108,7 +109,6 @@ import java.util.*;
  *   [-ct 4 -ct 6 -ct 10] \
  *   [-L my_capture_genes.interval_list]
  * </pre>
- *
  */
 // todo -- cache the map from sample names to means in the print functions, rather than regenerating each time
 // todo -- support for granular histograms for total depth; maybe n*[start,stop], bins*sqrt(n)
@@ -120,6 +120,13 @@ import java.util.*;
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)
 public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map<String,int[]>>, CoveragePartitioner> implements TreeReducible<CoveragePartitioner> {
+    private final static Logger logger = Logger.getLogger(DepthOfCoverage.class);
+
+    /**
+     * Warning message for when the incompatible arguments --calculateCoverageOverGenes and --omitIntervalStatistics are used together.
+     */
+    private static final String incompatibleArgsMsg = "The arguments --calculateCoverageOverGenes and --omitIntervalStatistics are incompatible. Using them together will result in an empty gene summary output file.";
+
     @Output
     @Multiplex(value=DoCOutputMultiplexer.class,arguments={"partitionTypes","refSeqGeneList","omitDepthOutput","omitIntervals","omitSampleSummary","omitLocusTable"})
     Map<DoCOutputType,PrintStream> out;
@@ -172,6 +179,9 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
 
     /**
      * Specify a RefSeq file for use in aggregating coverage statistics over genes.
+     *
+     * A warning will be logged and no output file will be produced if --calculateCoverageOverGenes and --omitIntervalStatistics are enabled.
+     *
      */
     @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate coverage statistics over this list of genes", required = false)
     File refSeqGeneList = null;
@@ -259,7 +269,13 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
 
     public boolean includeReadsWithDeletionAtLoci() { return includeDeletions && ! ignoreDeletionSites; }
 
+    public static String incompatibleArgsMsg() { return incompatibleArgsMsg; }
+
     public void initialize() {
+
+        if ( omitIntervals && refSeqGeneList != null ){
+            logger.warn(incompatibleArgsMsg);
+        }
 
         if ( printBinEndpointsAndExit ) {
             int[] endpoints = DepthOfCoverageStats.calculateBinEndpoints(start,stop,nBins);
