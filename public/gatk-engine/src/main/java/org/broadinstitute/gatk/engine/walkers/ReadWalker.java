@@ -37,7 +37,7 @@ import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
  * To change this template use File | Settings | File Templates.
  */
 @Requires({DataSource.READS, DataSource.REFERENCE})
-@PartitionBy(PartitionType.READ)
+@PartitionBy(value = PartitionType.READ, includeUnmapped = true)
 public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     public boolean requiresOrderedReads() { return false; }
     
