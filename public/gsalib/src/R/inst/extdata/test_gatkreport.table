@@ -1,0 +1,20 @@
+#:GATKReport.v1.0:2
+#:GATKTable:true:2:9:%.18E:%.15f:;
+#:GATKTable:ErrorRatePerCycle:The error rate per sequenced position in the reads
+cycle  errorrate.61PA8.7         qualavg.61PA8.7                                         
+0      7.451835696110506E-3      25.474613284804366                                      
+1      2.362777171937477E-3      29.844949954504095                                      
+2      9.087604507451836E-4      32.875909752547310
+3      5.452562704471102E-4      34.498999090081895                                      
+4      9.087604507451836E-4      35.148316651501370                                       
+5      5.452562704471102E-4      36.072234352256190                                       
+6      5.452562704471102E-4      36.121724890829700                                        
+7      5.452562704471102E-4      36.191048034934500                                        
+8      5.452562704471102E-4      36.003457059679770                                       
+
+#:GATKTable:false:2:3:%s:%c:;
+#:GATKTable:ExampleTable:This is an old-style table
+key    column
+1:1000  T 
+1:1001  A 
+1:1002  C 

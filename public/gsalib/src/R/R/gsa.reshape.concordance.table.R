@@ -1,9 +1,9 @@
-gsa.reshape.concordance.table <- function(data, table.name="GenotypeConcordance_Counts", sample.name="ALL") {
+gsa.reshape.concordance.table <- function(report, table.name="GenotypeConcordance_Counts", sample.name="ALL") {
   if (!is.null(table.name)) {
-    data <- data[[table.name]]
+    data <- report[[table.name]]
   }
-  if (is.null(data)) {
-    return NULL
+  if (is.null(table.name)) {
+    data <- report
   }
   d <- data[data$Sample==sample.name,2:(length(data[1,])-1)]
   
