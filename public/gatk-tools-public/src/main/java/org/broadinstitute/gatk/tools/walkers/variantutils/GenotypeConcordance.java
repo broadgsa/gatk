@@ -82,7 +82,7 @@ import java.util.*;
  *  <p>
  *  It may be informative to reshape rows of the GenotypeConcordance counts and proportions tables into separate row-major tables
  *  where the columns indicate the COMP genotype and the rows indicate the EVAL genotype for easy comparison between the
- *  two callsets. This can be done with a command similar to d <- matrix(sampleRow,nrow=6,byrow=T) in R where sampleRow is the 36-value row corresponding to the sample of interest, excluding "Mismatching_Alleles".
+ *  two callsets. This can be done with the gsa.reshape.concordance.table function in the gsalib R library.
  *  In Excel this can be accomplished using the OFFSET function.
  *  </p>
  *  <ul>
