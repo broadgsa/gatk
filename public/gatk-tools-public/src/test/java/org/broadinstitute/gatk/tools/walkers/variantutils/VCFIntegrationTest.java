@@ -28,16 +28,17 @@ package org.broadinstitute.gatk.tools.walkers.variantutils;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.Tribble;
 import htsjdk.tribble.index.AbstractIndex;
-import htsjdk.tribble.index.ChrIndex;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.index.interval.IntervalTreeIndex;
 import htsjdk.tribble.index.linear.LinearIndex;
 import htsjdk.tribble.index.tabix.TabixIndex;
 import htsjdk.tribble.util.TabixUtils;
-import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import htsjdk.variant.vcf.VCFCodec;
+import org.apache.commons.io.FileUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 import org.testng.Assert;
 import org.testng.TestException;
@@ -45,9 +46,8 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.lang.reflect.Field;
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 public class VCFIntegrationTest extends WalkerTest {
@@ -205,77 +205,67 @@ public class VCFIntegrationTest extends WalkerTest {
     }
 
     @Test(dataProvider = "IndexDataProvider")
-    public void testVCFIndexCreation(VCFIndexCreatorTest testSpec) throws NoSuchFieldException, IllegalAccessException {
+    public void testVCFIndexCreation(VCFIndexCreatorTest testSpec) throws NoSuchFieldException, IllegalAccessException, IOException {
 
+        final String logFileName = new String("testVCFIndexCreation.log");
+        final String chromosome = "20";
         final String commandLine = " -T SelectVariants" +
                 " -R " + b37KGReference +
                 " --no_cmdline_in_header" +
-                " -L 20" +
+                " -L " + chromosome +
                 " -V " + b37_NA12878_OMNI +
                 " --variant_index_type " + testSpec.type +
                 " --variant_index_parameter " + testSpec.parameter +
-                " -o %s ";
+                " -log " + logFileName +
+                " -o %s";
+        final WalkerTestSpec spec = new WalkerTestSpec(commandLine, 1, Arrays.asList(""));
+        spec.disableShadowBCF();
         final String name = "testVCFIndexCreation: " + testSpec.toString();
 
+        // execute that test and check if the actual and expected indices are the same
+        executeTestAndCheckIndices(name, chromosome, testSpec, spec);
+
+        // check the log for the warning message
+        File file = new File(logFileName);
+        Assert.assertTrue(FileUtils.readFileToString(file).contains(GATKVCFUtils.DEPRECATED_INDEX_ARGS_MSG));
+    }
+
+    @Test
+    public void testVCFIndexCreationNoArgs() throws NoSuchFieldException, IllegalAccessException {
+
+        final String chromosome = "20";
+        final String commandLine = " -T SelectVariants" +
+                " -R " + b37KGReference +
+                " --no_cmdline_in_header" +
+                " -L " + chromosome +
+                " -V " + b37_NA12878_OMNI +
+                " -o %s";
+        final String name = "testVCFIndexCreationNoArgs";
+        VCFIndexCreatorTest testSpec = new VCFIndexCreatorTest(GATKVCFUtils.DEFAULT_INDEX_TYPE, GATKVCFUtils.DEFAULT_INDEX_PARAMETER);
         final WalkerTestSpec spec = new WalkerTestSpec(commandLine, 1, Arrays.asList(""));
         spec.disableShadowBCF();
 
-        File outVCF = executeTest(name, spec).first.get(0);
-        File outIdx = new File(outVCF.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION);
-
-        final Index actualIndex = IndexFactory.loadIndex(outIdx.getAbsolutePath());
-        final Index expectedIndex = testSpec.getIndex(outVCF);
-
-        if (testSpec.type.equals("LINEAR"))
-            Assert.assertTrue(actualIndex instanceof LinearIndex, "Index is not a LinearIndex");
-        else if (testSpec.type.equals("INTERVAL"))
-            Assert.assertTrue(actualIndex instanceof IntervalTreeIndex, "Index is not a IntervalTreeIndex");
-        // dynamic indices ultimately resolve to one of LinearIndex or IntervalTreeIndex
-
-        Assert.assertTrue(equivalentAbstractIndices((AbstractIndex)actualIndex, (AbstractIndex)expectedIndex), "Indices are not equivalent");
-
-        if (actualIndex instanceof LinearIndex && expectedIndex instanceof LinearIndex) {
-            Assert.assertTrue(equivalentLinearIndices((LinearIndex)actualIndex, (LinearIndex)expectedIndex, "20"), "Linear indices are not equivalent");
-        }
-        else if (actualIndex instanceof IntervalTreeIndex && expectedIndex instanceof IntervalTreeIndex) {
-            Assert.assertTrue(equivalentIntervalIndices((IntervalTreeIndex)actualIndex, (IntervalTreeIndex)expectedIndex, "20"), "Interval indices are not equivalent");
-        }
-        else {
-            Assert.fail("Indices are not of the same type");
-        }
+        // execute that test and check if the actual and expected indices are the same
+        executeTestAndCheckIndices(name, chromosome, testSpec, spec);
     }
 
-    private static boolean equivalentAbstractIndices(AbstractIndex thisIndex, AbstractIndex otherIndex){
-        return thisIndex.getVersion() == otherIndex.getVersion() &&
-                thisIndex.getIndexedFile().equals(otherIndex.getIndexedFile()) &&
-                thisIndex.getIndexedFileSize() == otherIndex.getIndexedFileSize() &&
-                thisIndex.getIndexedFileMD5().equals(otherIndex.getIndexedFileMD5()) &&
-                thisIndex.getFlags() == otherIndex.getFlags();
-     }
+    @Test
+    public void testGVCFIndexCreation() throws NoSuchFieldException, IllegalAccessException {
 
-    private static boolean equivalentLinearIndices(LinearIndex thisIndex, LinearIndex otherIndex, String chr) throws NoSuchFieldException, IllegalAccessException {
-        htsjdk.tribble.index.linear.LinearIndex.ChrIndex thisChr = (htsjdk.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(thisIndex, chr);
-        htsjdk.tribble.index.linear.LinearIndex.ChrIndex otherChr = (htsjdk.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(otherIndex, chr);
+        final String chromosome = "20";
+        final String commandLine = " -T SelectVariants" +
+                " -R " + b37KGReference +
+                " --no_cmdline_in_header" +
+                " -L " + chromosome +
+                " -V " + b37_NA12878_OMNI +
+                " -o %s";
+        final String name = "testGVCFIndexCreation";
+        VCFIndexCreatorTest testSpec = new VCFIndexCreatorTest(GATKVCFUtils.DEFAULT_GVCF_INDEX_TYPE, GATKVCFUtils.DEFAULT_GVCF_INDEX_PARAMETER);
+        final WalkerTestSpec spec = new WalkerTestSpec(commandLine, Arrays.asList(GATKVCFUtils.GVCF_EXT), Arrays.asList(""));
+        spec.disableShadowBCF();
 
-        return  thisChr.getName().equals(otherChr.getName()) &&
-                //thisChr.getTotalSize() == otherChr.getTotalSize() &&      TODO: why does this differ?
-                thisChr.getNFeatures() == otherChr.getNFeatures() &&
-                thisChr.getNBlocks() == otherChr.getNBlocks();
-    }
-
-    private static boolean equivalentIntervalIndices(IntervalTreeIndex thisIndex, IntervalTreeIndex otherIndex, String chr) throws NoSuchFieldException, IllegalAccessException {
-        htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex thisChr = (htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(thisIndex, chr);
-        htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex otherChr = (htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(otherIndex, chr);
-
-        // TODO: compare trees?
-        return thisChr.getName().equals(otherChr.getName());
-    }
-
-    private static ChrIndex getChrIndex(AbstractIndex index, String chr) throws NoSuchFieldException, IllegalAccessException {
-        Field f = AbstractIndex.class.getDeclaredField("chrIndices");
-        f.setAccessible(true);
-        LinkedHashMap<String, ChrIndex> chrIndices = (LinkedHashMap<String, ChrIndex>) f.get(index);
-        return chrIndices.get(chr);
+        // execute that test and check if the actual and expected indices are the same
+        executeTestAndCheckIndices(name, chromosome, testSpec, spec);
     }
 
     //
@@ -375,4 +365,31 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest(name, spec);
     }
 
+    private void executeTestAndCheckIndices(final String name, final String chr, final VCFIndexCreatorTest testSpec, final WalkerTestSpec walkerTestSpec)
+            throws NoSuchFieldException, IllegalAccessException {
+
+        File outVCF = executeTest(name, walkerTestSpec).first.get(0);
+        File outIdx = new File(outVCF.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION);
+
+        final Index actualIndex = IndexFactory.loadIndex(outIdx.getAbsolutePath());
+        final Index expectedIndex = testSpec.getIndex(outVCF);
+
+        if (testSpec.type.equals("LINEAR"))
+            Assert.assertTrue(actualIndex instanceof LinearIndex, "Index is not a LinearIndex");
+        else if (testSpec.type.equals("INTERVAL"))
+            Assert.assertTrue(actualIndex instanceof IntervalTreeIndex, "Index is not a IntervalTreeIndex");
+        // dynamic indices ultimately resolve to one of LinearIndex or IntervalTreeIndex
+
+        Assert.assertTrue(GATKVCFUtils.equivalentAbstractIndices((AbstractIndex) actualIndex, (AbstractIndex) expectedIndex), "Indices are not equivalent");
+
+        if (actualIndex instanceof LinearIndex && expectedIndex instanceof LinearIndex) {
+            Assert.assertTrue(GATKVCFUtils.equivalentLinearIndices((LinearIndex) actualIndex, (LinearIndex) expectedIndex, chr), "Linear indices are not equivalent");
+        }
+        else if (actualIndex instanceof IntervalTreeIndex && expectedIndex instanceof IntervalTreeIndex) {
+            Assert.assertTrue(GATKVCFUtils.equivalentIntervalIndices((IntervalTreeIndex) actualIndex, (IntervalTreeIndex) expectedIndex, chr), "Interval indices are not equivalent");
+        }
+        else {
+            Assert.fail("Indices are not of the same type");
+        }
+    }
 }

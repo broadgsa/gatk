@@ -130,7 +130,9 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
-        this.indexCreator = GATKVCFUtils.getIndexCreator(engine.getArguments().variant_index_type, engine.getArguments().variant_index_parameter, genotypeFile);
+
+        this.indexCreator = GATKVCFUtils.makeIndexCreator(engine.getArguments().variant_index_type, engine.getArguments().variant_index_parameter,
+                genotypeFile, null);
         this.argumentSources = argumentSources;
     }
 
