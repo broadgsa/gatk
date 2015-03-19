@@ -282,7 +282,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      */
     @Override
     public String toString() {
-        return getClass().getName();
+        return (getOutputFile() == null) ? "(Stream)" : getOutputFile().getAbsolutePath();
     }
 
     /**
