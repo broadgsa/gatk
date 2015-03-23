@@ -44,25 +44,38 @@ import java.io.PrintStream;
 import java.util.List;
 
 /**
- * Calculated allele counts in specific loci, to allow allele specific expression analysis.
+ * Calculate allele counts for allele-specific expression analysis
  *
  * <p>
- * Calculated allele counts in specific loci after filtering based on mapping quality, base quality, depth of coverage, overlapping paired reads and deletion on the position.
- * All thresholds and option can be set as command line arguments.
- * The output of this tool is a tab delimited txt file, compatible with Mamba, a downstream tool (http://www.well.ox.ac.uk/~rivas/mamba/).
- * A user can use -drf DuplicateRead to allow the tool to count also duplicated reads  (a useful option for RNAseq data tools)
+ * This tool calculates allele counts at a set of given loci after applying filters that are tuned for enabling
+ * allele-specific expression (ASE) analysis. The filters operate on mapping quality, base quality, depth of coverage,
+ * overlapping paired reads and deletions overlapping the position. All thresholds and options are controlled by
+ * command-line arguments.
  * </p>
  *
+ * <h4>Notes</h4>
+ * <ul>
+ *     <li>Like most GATK tools, this tools filters out duplicate reads by default. However, some ASE methods
+ *     recommend including duplicate reads in the analysis, so the DuplicateReads filter can be disabled using the
+ *     `-drf DuplicateReads` flag in the command-line.</li>
+ * </ul>
+ * <h4>Caveats</h4>
+ * <ul>
+ *     <li>This tool will only process biallelic sites. If your callset contains multiallelic sites, they will be ignored.
+ *     Optionally, you can subset your callset to just biallelic variants using e.g.
+ *     <a href="org_broadinstitute_gatk_tools_walkers_variantutils_SelectVariants.php">SelectVariants</a>
+ *     with the option `-restrictAllelesTo BIALLELIC`.</li>
+ * </ul>
  * <h3>Input</h3>
- * <p>
- * BAM files (with proper headers) to be analyzed for ASE * </p>
- * <p>
- * a VCF file with specific sites to process
- * </p>
+ * <ul>
+ *     <li>BAM files (with proper headers) to be analyzed for ASE</li>
+ *     <li>A VCF file with specific sites to process.</li>
  * </p></p>
  * <h3>Output</h3>
  * <p>
- * Table (tab delimited file) with the specific allele counts
+ * A table of allele counts at the given sites. By default, it is formatted as a tab-delimited text file
+ * that is readable by R and compatible with <a href="http://www.well.ox.ac.uk/~rivas/mamba/">Mamba</a>,
+ * a downstream tool developed for allele-specific expression analysis.
  * </p>
  *
  * <h3>Examples</h3>
@@ -72,11 +85,11 @@ import java.util.List;
  *   -T ASEReadCounter \
  *   -o file_name \
  *   -I input.bam \
- *   -sites sites.vcf
- *   -U ALLOW_N_CIGAR_READS
+ *   -sites sites.vcf \
+ *   -U ALLOW_N_CIGAR_READS \
  *   [-minDepth 10] \
  *   [--minMappingQuality 10] \
- *   [--minBaseQuality 2]
+ *   [--minBaseQuality 2] \
  *   [-drf DuplicateRead]
  * </pre>
  */
@@ -91,38 +104,40 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
     public RodBinding<VariantContext> sites;
 
     /**
-     * Loci with total depth lower then this threshold will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * If this argument is enabled, loci with total depth lower than this threshold after all filters have been applied
+     * will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minDepthOfNonFilteredBase", shortName = "minDepth", doc = "Minimum number of filtered-pass bases that we need to see for reporting this site", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
+    @Argument(fullName = "minDepthOfNonFilteredBase", shortName = "minDepth", doc = "Minimum number of bases that pass filters", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
     public int minDepthOfNonFilteredBases = -1;
 
     /**
-     * Reads with mapping quality values lower than this threshold will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * If this argument is enabled, reads with mapping quality values lower than this threshold will not be counted.
+     * This is set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum mapping quality of reads to count towards depth", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
+    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum read mapping quality", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
     public int minMappingQuality = 0;
 
     /**
-     * Bases with quality scores lower than this threshold will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * If this argument is enabled, bases with quality scores lower than this threshold will not be counted.
+     * This is set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth", required = false, minValue = 0, maxValue = Byte.MAX_VALUE)
+    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum base quality", required = false, minValue = 0, maxValue = Byte.MAX_VALUE)
     public byte minBaseQuality = 0;
 
     /**
-     * There are few option to deal with an overlapping read pair.
-     * COUNT_READS -  Count all reads independently (even if from the same fragment).
-     * COUNT_FRAGMENTS - Count all fragments (even if the reads that compose the fragment are not consistent at that base).
-     * COUNT_FRAGMENTS_REQUIRE_SAME_BASEQUIRE_SAME_BASE - Count all fragments (but only if the reads that compose the fragment are consistent at that base).
-     * defaults to COUNT_FRAGMENTS_REQUIRE_SAME_BASEQUIRE_SAME_BASE
+     * These options modify how the tool deals with overlapping read pairs.
+     * COUNT_READS -  Count all reads independently, even if they are from the same fragment.
+     * COUNT_FRAGMENTS - Count all fragments, even if the reads that compose the fragment are not consistent at that base.
+     * COUNT_FRAGMENTS_REQUIRE_SAME_BASE - Count all fragments, but only if the reads that compose the fragment are consistent at that base (default).
      */
-    @Argument(fullName = "countOverlapReadsType", shortName = "overlap", doc = "How should overlapping reads from the same fragment be handled. Current options: COUNT_READS, COUNT_FRAGMENTS and COUNT_FRAGMENTS_REQUIRE_SAME_BASEQUIRE_SAME_BASE (default)", required = false)
+    @Argument(fullName = "countOverlapReadsType", shortName = "overlap", doc = "Handling of overlapping reads from the same fragment", required = false)
     public CoverageUtils.CountPileupType countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS_REQUIRE_SAME_BASE;
 
     /**
-     * Output file format (e.g. csv, table, rtable); defaults to r-readable table.
+     * Available options are csv, table, rtable. By default, the format is an r-readable table.
      */
-    @Argument(fullName = "outputFormat", doc = "The format of the output file, can be csv, table, rtable", required = false)
-    public String outputFormat = "rtable";
+    @Argument(fullName = "outputFormat", doc = "Format of the output file, can be CSV, TABLE, RTABLE", required = false)
+    public OUTPUT_FORMAT outputFormat = OUTPUT_FORMAT.RTABLE;
 
     /**
      * Consider a spanning deletion as contributing to coverage. Also enables deletion counts in per-base output.
@@ -135,8 +150,13 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
     public boolean ignoreDeletionSites = false;
 
-    final String[] OUTPUT_FORMATS = {"table","rtable","csv"};
     public String separator = "\t";
+
+    public enum OUTPUT_FORMAT{
+        TABLE,
+        RTABLE,
+        CSV
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////
     // STANDARD WALKER METHODS
@@ -148,15 +168,15 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
 
         // Check the output format
         boolean goodOutputFormat = false;
-        for ( final String f : OUTPUT_FORMATS ) {
+        for ( final OUTPUT_FORMAT f : OUTPUT_FORMAT.values()) {
             goodOutputFormat = goodOutputFormat || f.equals(outputFormat);
         }
 
         if ( ! goodOutputFormat ) {
-            throw new IllegalArgumentException("Improper output format. Can be one of table,rtable,csv. Was "+outputFormat);
+            throw new IllegalArgumentException("Improper output format. Can be one of TABLE, RTABLE, CSV. Was "+outputFormat);
         }
 
-        if ( outputFormat.equals("csv") ) {
+        if ( outputFormat.equals(OUTPUT_FORMAT.CSV) ) {
             separator = ",";
         }
         final String header = "contig"+separator+"position"+separator+"variantID"+separator+"refAllele"+separator+"altAllele"+separator+"refCount"+separator+"altCount"+separator+"totalCount"+separator+"lowMAPQDepth"+separator+"lowBaseQDepth"+separator+"rawDepth"+separator+"otherBases"+separator+"improperPairs";
@@ -176,13 +196,13 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
 
         final List<VariantContext> VCs =  tracker.getValues(sites, context.getLocation());
         if(VCs != null && VCs.size() > 1)
-            throw new UserException("more then one variant context in position: "+contig+":"+position);
+            throw new UserException("More then one variant context at position: "+contig+":"+position);
         if(VCs == null || VCs.size() == 0)
             return null;
 
         final VariantContext vc = VCs.get(0);
         if(!vc.isBiallelic()) {
-            logger.warn("ignore site: cannot run ASE on non-biallelic sites: " + vc.toString());
+            logger.warn("Ignoring site: cannot run ASE on non-biallelic sites: " + vc.toString());
             return null;
         }
 
