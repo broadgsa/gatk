@@ -26,13 +26,11 @@
 package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.tribble.index.*;
+import htsjdk.tribble.index.interval.IntervalTreeIndex;
+import htsjdk.tribble.index.linear.LinearIndex;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import htsjdk.tribble.FeatureCodec;
-import htsjdk.tribble.FeatureCodecHeader;
-import htsjdk.tribble.index.DynamicIndexCreator;
-import htsjdk.tribble.index.IndexCreator;
-import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.index.interval.IntervalIndexCreator;
 import htsjdk.tribble.index.linear.LinearIndexCreator;
 import htsjdk.tribble.index.tabix.TabixFormat;
@@ -47,9 +45,8 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.lang.reflect.Field;
 import java.util.*;
 
 
@@ -68,6 +65,16 @@ public class GATKVCFUtils {
 
     public final static GATKVCFIndexType DEFAULT_INDEX_TYPE = GATKVCFIndexType.DYNAMIC_SEEK;  // by default, optimize for seek time.  All indices prior to Nov 2013 used this type.
     public final static Integer DEFAULT_INDEX_PARAMETER = -1;           // the default DYNAMIC_SEEK does not use a parameter
+    // as determined experimentally Nov-Dec 2013
+    public final static GATKVCFIndexType DEFAULT_GVCF_INDEX_TYPE = GATKVCFIndexType.LINEAR;
+    public final static Integer DEFAULT_GVCF_INDEX_PARAMETER = 128000;
+
+    // GVCF file extension
+    public final static String GVCF_EXT = "g.vcf";
+
+    // Message for using the deprecated --variant_index_type or --variant_index_parameter arguments.
+    public final static String DEPRECATED_INDEX_ARGS_MSG = "Naming your output file using the .g.vcf extension will automatically set the appropriate values " +
+            " for --variant_index_type and --variant_index_parameter";
 
     /**
      * Gets the appropriately formatted header for a VCF file describing this GATK run
@@ -259,5 +266,125 @@ public class GATKVCFUtils {
         } finally {
             codec.close(vcfSource);
         }
+    }
+
+    /**
+     * Check if the two indices are equivalent
+     *
+     * @param thisIndex index
+     * @param otherIndex index
+     * @return true if indices are equivalent, false otherwise.
+     */
+    public static boolean equivalentAbstractIndices(AbstractIndex thisIndex, AbstractIndex otherIndex){
+        return thisIndex.getVersion() == otherIndex.getVersion() &&
+                thisIndex.getIndexedFile().equals(otherIndex.getIndexedFile()) &&
+                thisIndex.getIndexedFileSize() == otherIndex.getIndexedFileSize() &&
+                thisIndex.getIndexedFileMD5().equals(otherIndex.getIndexedFileMD5()) &&
+                thisIndex.getFlags() == otherIndex.getFlags();
+    }
+
+    /**
+     * Check if the two indices are equivalent for a chromosome
+     *
+     * @param thisIndex index
+     * @param otherIndex index
+     * @param chr chromosome
+     * @return true if indices are equivalent, false otherwise.
+     * @throws NoSuchFieldException if index does not exist for a chromosome
+     * @throws IllegalAccessException if index does not exist for a chromosome
+     */
+    public static boolean equivalentLinearIndices(LinearIndex thisIndex, LinearIndex otherIndex, String chr) throws NoSuchFieldException, IllegalAccessException {
+        htsjdk.tribble.index.linear.LinearIndex.ChrIndex thisChr = (htsjdk.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(thisIndex, chr);
+        htsjdk.tribble.index.linear.LinearIndex.ChrIndex otherChr = (htsjdk.tribble.index.linear.LinearIndex.ChrIndex)getChrIndex(otherIndex, chr);
+
+        return  thisChr.getName().equals(otherChr.getName()) &&
+                //thisChr.getTotalSize() == otherChr.getTotalSize() &&      TODO: why does this differ?
+                thisChr.getNFeatures() == otherChr.getNFeatures() &&
+                thisChr.getNBlocks() == otherChr.getNBlocks();
+    }
+
+    /**
+     * Check if the two interval indices are equivalent for a chromosome
+     *
+     * @param thisIndex interval index
+     * @param otherIndex interval index
+     * @param chr chromosome
+     * @return true if indices are equivalent, false otherwise.
+     * @throws NoSuchFieldException if index does not exist for a chromosome
+     * @throws IllegalAccessException if index does not exist for a chromosome
+     */
+    public static boolean equivalentIntervalIndices(IntervalTreeIndex thisIndex, IntervalTreeIndex otherIndex, String chr) throws NoSuchFieldException, IllegalAccessException {
+        htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex thisChr = (htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(thisIndex, chr);
+        htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex otherChr = (htsjdk.tribble.index.interval.IntervalTreeIndex.ChrIndex)getChrIndex(otherIndex, chr);
+
+        // TODO: compare trees?
+        return thisChr.getName().equals(otherChr.getName());
+    }
+
+    /**
+     * Get index for a chromosome
+     *
+     * @param index index
+     * @param chr chromosome
+     * @return index for the chromosome
+     * @throws NoSuchFieldException if index does not exist for a chromosome
+     * @throws IllegalAccessException if index does not exist for a chromosome
+     */
+    public static ChrIndex getChrIndex(AbstractIndex index, String chr) throws NoSuchFieldException, IllegalAccessException {
+        Field f = AbstractIndex.class.getDeclaredField("chrIndices");
+        f.setAccessible(true);
+        LinkedHashMap<String, ChrIndex> chrIndices = (LinkedHashMap<String, ChrIndex>) f.get(index);
+        return chrIndices.get(chr);
+    }
+
+    /**
+     * Make an IndexCreator
+     *
+     * @param variantIndexType variant indexing strategy
+     * @param variantIndexParameter variant indexing parameter
+     * @param outputFile output variant file
+     * @param sequenceDictionary collection of SAM sequence records
+     * @return IndexCreator
+     */
+    public static IndexCreator makeIndexCreator(final GATKVCFIndexType variantIndexType, final int variantIndexParameter, final File outputFile, final SAMSequenceDictionary sequenceDictionary) {
+        /*
+        * If using the index arguments, log a warning.
+        * If the genotype file has the GCVF extension (.g.vcf), use the default GCVF indexing.
+        * Otherwise, use the default index type and parameter.
+        */
+        GATKVCFIndexType indexType = DEFAULT_INDEX_TYPE;
+        int indexParameter = DEFAULT_INDEX_PARAMETER;
+        if (usingNonDefaultIndexingArguments(variantIndexType, variantIndexParameter)) {
+            indexType = variantIndexType;
+            indexParameter = variantIndexParameter;
+            logger.warn(DEPRECATED_INDEX_ARGS_MSG);
+        } else if (outputFile.getName().endsWith("."  + GVCF_EXT)) {
+            indexType = DEFAULT_GVCF_INDEX_TYPE;
+            indexParameter = DEFAULT_GVCF_INDEX_PARAMETER;
+        }
+
+        return getIndexCreator(indexType, indexParameter, outputFile, sequenceDictionary);
+    }
+
+    /**
+     * Check if not using the default indexing arguments' values
+     *
+     * @param variantIndexType variant indexing strategy
+     * @param variantIndexParameter variant indexing parameter
+     * @return true if the index type or parameter are not the default values, false otherwise
+     */
+    public static boolean usingNonDefaultIndexingArguments(final GATKVCFIndexType variantIndexType, final int variantIndexParameter) {
+        return variantIndexType != GATKVCFUtils.DEFAULT_INDEX_TYPE || variantIndexParameter != GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
+    }
+
+    /**
+     * Check if using the GCVF indexing arguments' values
+     *
+     * @param variantIndexType variant indexing strategy
+     * @param variantIndexParameter variant indexing parameter
+     * @return true if the index type and parameter are the default GVCF values, false otherwise
+     */
+    public static boolean usingGVCFIndexingArguments(final GATKVCFIndexType variantIndexType, final int variantIndexParameter) {
+        return variantIndexType == GATKVCFUtils.DEFAULT_GVCF_INDEX_TYPE && variantIndexParameter == GATKVCFUtils.DEFAULT_GVCF_INDEX_PARAMETER;
     }
 }

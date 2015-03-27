@@ -24,16 +24,21 @@
 */
 
 package org.broadinstitute.gatk.tools;
-
-import org.apache.commons.lang.StringUtils;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.IndexFactory;
+import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.tribble.AbstractFeatureReader;
+import org.apache.commons.lang.StringUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.MD5DB;
 import org.broadinstitute.gatk.utils.MD5Mismatch;
 import org.broadinstitute.gatk.utils.runtime.ProcessController;
 import org.broadinstitute.gatk.utils.runtime.ProcessSettings;
 import org.broadinstitute.gatk.utils.runtime.RuntimeUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 import org.testng.Assert;
+import org.testng.TestException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -137,6 +142,84 @@ public class CatVariantsIntegrationTest {
                 CatVariantsVcf1,
                 CatVariantsBcf2,
                 BaseTest.createTempFile("CatVariantsTest", ".vcf"));
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(cmdLine.split("\\s+"));
+        pc.execAndCheck(ps);
+    }
+
+    //
+    //
+    // IndexCreator tests
+    //
+    //
+
+    private class VCFIndexCreatorTest extends BaseTest.TestDataProvider {
+        private final GATKVCFIndexType type;
+        private final int parameter;
+
+        private VCFIndexCreatorTest(GATKVCFIndexType type, int parameter) {
+            super(VCFIndexCreatorTest.class);
+
+            this.type = type;
+            this.parameter = parameter;
+        }
+
+        public String toString() {
+            return String.format("Index Type %s, Index Parameter %s", type, parameter);
+        }
+
+        public Index getIndex(final File vcfFile) {
+            switch (type) {
+                case DYNAMIC_SEEK : return IndexFactory.createDynamicIndex(vcfFile, new VCFCodec(), IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
+                case DYNAMIC_SIZE : return IndexFactory.createDynamicIndex(vcfFile, new VCFCodec(), IndexFactory.IndexBalanceApproach.FOR_SIZE);
+                case LINEAR : return IndexFactory.createLinearIndex(vcfFile, new VCFCodec(), parameter);
+                case INTERVAL : return IndexFactory.createIntervalIndex(vcfFile, new VCFCodec(), parameter);
+                default : throw new TestException("Invalid index type");
+            }
+        }
+    }
+
+    @DataProvider(name = "IndexDataProvider")
+    public Object[][] indexCreatorData() {
+        new VCFIndexCreatorTest(GATKVCFIndexType.DYNAMIC_SEEK, 0);
+        new VCFIndexCreatorTest(GATKVCFIndexType.DYNAMIC_SIZE, 0);
+        new VCFIndexCreatorTest(GATKVCFIndexType.LINEAR, 100);
+        new VCFIndexCreatorTest(GATKVCFIndexType.LINEAR, 10000);
+        new VCFIndexCreatorTest(GATKVCFIndexType.INTERVAL, 20);
+        new VCFIndexCreatorTest(GATKVCFIndexType.INTERVAL, 2000);
+
+        return BaseTest.TestDataProvider.getTests(VCFIndexCreatorTest.class);
+    }
+
+    @Test(dataProvider = "IndexDataProvider")
+    public void testCatVariantsVCFIndexCreation(VCFIndexCreatorTest testSpec) throws IOException{
+
+        String cmdLine = String.format("java -cp %s %s -R %s -V %s -V %s --variant_index_type %s --variant_index_parameter %s -out %s",
+                StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
+                CatVariants.class.getCanonicalName(),
+                BaseTest.b37KGReference,
+                CatVariantsVcf1,
+                CatVariantsVcf2,
+                testSpec.type,
+                testSpec.parameter,
+                BaseTest.createTempFile("CatVariantsVCFIndexCreationTest", ".vcf"));
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(cmdLine.split("\\s+"));
+        pc.execAndCheck(ps);
+    }
+
+    @Test()
+    public void testCatVariantsGVCFIndexCreation() throws IOException{
+
+        String cmdLine = String.format("java -cp %s %s -R %s -V %s -V %s -out %s",
+                StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
+                CatVariants.class.getCanonicalName(),
+                BaseTest.b37KGReference,
+                CatVariantsVcf1,
+                CatVariantsVcf2,
+                BaseTest.createTempFile("CatVariantsGVCFIndexCreationTest", "." + GATKVCFUtils.GVCF_EXT));
 
         ProcessController pc = ProcessController.getThreadLocal();
         ProcessSettings ps = new ProcessSettings(cmdLine.split("\\s+"));

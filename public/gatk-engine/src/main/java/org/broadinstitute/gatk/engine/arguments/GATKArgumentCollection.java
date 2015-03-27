@@ -621,12 +621,16 @@ public class GATKArgumentCollection {
      * INTERVAL creates an IntervalTreeIndex with bins with an equal amount of features, specified by the Features Per Bin parameter
      * DYNAMIC_SEEK attempts to optimize for minimal seek time by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
      * DYNAMIC_SIZE attempts to optimize for minimal index size by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
+     *
+     * This argument is deprecated, using the output file ".g.vcf" extension will automatically set the appropriate value
      */
     @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="Type of IndexCreator to use for VCF/BCF indices",required=false)
     @Advanced
     public GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
     /**
      * This is either the bin width or the number of features per bin, depending on the indexing strategy
+     *
+     * This argument is deprecated, using the output file ".g.vcf" extension will automatically set the appropriate value
      */
     @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="Parameter to pass to the VCF/BCF IndexCreator",required=false)
     @Advanced
