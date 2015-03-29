@@ -78,6 +78,17 @@ public class Utils {
     }
 
     /**
+     * Invert logic if specified
+     *
+     * @param logic boolean logical operation value
+     * @param invert whether to invert logic
+     * @return invert logic if invert flag is true, otherwise leave the logic
+     */
+    public static boolean invertLogic(final boolean logic, final boolean invert){
+            return logic ^ invert;
+    }
+
+    /**
      * Calculates the optimum initial size for a hash table given the maximum number
      * of elements it will need to hold. The optimum size is the smallest size that
      * is guaranteed not to result in any rehash/table-resize operations.
