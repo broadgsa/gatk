@@ -214,7 +214,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample. Can be specified multiple times", required=false)
-    public Set<String> sampleNames = new HashSet<String>(0);
+    public Set<String> sampleNames = new HashSet<>(0);
 
     @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select many samples from the ROD tracks provided. Can be specified multiple times", required=false)
     public Set<String> sampleExpressions ;
@@ -226,19 +226,19 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
      */
     @Argument(fullName="exclude_sample_name", shortName="xl_sn", doc="Exclude genotypes from this sample. Can be specified multiple times", required=false)
-    public Set<String> XLsampleNames = new HashSet<String>(0);
+    public Set<String> XLsampleNames = new HashSet<>(0);
 
     /**
      * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
      */
     @Input(fullName="exclude_sample_file", shortName="xl_sf", doc="File containing a list of samples (one per line) to exclude. Can be specified multiple times", required=false)
-    public Set<File> XLsampleFiles = new HashSet<File>(0);
+    public Set<File> XLsampleFiles = new HashSet<>(0);
 
     /**
      * Note that these expressions are evaluated *after* the specified samples are extracted and the INFO field annotations are updated.
      */
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data", required=false)
-    public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<String>();
+    public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<>();
 
     @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include loci found to be non-variant after the subsetting procedure", required=false)
     protected boolean EXCLUDE_NON_VARIANTS = false;
@@ -276,6 +276,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Store the original AC, AF, and AN values in the INFO field after selecting (using keys AC_Orig, AF_Orig, and AN_Orig)", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
+    @Argument(fullName="keepOriginalDP", shortName="keepOriginalDP", doc="Store the original DP value in the INFO field (using the DP_Orig key) after selecting", required=false)
+    private boolean KEEP_ORIGINAL_DEPTH = false;
+
     /**
      * This activates the mendelian violation module that will select all variants that correspond to a mendelian violation following the rules given by the family structure.
      */
@@ -300,7 +303,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      *
      */
     @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file. Valid types are INDEL, SNP, MIXED, MNP, SYMBOLIC, NO_VARIATION. Can be specified multiple times", required=false)
-    private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<VariantContext.Type>();
+    private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<>();
 
     /**
      * If provided, we will only include variants whose ID field is present in this list of ids.  The matching
@@ -336,11 +339,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         MULTIALLELIC
     }
 
-    private ArrayList<VariantContext.Type> selectedTypes = new ArrayList<VariantContext.Type>();
-    private ArrayList<String> selectNames = new ArrayList<String>();
+    private ArrayList<VariantContext.Type> selectedTypes = new ArrayList<>();
+    private ArrayList<String> selectNames = new ArrayList<>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
-    private TreeSet<String> samples = new TreeSet<String>();
+    private TreeSet<String> samples = new TreeSet<>();
     private boolean NO_SAMPLES_SPECIFIED = false;
 
     private boolean DISCORDANCE_ONLY = false;
@@ -366,13 +369,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
         vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
-        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+        TreeSet<String> vcfSamples = new TreeSet<>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
 
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
         Collection<String> samplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, sampleExpressions);
 
         // first, check overlap between requested and present samples
-        Set<String> commandLineUniqueSamples = new HashSet<String>(samplesFromFile.size()+samplesFromExpressions.size()+sampleNames.size());
+        Set<String> commandLineUniqueSamples = new HashSet<>(samplesFromFile.size()+samplesFromExpressions.size()+sampleNames.size());
         commandLineUniqueSamples.addAll(samplesFromFile);
         commandLineUniqueSamples.addAll(samplesFromExpressions);
         commandLineUniqueSamples.addAll(sampleNames);
@@ -437,6 +440,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AF_KEY));
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AN_KEY));
         }
+        if (KEEP_ORIGINAL_DEPTH)
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_DP_KEY));
         headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
         headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.DEPTH_KEY));
 
@@ -464,7 +469,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         /** load in the IDs file to a hashset for matching */
         if ( rsIDFile != null ) {
-            IDsToKeep = new HashSet<String>();
+            IDsToKeep = new HashSet<>();
             try {
                 for ( final String line : new XReadLines(rsIDFile).readLines() ) {
                     IDsToKeep.add(line.trim());
@@ -787,6 +792,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         VariantContextUtils.calculateChromosomeCounts(builder, false);
+
+        if (KEEP_ORIGINAL_DEPTH && originalVC.hasAttribute(VCFConstants.DEPTH_KEY))
+            builder.attribute(GATKVCFConstants.ORIGINAL_DP_KEY, originalVC.getAttribute(VCFConstants.DEPTH_KEY));
 
         boolean sawDP = false;
         int depth = 0;
