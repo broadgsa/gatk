@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
+import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
@@ -51,6 +52,10 @@ public abstract class InfoFieldAnnotation extends VariantAnnotatorAnnotation {
         return annotate(null, null, null, null, vc, perReadAlleleLikelihoodMap);
     }
 
+    public Map<String, Object> annotate(ReferenceContext referenceContext, Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap, VariantContext vc) {
+
+        return annotate(null, null, referenceContext, null, vc, perReadAlleleLikelihoodMap);
+    }
 
     public abstract Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                                  final AnnotatorCompatible walker,
