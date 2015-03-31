@@ -54,26 +54,39 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 /**
- * Selects variants from a VCF source.
+ * Select a subset of variants from a larger callset
  *
  * <p>
  * Often, a VCF containing many samples and/or variants will need to be subset in order to facilitate certain analyses
  * (e.g. comparing and contrasting cases vs. controls; extracting variant or non-variant loci that meet certain
  * requirements, displaying just a few samples in a browser like IGV, etc.). SelectVariants can be used for this purpose.
- * Given a single VCF file, one or more samples can be extracted from the file (based on a complete sample name or a
- * pattern match).  Variants can be further selected by specifying criteria for inclusion, i.e. "DP > 1000" (depth of
- * coverage greater than 1000x), "AF < 0.25" (sites with allele frequency less than 0.25).  These JEXL expressions are
- * documented in the Using JEXL expressions section (http://www.broadinstitute.org/gatk/guide/article?id=1255).
- * One can optionally include concordance or discordance tracks for use in selecting overlapping variants.
- *
+ * </p>
+ * <p>
+ * There are many different options for selecting subsets of variants from a larger callset:
+ * <ul>
+ *     <li>Extract one or more samples from a callset based on either a complete sample name or a pattern match.</li>  
+ *     <li>Specify criteria for inclusion that place thresholds on annotation values, e.g. "DP > 1000" (depth of
+ * coverage greater than 1000x), "AF < 0.25" (sites with allele frequency less than 0.25). These criteria are written 
+ * as "JEXL expressions", which are documented in the 
+ * <a href="http://www.broadinstitute.org/gatk/guide/article?id=1255">article about using JEXL expressions</a>.</li>
+ *     <li>Provide concordance or discordance tracks in order to include or exclude variants that are 
+ * also present in other given callsets.</li>
+ *     <li>Select variants based on criteria like their type 
+ * (e.g. INDELs only), evidence of mendelian violation, filtering status, allelicity, and so on.</li>
+ * </ul>
+ * </p>
+ * 
+ * <p>There are also several options for recording the original values of certain annotations that are recalculated 
+ * when a subsetting the new callset, trimming alleles, and so on.</p>
+ * 
  * <h3>Input</h3>
  * <p>
- * A variant set to select from.
+ * A variant call set from which to select a subset.
  * </p>
  *
  * <h3>Output</h3>
  * <p>
- * A selected VCF.
+ * The name of the VCF file to which to write the selected subset of variants.
  * </p>
  *
  * <h3>Examples</h3>
@@ -103,7 +116,7 @@ import java.util.*;
  *   -T SelectVariants \
  *   --variant input.vcf \
  *   -o output.vcf \
- *   -se 'SAMPLE.+PARC'
+ *   -se 'SAMPLE.+PARC' \
  *   -select "QD > 10.0"
  *
  * Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default):
@@ -135,30 +148,31 @@ import java.util.*;
  *   -L /path/to/my.interval_list \
  *   -sn SAMPLE_1_ACTG
  *
- * Select all calls missed in my vcf, but present in HapMap (useful to take a look at why these variants weren't called by this dataset):
+ * Select all calls missed in my vcf, but present in HapMap (useful to take a look at why these variants weren't called in my dataset):
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant hapmap.vcf \
- *   --discordance myCalls.vcf
+ *   --discordance myCalls.vcf \
  *   -o output.vcf \
  *   -sn mySample
  *
- * Select all calls made by both myCalls and hisCalls (useful to take a look at what is consistent between the two callers):
+ * Select all calls made by both myCalls and theirCalls (useful to take a look at what is consistent between two callers):
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant myCalls.vcf \
- *   --concordance hisCalls.vcf
+ *   --concordance hisCalls.vcf \
  *   -o output.vcf \
  *   -sn mySample
  *
- * Generating a VCF of all the variants that are mendelian violations:
+ * Generating a VCF of all the variants that are mendelian violations. The optional argument `-mvq` restricts the selection to sites that have a QUAL score of 50 or more:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
  *   -ped family.ped \
+ *   -mv \
  *   -mvq 50 \
  *   -o violations.vcf
  *
@@ -199,7 +213,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * and either the site isn't present in this track, the sample isn't present in this track,
      * or the sample is called reference in this track.
      */
-    @Input(fullName="discordance", shortName = "disc", doc="Output variants that were not called in this comparison track", required=false)
+    @Input(fullName="discordance", shortName = "disc", doc="Output variants not called in this comparison track", required=false)
     protected RodBinding<VariantContext> discordanceTrack;
 
     /**
@@ -207,110 +221,158 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * in both the variant and concordance tracks or (2) every sample present in the variant track is present in the
      * concordance track and they have the sample genotype call.
      */
-    @Input(fullName="concordance", shortName = "conc", doc="Output variants that were also called in this comparison track", required=false)
+    @Input(fullName="concordance", shortName = "conc", doc="Output variants also called in this comparison track", required=false)
     protected RodBinding<VariantContext> concordanceTrack;
 
     @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
-    @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample. Can be specified multiple times", required=false)
+    /**
+     * This argument can be specified multiple times in order to provide multiple sample names.
+     */
+    @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample", required=false)
     public Set<String> sampleNames = new HashSet<>(0);
 
-    @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select many samples from the ROD tracks provided. Can be specified multiple times", required=false)
+    /**
+     * Using a regular expression allows you to match multiple sample names that have that pattern in common. This
+     * argument can be specified multiple times in order to use multiple different matching patterns.
+     */
+    @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select multiple samples", required=false)
     public Set<String> sampleExpressions ;
 
-    @Input(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line) to include. Can be specified multiple times", required=false)
+    /**
+     * Sample names should be in a plain text file listing one sample name per line. This argument can be specified multiple times in order to provide
+     * multiple sample list files.
+     */
+    @Input(fullName="sample_file", shortName="sf", doc="File containing a list of samples to include", required=false)
     public Set<File> sampleFiles;
 
     /**
-     * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
+     * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be
+     * excluded. This argument can be specified multiple times in order to provide multiple sample names.
      */
-    @Argument(fullName="exclude_sample_name", shortName="xl_sn", doc="Exclude genotypes from this sample. Can be specified multiple times", required=false)
+    @Argument(fullName="exclude_sample_name", shortName="xl_sn", doc="Exclude genotypes from this sample", required=false)
     public Set<String> XLsampleNames = new HashSet<>(0);
 
     /**
-     * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be excluded.
+     * Sample names should be in a plain text file listing one sample name per line. Note that sample exclusion takes precedence over inclusion, so that
+     * if a sample is in both lists it will be excluded. This argument can be specified multiple times in order to
+     * provide multiple sample list files.
      */
-    @Input(fullName="exclude_sample_file", shortName="xl_sf", doc="File containing a list of samples (one per line) to exclude. Can be specified multiple times", required=false)
+    @Input(fullName="exclude_sample_file", shortName="xl_sf", doc="List of samples to exclude", required=false)
     public Set<File> XLsampleFiles = new HashSet<>(0);
 
     /**
-     * Note that these expressions are evaluated *after* the specified samples are extracted and the INFO field annotations are updated.
+     * See example commands above for detailed usage examples. Note that these expressions are evaluated *after* the
+     * specified samples are extracted and the INFO field annotations are updated.
      */
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data", required=false)
     public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<>();
 
-    @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include loci found to be non-variant after the subsetting procedure", required=false)
+    /**
+     * If this flag is enabled, sites that are found to be non-variant after the subsetting procedure (i.e. where none
+     * of the selected samples display evidence of variation) will be excluded from the output.
+     */
+    @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include non-variant sites", required=false)
     protected boolean EXCLUDE_NON_VARIANTS = false;
 
-    @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
+    /**
+     * If this flag is enabled, sites that have been marked as filtered (i.e. have anything other than `.` or `PASS`
+     * in the FILTER field) will be excluded from the output.
+     */
+    @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered sites", required=false)
     protected boolean EXCLUDE_FILTERED = false;
 
     /**
-     * Default is to remove bases common to all remaining alleles, leaving only their minimal representation.
-     * If this argument is set, original alleles from input VCF will be preserved.
+     * The default behavior of this tool is to remove bases common to all remaining alleles after subsetting
+     * operations have been completed, leaving only their minimal representation. If this flag is enabled, the original
+     * alleles will be preserved as recorded in the input VCF.
      */
     @Argument(fullName="preserveAlleles", shortName="noTrim", doc="Preserve original alleles, do not trim", required=false)
     protected boolean preserveAlleles = false;
 
     /**
-     * When this argument is present, all alternate alleles that are not present in the (output) samples will be removed.
+     * When this flag is enabled, all alternate alleles that are not present in the (output) samples will be removed.
      * Note that this even extends to biallelic SNPs - if the alternate allele is not present in any sample, it will be
-     * removed and the record will contain a '.' in the ALT column.  Also note that sites-only VCFs, by definition, do
+     * removed and the record will contain a '.' in the ALT column. Note also that sites-only VCFs, by definition, do
      * not include the alternate allele in any genotype calls.
      */
     @Argument(fullName="removeUnusedAlternates", shortName="trimAlternates", doc="Remove alternate alleles not present in any genotypes", required=false)
     protected boolean removeUnusedAlternates = false;
 
     /**
-     * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a vcf.
+     * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a VCF.
      * For example, a multiallelic record such as:
-     * 1    100 .   A   AAA,AAAAA
-     * will be excluded if "-restrictAllelesTo BIALLELIC" is included, because there are two alternate alleles, whereas a record such as:
-     * 1    100 .   A  T
-     * will be included in that case, but would be excluded if "-restrictAllelesTo MULTIALLELIC
+     *     1    100 .   A   AAA,AAAAA
+     * will be excluded if `-restrictAllelesTo BIALLELIC` is used, because there are two alternate alleles, whereas a record such as:
+     *     1    100 .   A  T
+     * will be included in that case, but would be excluded if `-restrictAllelesTo MULTIALLELIC` is used.
+     * Valid options are ALL (default), MULTIALLELIC or BIALLELIC.
      */
-    @Argument(fullName="restrictAllelesTo", shortName="restrictAllelesTo", doc="Select only variants of a particular allelicity. Valid options are ALL (default), MULTIALLELIC or BIALLELIC", required=false)
+    @Argument(fullName="restrictAllelesTo", shortName="restrictAllelesTo", doc="Select only variants of a particular allelicity", required=false)
     private  NumberAlleleRestriction alleleRestriction = NumberAlleleRestriction.ALL;
 
-    @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Store the original AC, AF, and AN values in the INFO field after selecting (using keys AC_Orig, AF_Orig, and AN_Orig)", required=false)
+    /**
+     * When subsetting a callset, this tool recalculates the AC, AF, and AN values corresponding to the contents of the
+     * subset. If this flag is enabled, the original values of those annotations will be stored in new annotations called
+     * AC_Orig, AF_Orig, and AN_Orig.
+     */
+    @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Store the original AC, AF, and AN values after subsetting", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
-    @Argument(fullName="keepOriginalDP", shortName="keepOriginalDP", doc="Store the original DP value in the INFO field (using the DP_Orig key) after selecting", required=false)
+    /**
+     * When subsetting a callset, this tool recalculates the site-level (INFO field) DP value corresponding to the contents of the
+     * subset. If this flag is enabled, the original value of the DP annotation will be stored in a new annotation called
+     * DP_Orig.
+     */
+    @Argument(fullName="keepOriginalDP", shortName="keepOriginalDP", doc="Store the original DP value after subsetting", required=false)
     private boolean KEEP_ORIGINAL_DEPTH = false;
 
     /**
-     * This activates the mendelian violation module that will select all variants that correspond to a mendelian violation following the rules given by the family structure.
+     * If this flag is enabled, this tool will select only variants that correspond to a mendelian violation as
+     * determined on the basis of family structure. Requires passing a pedigree file using the engine-level
+     * `-ped` argument.
      */
-    @Argument(fullName="mendelianViolation", shortName="mv", doc="output mendelian violation sites only", required=false)
+    @Argument(fullName="mendelianViolation", shortName="mv", doc="Output mendelian violation sites only", required=false)
     private Boolean MENDELIAN_VIOLATIONS = false;
 
-    @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
+    /**
+     * This argument specifies the genotype quality (GQ) threshold that all members of a trio must have in order
+     * for a site to be accepted as a mendelian violation. Note that the `-mv` flag must be set for this argument to have an effect.
+     */
+    @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum GQ score for each trio member to accept a site as a violation", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
     /**
-     * This routine is based on probability, so the final result is not guaranteed to carry the exact fraction.  Can be used for large fractions.
+     * The value of this argument should be a number between 0 and 1 specifying the fraction of total variants to be
+     * randomly selected from the input callset. Note that this is done using a probabilistic function, so the final
+     * result is not guaranteed to carry the exact fraction requested. Can be used for large fractions.
      */
-    @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track", required=false)
+    @Argument(fullName="select_random_fraction", shortName="fraction", doc="Select a fraction of variants at random from the input", required=false)
     protected double fractionRandom = 0;
 
-    @Argument(fullName="remove_fraction_genotypes", shortName="fractionGenotypes", doc="Selects a fraction (a number between 0 and 1) of the total genotypes at random from the variant track and sets them to nocall", required=false)
+    /**
+     * The value of this argument should be a number between 0 and 1 specifying the fraction of total variants to be
+     * randomly selected from the input callset and set to no-call (./). Note that this is done using a probabilistic
+     * function, so the final result is not guaranteed to carry the exact fraction requested. Can be used for large fractions.
+     */
+    @Argument(fullName="remove_fraction_genotypes", shortName="fractionGenotypes", doc="Select a fraction of genotypes at random from the input and sets them to no-call", required=false)
     protected double fractionGenotypes = 0;
 
     /**
-     * This argument select particular kinds of variants out of a list. If left empty, there is no type selection and all variant types are considered for other selection criteria.
-     * When specified one or more times, a particular type of variant is selected.
-     *
+     * This argument selects particular kinds of variants out of a list. If left empty, there is no type selection
+     * and all variant types are considered for other selection criteria. Valid types are INDEL, SNP, MIXED, MNP,
+     * SYMBOLIC, NO_VARIATION. Can be specified multiple times.
      */
-    @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file. Valid types are INDEL, SNP, MIXED, MNP, SYMBOLIC, NO_VARIATION. Can be specified multiple times", required=false)
+    @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file", required=false)
     private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<>();
 
     /**
-     * If provided, we will only include variants whose ID field is present in this list of ids.  The matching
-     * is exact string matching.  The file format is just one ID per line
-     *
+     * If a file containing a list of IDs is provided to this argument, the tool will only select variants whose ID
+     * field is present in this list of IDs. The matching is done by exact string matching. The expected file format
+     * is simply plain text with one ID per line.
      */
-    @Argument(fullName="keepIDs", shortName="IDs", doc="Only emit sites whose ID is found in this file (one ID per line)", required=false)
+    @Argument(fullName="keepIDs", shortName="IDs", doc="List of variant IDs to select", required=false)
     private File rsIDFile = null;
 
 
@@ -326,10 +388,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="justRead", doc="If true, we won't actually write the output file.  For efficiency testing only", required=false)
     private boolean justRead = false;
 
-    @Argument(doc="indel size select",required=false,fullName="maxIndelSize")
+    /**
+     * If this argument is provided, indels that are larger than the specified siwe will be excluded.
+     */
+    @Argument(fullName="maxIndelSize", required=false, doc="Maximum size of indels to include")
     private int maxIndelSize = Integer.MAX_VALUE;
 
-    @Argument(doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.",required=false,fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES")
+    @Hidden
+    @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", required=false, doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
     private boolean ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES = false;
 
 
