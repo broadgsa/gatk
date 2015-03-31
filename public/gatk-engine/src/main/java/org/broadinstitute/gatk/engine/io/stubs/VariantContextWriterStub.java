@@ -253,7 +253,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
             // skip writing the command line header if requested
             if ( ! skipWritingCommandLineHeader && header.isWriteCommandLine() ) {
                 // Always add the header line, as the current format allows multiple entries
-                final VCFHeaderLine commandLineArgHeaderLine = GATKVCFUtils.getCommandLineArgumentHeaderLine(engine, argumentSources);
+                final VCFHeaderLine commandLineArgHeaderLine = GATKVCFUtils.getCommandLineArgumentHeaderLine(vcfHeader, engine, argumentSources);
                 vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
 

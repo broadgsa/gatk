@@ -232,7 +232,15 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final File vcf = executeTest("testGATKVersionInVCF", spec).first.get(0);
         final VCFCodec codec = new VCFCodec();
         final VCFHeader header = (VCFHeader) codec.readActualHeader(codec.makeSourceFromStream(new FileInputStream(vcf)));
-        final VCFHeaderLine versionLine = header.getMetaDataLine(GATKVCFUtils.GATK_COMMAND_LINE_KEY);
+
+        // go through the metadata headers and look for ones that start with the GATK_COMMAND_LINE_KEY
+        VCFHeaderLine versionLine = null;
+        for ( final VCFHeaderLine headerLine : header.getMetaDataInInputOrder()) {
+           if(headerLine.getKey().startsWith(GATKVCFUtils.GATK_COMMAND_LINE_KEY)) {
+               versionLine = headerLine;
+               break;
+           }
+        }
         Assert.assertNotNull(versionLine);
         Assert.assertTrue(versionLine.toString().contains("TestPrintVariantsWalker"));
     }
@@ -251,7 +259,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         boolean foundHC = false;
         boolean foundPV = false;
         for ( final VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
-            if ( line.getKey().equals(GATKVCFUtils.GATK_COMMAND_LINE_KEY) ) {
+            if ( line.getKey().startsWith(GATKVCFUtils.GATK_COMMAND_LINE_KEY) ) {
                 if ( line.toString().contains("HaplotypeCaller") ) {
                     Assert.assertFalse(foundHC);
                     foundHC = true;
@@ -265,6 +273,41 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         Assert.assertTrue(foundHC, "Didn't find HaplotypeCaller command line header field");
         Assert.assertTrue(foundPV, "Didn't find TestPrintVariantsWalker command line header field");
+    }
+
+    @Test(enabled = true)
+    public void testMultipleGATKVersionsSameWalkerInVCF() throws Exception {
+        WalkerTestSpec spec = new WalkerTestSpec("-T TestPrintVariantsWalker -R " + b37KGReference +
+                " -V " + privateTestDir + "gatkCommandLineExistsInHeader.vcf"
+                + " -o %s",
+                1, Arrays.asList(""));
+        spec.disableShadowBCF();
+        final File vcf = executeTest("testMultipleGATKVersionsSameWalkerInVCF", spec).first.get(0);
+        final VCFCodec codec = new VCFCodec();
+        final VCFHeader header = (VCFHeader) codec.readActualHeader(codec.makeSourceFromStream(new FileInputStream(vcf)));
+
+        boolean foundFirstWalker  = false;
+        boolean foundSecondWalker = false;
+        for ( final VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
+            if ( line.getKey().startsWith(GATKVCFUtils.GATK_COMMAND_LINE_KEY) ) {
+                // check if we found the second walker command line header field key
+                if ( line.getKey().contains("TestPrintVariantsWalker.2") ) {
+                    Assert.assertFalse(foundSecondWalker);
+                    foundSecondWalker = true;
+                }
+                // otherwise if this is not the second walker command but contains the same
+                // walker name, then it is the first occurrence.  If we somehow got more than
+                // two occurrences of this walker, the Assert.assertFalse(foundFirstWalker);
+                // will catch this
+                else if ( line.getKey().contains("TestPrintVariantsWalker") ) {
+                    Assert.assertFalse(foundFirstWalker);
+                    foundFirstWalker = true;
+                }
+            }
+        }
+
+        Assert.assertTrue(foundFirstWalker, "Didn't find TestPrintVariantsWalker command line header field");
+        Assert.assertTrue(foundSecondWalker, "Didn't find (second) TestPrintVariantsWalker command line header field");
     }
 
     // --------------------------------------------------------------------------------

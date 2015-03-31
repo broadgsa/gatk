@@ -79,13 +79,15 @@ public class GATKVCFUtils {
     /**
      * Gets the appropriately formatted header for a VCF file describing this GATK run
      *
+     * @param header the existing VCFHeader that we will be adding this command line argument header line to.  Existing
+     *               command line argument header lines will be used to generate a unique header line key.
      * @param engine the GATK engine that holds the walker name, GATK version, and other information
      * @param argumentSources contains information on the argument values provided to the GATK for converting to a
      *                        command line string.  Should be provided from the data in the parsing engine.  Can be
      *                        empty in which case the command line will be the empty string.
      * @return VCF header line describing this run of the GATK.
      */
-    public static VCFHeaderLine getCommandLineArgumentHeaderLine(final GenomeAnalysisEngine engine, final Collection<Object> argumentSources) {
+    public static VCFHeaderLine getCommandLineArgumentHeaderLine(final VCFHeader header, final GenomeAnalysisEngine engine, final Collection<Object> argumentSources) {
         if ( engine == null ) throw new IllegalArgumentException("engine cannot be null");
         if ( argumentSources == null ) throw new IllegalArgumentException("argumentSources cannot be null");
 
@@ -96,7 +98,36 @@ public class GATKVCFUtils {
         attributes.put("Date", date.toString());
         attributes.put("Epoch", Long.toString(date.getTime()));
         attributes.put("CommandLineOptions", engine.createApproximateCommandLineArgumentString(argumentSources.toArray()));
-        return new VCFSimpleHeaderLine(GATK_COMMAND_LINE_KEY, attributes);
+
+        // in case the walker name contains space, remove any spaces
+        String key = getCommandLineKey(header, engine.getWalkerName().replaceAll("\\s", ""));
+        return new VCFSimpleHeaderLine(key, attributes);
+    }
+
+    // create a unique command line argument header line key.  This method will look for existing
+    // keys using the same walker name and append a count after it to make it unique.
+    private static String getCommandLineKey(final VCFHeader header, final String walkerName) {
+        final Iterator<VCFHeaderLine> existingMetaDataIterator = header.getMetaDataInInputOrder().iterator();
+
+        // the command line argument keys are in the format GATK_COMMAND_LINE_KEY.(walker name)
+        final String searchKey = String.format("%s.%s", GATK_COMMAND_LINE_KEY, walkerName);
+
+        int commandLineKeyCount = 0;
+        VCFHeaderLine line;
+        while ( existingMetaDataIterator.hasNext() ) {
+            line = existingMetaDataIterator.next();
+            // if we find another key that starts with the same text as the walker
+            if ( line.getKey().startsWith(searchKey) )
+                commandLineKeyCount++;
+        }
+
+        // if there are no existing keys with this same walker name, then just return the
+        // GATK_COMMAND_LINE_KEY.(walker name) format
+        if ( commandLineKeyCount == 0 )
+            return searchKey;
+        // otherwise append the count associated with this new command (existing + 1)
+        else
+            return String.format("%s.%d", searchKey, commandLineKeyCount+1);
     }
 
     public static <T extends Feature> Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, List<RodBinding<T>> rodBindings) {

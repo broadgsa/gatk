@@ -70,16 +70,20 @@ public class GATKVCFUtilsUnitTest extends BaseTest {
         final GenomeAnalysisEngine testEngine2 = new GenomeAnalysisEngine();
         testEngine2.setWalker(walker2);
 
-        final VCFHeaderLine line1 = GATKVCFUtils.getCommandLineArgumentHeaderLine(testEngine1, Collections.EMPTY_LIST);
+        final VCFHeaderLine line1 = GATKVCFUtils.getCommandLineArgumentHeaderLine(header, testEngine1, Collections.EMPTY_LIST);
         logger.warn(line1);
         Assert.assertNotNull(line1);
-        Assert.assertEquals(line1.getKey(), GATKVCFUtils.GATK_COMMAND_LINE_KEY);
-        for ( final String field : Arrays.asList("Version", "ID", "Date", "CommandLineOptions"))
+        // assert the key matches the expected format (GATKVCFUtils.GATK_COMMAND_LINE_KEY).(walker name)
+        final String expectedLine1Key = String.format("%s.%s", GATKVCFUtils.GATK_COMMAND_LINE_KEY, testEngine1.getWalkerName());
+        Assert.assertEquals(line1.getKey(), expectedLine1Key);
+
+        for (final String field : Arrays.asList("Version", "ID", "Date", "CommandLineOptions"))
             Assert.assertTrue(line1.toString().contains(field), "Couldn't find field " + field + " in " + line1.getValue());
         Assert.assertTrue(line1.toString().contains("ID=" + testEngine1.getWalkerName()));
 
-        final VCFHeaderLine line2 = GATKVCFUtils.getCommandLineArgumentHeaderLine(testEngine2, Collections.EMPTY_LIST);
+        final VCFHeaderLine line2 = GATKVCFUtils.getCommandLineArgumentHeaderLine(header, testEngine2, Collections.EMPTY_LIST);
         logger.warn(line2);
+
 
         header.addMetaDataLine(line1);
         final Set<VCFHeaderLine> lines1 = header.getMetaDataInInputOrder();
@@ -89,6 +93,23 @@ public class GATKVCFUtilsUnitTest extends BaseTest {
         final Set<VCFHeaderLine> lines2 = header.getMetaDataInInputOrder();
         Assert.assertTrue(lines2.contains(line1));
         Assert.assertTrue(lines2.contains(line2));
+
+        // create a new header line using the same engine as used by line 1
+        final VCFHeaderLine line3 = GATKVCFUtils.getCommandLineArgumentHeaderLine(header, testEngine1, Collections.EMPTY_LIST);
+        logger.warn(line3);
+
+        // ensure convention followed by getCommandLineArgumentHeaderLine is to append ".(number of duplicate engine runs)"
+        // line3 uses the same walker as line1, whereas line2 uses a different walker.  line3 is the second occurrence of walker1
+        // so a ".2" gets appended afterwards
+        final String expectedLine3Key = String.format("%s.%s.2", GATKVCFUtils.GATK_COMMAND_LINE_KEY, testEngine1.getWalkerName());
+        Assert.assertEquals(line3.getKey(), expectedLine3Key);
+
+        header.addMetaDataLine(line3);
+
+        final Set<VCFHeaderLine> lines3 = header.getMetaDataInInputOrder();
+        Assert.assertTrue(lines3.contains(line1));
+        Assert.assertTrue(lines3.contains(line2));
+        Assert.assertTrue(lines3.contains(line3));
     }
 
     private class IndexCreatorTest extends TestDataProvider {
