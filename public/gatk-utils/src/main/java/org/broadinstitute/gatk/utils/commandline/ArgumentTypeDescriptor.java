@@ -26,13 +26,13 @@
 package org.broadinstitute.gatk.utils.commandline;
 
 import htsjdk.tribble.AbstractFeatureReader;
-import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
-import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
+import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.classloader.JVMUtils;
 import org.broadinstitute.gatk.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.refdata.tracks.FeatureManager;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.File;
@@ -396,13 +396,13 @@ public abstract class ArgumentTypeDescriptor {
                         }
 
                         if ( ! file.exists() ) {
-                            throw new UserException.CouldNotReadInputFile(file, "file does not exist");
+                            throw new UserException.CouldNotReadInputFile(file, "file \'"+ file + "\' does not exist");
                         } else if ( ! file.canRead() || ! file.isFile() ) {
-                            throw new UserException.CouldNotReadInputFile(file, "file could not be read");
+                            throw new UserException.CouldNotReadInputFile(file, "file \'"+ file + "\' could not be read");
                         } else {
                             throw new UserException.CommandLineException(
-                                    String.format("No tribble type was provided on the command line and the type of the file could not be determined dynamically. " +
-                                            "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
+                                    String.format("No tribble type was provided on the command line and the type of the file \'"+ file + "\' could not be determined dynamically. " +
+                                                    "Please add an explicit type tag :NAME listing the correct type from among the supported types:%n%s",
                                             manager.userFriendlyListOfAvailableFeatures(parameterType)));
                         }
                     }
