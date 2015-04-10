@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.engine.filters.BadCigarFilter;
 import org.broadinstitute.gatk.engine.filters.MalformedReadFilter;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
 import org.broadinstitute.gatk.engine.samples.Sample;
@@ -49,7 +50,7 @@ import java.util.List;
  * Time: 1:53:31 PM
  * To change this template use File | Settings | File Templates.
  */
-@ReadFilters(MalformedReadFilter.class)
+@ReadFilters({MalformedReadFilter.class,BadCigarFilter.class})
 @PartitionBy(PartitionType.NONE)
 @Downsample(by = DownsampleType.NONE)
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = ReadTransformer.ApplicationTime.ON_INPUT)

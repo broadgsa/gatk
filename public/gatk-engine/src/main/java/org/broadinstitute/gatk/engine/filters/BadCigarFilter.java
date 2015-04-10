@@ -35,6 +35,7 @@ import java.util.Iterator;
 /**
  * Filter out reads with wonky cigar strings.
  *
+ *  - No reads with a different length and cigar length
  *  - No reads with Hard/Soft clips in the middle of the cigar
  *  - No reads starting with deletions (with or without preceding clips)
  *  - No reads ending in deletions (with or without follow-up clips)
@@ -55,6 +56,11 @@ public class BadCigarFilter extends ReadFilter {
         // if there is no Cigar then it can't be bad
         if( c.isEmpty() ) {
             return false;
+        }
+
+        // Read and it's CIGAR not the same length
+        if ( rec.getReadLength() != c.getReadLength() ) {
+            return true;
         }
 
         Iterator<CigarElement> elementIterator = c.getCigarElements().iterator();

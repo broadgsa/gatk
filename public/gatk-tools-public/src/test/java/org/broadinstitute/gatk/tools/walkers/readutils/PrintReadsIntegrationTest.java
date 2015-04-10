@@ -58,9 +58,9 @@ public class PrintReadsIntegrationTest extends WalkerTest {
     @DataProvider(name = "PRTest")
     public Object[][] createPrintReadsTestData() {
         return new Object[][]{
-                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, "", "fa9c66f66299fe5405512ac36ec9d0f2")},
-                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -compress 0", "488eb22abc31c6af7cbb1a3d41da1507")},
-                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -simplifyBAM", "1510dc4429f3ed49caf96da41e8ed396")},
+                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, "", "5aee1c592f7b0505430df4d4452b8000")},
+                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -compress 0", "62a542230502c9e54124ebd46242e252")},
+                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -simplifyBAM", "a054a6618ffa8cd2d1113b005335922b")},
                 {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -n 10", "0e3d1748ad1cb523e3295cab9d09d8fc")},
                 // See: GATKBAMIndex.getStartOfLastLinearBin(), BAMScheduler.advance(), IntervalOverlapFilteringIterator.advance()
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, "", "d7f23fd77d7dc7cb50d3397f644c6d8a")},

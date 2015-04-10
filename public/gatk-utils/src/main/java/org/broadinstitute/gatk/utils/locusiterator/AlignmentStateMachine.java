@@ -57,6 +57,8 @@ import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
         "currentCigarElementOffset <= nCigarElements"
 })
 public class AlignmentStateMachine {
+
+    public static final String MAKE_PILEUP_EDGE_ERROR = "Cannot make a pileup element from an edge alignment state";
     /**
      * Our read
      */
@@ -359,7 +361,7 @@ public class AlignmentStateMachine {
     @Ensures("result != null")
     public final PileupElement makePileupElement() {
         if ( isLeftEdge() || isRightEdge() )
-            throw new IllegalStateException("Cannot make a pileup element from an edge alignment state");
+            throw new IllegalStateException(MAKE_PILEUP_EDGE_ERROR);
         return new PileupElement(read,
                 getReadOffset(),
                 getCurrentCigarElement(),
