@@ -147,37 +147,30 @@ public class CatVariants extends CommandLineProgram {
         INVALID
     }
 
-    private FileType fileExtensionCheck(File inFile, File outFile) {
+    private FileType fileExtensionCheck(File inFile, FileType previousFileType) {
         final String inFileName = inFile.toString().toLowerCase();
-        final String outFileName = outFile.toString().toLowerCase();
-
-        FileType inFileType = FileType.INVALID;
 
         if (inFileName.endsWith(".vcf")) {
-            inFileType = FileType.VCF;
-            if (outFileName.endsWith(".vcf"))
-                return inFileType;
+            if (previousFileType == FileType.VCF || previousFileType == null) {
+                return FileType.VCF;
+            }
         }
 
         if (inFileName.endsWith(".bcf")) {
-            inFileType = FileType.BCF;
-            if (outFileName.endsWith(".bcf"))
-                return inFileType;
+            if (previousFileType == FileType.BCF || previousFileType == null) {
+                return FileType.BCF;
+            }
         }
 
         for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
             if (inFileName.endsWith(".vcf" + extension)) {
-                inFileType = FileType.BLOCK_COMPRESSED_VCF;
-                if (outFileName.endsWith(".vcf" + extension))
-                    return inFileType;
+                if (previousFileType == FileType.BLOCK_COMPRESSED_VCF || previousFileType == null) {
+                    return FileType.BLOCK_COMPRESSED_VCF;
+                }
             }
         }
 
-        if (inFileType == FileType.INVALID)
-            System.err.println(String.format("File extension for input file %s is not valid for CatVariants", inFile));
-        else
-            System.err.println(String.format("File extension mismatch between input %s and output %s", inFile, outFile));
-
+        System.err.println(String.format("File extension for input file %s is not valid for CatVariants", inFile));
         printUsage();
         return FileType.INVALID;
     }
@@ -241,10 +234,10 @@ public class CatVariants extends CommandLineProgram {
         else
             priorityQueue = new PriorityQueue<>(10000, positionComparator);
 
-        FileType fileType = FileType.INVALID;
+        FileType fileType = null;
         for (File file : variant) {
             // if it returns a valid type, it will be the same for all files
-            fileType = fileExtensionCheck(file, outputFile);
+            fileType = fileExtensionCheck(file, fileType);
             if (fileType == FileType.INVALID)
                 return 1;
 
