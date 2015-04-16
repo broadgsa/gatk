@@ -37,7 +37,7 @@ import java.io.File
  */
 class MarkDuplicates extends org.broadinstitute.gatk.queue.function.JavaCommandLineFunction with PicardBamFunction {
   analysisName = "MarkDuplicates"
-  javaMainClass = "picard.sam.MarkDuplicates"
+  javaMainClass = "picard.sam.markduplicates.MarkDuplicates"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil
@@ -55,7 +55,7 @@ class MarkDuplicates extends org.broadinstitute.gatk.queue.function.JavaCommandL
   var REMOVE_DUPLICATES: Boolean = false
 
   @Argument(doc = "Maximum number of file handles to keep open when spilling read ends to disk.  Set this number a little lower than the per-process maximum number of file that may be open.  This number can be found by executing the 'ulimit -n' command on a Unix system.", shortName = "max_file_handles", fullName ="max_file_handles_for_read_ends_maps", required=false)
-  var MAX_FILE_HANDLES_FOR_READ_ENDS_MAP: Int = -1;
+  var MAX_FILE_HANDLES_FOR_READ_ENDS_MAP: Int = -1
 
   @Argument(doc = "This number, plus the maximum RAM available to the JVM, determine the memory footprint used by some of the sorting collections.  If you are running out of memory, try reducing this number.", shortName = "sorting_ratio", fullName = "sorting_collection_size_ratio", required = false)
   var SORTING_COLLECTION_SIZE_RATIO: Double = -1
