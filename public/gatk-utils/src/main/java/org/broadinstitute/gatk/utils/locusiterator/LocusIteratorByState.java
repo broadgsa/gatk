@@ -55,7 +55,7 @@ import java.util.*;
  * There are a few constraints on required and ensured by LIBS:
  *
  * -- Requires the Iterator<GATKSAMRecord> to returns reads in coordinate sorted order, consistent with the ordering
- * defined by the SAM file format.  That that for performance reasons this constraint isn't actually enforced.
+ * defined by the SAM file format.  That for performance reasons this constraint isn't actually enforced.
  * The behavior of LIBS is undefined in the case where the reads are badly ordered.
  * -- The reads in the ReadBackedPileup are themselves in the order of appearance of the reads from the iterator.
  * That is, the pileup is ordered in a way consistent with the SAM coordinate ordering

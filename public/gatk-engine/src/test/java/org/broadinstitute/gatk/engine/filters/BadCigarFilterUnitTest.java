@@ -73,18 +73,24 @@ public class BadCigarFilterUnitTest {
     }
 
     @Test(enabled = true)
-    public void testWonkyCigars () {
+    public void testWonkyCigars() {
         for (String cigarString : BAD_CIGAR_LIST) {
-            GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigarString);
+            GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigarString, 0);
             Assert.assertTrue(filter.filterOut(read), read.getCigarString());
         }
+    }
+
+    @Test(enabled = true)
+    public void testReadCigarLengthMismatch() {
+        GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar("4M", 1);
+        Assert.assertTrue(filter.filterOut(read), read.getCigarString());
     }
 
     @Test(enabled = true)
     public void testGoodCigars() {
         List<Cigar> cigarList = ReadClipperTestUtils.generateCigarList(10);
         for (Cigar cigar : cigarList) {
-            GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
+            GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar, 0);
             Assert.assertFalse(filter.filterOut(read), read.getCigarString());
         }
     }

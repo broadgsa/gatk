@@ -64,6 +64,12 @@ public class AlignmentStateMachineUnitTest extends LocusIteratorByStateBaseTest 
 
         // TODO -- more tests about test state machine state before first step?
         Assert.assertTrue(state.isLeftEdge());
+        try {
+            state.makePileupElement();
+            Assert.fail("makePileupElement should've thrown an exception");
+        } catch (IllegalStateException e) {
+            Assert.assertTrue(e.getMessage().indexOf(state.MAKE_PILEUP_EDGE_ERROR) != -1);
+        }
         Assert.assertNull(state.getCigarOperator());
         Assert.assertNotNull(state.toString());
         Assert.assertEquals(state.getReadOffset(), -1);

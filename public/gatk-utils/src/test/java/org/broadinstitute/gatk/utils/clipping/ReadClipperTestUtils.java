@@ -52,13 +52,31 @@ public class ReadClipperTestUtils {
                                                   new CigarElement(1, CigarOperator.DELETION),
                                                   new CigarElement(1, CigarOperator.MATCH_OR_MISMATCH)};
 
+    /**
+     * Make a read fom the CIGAR
+     *
+     * @param cigar the CIGAR
+     * @param lengthChange change in read length relative the CIGAR length
+     * @return artificial read
+     */
+    public static GATKSAMRecord makeReadFromCigar(Cigar cigar, int lengthChange) {
+        int readLength = cigar.getReadLength();
+        if ( readLength >= -lengthChange ) {
+            readLength += lengthChange;
+        }
 
-    public static GATKSAMRecord makeReadFromCigar(Cigar cigar) {
-        return ArtificialSAMUtils.createArtificialRead(Utils.arrayFromArrayWithLength(BASES, cigar.getReadLength()), Utils.arrayFromArrayWithLength(QUALS, cigar.getReadLength()), cigar.toString());
+        return ArtificialSAMUtils.createArtificialRead(Utils.arrayFromArrayWithLength(BASES, readLength), Utils.arrayFromArrayWithLength(QUALS, readLength), cigar.toString());
     }
 
-    public static GATKSAMRecord makeReadFromCigar(String cigarString) {
-        return makeReadFromCigar(CigarUtils.cigarFromString(cigarString));
+    /**
+     * Make a read from the CIGAR string
+     *
+     * @param cigarString string used to create a CIGAR
+     * @param lengthChange change in read length relative the CIGAR length
+     * @return artificial read
+     */
+    public static GATKSAMRecord makeReadFromCigar(String cigarString, int lengthChange) {
+        return makeReadFromCigar(CigarUtils.cigarFromString(cigarString), lengthChange);
     }
 
     public static List<Cigar> generateCigarList(int maximumLength) {
