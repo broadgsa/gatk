@@ -70,6 +70,7 @@ public class GATKVCFHeaderLines {
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.PON_FILTER_NAME, "Seen in at least 2 samples in the panel of normals"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TUMOR_LOD_FILTER_NAME, "Tumor does not meet likelihood threshold"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short tandem repeat region"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TRIALLELIC_SITE_FILTER_NAME, "Site filtered because more than two alt alleles pass tumor LOD"));
 
         addFormatLine(new VCFFormatHeaderLine(ALLELE_BALANCE_KEY, 1, VCFHeaderLineType.Float, "Allele balance for each het genotype"));
         addFormatLine(new VCFFormatHeaderLine(MAPPING_QUALITY_ZERO_BY_SAMPLE_KEY, 1, VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample"));

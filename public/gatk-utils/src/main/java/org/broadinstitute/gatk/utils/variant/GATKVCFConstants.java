@@ -144,6 +144,7 @@ public final class GATKVCFConstants {
     public static final String PON_FILTER_NAME =                              "panel_of_normals"; //M2
     public static final String STR_CONTRACTION_FILTER_NAME =                  "str_contraction"; //M2
     public static final String TUMOR_LOD_FILTER_NAME =                        "t_lod_fstar"; //M2
+    public static final String TRIALLELIC_SITE_FILTER_NAME =                  "triallelic_site"; //M2
 
     // Symbolic alleles
     public final static String SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG = "ALT";
