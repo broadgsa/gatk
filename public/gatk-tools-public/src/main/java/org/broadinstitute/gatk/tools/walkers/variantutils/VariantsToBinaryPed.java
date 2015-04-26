@@ -488,8 +488,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     }
                     String sid = famSplit[1];
                     String fid = famSplit[0];
-                    String mom = famSplit[2];
-                    String dad = famSplit[3];
+                    String dad = famSplit[2];
+                    String mom = famSplit[3];
                     String sex = famSplit[4];
                     String pheno = famSplit[5];
                     HashMap<String,String> values = new HashMap<String, String>();
