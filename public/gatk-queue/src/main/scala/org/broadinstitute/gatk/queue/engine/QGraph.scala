@@ -395,12 +395,18 @@ class QGraph extends Logging {
    */
   private def runJobs() {
     try {
-      if (settings.bsub)
+      if (settings.bsub) {
         settings.jobRunner = "Lsf706"
-      else if (settings.qsub)
+      }
+      else if (settings.qsub || settings.qsubBroad) {
         settings.jobRunner = "GridEngine"
-      else if (settings.jobRunner == null)
+        if ( settings.qsubBroad ) {
+          settings.qSettings.useBroadClusterSettings = true
+        }
+      }
+      else if (settings.jobRunner == null) {
         settings.jobRunner = "Shell"
+      }
       commandLineManager = commandLinePluginManager.createByName(settings.jobRunner)
 
       for (mgr <- managers) {
