@@ -525,7 +525,7 @@ public class BAQ {
         // start is alignment start - band width / 2 - size of first I element, if there is one.  Stop is similar
         int offset = getBandWidth() / 2;
         long readStart = includeClippedBases ? read.getUnclippedStart() : read.getAlignmentStart();
-        long start = Math.max(readStart - offset - ReadUtils.getFirstInsertionOffset(read), 0);
+        long start = Math.max(readStart - offset - ReadUtils.getFirstInsertionOffset(read), 1);
         long stop = (includeClippedBases ? read.getUnclippedEnd() : read.getAlignmentEnd()) + offset + ReadUtils.getLastInsertionOffset(read);
 
         if ( stop > refReader.getSequenceDictionary().getSequence(read.getReferenceName()).getSequenceLength() ) {
