@@ -29,7 +29,22 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.QualityUtils;
 
 /**
- * Filter out mapping quality zero reads.
+ * Filter out reads with no mapping quality information
+ *
+ *
+ * <p>This filter is intended to ensure that only reads that are likely
+ * to be mapped in the right place, and therefore to be informative, will be used in analysis.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf MappingQualityUnavailable
+ * </pre>
  *
  * @author ebanks
  * @version 0.1

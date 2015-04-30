@@ -45,13 +45,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Emits a GATKReport containing read group, sample, library, platform, center, sequencing data,
- * paired end status, simple read type name (e.g. 2x76) median insert size and median read length
- * for each read group in every provided BAM file
+ * Collect statistics about read groups and their properties
  *
- * Note that this walker stops when all read groups have been observed at least a few thousand times so that
- * the median statistics are well determined.  It is safe to run it WG and it'll finish in an appropriate
- * timeframe.
+ * <p>This tool emits a GATKReport containing read group, sample, library, platform, center, sequencing data,
+ * paired end status, simple read type name (e.g. 2x76) median insert size and median read length
+ * for each read group in every provided BAM file.</p>
+ *
+ * <p>Note that this walker stops when all read groups have been observed at least a few thousand times so that
+ * the median statistics are well determined.  It is safe to run it on whole genome sequence data and expect it to
+ * finish in an appropriate timeframe.</p>
  *
  * <h3>Input</h3>
  *  <p>
@@ -86,14 +88,14 @@ import java.util.Map;
  *      </pre>
  *  </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  *  <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T ReadGroupProperties
- *      -I example1.bam -I example2.bam etc
- *      -R reference.fasta
- *      -o example.gatkreport.txt
+ *    java -jar GenomeAnalysisTK.jar \
+ *      -T ReadGroupProperties \
+ *      -R reference.fasta \
+ *      -I example1.bam \
+ *      -I example2.bam \
+ *      -o readgroup_report.grp
  *  </pre>
  *
  * @author Mark DePristo

@@ -28,7 +28,9 @@ package org.broadinstitute.gatk.engine.filters;
 import htsjdk.samtools.SAMRecord;
 
 /**
- * Filter out reads that fail the vendor quality check.
+ * Filter out reads that fail the vendor quality check
+ *
+ * <p>This filter recognizes the SAM flag corresponding to the vendor quality check.</p>
  *
  * @author rpoplin
  * @since Jul 19, 2010

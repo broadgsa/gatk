@@ -44,10 +44,10 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Genotype concordance (per-sample and aggregate counts and frequencies, NRD/NRS and site allele overlaps) between two callsets
+ * Genotype concordance between two callsets
  *
  * <p>
- *  GenotypeConcordance takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
+ *  This tool takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
  *  and for each sample, the genotype-by-genotype counts (e.g. the number of sites at which a sample was
  *  called homozygous-reference in the EVAL callset, but homozygous-variant in the COMP callset). It outputs these
  *  counts as well as convenient proportions (such as the proportion of het calls in the EVAL which were called REF in
@@ -192,7 +192,17 @@ import java.util.*;
  *  NA12891  NO_CALL_HOM_VAR   0.000
  *  (...)
  *  </pre>
-
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T GenotypeConcordance \
+ *   -R reference.fasta \
+ *   -eval test_set.vcf \
+ *   -comp truth_set.vcf \
+ *   -o output.grp
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,VariantContext>>,ConcordanceMetrics> {

@@ -32,7 +32,27 @@ import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.filters.ReadFilter;
 
 /**
- * Filter out reads with low mapping qualities.
+ * Filter out reads with low mapping qualities for HaplotypeCaller
+ *
+ * <p>This filter is applied by default for HaplotypeCaller and is designed to ensure that only reads that are likely
+ * to be informative will be used in the reassembly process. It performs the same basic function as the regular
+ * MappingQualityFilter, but it is used at specific points in the operation of HC where it is helpful
+ * to be able to apply a different quality threshold from the general case.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Set the HC-specific mapping quality filter to filter out reads with MAPQ < 10</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T HaplotypeCaller \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.vcf \
+ *         -mmq 10
+ * </pre>
+ *
+ * <p>Note that the HCMappingQuality filter itself does not need to be specified in the command line because it is set
+ * automatically for HaplotypeCaller.</p>
  *
  * @author mdepristo
  */

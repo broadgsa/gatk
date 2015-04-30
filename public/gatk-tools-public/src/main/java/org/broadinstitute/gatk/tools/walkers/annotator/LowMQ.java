@@ -49,8 +49,7 @@ import java.util.Map;
  * <p>This annotation tells you what fraction of reads have a mapping quality of less than the given threshold of 10 (including 0). Note that certain tools may impose a different minimum mapping quality threshold. For example, HaplotypeCaller excludes reads with MAPQ<20.</p>
  *
  * <h3>Calculation</h3>
- * <p> $$ LowMQ = \frac{# reads with MAPQ=0 + # reads with MAPQ<10}{total # reads} $$
- * </p>
+ * $$ LowMQ = \frac{# reads with MAPQ=0 + # reads with MAPQ<10}{total # reads} $$
  *
  * <h3>Related annotations</h3>
  * <ul>

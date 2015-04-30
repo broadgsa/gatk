@@ -44,10 +44,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Outputs the read lengths of all the reads in a file.
+ * Collect read length statistics
  *
  *  <p>
- *     Generates a table with the read lengths categorized per sample. If the file has no sample information
+ *     This tool generates a table with the read lengths categorized per sample. If the file has no sample information
  *     (no read groups) it considers all reads to come from the same sample.
  *  </p>
  *
@@ -59,16 +59,15 @@ import java.util.TreeMap;
  *
  * <h3>Output</h3>
  *  <p>
- *      A human/R readable table of tab separated values with one column per sample and one row per read.
+ *      A human/R-readable table of tab-separated values with one column per sample and one row per read.
  *  </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  *  <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T ReadLengthDistribution
- *      -I example.bam
- *      -R reference.fasta
+ *    java -jar GenomeAnalysisTK.jar \
+ *      -T ReadLengthDistribution \
+ *      -R reference.fasta \
+ *      -I example.bam \
  *      -o example.tbl
  *  </pre>
  *

@@ -30,7 +30,21 @@ import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 /**
- * Filter out 454 reads.
+ * Filter out reads produced by 454 technology
+ *
+ * <p>Reads produced by 454 technology should not be processed by the GATK's indel realignment tools. This filter is
+ * applied by those tools to enforce that rule.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf Platform454
+ * </pre>
  *
  * @author ebanks
  * @version 0.1

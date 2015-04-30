@@ -56,24 +56,23 @@ import java.util.*;
 
 /**
  *
- * Concatenates VCF files of non-overlapped genome intervals, all with the same set of samples
+ * Concatenate VCF files of non-overlapping genome intervals, all with the same set of samples
  *
  * <p>
  * The main purpose of this tool is to speed up the gather function when using scatter-gather parallelization.
  * This tool concatenates the scattered output VCF files. It assumes that:
- * - All the input VCFs (or BCFs) contain the same samples in the same order.
- * - The variants in each input file are from non-overlapping (scattered) intervals.
- *
- * When the input files are already sorted based on the intervals start positions, use -assumeSorted.
- *
- * Note: Currently the tool is more efficient when working with VCFs; we will work to make it as efficient for BCFs.
- *
+ * <ul>
+ *     <li>All the input VCFs (or BCFs) contain the same samples in the same order.</li>
+ *     <li>The variants in each input file are from non-overlapping (scattered) intervals.</li>
+ * </ul>
  * </p>
+ * <p>When the input files are already sorted based on the intervals start positions, use -assumeSorted.</p>
  *
  * <h3>Input</h3>
  * <p>
- * One or more variant sets to combine. They should be of non-overlapping genome intervals and with the same samples (in the same order).
- * If the files are ordered according to the appearance of intervals in the ref genome, then one can use the -assumeSorted flag.
+ * Two or more variant sets to combine. They should be of non-overlapping genome intervals and with the same
+ * samples (sorted in the same order). If the files are ordered according to the appearance of intervals in the ref
+ * genome, then one can use the -assumeSorted flag.
  * </p>
  *
  * <h3>Output</h3>
@@ -86,15 +85,18 @@ import java.util.*;
  * invoke it is a little different from other GATK tools (see example below), and it does not accept any of the
  * classic "CommandLineGATK" arguments.</p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
  * java -cp GenomeAnalysisTK.jar org.broadinstitute.gatk.tools.CatVariants \
- *    -R ref.fasta \
+ *    -R reference.fasta \
  *    -V input1.vcf \
  *    -V input2.vcf \
  *    -out output.vcf \
  *    -assumeSorted
  * </pre>
+ *
+ * <h3>Caveat</h3>
+ * <p>Currently the tool is more efficient when working with VCFs than with BCFs.</p>
  *
  * @author Ami Levy Moonshine
  * @since Jan 2012

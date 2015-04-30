@@ -57,18 +57,18 @@ import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
 import java.util.*;
 
 /**
- * Left-aligns indels from a variants file.
+ * Left-align indels in a variant callset
  *
  * <p>
  * LeftAlignAndTrimVariants is a tool that takes a VCF file and left-aligns the indels inside it.  The same indel can often be
  * placed at multiple positions and still represent the same haplotype.  While the standard convention with VCF is to
  * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
  * Note that this tool cannot handle anything other than bi-allelic, simple indels.  Complex events are written out unchanged.
- * Optionally, the tool will also trim common bases from indels, leaving them with a minimum representation.
+ * Optionally, the tool will also trim common bases from indels, leaving them with a minimum representation.</p>
  *
  * <h3>Input</h3>
  * <p>
- * A variant set to left-align and trim.
+ * A variant call set to left-align and trim.
  * </p>
  *
  * <h3>Output</h3>
@@ -76,11 +76,11 @@ import java.util.*;
  * A left-aligned VCF.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T LeftAlignAndTrimVariants \
+ *   -R reference.fasta \
  *   --variant input.vcf \
  *   -o output.vcf
  * </pre>

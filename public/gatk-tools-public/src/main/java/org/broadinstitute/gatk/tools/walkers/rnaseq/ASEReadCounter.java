@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.tools.walkers.rnaseq;
 
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.filters.DuplicateReadFilter;
 import org.broadinstitute.gatk.engine.walkers.DisabledReadFilters;
 import org.broadinstitute.gatk.engine.walkers.Downsample;
@@ -36,6 +37,8 @@ import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
@@ -44,33 +47,21 @@ import java.io.PrintStream;
 import java.util.List;
 
 /**
- * Calculate allele counts for allele-specific expression analysis
+ * Calculate read counts per allele for allele-specific expression analysis
  *
  * <p>
- * This tool calculates allele counts at a set of given loci after applying filters that are tuned for enabling
+ * This tool calculates allele counts at a set of positions after applying filters that are tuned for enabling
  * allele-specific expression (ASE) analysis. The filters operate on mapping quality, base quality, depth of coverage,
  * overlapping paired reads and deletions overlapping the position. All thresholds and options are controlled by
  * command-line arguments.
  * </p>
  *
- * <h4>Notes</h4>
- * <ul>
- *     <li>Like most GATK tools, this tools filters out duplicate reads by default. However, some ASE methods
- *     recommend including duplicate reads in the analysis, so the DuplicateReads filter can be disabled using the
- *     `-drf DuplicateReads` flag in the command-line.</li>
- * </ul>
- * <h4>Caveats</h4>
- * <ul>
- *     <li>This tool will only process biallelic sites. If your callset contains multiallelic sites, they will be ignored.
- *     Optionally, you can subset your callset to just biallelic variants using e.g.
- *     <a href="org_broadinstitute_gatk_tools_walkers_variantutils_SelectVariants.php">SelectVariants</a>
- *     with the option `-restrictAllelesTo BIALLELIC`.</li>
- * </ul>
  * <h3>Input</h3>
  * <ul>
  *     <li>BAM files (with proper headers) to be analyzed for ASE</li>
  *     <li>A VCF file with specific sites to process.</li>
- * </p></p>
+ * </ul>
+ *
  * <h3>Output</h3>
  * <p>
  * A table of allele counts at the given sites. By default, it is formatted as a tab-delimited text file
@@ -78,12 +69,12 @@ import java.util.List;
  * a downstream tool developed for allele-specific expression analysis.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -T ASEReadCounter \
- *   -o file_name \
+ *   -o file_name.csv \
  *   -I input.bam \
  *   -sites sites.vcf \
  *   -U ALLOW_N_CIGAR_READS \
@@ -92,7 +83,23 @@ import java.util.List;
  *   [--minBaseQuality 2] \
  *   [-drf DuplicateRead]
  * </pre>
+ *
+ * <h3>Note</h3>
+ * <ul>
+ *     <li>Like most GATK tools, this tools filters out duplicate reads by default. However, some ASE methods
+ *     recommend including duplicate reads in the analysis, so the DuplicateReads filter can be disabled using the
+ *     "-drf DuplicateReads" flag in the command-line.</li>
+ * </ul>
+ * <h3>Caveat</h3>
+ * <ul>
+ *     <li>This tool will only process biallelic sites. If your callset contains multiallelic sites, they will be ignored.
+ *     Optionally, you can subset your callset to just biallelic variants using e.g.
+ *     <a href="org_broadinstitute_gatk_tools_walkers_variantutils_SelectVariants.php">SelectVariants</a>
+ *     with the option "-restrictAllelesTo BIALLELIC".</li>
+ * </ul>
+ *
  */
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Downsample(by = DownsampleType.BY_SAMPLE, toCoverage = 10000)
 //@DisabledReadFilters({DuplicateReadFilter.class})  //currently can be disabled using the command line argument -drf DuplicateRead
 public class ASEReadCounter extends LocusWalker<String, Integer> {

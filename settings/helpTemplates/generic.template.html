@@ -24,7 +24,7 @@
 
 <?php
 
-    include '../../../include/common.php';
+    include '../../../common/include/common.php';
     $module = modules::GATK;
     printHeader($module, "GATK | Tool Documentation Index", "Guides");
 ?>
@@ -172,7 +172,7 @@
 		</h3>
 	</#if>
     <#if annotdescript?has_content >
-        <h3>Header info <br />
+        <h3>Header definition line <br />
             <small>
                 <#list annotdescript as line>
                 <li><pre>${line}</pre></li>
@@ -255,10 +255,11 @@
 			<p></p>
 		</#if>
 		<#if extradocs?size != 0>
-			<h3>Inherited arguments</h3>
-			<p>The arguments described in the entries below can be supplied to this tool to modify
-			its behavior. For example, the -L argument directs the GATK engine restricts processing
-			to specific genomic intervals (this is an Engine capability and is therefore available to all GATK walkers).</p>
+			<h3>Engine arguments</h3>
+			<p>All tools inherit arguments from the GATK Engine' "CommandLineGATK" argument collection, which can be
+				used to modify various aspects of the tool's function. For example, the -L argument directs the GATK
+				engine to restrict processing to specific genomic intervals; or the -rf argument allows you to apply
+				certain read filters to exclude some of the data from the analysis.</p>
 			<ul>
 				<#list extradocs as extradoc>
 					<li><a href="${extradoc.filename}">${extradoc.name}</a></li>

@@ -28,7 +28,21 @@ package org.broadinstitute.gatk.engine.filters;
 import htsjdk.samtools.SAMRecord;
 
 /**
- * Filter out reads without read groups.
+ * Filter out reads without read group information
+ *
+ * <p>Many GATK tools are dependent on having read group information in order to operate correctly. This filter excludes
+ * any reads that have not been appropriately identified. </p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf MissingReadGroup
+ * </pre>
  *
  * @author ebanks
  * @version 0.1

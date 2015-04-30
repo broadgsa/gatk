@@ -51,14 +51,15 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  * <p>
- *     If ok, nothing, else will throw an exception at the site where there's been a problem
+ *     If the reference is fully valid, the run will complete successfully. If not, an error message will be produced
+ *     at the site where the program encountered a problem.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
- *   -T QCRef
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T QCRef \
+ *   -R reference.fasta
  * </pre>
  *
  */

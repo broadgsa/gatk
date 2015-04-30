@@ -34,7 +34,26 @@ import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 /**
- * Filter out malformed reads.
+ * Filter out malformed reads
+ *
+ * <p>This filter is applied automatically by all GATK tools in order to protect them from crashing on reads that are
+ * grossly malformed. There are a few issues (such as the absence of sequence bases) that will cause the run to fail with an
+ * error, but these cases can be preempted by setting flags that cause the problem reads to also be filtered.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Set the malformed read filter to filter out reads that have no sequence bases</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -filterNoBases
+ * </pre>
+ *
+ * <p>Note that the MalformedRead filter itself does not need to be specified in the command line because it is set
+ * automatically.</p>
  *
  * @author mhanna
  * @version 0.1
@@ -46,14 +65,14 @@ public class MalformedReadFilter extends ReadFilter {
 
     private SAMFileHeader header;
 
-    @Argument(fullName = FILTER_READS_WITH_N_CIGAR_ARGUMENT_FULL_NAME, shortName = "filterRNC", doc = "filter out reads with CIGAR containing the N operator, instead of stop processing and report an error.", required = false)
+    @Argument(fullName = FILTER_READS_WITH_N_CIGAR_ARGUMENT_FULL_NAME, shortName = "filterRNC", doc = "Filter out reads with CIGAR containing the N operator, instead of failing with an error", required = false)
     boolean filterReadsWithNCigar = false;
 
 
-    @Argument(fullName = "filter_mismatching_base_and_quals", shortName = "filterMBQ", doc = "if a read has mismatching number of bases and base qualities, filter out the read instead of blowing up.", required = false)
+    @Argument(fullName = "filter_mismatching_base_and_quals", shortName = "filterMBQ", doc = "Filter out reads with mismatching numbers of bases and base qualities, instead of failing with an error", required = false)
     boolean filterMismatchingBaseAndQuals = false;
 
-    @Argument(fullName = "filter_bases_not_stored", shortName = "filterNoBases", doc = "if a read has no stored bases (i.e. a '*'), filter out the read instead of blowing up.", required = false)
+    @Argument(fullName = "filter_bases_not_stored", shortName = "filterNoBases", doc = "Filter out reads with no stored bases (i.e. '*' where the sequence should be), instead of failing with an error", required = false)
     boolean filterBasesNotStored = false;
 
     /**

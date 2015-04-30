@@ -86,121 +86,141 @@ import java.util.*;
  *
  * <h3>Output</h3>
  * <p>
- * The name of the VCF file to which to write the selected subset of variants.
+ * A new VCF file containing the selected subset of variants.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage examples</h3>
+ * <h4>Select two samples out of a VCF with many samples</h4>
  * <pre>
- * Select two samples out of a VCF with many samples:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -sn SAMPLE_A_PARC \
  *   -sn SAMPLE_B_ACTG
+ * </pre>
  *
- * Select two samples and any sample that matches a regular expression:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select two samples and any sample that matches a regular expression</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -sn SAMPLE_1_PARC \
  *   -sn SAMPLE_1_ACTG \
  *   -se 'SAMPLE.+PARC'
+ * </pre>
  *
- * Select any sample that matches a regular expression and sites where the QD annotation is more than 10:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select any sample that matches a regular expression and sites where the QD annotation is more than 10</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -se 'SAMPLE.+PARC' \
  *   -select "QD > 10.0"
+ * </pre>
  *
- * Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default):
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default)</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -sn SAMPLE_1_ACTG \
  *   -env \
  *   -ef
+ * </pre>
  *
- * Select a sample, subset remaining alleles, but don't trim:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select a sample, subset remaining alleles, but don't trim</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -sn SAMPLE_1_ACTG \
  *   -env \
  *   -noTrim
+ *</pre>
  *
- * Select a sample and restrict the output vcf to a set of intervals:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select a sample and restrict the output vcf to a set of intervals</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -L /path/to/my.interval_list \
  *   -sn SAMPLE_1_ACTG
+ * </pre>
  *
- * Select all calls missed in my vcf, but present in HapMap (useful to take a look at why these variants weren't called in my dataset):
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select all calls missed in my vcf, but present in HapMap (useful to take a look at why these variants weren't called in my dataset)</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant hapmap.vcf \
+ *   -R reference.fasta \
+ *   -V hapmap.vcf \
  *   --discordance myCalls.vcf \
  *   -o output.vcf \
  *   -sn mySample
+ * </pre>
  *
- * Select all calls made by both myCalls and theirCalls (useful to take a look at what is consistent between two callers):
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select all calls made by both myCalls and theirCalls (useful to take a look at what is consistent between two callers)</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant myCalls.vcf \
- *   --concordance hisCalls.vcf \
+ *   -R reference.fasta \
+ *   -V myCalls.vcf \
+ *   --concordance theirCalls.vcf \
  *   -o output.vcf \
  *   -sn mySample
+ * </pre>
  *
- * Generating a VCF of all the variants that are mendelian violations. The optional argument `-mvq` restricts the selection to sites that have a QUAL score of 50 or more:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Generating a VCF of all the variants that are mendelian violations. The optional argument `-mvq` restricts the selection to sites that have a QUAL score of 50 or more</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -ped family.ped \
- *   -mv \
- *   -mvq 50 \
+ *   -mv -mvq 50 \
  *   -o violations.vcf
+ * </pre>
  *
- * Creating a set with 50% of the total number of variants in the variant VCF:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Create a set with 50% of the total number of variants in the variant VCF</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -fraction 0.5
+ * </pre>
  *
- * Select only indels from a VCF:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select only indels from a VCF</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -selectType INDEL
+ * </pre>
  *
- * Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column):
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column)</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -selectType SNP -selectType MNP \
  *   -restrictAllelesTo MULTIALLELIC
- *
  * </pre>
  *
  */

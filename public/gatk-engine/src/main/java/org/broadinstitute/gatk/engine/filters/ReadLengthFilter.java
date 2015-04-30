@@ -29,7 +29,22 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Filters out reads whose length is >= some value or < some value.
+ * Filter out reads based on length
+ *
+ * <p>This filter is useful for running on only reads that are longer (or shorter) than the given threshold sizes. </p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf ReadLength \
+ *         -minRead 50 \
+ *         -maxRead 101
+ * </pre>
  *
  * @author mhanna
  * @version 0.1

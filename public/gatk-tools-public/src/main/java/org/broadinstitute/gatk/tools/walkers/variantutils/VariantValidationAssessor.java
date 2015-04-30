@@ -49,13 +49,13 @@ import htsjdk.variant.variantcontext.VariantContextBuilder;
 import java.util.*;
 
 /**
- * Annotates a validation (from Sequenom for example) VCF with QC metrics (HW-equilibrium, % failed probes)
+ * Annotate a validation VCF with QC metrics
  *
  * <p>
- * The Variant Validation Assessor is a tool for vetting/assessing validation data (containing genotypes).
+ * This tool is intended for vetting/assessing validation data (containing genotypes).
  * The tool produces a VCF that is annotated with information pertaining to plate quality control and by
  * default is soft-filtered by high no-call rate or low Hardy-Weinberg probability.
- * If you have .ped files, please first convert them to VCF format.
+ * If you have .ped files, please first convert them to VCF format.</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -65,6 +65,7 @@ import java.util.*;
  * <h3>Output</h3>
  * <p>
  * An annotated VCF.  Additionally, a table like the following will be output:
+ * </p>
  * <pre>
  *     Total number of samples assayed:                  185
  *     Total number of records processed:                152
@@ -74,14 +75,13 @@ import java.util.*;
  *     Number of records passing all filters:            106 (69%)
  *     Number of passing records that are polymorphic:   98 (92%)
  * </pre>
- * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T VariantValidationAssessor \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf
  * </pre>
  *

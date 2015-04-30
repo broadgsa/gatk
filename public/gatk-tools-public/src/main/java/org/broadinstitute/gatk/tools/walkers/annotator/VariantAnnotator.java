@@ -50,11 +50,13 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import java.util.*;
 
 /**
- * Annotates variant calls with context information.
+ * Annotate variant calls with context information
  *
  * <p>
- * VariantAnnotator is a GATK tool for annotating variant calls based on their context.
- * The tool is modular; new annotations can be written easily without modifying VariantAnnotator itself.
+ * This tool is designed to annotate variant calls based on their context (ass opposed to functional annotation).
+ * Various annotation modules are available; see the
+ * <a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_VariantAnnotator.php#VariantAnnotations">documentation</a>
+ * for a complete list.
  *
  * <h3>Input</h3>
  * <p>
@@ -66,15 +68,15 @@ import java.util.*;
  * An annotated VCF.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
  *   -T VariantAnnotator \
  *   -I input.bam \
  *   -o output.vcf \
  *   -A Coverage \
- *   --variant input.vcf \
+ *   -V input.vcf \
  *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>

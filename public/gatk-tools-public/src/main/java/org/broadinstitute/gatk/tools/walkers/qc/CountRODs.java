@@ -51,9 +51,9 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Prints out counts of the number of reference ordered data objects encountered.
+ * Count the number of ROD objects encountered
  *
- * <p>CountRods is a RODWalker, and so traverses the data by ROD. For example if the ROD passed to it is a VCF file,
+ * <p>CountRods is a RODWalker, and so traverses the data by ROD (reference ordered data). For example if the ROD passed to it is a VCF file,
  * it will count the variants in the file.</p>
  *
  * <p>Note that this tool is different from CountRodsByRef which is a RefWalker, and so traverses the data by
@@ -66,19 +66,19 @@ import java.util.*;
  *
  * <h3>Input</h3>
  * <p>
- * One or more rod files.
+ * One or more ROD files.
  * </p>
  *
  * <h3>Output</h3>
  * <p>
- * Number of rods seen.
+ * Number of RODs seen.
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountRODs \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -o output.txt \
  *   --rod input.vcf
  * </pre>

@@ -47,13 +47,36 @@ import htsjdk.variant.variantcontext.VariantContext;
 import java.util.*;
 
 /**
- * Filters a lifted-over VCF file for ref bases that have been changed.
+ * Filters a lifted-over VCF file for reference bases that have been changed
  *
- * "Lifting over" variants means adjusting variant calls from one reference to another. Specifically, the process adjusts the position of the call to match the corresponding position on the target reference.
- * For example, if you have variants called from reads aligned to the hg19 reference, and you want to compare them to calls made based on the b37 reference, you need to liftover one of the callsets to the other reference.
+ * <p>"Lifting over" variants means adjusting variant calls from one reference to another. Specifically, the process
+ * adjusts the position of the call to match the corresponding position on the target reference. For example, if you
+ * have variants called from reads aligned to the hg19 reference, and you want to compare them to calls made based on
+ * the b37 reference, you need to liftover one of the callsets to the other reference.</p>
  *
- * FilteredLiftedVariants is intended to be the second of two processing steps for the liftover process. The first step is to run LiftoverVariants on your VCF file.
- * The second step is to run FilterLiftedVariants on the output of LiftoverVariants. This will produce valid well-behaved VCF files, where you'll see that the contig names in the header have all been correctly replaced.
+ * <p>This tool is intended to be the second of two processing steps for the liftover process. The first step is to
+ * run LiftoverVariants on your VCF file. The second step is to run FilterLiftedVariants on the output of
+ * LiftoverVariants. This will produce valid well-behaved VCF files, where you'll see that the contig names in the
+ * header have all been correctly replaced.</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A lifted-over variant call set to filter.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * The filtered call set.
+ * </p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T FilterLiftedVariants \
+ *   -R reference.fasta \
+ *   -V liftedover_input.vcf \
+ *   -o filtered_output.vcf
+ * </pre>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )

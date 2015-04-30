@@ -50,30 +50,30 @@ import java.io.*;
 import java.util.Collection;
 
 /**
- * Print intervals file with all the variant sites for which most of the samples have good coverage
+ * Report well-covered intervals
  *
  * <p>
- * CoveredByNSamplesSites is a GATK tool for filtering out sites based on their coverage.
- * The sites that pass the filter are printed out to an intervals file.
- *
- * See argument defaults for what constitutes "most" samples and "good" coverage. These parameters can be modified from the command line.
+ * This tool evaluates whether sites are well-covered or not according to specific coverage quality parameters, and
+ * outputs a list of intervals that are considered well-covered, i.e. where most samples have good coverage. This is
+ * useful for masking out poorly-covered sites where we cannot expect meaningful results in downstream analyses. See
+ * argument defaults for what constitutes "most" samples and "good" coverage.
  * </p>
  *
  * <h3>Input</h3>
  * <p>
- * A variant file and optionally min coverage and sample percentage values.
+ * A variant file and optionally, minimum coverage and sample percentage values.
  * </p>
  *
  * <h3>Output</h3>
  * <p>
- * An intervals file.
+ * An list of well-covered intervals.
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CoveredByNSamplesSites \
+ *   -R reference.fasta \
  *   -V input.vcf \
  *   -out output.intervals \
  *   -minCov 15

@@ -47,25 +47,25 @@ import java.io.PrintStream;
 
 
 /**
- * Emits a data file containing information about callable, uncallable, poorly mapped, and other parts of the genome
- * <p/>
+ * Collect statistics on callable, uncallable, poorly mapped, and other parts of the genome
+ *
  * <p>
- * A very common question about a NGS set of reads is what areas of the genome are considered callable. The system
+ * A very common question about a NGS set of reads is what areas of the genome are considered callable. This tool
  * considers the coverage at each locus and emits either a per base state or a summary interval BED file that
  * partitions the genomic intervals into the following callable states:
  * <dl>
  * <dt>REF_N</dt>
- * <dd>the reference base was an N, which is not considered callable the GATK</dd>
+ * <dd>The reference base was an N, which is not considered callable the GATK</dd>
  * <dt>PASS</dt>
- * <dd>the base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE</dd>
+ * <dd>The base satisfied the min. depth for calling but had less than maxDepth to avoid having EXCESSIVE_COVERAGE</dd>
  * <dt>NO_COVERAGE</dt>
- * <dd>absolutely no reads were seen at this locus, regardless of the filtering parameters</dd>
+ * <dd>Absolutely no reads were seen at this locus, regardless of the filtering parameters</dd>
  * <dt>LOW_COVERAGE</dt>
- * <dd>there were less than min. depth bases at the locus, after applying filters</dd>
+ * <dd>There were fewer than min. depth bases at the locus, after applying filters</dd>
  * <dt>EXCESSIVE_COVERAGE</dt>
- * <dd>more than -maxDepth read at the locus, indicating some sort of mapping problem</dd>
+ * <dd>More than -maxDepth read at the locus, indicating some sort of mapping problem</dd>
  * <dt>POOR_MAPPING_QUALITY</dt>
- * <dd>more than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads</dd>
+ * <dd>More than --maxFractionOfReadsWithLowMAPQ at the locus, indicating a poor mapping quality of the reads</dd>
  * </dl>
  * </p>
  * <p/>
@@ -76,22 +76,19 @@ import java.io.PrintStream;
  * <p/>
  * <h3>Output</h3>
  * <p>
- * <ul>
- * <li>-o: a OutputFormatted (recommended BED) file with the callable status covering each base</li>
- * <li>-summary: a table of callable status x count of all examined bases</li>
- * </ul>
+ *     A file with the callable status covering each base and a table of callable status x count of all examined bases
  * </p>
- * <p/>
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
  *  java -jar GenomeAnalysisTK.jar \
  *     -T CallableLoci \
- *     -I my.bam \
- *     -summary my.summary \
- *     -o my.bed
+ *     -R reference.fasta \
+ *     -I myreads.bam \
+ *     -summary table.txt \
+ *     -o callable_status.bed
  * </pre>
  * <p/>
- * would produce a BED file (my.bed) that looks like:
+ * would produce a BED file that looks like:
  * <p/>
  * <pre>
  *     20 10000000 10000864 PASS
@@ -107,14 +104,13 @@ import java.io.PrintStream;
  *     20 10012552 10012554 PASS
  *     20 10012555 10012557 LOW_COVERAGE
  *     20 10012558 10012558 PASS
- *     et cetera...
  * </pre>
  * as well as a summary table that looks like:
  * <p/>
  * <pre>
  *                        state nBases
  *                        REF_N 0
- *                     PASS 996046
+ *                         PASS 996046
  *                  NO_COVERAGE 121
  *                 LOW_COVERAGE 928
  *           EXCESSIVE_COVERAGE 0
@@ -131,7 +127,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
     PrintStream out;
 
     /**
-     * Callable loci summary counts (see outputs) will be written to this file.
+     * Callable loci summary counts will be written to this file.
      */
     @Output(fullName = "summary", shortName = "summary", doc = "Name of file for output summary", required = true)
     File summaryFile;
@@ -190,7 +186,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
     double maxLowMAPQFraction = 0.1;
 
     /**
-     * The output of this walker will be written in this format.  The recommended option is BED.
+     * The output of this tool will be written in this format.  The recommended option is BED.
      */
     @Advanced
     @Argument(fullName = "format", shortName = "format", doc = "Output format", required = false)
@@ -205,7 +201,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
         BED,
 
         /**
-         * Emit chr start stop state quads for each base.  Produces a potentially disasterously
+         * Emit chr start stop state quads for each base.  Produces a potentially disastrously
          * large amount of output.
          */
         STATE_PER_BASE
@@ -213,7 +209,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
 
     public enum CalledState {
         /**
-         * the reference base was an N, which is not considered callable the GATK
+         * the reference base was an N, which is not considered callable by the GATK
          */
         REF_N,
         /**
@@ -225,7 +221,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
          */
         NO_COVERAGE,
         /**
-         * there were less than min. depth bases at the locus, after applying filters
+         * there were fewer than min. depth bases at the locus, after applying filters
          */
         LOW_COVERAGE,
         /**

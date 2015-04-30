@@ -63,10 +63,11 @@ public class GATKArgumentCollection {
     @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (SAM or BAM)", required = false)
     public List<String> samFiles = new ArrayList<>();
 
-    @Hidden
+    @Advanced
     @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list files).")
     public Boolean showFullBamList = false;
 
+    @Advanced
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false, minValue = 0)
     public Integer readBufferSize = null;
 
@@ -79,11 +80,11 @@ public class GATKArgumentCollection {
     /**
      * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains basic
      * statistics about the run (which tool was used, whether the run was successful etc.) that help us for debugging
-     * and development. Up to version 3.2-2 the run report contains a record of the username and hostname associated
+     * and development. Up to version 3.3-0 the run report contains a record of the username and hostname associated
      * with the run, but it does **NOT** contain any information that could be used to identify patient data.
      * Nevertheless, if your data is subject to stringent confidentiality clauses (no outside communication) or if your
      * run environment is not connected to the internet, you can disable the reporting system by seeting this option to
-     * "NO_ET". You will also need to request a key using the online request form on our website (se FAQs).
+     * "NO_ET". You will also need to request a key using the online request form on our website (see FAQs).
      */
     @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
@@ -95,9 +96,10 @@ public class GATKArgumentCollection {
     public File gatkKeyFile = null;
 
     /**
-     * The GATKRunReport supports (as of GATK 2.2) tagging GATK runs with an arbitrary tag that can be
-     * used to group together runs during later analysis.  One use of this capability is to tag runs as GATK
-     * performance tests, so that the performance of the GATK over time can be assessed from the logs directly.
+     * The GATKRunReport supports tagging GATK runs with an arbitrary tag that can be
+     * used to group together runs during later analysis (as of GATK 2.2) .  One use of this capability is to tag
+     * runs as GATK performance tests, so that the performance of the GATK over time can be assessed from the logs
+     * directly.
      *
      * Note that the tags do not conform to any ontology, so you are free to use any tags that you might find
      * meaningful.
@@ -164,9 +166,9 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
     /**
-     * There are several ways to downsample reads, i.e. to removed reads from the pile of reads that will be used for analysis.
-     * See the documentation of the individual downsampling options for details on how they work. Note that Many GATK tools
-     * specify a default downsampling type and target, but this behavior can be overridden from command line using the
+     * There are several ways to downsample reads, i.e. to remove reads from the pile of reads that will be used for analysis.
+     * See the documentation of the individual downsampling options for details on how they work. Note that many GATK tools
+     * specify a default downsampling type and target, but this behavior can be overridden from the command line using the
      * downsampling arguments.
      */
     @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of read downsampling to employ at a given locus", required = false)
@@ -233,11 +235,13 @@ public class GATKArgumentCollection {
     // BAQ arguments
     //
     // --------------------------------------------------------------------------------------------------------------
+    @Advanced
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
     public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.OFF;
     /**
      *  Phred-scaled gap open penalty for BAQ calculation. Although the default value is 40, a value of 30 may be better for whole genome call sets.
      */
+    @Advanced
     @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty", required = false, minValue = 0)
     public double BAQGOP = BAQ.DEFAULT_GOP;
 
@@ -328,7 +332,7 @@ public class GATKArgumentCollection {
      * Any value greater than zero will be used to recalculate the quantization using that many levels.
      * Negative values mean that we should quantize using the recalibration report's quantization level.
      */
-    @Hidden
+    @Advanced
     @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
     public int quantizationLevels = 0;
 
@@ -352,11 +356,13 @@ public class GATKArgumentCollection {
      * but when you select a subset of these reads based on their ability to align to the reference and their dinucleotide effect,
      * your Q2 bin can be elevated to Q8 or Q10, leading to issues downstream.
      */
+    @Advanced
     @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Don't recalibrate bases with quality scores less than this threshold (with -BQSR)", required = false, minValue = 0, minRecommendedValue = QualityUtils.MIN_USABLE_Q_SCORE)
     public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
     /**
      * If specified, this value will be used as the prior for all mismatch quality scores instead of the actual reported quality score.
      */
+    @Advanced
     @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "Global Qscore Bayesian prior to use for BQSR", required = false)
     public double globalQScorePrior = -1.0;
 
@@ -398,16 +404,16 @@ public class GATKArgumentCollection {
     /**
      * For expert users only who know what they are doing. We do not support usage of this argument, so we may refuse to help you if you use it and something goes wrong. The one exception to this rule is ALLOW_N_CIGAR_READS, which is necessary for RNAseq analysis.
      */
+    @Advanced
     @Argument(fullName = "unsafe", shortName = "U", doc = "Enable unsafe operations: nothing will be checked at runtime", required = false)
     public ValidationExclusion.TYPE unsafe;
     /**
-     * UNSAFE FOR GENERAL USE (FOR TEST SUITE USE ONLY). Disable both auto-generation of index files and index file locking
+     * Not recommended for general use. Disables both auto-generation of index files and index file locking
      * when reading VCFs and other rods and an index isn't present or is out-of-date. The file locking necessary for auto index
      * generation to work safely is prone to random failures/hangs on certain platforms, which makes it desirable to disable it
      * for situations like test suite runs where the indices are already known to exist, however this option is unsafe in general
      * because it allows reading from index files without first acquiring a lock.
      */
-    @Hidden
     @Advanced
     @Argument(fullName = "disable_auto_index_creation_and_locking_when_reading_rods", shortName = "disable_auto_index_creation_and_locking_when_reading_rods",
               doc = "Disable both auto-generation of index files and index file locking",
@@ -451,6 +457,7 @@ public class GATKArgumentCollection {
               required = false)
     public boolean simplifyBAM = false;
 
+    @Advanced
     @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM files.",
             required = false)
     public boolean disableBAMIndexing = false;

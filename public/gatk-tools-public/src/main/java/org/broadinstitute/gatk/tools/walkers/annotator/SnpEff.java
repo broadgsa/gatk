@@ -46,9 +46,9 @@ import java.util.regex.Pattern;
 /**
  * Top effect from SnpEff functional predictions
  *
- * <p>This annotation processes the output of the SnpEff functional prediction tool to select only the predicted effect with the highest biological impact. The SnpEff output must be provided on the command line by specifying "--snpEffFile filename.vcf". See <a href="http://snpeff.sourceforge.net/">http://snpeff.sourceforge.net/</a> for more information about the SnpEff tool</p>.
+ * <p>This annotation processes the output of the SnpEff functional prediction tool to select only the predicted effect with the highest biological impact. The SnpEff output must be provided on the command line by specifying "--snpEffFile filename.vcf". See <a href="http://snpeff.sourceforge.net/">http://snpeff.sourceforge.net/</a> for more information about the SnpEff tool.</p>
  *
- * <h3>Caveats</h3>
+ * <h3>Caveat</h3>
  *
  * <ul><li>This annotation currently only supports output from SnpEff version 2.0.5.</li></ul>
  *

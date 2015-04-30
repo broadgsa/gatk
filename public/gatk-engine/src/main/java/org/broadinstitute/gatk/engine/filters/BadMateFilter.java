@@ -28,13 +28,40 @@ package org.broadinstitute.gatk.engine.filters;
 import htsjdk.samtools.SAMRecord;
 
 /**
- * Filter out reads whose mate maps to a different contig.
+ * Filter out reads whose mate maps to a different contig
+ *
+ * <p>This filter is intended to ensure that only reads that are likely to be mapped in the right place, and therefore
+ * to be informative, will be used in analysis. If mates in a pair are mapping to different contigs, it is likely that
+ * at least one of them is in the wrong place. One exception is you are using a draft genome assembly in which the
+ * chromosomes are fragmented into many contigs; then you may legitimately have reads that are correctly mapped but are
+ * on different contigs than their mate. This read filter can be disabled from the command line using the -drf argument.
+ * </p>
+ *
+ * <h4>Enable the bad mate filter</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf BadMate
+ * </pre>
+ *
+ * <h4>Disable the bad mate filter</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         <b>-drf</b> BadMate
+ * </pre>
  *
  * @author ebanks
  * @version 0.1
  */
 
-public class BadMateFilter extends ReadFilter {
+public class BadMateFilter extends DisableableReadFilter {
 
     public boolean filterOut(final SAMRecord rec) {
         return hasBadMate(rec);

@@ -42,9 +42,9 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
 /**
- * A reimplementation of the 'samtools flagstat' subcommand in the GATK
+ * Collect statistics about sequence reads based on their SAM flags
  *
- * <p>This tool walks over all input data, accumulating statistics such as total number of reads,
+ * <p>This tool emulates the behavior of 'samtools flagstat'. It collects statistics such as total number of reads,
  * reads with QC failure flag set, number of duplicates, percentage mapped, etc.</p>
  *
  * <h3>Input</h3>
@@ -57,11 +57,11 @@ import java.text.NumberFormat;
  * Resulting stats are written to file if an output file name is given (with -o), otherwise output to stdout.
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T FlagStat \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -I reads.bam \
  *   [-o output.txt]
  * </pre>

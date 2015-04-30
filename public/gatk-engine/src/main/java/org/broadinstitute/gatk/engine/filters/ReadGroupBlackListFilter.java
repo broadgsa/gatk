@@ -36,10 +36,23 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
- * Removes records matching the read group tag and exact match string.
- * For example, this filter value:
- *   PU:1000G-mpimg-080821-1_1
- * would filter out a read with the read group PU:1000G-mpimg-080821-1_1
+ * Filter out reads matching a read group tag value
+ *
+ * <p>This filter is useful for running on only a subset of the data as identified by a read group property,
+ * using expression matching against the read group tags.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Set the read group filter to blacklist read groups that have the PU tag "1000G-mpimg-080821-1_1"</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf ReadGroupBlackList \
+ *         -rgbl PU:1000G-mpimg-080821-1_1
+ * </pre>
  */
 public class ReadGroupBlackListFilter extends ReadFilter {
     private Set<Entry<String, Collection<String>>> filterEntries;

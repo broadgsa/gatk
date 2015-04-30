@@ -29,13 +29,28 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Filter out reads that exceed a given max insert size
+ * Filter out reads that exceed a given insert size
+ *
+ * <p>This filter is intended to ensure that only reads that are likely
+ * to be mapped in the right place, and therefore to be informative, will be used in analysis.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf MaxInsertSize \
+ *         -maxInsert 10000
+ * </pre>
  *
  * @author chartl
  * @since 5/2/11
  */
 public class MaxInsertSizeFilter extends ReadFilter {
-    @Argument(fullName = "maxInsertSize", shortName = "maxInsert", doc="Discard reads with insert size greater than the specified value, defaults to 1000000", required=false)
+    @Argument(fullName = "maxInsertSize", shortName = "maxInsert", doc="Insert size cutoff", required=false)
     private int maxInsertSize = 1000000;
 
     public boolean filterOut(SAMRecord record) {

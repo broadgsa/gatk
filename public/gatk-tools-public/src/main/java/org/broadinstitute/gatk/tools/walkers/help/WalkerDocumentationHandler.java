@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.tools.walkers.help;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.GenotypeAnnotation;
@@ -38,10 +39,9 @@ import org.broadinstitute.gatk.utils.help.HelpConstants;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WalkerDocumentationHandler extends GenericDocumentationHandler {
     private final static String CMDLINE_GATK_URL = HelpConstants.GATK_DOCS_URL + "org_broadinstitute_gatk_engine_CommandLineGATK.php";
@@ -122,7 +122,15 @@ public class WalkerDocumentationHandler extends GenericDocumentationHandler {
         for (Method classMethod : myClass.getMethods()) {
             if (classMethod.toString().contains("getDescriptions") && classMethod.toString().contains("annotator")) {
                 try {
-                    return classMethod.invoke(instance);
+                    String headerLine = (classMethod.invoke(instance)).toString();
+                    Pattern p = Pattern.compile("(INFO=<.*?>|FORMAT=<.*?>)");
+                    Matcher m = p.matcher(headerLine);
+                    List<String> annotLines = new ArrayList<>();
+                    while (m.find()) {
+                        annotLines.add(StringEscapeUtils.escapeHtml(m.group()));
+                        System.out.println("found "+m.group());
+                    }
+                    return annotLines;
                 } catch (IllegalArgumentException e) {
                 } catch (IllegalAccessException e) {
                 } catch (InvocationTargetException e) {

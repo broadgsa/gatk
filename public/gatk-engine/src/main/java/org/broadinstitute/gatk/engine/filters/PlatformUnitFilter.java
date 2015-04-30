@@ -33,7 +33,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Filter out reads that have blacklisted platform unit tags. (See code documentation for how to create the blacklist).
+ * Filter out reads with blacklisted platform unit tags
+ *
+ * <p>This filter is useful for running on only a subset of the data as identified by a read group property.
+ * In the case of the platform unit filter, the goal is usually to blacklist certain runs if we know there was a problem with
+ * a particular sequencing machine.</p>
  *
  * @author asivache
  * @since Sep 21, 2009

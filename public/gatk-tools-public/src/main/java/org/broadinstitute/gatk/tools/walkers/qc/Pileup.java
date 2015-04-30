@@ -46,9 +46,10 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Emulates the samtools pileup command to print aligned reads
+ * Print read alignments in Pileup-style format
  *
- * <p>Prints the alignment in something similar to the Samtools pileup format (see the
+ * <p>This tool emulates the 'samtools pileup' command. It prints the alignment in a format that is very similar to
+ * the Samtools pileup format (see the
  * <a href="http://samtools.sourceforge.net/pileup.shtml">Pileup format documentation</a> for more details about
  * the original format). There is one line per genomic position, listing the chromosome name, coordinate, reference
  * base, read bases, and read qualities. In addition to these default fields, additional information can be added to
@@ -58,7 +59,6 @@ import java.util.List;
  * <pre>
  *  samtools pileup -f in.ref.fasta -l in.site_list input.bam
  * </pre>
-
  *
  * <h3>Input</h3>
  * <p>
@@ -70,12 +70,12 @@ import java.util.List;
  *  Alignment of reads formatted in the Pileup style.
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T Pileup \
- *   -R exampleFASTA.fasta \
- *   -I exampleBAM.bam \
+ *   -R reference.fasta \
+ *   -I my_reads.bam \
  *   -L chr1:257-267
  *   -o output.txt
  * </pre>
