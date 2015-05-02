@@ -49,6 +49,9 @@ import java.util.List;
  *
  * <p>This annotation gives you the count of all reads that have MAPQ = 0 for each sample. The count of reads with MAPQ0 can be used for quality control; high counts typically indicate regions where it is difficult to make confident calls.</p>
  *
+ * <h3>Caveat</h3>
+ * <p>This annotation is excluded by HaplotypeCaller because HC filters out all reads with MQ0 upfront, so the annotation would always return a value of 0 anyway.</p>
+ *
  * <h3>Related annotations</h3>
  * <ul>
  *     <li><b><a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_MappingQualityZero.php">MappingQualityZero</a></b> gives the count of reads with MAPQ=0 across all samples.</li>

@@ -48,7 +48,8 @@ import java.util.Map;
  *
  * <p>N occurs in a sequence when the sequencer does not have enough information to determine which base it should call. The presence of many Ns at the same site lowers our confidence in any calls made there, because it suggests that there was some kind of technical difficulty that interfered with the sequencing process.</p>
  *
- * <p><b>Note that in GATK versions 3.2 and earlier, this annotation only counted N bases from reads generated with SOLiD technology. This functionality was generalized for all sequencing platforms in GATK version 3.3.</b></p>
+ * <h3>Note</h3>
+ * <p>In GATK versions 3.2 and earlier, this annotation only counted N bases from reads generated with SOLiD technology. This functionality was generalized for all sequencing platforms in GATK version 3.3.</p>
  *
  * <h3>Related annotations</h3>
  * <ul>

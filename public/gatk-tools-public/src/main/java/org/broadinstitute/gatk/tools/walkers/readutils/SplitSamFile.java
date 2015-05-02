@@ -51,8 +51,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Divides the input data set into separate BAM files, one for each sample in the input data set.  The split
- * files are named concatenating the sample name to the end of the provided outputRoot command-line argument.
+ * Split a BAM file by sample
+ *
+ * <p>This tool divides the input data set into separate BAM files, one for each sample in the input data set. The split
+ * files are named by concatenating the sample name to the end of the provided outputRoot command-line argument.</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A single bam file.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * A separate bam file for each sample.
+ * </p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T SplitSamFile \
+ *   -R reference.fasta \
+ *   -I input.bam \
+ *   --outputRoot myproject_
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
 @WalkerName("SplitSamFile")

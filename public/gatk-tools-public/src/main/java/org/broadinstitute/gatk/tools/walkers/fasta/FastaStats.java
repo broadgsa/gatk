@@ -52,11 +52,11 @@ import java.io.PrintStream;
  * Base counts are written to file if an output file name is given (with -o), otherwise output to stdout.
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T FastaStats \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   [-o output.txt]
  * </pre>
  */

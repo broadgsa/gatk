@@ -58,14 +58,15 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Converts variants from other file formats to VCF format.
+ * Convert variants from other file formats to VCF format
  *
  * <p>
- * Note that there must be a Tribble feature/codec for the file format as well as an adaptor.
+ * Note that there must be a Tribble feature/codec available for the file format as well as an adaptor.
+ * </p>
  *
  * <h3>Input</h3>
  * <p>
- * A variant file to filter.
+ * A variant file to convert.
  * </p>
  *
  * <h3>Output</h3>
@@ -73,14 +74,13 @@ import java.util.*;
  * A VCF file.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T VariantsToVCF \
+ *   -R reference.fasta \
  *   -o output.vcf \
- *   --variant:RawHapMap input.hapmap \
- *   --dbsnp dbsnp.vcf
+ *   --variant:RawHapMap input.hapmap
  * </pre>
  *
  */

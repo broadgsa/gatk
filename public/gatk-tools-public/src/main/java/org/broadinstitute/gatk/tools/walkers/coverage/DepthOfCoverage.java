@@ -62,46 +62,37 @@ import java.util.*;
  * This tool processes a set of bam files to determine coverage at different levels of partitioning and
  * aggregation. Coverage can be analyzed per locus, per interval, per gene, or in total; can be partitioned by
  * sample, by read group, by technology, by center, or by library; and can be summarized by mean, median, quartiles,
- * and/or percentage of bases covered to or beyond a threshold.
- * Additionally, reads and bases can be filtered by mapping or base quality score.
+ * and/or percentage of bases covered to or beyond a threshold. Additionally, reads and bases can be filtered by
+ * mapping or base quality score.
+ * </p>
  *
  * <h3>Input</h3>
- * <p>
- * One or more bam files (with proper headers) to be analyzed for coverage statistics
- * </p>
- * <p>
- *(Optional) A REFSEQ Rod to aggregate coverage to the gene level
- * <p>
- * (for information about creating the REFSEQ Rod, please consult the online documentation)
- *</p></p>
+ * <ul>
+ *     <li>One or more bam files (with proper headers) to be analyzed for coverage statistics</li>
+ *     <li>(Optional) A REFSEQ file to aggregate coverage to the gene level (for information about creating the REFSEQ Rod, please consult the online documentation)</li>
+ * </ul>
+
  * <h3>Output</h3>
  * <p>
  * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
- * </p><p>
- *  - no suffix: per locus coverage
- * </p><p>
- *  - _summary: total, mean, median, quartiles, and threshold proportions, aggregated over all bases
- * </p><p>
- *  - _statistics: coverage histograms (# locus with X coverage), aggregated over all bases
- * </p><p>
- *  - _interval_summary: total, mean, median, quartiles, and threshold proportions, aggregated per interval
- * </p><p>
- *  - _interval_statistics: 2x2 table of # of intervals covered to >= X depth in >=Y samples
- * </p><p>
- *  - _gene_summary: total, mean, median, quartiles, and threshold proportions, aggregated per gene
- * </p><p>
- *  - _gene_statistics: 2x2 table of # of genes covered to >= X depth in >= Y samples
- * </p><p>
- *  - _cumulative_coverage_counts: coverage histograms (# locus with >= X coverage), aggregated over all bases
- * </p><p>
- *  - _cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases
  * </p>
+ * <ul>
+ *     <li>no suffix: per locus coverage</li>
+ *     <li>_summary: total, mean, median, quartiles, and threshold proportions, aggregated over all bases</li>
+ *     <li>_statistics: coverage histograms (# locus with X coverage), aggregated over all bases</li>
+ *     <li>_interval_summary: total, mean, median, quartiles, and threshold proportions, aggregated per interval</li>
+ *     <li>_interval_statistics: 2x2 table of # of intervals covered to >= X depth in >=Y samples</li>
+ *     <li>_gene_summary: total, mean, median, quartiles, and threshold proportions, aggregated per gene</li>
+ *     <li>_gene_statistics: 2x2 table of # of genes covered to >= X depth in >= Y samples</li>
+ *     <li>_cumulative_coverage_counts: coverage histograms (# locus with >= X coverage), aggregated over all bases</li>
+ *     <li>_cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases</li>
+ * </ul>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T DepthOfCoverage \
+ *   -R reference.fasta \
  *   -o file_name_base \
  *   -I input_bams.list
  *   [-geneList refSeq.sorted.txt] \
@@ -180,7 +171,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     /**
      * Specify a RefSeq file for use in aggregating coverage statistics over genes.
      *
-     * A warning will be logged and no output file will be produced if --calculateCoverageOverGenes and --omitIntervalStatistics are enabled.
+     * This argument is incompatible with --calculateCoverageOverGenes and --omitIntervalStatistics. A warning will be logged and no output file will be produced for the gene list if these arguments are enabled together.
      *
      */
     @Argument(fullName = "calculateCoverageOverGenes", shortName = "geneList", doc = "Calculate coverage statistics over this list of genes", required = false)

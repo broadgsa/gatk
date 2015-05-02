@@ -33,16 +33,29 @@ import htsjdk.samtools.SAMRecord;
 import java.util.Iterator;
 
 /**
- * Filter out reads with wonky cigar strings.
+ * Filter out reads with wonky CIGAR strings
  *
- *  - No reads with a different length and cigar length
- *  - No reads with Hard/Soft clips in the middle of the cigar
- *  - No reads starting with deletions (with or without preceding clips)
- *  - No reads ending in deletions (with or without follow-up clips)
- *  - No reads that are fully hard or soft clipped
- *  - No reads that have consecutive indels in the cigar (II, DD, ID or DI)
+ * <p>This read filter will filter out the following cases:</p>
+ * <ul>
+ *     <li>different length and cigar length</li>
+ *     <li>Hard/Soft clips in the middle of the cigar</li>
+ *     <li>starting with deletions (with or without preceding clips)</li>
+ *     <li>ending in deletions (with or without follow-up clips)</li>
+ *     <li>fully hard or soft clipped</li>
+ *     <li>consecutive indels in the cigar (II, DD, ID or DI)</li>
+ * </ul>
  *
- *  ps: apparently an empty cigar is okay...
+ * <h3>Usage example</h3>
+ *
+ * <h4>Enable the bad cigar filter</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf BadCigar
+ * </pre>
  *
  * @author ebanks
  * @version 0.1

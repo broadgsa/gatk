@@ -33,6 +33,22 @@ import org.broadinstitute.gatk.engine.filters.ReadFilter;
 /**
  * Only use reads from the specified library
  *
+ * <p>This filter is useful for running on only a subset of the data as identified by a read group property.
+ * In the case of the library filter, the goal is usually to run quality control checks on a particular library.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Enable the library read filter</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf LibraryRead \
+ *         -library library_name
+ * </pre>
+ *
  * @author kcibul
  * @since Aug 15, 2012
  *

@@ -52,17 +52,18 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear in the input file.
+ * Write out sequence read data (for filtering, merging, subsetting etc)
  *
  * <p>
- * PrintReads can dynamically merge the contents of multiple input BAM files, resulting
- * in merged output sorted in coordinate order.  Can also optionally filter reads based on the
- * --read_filter command line argument.
+ * PrintReads is a generic utility tool for manipulating sequencing data in SAM/BAM format. It can dynamically
+ * merge the contents of multiple input BAM files, resulting in merged output sorted in coordinate order. It can
+ * also optionally filter reads based on various read properties such as read group tags using the `--read_filter/-rf`
+ * command line argument (see documentation on read filters for more information).
  * </p>
  *
  * <p>
  * Note that when PrintReads is used as part of the Base Quality Score Recalibration workflow,
- * it takes the --BQSR engine argument, which is listed under Inherited Arguments > CommandLineGATK below.
+ * it takes the `--BQSR` engine argument, which is listed under Inherited Arguments > CommandLineGATK below.
  * </p>
  *
  * <h3>Input</h3>
@@ -75,30 +76,31 @@ import java.util.*;
  * A single processed bam file.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage examples</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ // Prints all reads that have a mapping quality above zero
+ * java -jar GenomeAnalysisTK.jar \
  *   -T PrintReads \
- *   -o output.bam \
+ *   -R reference.fasta \
  *   -I input1.bam \
  *   -I input2.bam \
+ *   -o output.bam \
  *   --read_filter MappingQualityZero
  *
  * // Prints the first 2000 reads in the BAM file
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T PrintReads \
- *   -o output.bam \
+ *   -R reference.fasta \
  *   -I input.bam \
+ *   -o output.bam \
  *   -n 2000
  *
  * // Downsamples BAM file to 25%
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T PrintReads \
- *   -o output.bam \
+ *   -R reference.fasta \
  *   -I input.bam \
+ *   -o output.bam \
  *   -dfrac 0.25
  * </pre>
  *
@@ -142,11 +144,11 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     /**
      * Erase all extra attributes in the read but keep the read group information 
      */
-    @Argument(fullName="simplify", shortName="s", doc="Simplify all reads.", required=false)
+    @Argument(fullName="simplify", shortName="s", doc="Simplify all reads", required=false)
     public boolean simplifyReads = false;
 
     @Hidden
-    @Argument(fullName = "no_pg_tag", shortName = "npt", doc ="", required = false)
+    @Argument(fullName = "no_pg_tag", shortName = "npt", doc ="Don't output a program tag", required = false)
     public boolean NO_PG_TAG = false;
 
     List<ReadTransformer> readTransformers = Collections.emptyList();

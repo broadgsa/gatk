@@ -29,13 +29,28 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Filter out all reads except those with this read name
+ * Only use reads with this read name
+ *
+ * <p>This filter is useful for isolating a particular read, pair of reads or or set of alignments for a given read
+ * when troubleshooting issues where the error message provided a culprit name.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf ReadName \
+ *         -rn read_name
+ * </pre>
  *
  * @author chartl
  * @since 9/19/11
  */
 public class ReadNameFilter extends ReadFilter {
-     @Argument(fullName = "readName", shortName = "rn", doc="Filter out all reads except those with this read name", required=true)
+     @Argument(fullName = "readName", shortName = "rn", doc="Read name to whitelist", required=true)
     private String readName;
 
     public boolean filterOut(final SAMRecord rec) {

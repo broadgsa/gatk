@@ -28,7 +28,30 @@ package org.broadinstitute.gatk.engine.filters;
 import htsjdk.samtools.SAMRecord;
 
 /**
- * Filter out reads that are not paired, have their mate unmapped, are duplicates, fail vendor quality check or both mate and read are in the same strand.
+ * Filter out reads with bad pairing (and related) properties
+ *
+ * <p>This filter is intended to ensure that only reads that are likely
+ * to be mapped in the right place, and therefore to be informative, will be used in analysis.
+ * The following cases will be filtered out:
+ * </p>
+ * <ul>
+ *     <li>is not paired</li>
+ *     <li>mate is unmapped</li>
+ *     <li>is duplicate</li>
+ *     <li>fails vendor quality check</li>
+ *     <li>both mate and read are in the same strand orientation</li>
+ * </ul>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf MateSameStrand
+ * </pre>
  *
  * @author chartl
  * @since 5/18/11

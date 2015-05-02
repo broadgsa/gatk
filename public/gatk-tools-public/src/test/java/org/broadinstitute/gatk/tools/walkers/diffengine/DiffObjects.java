@@ -47,7 +47,7 @@ import java.util.List;
  * A generic engine for comparing tree-structured objects
  *
  * <p>
- *      Compares two record-oriented files, itemizing specific difference between equivalent
+ *      This tool compares two record-oriented files, itemizing specific difference between equivalent
  *      records in the two files.  Reports both itemized and summarized differences.
  * </p>
  *
@@ -56,8 +56,8 @@ import java.util.List;
  * <p>
  *     The GATK contains a summarizing difference engine that compares hierarchical data structures to emit:
  *      <ul>
- *          <li>A list of specific differences between the two data structures.  This is similar to saying the value in field A in record 1 in file F differences from the value in field A in record 1 in file G.
- *          <li>A summarized list of differences ordered by frequency of the difference.  This output is similar to saying field A in 50 records in files F and G differed.
+ *          <li>A list of specific differences between the two data structures.  This is similar to saying the value in field A in record 1 in file F differences from the value in field A in record 1 in file G.</li>
+ *          <li>A summarized list of differences ordered by frequency of the difference.  This output is similar to saying field A in 50 records in files F and G differed.</li>
  *      </ul>
  * </p>
  *

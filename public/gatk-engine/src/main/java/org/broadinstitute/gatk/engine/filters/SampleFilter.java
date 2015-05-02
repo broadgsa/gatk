@@ -32,7 +32,23 @@ import org.broadinstitute.gatk.utils.commandline.Argument;
 import java.util.Set;
 
 /**
- * Filter out all reads except those with this sample
+ * Only use reads belonging to a specific sample
+ *
+ * <p>This filter is useful for isolating data from one particular sample in a multisample file.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Use only reads from the sample named NA12878</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf Sample \
+ *         -goodSM NA12878
+ * </pre>
+ *
  */
 public class SampleFilter extends ReadFilter {
     @Argument(fullName = "sample_to_keep", shortName = "goodSM", doc="The name of the sample(s) to keep, filtering out all others", required=true)

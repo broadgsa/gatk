@@ -65,7 +65,7 @@ import java.util.Set;
  * <ul>
  *     <li>This annotation will only work properly for biallelic heterozygous calls.</li>
  *     <li>This annotation cannot currently be calculated for indels.</li>
- *     <li>tThe reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
+ *     <li>The reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
  *     <li>As stated above, this annotation is experimental and should be interpreted with caution as we cannot guarantee that it is appropriate. Basically, use it at your own risk.</li>
  * </ul>
  * <h3>Related annotations</h3>

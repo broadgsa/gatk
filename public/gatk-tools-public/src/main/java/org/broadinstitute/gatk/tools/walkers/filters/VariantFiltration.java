@@ -49,11 +49,12 @@ import java.util.*;
 
 
 /**
- * Filters variant calls using a number of user-selectable, parameterizable criteria.
+ * Filter variant calls based on INFO and FORMAT annotations
  *
  * <p>
- * VariantFiltration is a GATK tool for hard-filtering variant calls based on certain criteria.
- * Records are hard-filtered by changing the value in the FILTER field to something other than PASS.
+ * This tool is designed for hard-filtering variant calls based on certain criteria.
+ * Records are hard-filtered by changing the value in the FILTER field to something other than PASS. Filtered records
+ * will be preserved in the output unless their removal is requested in the command line. </p>
  *
  * <h3>Input</h3>
  * <p>
@@ -65,11 +66,11 @@ import java.util.*;
  * A filtered VCF.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T VariantFiltration \
+ *   -R reference.fasta \
  *   -o output.vcf \
  *   --variant input.vcf \
  *   --filterExpression "AB < 0.2 || MQ0 > 50" \

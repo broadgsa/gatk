@@ -89,23 +89,24 @@ import java.util.*;
  * A combined VCF.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage examples</h3>
  * &nbsp;
  * <h4>Merge two separate callsets</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CombineVariants \
+ *   -R reference.fasta \
  *   --variant input1.vcf \
  *   --variant input2.vcf \
  *   -o output.vcf \
  *   -genotypeMergeOptions UNIQUIFY
  * </pre>
+ *
  * <h4>Get the union of calls made on the same samples </h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CombineVariants \
+ *   -R reference.fasta \
  *   --variant:foo input1.vcf \
  *   --variant:bar input2.vcf \
  *   -o output.vcf \

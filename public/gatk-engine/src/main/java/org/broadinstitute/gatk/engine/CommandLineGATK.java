@@ -43,7 +43,7 @@ import java.util.*;
 /**
  * All command line parameters accepted by all tools in the GATK.
  *
- * <h3>Info for general users</h3>
+ * <h3>Info for end users</h3>
  *
  * <p>This is a list of options and parameters that are generally available to all tools in the GATK.</p>
  *
@@ -51,7 +51,7 @@ import java.util.*;
  * argument is only meant to be used with a subset of tools, and the -pedigree argument will only be effectively used
  * by a subset of tools as well. Some arguments conflict with others, and some conversely are dependent on others. This
  * is all indicated in the detailed argument descriptions, so be sure to read those in their entirety rather than just
- * skimming the one-line summaey in the table.</p>
+ * skimming the one-line summary in the table.</p>
  *
  * <h3>Info for developers</h3>
  *

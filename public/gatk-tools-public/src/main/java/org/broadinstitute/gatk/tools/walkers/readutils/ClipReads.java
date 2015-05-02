@@ -111,7 +111,7 @@ import java.util.regex.Pattern;
  *     </pre>
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
  *   java -jar GenomeAnalysisTK.jar \
  *     -T ClipReads \

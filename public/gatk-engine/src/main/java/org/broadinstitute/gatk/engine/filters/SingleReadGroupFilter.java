@@ -30,7 +30,22 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Only use reads from the specified read group.
+ * Only use reads from the specified read group
+ *
+ * <p>This filter is useful for isolating data from one particular read group (usually a single lane).</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Use only reads from the read group with ID "read_group_1</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf SingleReadGroup \
+ *         -goodRG read_group_1
+ * </pre>
  *
  * @author rpoplin
  * @since Nov 27, 2009

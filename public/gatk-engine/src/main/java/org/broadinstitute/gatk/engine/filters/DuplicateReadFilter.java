@@ -53,7 +53,32 @@ import htsjdk.samtools.SAMRecord;
  */
 
 /**
- * Filter out duplicate reads.
+ * Filter out duplicate reads
+ *
+ * <p>This filter recognizes the SAM flag set by MarkDuplicates. It can be disabled from the command line if needed
+ * using the -drf argument.</p>
+ *
+ * <h3>Usage examples</h3>
+ *
+ * <h4>Enable the duplicate read filter</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf DuplicateRead
+ * </pre>
+ *
+ * <h4>Disable the duplicate read filter</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         <b>-drf</b> DuplicateRead
+ * </pre>
  *
  * @author rpoplin
  * @since Dec 9, 2009

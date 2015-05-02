@@ -29,7 +29,7 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * A read filter (transformer) that changes a given read mapping quality to a different value.
+ * Set the mapping quality of reads with a given value to another given value.
  *
  *  <p>
  *     This read transformer will change a certain read mapping quality to a different value without affecting reads that
@@ -57,12 +57,15 @@ import org.broadinstitute.gatk.utils.commandline.Argument;
  *      BAM file(s) with one read mapping quality selectively reassigned as desired
  *  </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  *  <pre>
- *    java -jar GenomeAnalysisTK.jar
- *      -T PrintReads
- *      -rf ReassignOneMappingQuality
- *      -RMQF 255
+ *    java -jar GenomeAnalysisTK.jar \
+ *      -T PrintReads \
+ *      -R reference.fasta \
+ *      -I input.bam \
+ *      -o output.file \
+ *      -rf ReassignOneMappingQuality \
+ *      -RMQF 255 \
  *      -RMQT 60
  *  </pre>
  *

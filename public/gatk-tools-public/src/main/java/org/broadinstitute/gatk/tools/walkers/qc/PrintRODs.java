@@ -40,8 +40,11 @@ import org.broadinstitute.gatk.utils.help.HelpConstants;
 import java.io.PrintStream;
 
 /**
- * Prints out all of the RODs in the input data set. Data is rendered using the toString() method
- * of the given ROD.
+ * Print out all of the RODs in the input data set
+ *
+ * <p>This tool reports what RODs (reference ordered data sets) are contained in a given input.</p>
+ *
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class PrintRODs extends RodWalker<Integer, Integer> {

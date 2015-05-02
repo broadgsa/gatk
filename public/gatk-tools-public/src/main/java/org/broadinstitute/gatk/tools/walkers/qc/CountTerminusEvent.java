@@ -44,7 +44,9 @@ import java.io.PrintStream;
 import java.util.List;
 
 /**
- * Walks over the input data set, counting the number of reads ending in insertions/deletions or soft-clips
+ * Count the number of reads ending in insertions, deletions or soft-clips
+ *
+ * <p>This tool reports the number of reads where the end bases do not map to the reference sequence.</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -56,13 +58,13 @@ import java.util.List;
  * Number of reads ending in each category.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountTerminusEvent \
- *   -o output.txt \
+ *   -R reference.fasta \
  *   -I input.bam \
+ *   -o output.txt \
  *   [-L input.intervals]
  * </pre>
  */

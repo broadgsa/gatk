@@ -29,7 +29,23 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Filters out reads whose strand is negative or positive
+ * Filter out reads based on strand orientation
+ *
+ * <p>This filter is useful for isolating reads from only forward or reverse strands. By default, it filters out reads
+ * from the negative (reverse) strand. This logic can be reversed by using the -filterPositive flag.</p>
+ *
+ * <h3>Usage example</h3>
+ *
+ * <h4>Set the read strand filter to filter out positive (forward) strand reads</h4>
+ * <pre>
+ *     java -jar GenomeAnalysisTk.jar \
+ *         -T ToolName \
+ *         -R reference.fasta \
+ *         -I input.bam \
+ *         -o output.file \
+ *         -rf ReadStrand \
+ *         -filterPositive
+ * </pre>
  *
  * @author chartl
  * @version 0.1

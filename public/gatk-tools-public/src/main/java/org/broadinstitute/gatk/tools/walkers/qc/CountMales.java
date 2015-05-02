@@ -41,7 +41,9 @@ import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 import java.io.PrintStream;
 
 /**
- * Walks over the input data set, calculating the number of reads seen from male samples for diagnostic purposes.
+ * Count the number of reads seen from male samples
+ *
+ * <p>This tool counts the number of sequence reads seen from samples that are male according to the sample metadata.</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -50,14 +52,15 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  * <p>
- * Number of reads seen from male samples.
+ * Number of reads seen from male samples. If an output file name is provided, then the result will be written to that file.
+ * Otherwise it will be sent to standard console output.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountMales \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -I samples.bam \
  *   -o output.txt
  * </pre>

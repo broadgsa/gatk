@@ -83,19 +83,18 @@ import java.io.PrintStream;
  *      </pre>
  *  </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  *  <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T ErrorRatePerCycle
- *      -R human_g1k_v37.fasta
- *      -I my_sequence_reads.bam
+ *    java -jar GenomeAnalysisTK.jar \
+ *      -T ErrorRatePerCycle \
+ *      -R reference.fasta \
+ *      -I my_sequence_reads.bam \
  *      -o error_rates.gatkreport.txt
  *  </pre>
  *
  * <h3>Caveat</h3>
  *
- * <p>Note that when it is run on paired-end sequence data, this tool only uses the first read in a pair.</p>
+ * <p>When it is run on paired-end sequence data, this tool only uses the first read in a pair.</p>
  *
  * @author Kiran Garimella, Mark DePristo
  */
