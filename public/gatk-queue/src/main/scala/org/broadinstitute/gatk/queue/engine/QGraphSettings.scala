@@ -80,6 +80,10 @@ class QGraphSettings {
   @Argument(fullName="disableJobReport", shortName="disableJobReport", doc="If provided, we will not create a job report", required=false)
   var disableJobReport: Boolean = false
 
+  @Advanced
+  @Argument(fullName="maximumNumberOfJobsToRunConcurrently", shortName="maxConcurrentRun", doc="The maximum number of jobs to start at any given time. (Default is no limit)", required=false)
+  var maximumNumberOfConcurrentJobs: Int = -1
+
   @ArgumentCollection
   val emailSettings = new EmailSettings
 
