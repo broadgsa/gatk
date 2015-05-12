@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.util.PeekableIterator;
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.tribble.BasicFeature;
+import htsjdk.tribble.SimpleFeature;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
@@ -109,35 +109,35 @@ public class IntervalReferenceOrderedViewUnitTest extends BaseTest {
     public void initializeTests() {
         final List<Feature> handPickedFeatures = new ArrayList<Feature>();
 
-        handPickedFeatures.add(new BasicFeature(contig, 1, 1));
-        handPickedFeatures.add(new BasicFeature(contig, 2, 5));
-        handPickedFeatures.add(new BasicFeature(contig, 4, 4));
-        handPickedFeatures.add(new BasicFeature(contig, 6, 6));
-        handPickedFeatures.add(new BasicFeature(contig, 9, 10));
-        handPickedFeatures.add(new BasicFeature(contig, 10, 10));
-        handPickedFeatures.add(new BasicFeature(contig, 10, 11));
-        handPickedFeatures.add(new BasicFeature(contig, 13, 20));
+        handPickedFeatures.add(new SimpleFeature(contig, 1, 1));
+        handPickedFeatures.add(new SimpleFeature(contig, 2, 5));
+        handPickedFeatures.add(new SimpleFeature(contig, 4, 4));
+        handPickedFeatures.add(new SimpleFeature(contig, 6, 6));
+        handPickedFeatures.add(new SimpleFeature(contig, 9, 10));
+        handPickedFeatures.add(new SimpleFeature(contig, 10, 10));
+        handPickedFeatures.add(new SimpleFeature(contig, 10, 11));
+        handPickedFeatures.add(new SimpleFeature(contig, 13, 20));
 
         createTestsForFeatures(handPickedFeatures);
 
         // test in the present of a large spanning element
         {
             List<Feature> oneLargeSpan = new ArrayList<Feature>(handPickedFeatures);
-            oneLargeSpan.add(new BasicFeature(contig, 1, 30));
+            oneLargeSpan.add(new SimpleFeature(contig, 1, 30));
             createTestsForFeatures(oneLargeSpan);
         }
 
         // test in the presence of a partially spanning element
         {
             List<Feature> partialSpanStart = new ArrayList<Feature>(handPickedFeatures);
-            partialSpanStart.add(new BasicFeature(contig, 1, 6));
+            partialSpanStart.add(new SimpleFeature(contig, 1, 6));
             createTestsForFeatures(partialSpanStart);
         }
 
         // test in the presence of a partially spanning element at the end
         {
             List<Feature> partialSpanEnd = new ArrayList<Feature>(handPickedFeatures);
-            partialSpanEnd.add(new BasicFeature(contig, 10, 30));
+            partialSpanEnd.add(new SimpleFeature(contig, 10, 30));
             createTestsForFeatures(partialSpanEnd);
         }
 

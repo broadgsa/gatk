@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>1.128.1696</htsjdk.version>
-        <picard.version>1.128.1678</picard.version>
+        <htsjdk.version>1.132</htsjdk.version>
+        <picard.version>1.131</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -67,7 +67,7 @@
                 <version>1.0-r139</version>
             </dependency>
             <dependency>
-                <groupId>samtools</groupId>
+                <groupId>com.github.samtools</groupId>
                 <artifactId>htsjdk</artifactId>
                 <version>${htsjdk.version}</version>
                 <exclusions>
@@ -82,7 +82,7 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>picard</groupId>
+                <groupId>com.github.broadinstitute</groupId>
                 <artifactId>picard</artifactId>
                 <version>${picard.version}</version>
             </dependency>

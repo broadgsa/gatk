@@ -53,6 +53,11 @@ public class TableFeature implements Feature {
 
     @Override
     public String getChr() {
+        return getContig();
+    }
+
+    @Override
+    public String getContig() {
         return position.getContig();
     }
 

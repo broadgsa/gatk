@@ -150,6 +150,14 @@ public class SAMReadFeature implements Feature {
      * @return Aligned contig name.
      */
     public String getChr() {
+        return getContig();
+    }
+
+    /**
+     * An alias for getReferenceName, required by Feature interface.
+     * @return Aligned contig name.
+     */
+    public String getContig() {
         return getReferenceName();
     }
 

@@ -66,7 +66,13 @@ public class SAMPileupFeature implements Feature {
      */
     SAMPileupFeature() {}
 
+    @Override
     public String getChr() {
+        return getContig();
+    }
+
+    @Override
+    public String getContig() {
         return contig;
     }
 
@@ -74,6 +80,7 @@ public class SAMPileupFeature implements Feature {
         this.contig = chr;
     }
 
+    @Override
     public int getStart() {
         return start;
     }
@@ -82,6 +89,7 @@ public class SAMPileupFeature implements Feature {
         this.start = start;
     }
 
+    @Override
     public int getEnd() {
         return stop;
     }

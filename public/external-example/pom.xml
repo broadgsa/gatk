@@ -155,7 +155,7 @@
                                     </includes>
                                 </filter>
                                 <filter>
-                                    <artifact>samtools:htsjdk</artifact>
+                                    <artifact>com.github.samtools:htsjdk</artifact>
                                     <includes>
                                         <include>**</include>
                                     </includes>
