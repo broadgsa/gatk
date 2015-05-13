@@ -113,9 +113,22 @@ import java.util.*;
  *   -se 'SAMPLE.+PARC'
  * </pre>
  *
- * <h4>Select any sample that matches a regular expression and sites where the QD annotation is more than 10</h4>
+ * <h4>Exclude two samples and any sample that matches a regular expression:</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -xl_sn SAMPLE_1_PARC \
+ *   -xl_sn SAMPLE_1_ACTG \
+ *   -xl_se 'SAMPLE.+PARC'
+ * </pre>
+ *
+ * <h4>Select any sample that matches a regular expression and sites where the QD annotation is more than 10:</h4>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
  *   -T SelectVariants \
  *   -R reference.fasta \
  *   -V input.vcf \
@@ -124,9 +137,22 @@ import java.util.*;
  *   -select "QD > 10.0"
  * </pre>
  *
- * <h4>Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default)</h4>
+ * <h4>Select any sample that does not match a regular expression and sites where the QD annotation is more than 10:</h4>
+ * <pre>
+ * java  -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -se 'SAMPLE.+PARC' \
+ *   -select "QD > 10.0"
+ *   --invert_selection
+ * </pre>
+ *
+ * <h4>Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default):</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
  *   -T SelectVariants \
  *   -R reference.fasta \
  *   -V input.vcf \
@@ -136,7 +162,7 @@ import java.util.*;
  *   -ef
  * </pre>
  *
- * <h4>Select a sample, subset remaining alleles, but don't trim</h4>
+ * <h4>Select a sample, subset remaining alleles, but don't trim:</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -148,7 +174,7 @@ import java.util.*;
  *   -noTrim
  *</pre>
  *
- * <h4>Select a sample and restrict the output vcf to a set of intervals</h4>
+ * <h4>Select a sample and restrict the output vcf to a set of intervals:</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -159,7 +185,7 @@ import java.util.*;
  *   -sn SAMPLE_1_ACTG
  * </pre>
  *
- * <h4>Select all calls missed in my vcf, but present in HapMap (useful to take a look at why these variants weren't called in my dataset)</h4>
+ * <h4>Select all calls missed in my vcf, but present in HapMap (useful to take a look at why these variants weren't called in my dataset):</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -170,7 +196,7 @@ import java.util.*;
  *   -sn mySample
  * </pre>
  *
- * <h4>Select all calls made by both myCalls and theirCalls (useful to take a look at what is consistent between two callers)</h4>
+ * <h4>Select all calls made by both myCalls and theirCalls (useful to take a look at what is consistent between two callers):</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -192,7 +218,18 @@ import java.util.*;
  *   -o violations.vcf
  * </pre>
  *
- * <h4>Create a set with 50% of the total number of variants in the variant VCF</h4>
+ * <h4>Generating a VCF of all the variants that are not mendelian violations. The optional argument `-mvq` together with '-inv_mv' restricts the selection to sites that have a QUAL score of 50 or less</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T SelectVariants \
+ *   -R reference.fasta \
+ *   -V input.vcf \
+ *   -ped family.ped \
+ *   -mv -mvq 50 -inv_mv \
+ *   -o violations.vcf
+ * </pre>
+ *
+ * <h4>Create a set with 50% of the total number of variants in the variant VCF:</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -202,17 +239,30 @@ import java.util.*;
  *   -fraction 0.5
  * </pre>
  *
- * <h4>Select only indels from a VCF</h4>
+ * <h4>Select only indels between 2 and 5 bases long from a VCF:</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
  *   -T SelectVariants \
  *   -R reference.fasta \
  *   -V input.vcf \
  *   -o output.vcf \
  *   -selectType INDEL
+ *   -minIndelSize 2
+ *   -maxIndelSize 5
  * </pre>
  *
- * <h4>Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column)</h4>
+ * <h4>Exclude indels from a VCF:</h4>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -selectTypeToExclude INDEL
+ * </pre>
+ *
+ * <h4>Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column):</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -221,6 +271,17 @@ import java.util.*;
  *   -o output.vcf \
  *   -selectType SNP -selectType MNP \
  *   -restrictAllelesTo MULTIALLELIC
+ * </pre>
+ *
+ * <h4>Select IDs in fileKeep and exclude IDs in fileExclude:</h4>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   -IDs fileKeep \
+ *   -excludeIDs fileExclude
  * </pre>
  *
  */
@@ -258,7 +319,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * argument can be specified multiple times in order to use multiple different matching patterns.
      */
     @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select multiple samples", required=false)
-    public Set<String> sampleExpressions ;
+    public Set<String> sampleExpressions;
 
     /**
      * Sample names should be in a plain text file listing one sample name per line. This argument can be specified multiple times in order to provide
@@ -283,25 +344,39 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     public Set<File> XLsampleFiles = new HashSet<>(0);
 
     /**
+     * Using a regular expression allows you to match multiple sample names that have that pattern in common. Note that sample exclusion takes precedence
+     * over inclusion, so that if a sample is in both lists it will be excluded. This  argument can be specified multiple times in order to use multiple
+     * different matching patterns.
+     */
+    @Input(fullName="exclude_sample_expressions", shortName="xl_se", doc="List of sample expressions to exclude", required=false)
+    public Set<String> XLsampleExpressions = new HashSet<>(0);
+
+    /**
      * See example commands above for detailed usage examples. Note that these expressions are evaluated *after* the
      * specified samples are extracted and the INFO field annotations are updated.
      */
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data", required=false)
-    public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<>();
+    public ArrayList<String> selectExpressions = new ArrayList<>();
 
     /**
+     * Invert the selection criteria for --select.
+     */
+    @Argument(fullName="invert_selection", shortName="inv_sel", doc="Invert the selection criteria for --select", required=false)
+    protected boolean invertSelection = false;
+
+    /*
      * If this flag is enabled, sites that are found to be non-variant after the subsetting procedure (i.e. where none
      * of the selected samples display evidence of variation) will be excluded from the output.
      */
     @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include non-variant sites", required=false)
-    protected boolean EXCLUDE_NON_VARIANTS = false;
+    protected boolean XLnonVariants = false;
 
     /**
      * If this flag is enabled, sites that have been marked as filtered (i.e. have anything other than `.` or `PASS`
      * in the FILTER field) will be excluded from the output.
      */
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered sites", required=false)
-    protected boolean EXCLUDE_FILTERED = false;
+    protected boolean XLfiltered = false;
 
     /**
      * The default behavior of this tool is to remove bases common to all remaining alleles after subsetting
@@ -338,7 +413,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * AC_Orig, AF_Orig, and AN_Orig.
      */
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Store the original AC, AF, and AN values after subsetting", required=false)
-    private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
+    private boolean keepOriginalChrCounts = false;
 
     /**
      * When subsetting a callset, this tool recalculates the site-level (INFO field) DP value corresponding to the contents of the
@@ -346,7 +421,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * DP_Orig.
      */
     @Argument(fullName="keepOriginalDP", shortName="keepOriginalDP", doc="Store the original DP value after subsetting", required=false)
-    private boolean KEEP_ORIGINAL_DEPTH = false;
+    private boolean keepOriginalDepth = false;
 
     /**
      * If this flag is enabled, this tool will select only variants that correspond to a mendelian violation as
@@ -354,14 +429,22 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * `-ped` argument.
      */
     @Argument(fullName="mendelianViolation", shortName="mv", doc="Output mendelian violation sites only", required=false)
-    private Boolean MENDELIAN_VIOLATIONS = false;
+    private Boolean mendelianViolations = false;
+
+    /**
+     * If this flag is enabled, this tool will select only variants that do not correspond to a mendelian violation as
+     * determined on the basis of family structure. Requires passing a pedigree file using the engine-level
+     * `-ped` argument.
+     */
+    @Argument(fullName="invert_mendelianViolation", shortName="inv_mv", doc="Output non-mendelian violation sites only", required=false)
+    private Boolean invert_mendelianViolations = false;
 
     /**
      * This argument specifies the genotype quality (GQ) threshold that all members of a trio must have in order
      * for a site to be accepted as a mendelian violation. Note that the `-mv` flag must be set for this argument to have an effect.
      */
     @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum GQ score for each trio member to accept a site as a violation", required=false)
-    protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
+    protected double medelianViolationQualThreshold = 0;
 
     /**
      * The value of this argument should be a number between 0 and 1 specifying the fraction of total variants to be
@@ -385,7 +468,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * SYMBOLIC, NO_VARIATION. Can be specified multiple times.
      */
     @Argument(fullName="selectTypeToInclude", shortName="selectType", doc="Select only a certain type of variants from the input file", required=false)
-    private List<VariantContext.Type> TYPES_TO_INCLUDE = new ArrayList<>();
+    private List<VariantContext.Type> typesToInclude = new ArrayList<>();
+
+    /**
+     * This argument excludes particular kinds of variants out of a list. If left empty, there is no type selection
+     * and all variant types are considered for other selection criteria. Valid types are INDEL, SNP, MIXED, MNP,
+     * SYMBOLIC, NO_VARIATION. Can be specified multiple times.
+     */
+    @Argument(fullName="selectTypeToExclude", shortName="xlSelectType", doc="Do not select certain type of variants from the input file", required=false)
+    private List<VariantContext.Type> typesToExclude = new ArrayList<>();
 
     /**
      * If a file containing a list of IDs is provided to this argument, the tool will only select variants whose ID
@@ -395,29 +486,37 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="keepIDs", shortName="IDs", doc="List of variant IDs to select", required=false)
     private File rsIDFile = null;
 
+    /**
+     * If a file containing a list of IDs is provided to this argument, the tool will not select variants whose ID
+     * field is present in this list of IDs. The matching is done by exact string matching. The expected file format
+     * is simply plain text with one ID per line.
+     */
+    @Argument(fullName="excludeIDs", shortName="xlIDs", doc="List of variant IDs to select", required=false)
+    private File XLrsIDFile = null;
 
     @Hidden
     @Argument(fullName="fullyDecode", doc="If true, the incoming VariantContext will be fully decoded", required=false)
     private boolean fullyDecode = false;
 
     @Hidden
-    @Argument(fullName="forceGenotypesDecode", doc="If true, the incoming VariantContext will have its genotypes forcibly decoded by computing AC across all genotypes.  For efficiency testing only", required=false)
-    private boolean forceGenotypesDecode = false;
-
-    @Hidden
     @Argument(fullName="justRead", doc="If true, we won't actually write the output file.  For efficiency testing only", required=false)
     private boolean justRead = false;
 
     /**
-     * If this argument is provided, indels that are larger than the specified siwe will be excluded.
+     * If this argument is provided, indels that are larger than the specified size will be excluded.
      */
     @Argument(fullName="maxIndelSize", required=false, doc="Maximum size of indels to include")
     private int maxIndelSize = Integer.MAX_VALUE;
 
+    /**
+     * If this argument is provided, indels that are smaller than the specified size will be excluded.
+     */
+    @Argument(fullName="minIndelSize", required=false, doc="Minimum size of indels to include")
+    private int minIndelSize = 0;
+
     @Hidden
     @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", required=false, doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
-    private boolean ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES = false;
-
+    private boolean allowNonOverlappingCommandLineSamples = false;
 
     public enum NumberAlleleRestriction {
         ALL,
@@ -430,21 +529,22 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
     private TreeSet<String> samples = new TreeSet<>();
-    private boolean NO_SAMPLES_SPECIFIED = false;
+    private boolean noSamplesSpecified = false;
 
-    private boolean DISCORDANCE_ONLY = false;
-    private boolean CONCORDANCE_ONLY = false;
+    private boolean discordanceOnly = false;
+    private boolean concordanceOnly = false;
 
     private MendelianViolation mv;
 
 
     /* variables used by the SELECT RANDOM modules */
-    private boolean SELECT_RANDOM_FRACTION = false;
+    private boolean selectRandomFraction = false;
 
     //Random number generator for the genotypes to remove
     private Random randomGenotypes = new Random();
 
     private Set<String> IDsToKeep = null;
+    private Set<String> IDsToRemove = null;
     private Map<String, VCFHeader> vcfRods;
 
     /**
@@ -472,101 +572,124 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         samples.addAll(samplesFromExpressions);
         samples.addAll(samplesFromFile);
 
-        logger.debug(Utils.join(",",commandLineUniqueSamples));
+        logger.debug(Utils.join(",", commandLineUniqueSamples));
 
-        if ( commandLineUniqueSamples.size() > 0 && ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES ) {
-            logger.warn("Samples present on command line input that are not present in the VCF. These samples will be ignored.");
-            samples.removeAll(commandLineUniqueSamples);
-        } else if (commandLineUniqueSamples.size() > 0 ) {
-            throw new UserException.BadInput(String.format("%s%n%n%s%n%n%s%n%n%s",
-                    "Samples entered on command line (through -sf or -sn) that are not present in the VCF.",
-                    "A list of these samples:",
-                    Utils.join(",",commandLineUniqueSamples),
-                    "To ignore these samples, run with --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES"));
-        }
-
+            if (!commandLineUniqueSamples.isEmpty()) {
+                if (allowNonOverlappingCommandLineSamples) {
+                    logger.warn("Samples present on command line input that are not present in the VCF. These samples will be ignored.");
+                    samples.removeAll(commandLineUniqueSamples);
+                } else {
+                    throw new UserException.BadInput(String.format("%s%n%n%s%n%n%s%n%n%s",
+                            "Samples entered on command line (through -sf or -sn) that are not present in the VCF.",
+                            "A list of these samples:",
+                            Utils.join(",", commandLineUniqueSamples),
+                            "To ignore these samples, run with --allowNonOverlappingCommandLineSamples"));
+                }
+            }
 
         // if none were requested, we want all of them
         if ( samples.isEmpty() ) {
             samples.addAll(vcfSamples);
-            NO_SAMPLES_SPECIFIED = true;
+            noSamplesSpecified = true;
         }
 
         // now, exclude any requested samples
         final Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
+        final Collection<String> XLsamplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, XLsampleExpressions);
         samples.removeAll(XLsamplesFromFile);
         samples.removeAll(XLsampleNames);
-        NO_SAMPLES_SPECIFIED = NO_SAMPLES_SPECIFIED && XLsampleNames.isEmpty() && XLsamplesFromFile.isEmpty();
+        samples.removeAll(XLsamplesFromExpressions);
+        noSamplesSpecified = noSamplesSpecified && XLsampleNames.isEmpty() && XLsamplesFromFile.isEmpty() &&
+                XLsamplesFromExpressions.isEmpty();
 
-        if ( samples.size() == 0 && !NO_SAMPLES_SPECIFIED )
+        if ( samples.isEmpty() && !noSamplesSpecified )
             throw new UserException("All samples requested to be included were also requested to be excluded.");
 
-        if ( ! NO_SAMPLES_SPECIFIED )
+        if ( ! noSamplesSpecified )
             for ( String sample : samples )
             logger.info("Including sample '" + sample + "'");
 
         // if user specified types to include, add these, otherwise, add all possible variant context types to list of vc types to include
-        if (TYPES_TO_INCLUDE.isEmpty()) {
-
+        if (typesToInclude.isEmpty()) {
             for (VariantContext.Type t : VariantContext.Type.values())
                 selectedTypes.add(t);
-
         }
         else {
-            for (VariantContext.Type t : TYPES_TO_INCLUDE)
+            for (VariantContext.Type t : typesToInclude)
                 selectedTypes.add(t);
-
         }
+
+        // remove specifed types
+        for (VariantContext.Type t : typesToExclude)
+            selectedTypes.remove(t);
+
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
-        if (KEEP_ORIGINAL_CHR_COUNTS) {
+        if (keepOriginalChrCounts) {
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AC_KEY));
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AF_KEY));
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AN_KEY));
         }
-        if (KEEP_ORIGINAL_DEPTH)
+        if (keepOriginalDepth)
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_DP_KEY));
         headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
         headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.DEPTH_KEY));
 
-        for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {
+        for (int i = 0; i < selectExpressions.size(); i++) {
             // It's not necessary that the user supply select names for the JEXL expressions, since those
             // expressions will only be needed for omitting records.  Make up the select names here.
             selectNames.add(String.format("select-%d", i));
         }
 
-        jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
+        jexls = VariantContextUtils.initializeMatchExps(selectNames, selectExpressions);
 
         // Look at the parameters to decide which analysis to perform
-        DISCORDANCE_ONLY = discordanceTrack.isBound();
-        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceTrack.getName());
+        discordanceOnly = discordanceTrack.isBound();
+        if (discordanceOnly) logger.info("Selecting only variants discordant with the track: " + discordanceTrack.getName());
 
-        CONCORDANCE_ONLY = concordanceTrack.isBound();
-        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getName());
+        concordanceOnly = concordanceTrack.isBound();
+        if (concordanceOnly) logger.info("Selecting only variants concordant with the track: " + concordanceTrack.getName());
 
-        if (MENDELIAN_VIOLATIONS) {
-            mv = new MendelianViolation(MENDELIAN_VIOLATION_QUAL_THRESHOLD,false,true);
+        if (mendelianViolations) {
+            mv = new MendelianViolation(medelianViolationQualThreshold,false,true);
         }
 
-        SELECT_RANDOM_FRACTION = fractionRandom > 0;
-        if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
+        selectRandomFraction = fractionRandom > 0;
+        if (selectRandomFraction) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
-        /** load in the IDs file to a hashset for matching */
-        if ( rsIDFile != null ) {
-            IDsToKeep = new HashSet<>();
-            try {
-                for ( final String line : new XReadLines(rsIDFile).readLines() ) {
-                    IDsToKeep.add(line.trim());
-                }
-                logger.info("Selecting only variants with one of " + IDsToKeep.size() + " IDs from " + rsIDFile);
-            } catch ( FileNotFoundException e ) {
-                throw new UserException.CouldNotReadInputFile(rsIDFile, e);
-            }
-        }
+        // Get variant IDs to keep and removed
+        IDsToKeep = getIDsFromFile(rsIDFile);
+
+        IDsToRemove = getIDsFromFile(XLrsIDFile);
 
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
+    }
+
+    /**
+     * Get IDs from a file
+     *
+     * @param file file containing the IDs
+     * @return set of IDs or null if the file is null
+     * @throws UserException.CouldNotReadInputFile if could not read the file
+     */
+    private Set<String> getIDsFromFile(final File file){
+        /** load in the IDs file to a hashset for matching */
+        if ( file != null ) {
+            Set<String> ids = new HashSet<>();
+            try {
+                for ( final java.lang.String line : new XReadLines(file).readLines() ) {
+                    ids.add(line.trim());
+                }
+                logger.info("Selecting only variants with one of " + ids.size() + " IDs from " + file);
+            } catch ( FileNotFoundException e ) {
+                throw new UserException.CouldNotReadInputFile(file, e);
+            }
+            return ids;
+        }
+
+        return null;
     }
 
     /**
@@ -584,7 +707,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
 
-        if ( vcs == null || vcs.size() == 0) {
+        if ( vcs == null || vcs.isEmpty()) {
             return 0;
         }
 
@@ -593,24 +716,21 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if ( fullyDecode )
                 vc = vc.fullyDecode(vcfRods.get(vc.getSource()), getToolkit().lenientVCFProcessing() );
 
-            // an option for performance testing only
-            if ( forceGenotypesDecode ) {
-                final int x = vc.getCalledChrCount();
-                //logger.info("forceGenotypesDecode with getCalledChrCount() = " + );
-            }
-
-            if ( IDsToKeep != null && ! IDsToKeep.contains(vc.getID()) )
+            if ( IDsToKeep != null && !IDsToKeep.contains(vc.getID()) )
                 continue;
 
-            if (MENDELIAN_VIOLATIONS && mv.countViolations(this.getSampleDB().getFamilies(samples),vc) < 1)
+            if ( IDsToRemove != null && IDsToRemove.contains(vc.getID()) )
+                continue;
+
+            if ( mendelianViolations && Utils.invertLogic(mv.countViolations(this.getSampleDB().getFamilies(samples), vc) == 0, invert_mendelianViolations) )
                 break;
 
-            if (DISCORDANCE_ONLY) {
+            if (discordanceOnly) {
                 Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
                     continue;
             }
-            if (CONCORDANCE_ONLY) {
+            if (concordanceOnly) {
                 Collection<VariantContext> compVCs = tracker.getValues(concordanceTrack, context.getLocation());
                 if (!isConcordant(vc, compVCs))
                     continue;
@@ -625,16 +745,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
-            if ( containsIndelLargerThan(vc, maxIndelSize) )
+            if ( containsIndelLargerOrSmallerThan(vc, maxIndelSize, minIndelSize) )
                 continue;
 
             VariantContext sub = subsetRecord(vc, preserveAlleles, removeUnusedAlternates);
 
-            if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
+            // Not excluding non-variants or subsetted polymorphic variants AND including filtered loci or subsetted variant is not filtered
+            if ( (!XLnonVariants || sub.isPolymorphicInSamples()) && (!XLfiltered || !sub.isFiltered()) ) {
+
+                // Write the subsetted variant if it matches all of the expressions
                 boolean failedJexlMatch = false;
+
                 try {
                     for (VariantContextUtils.JexlVCMatchExp jexl : jexls) {
-                        if (!VariantContextUtils.match(sub, jexl)) {
+                        if ( Utils.invertLogic(!VariantContextUtils.match(sub, jexl), invertSelection) ){
                             failedJexlMatch = true;
                             break;
                         }
@@ -646,7 +770,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 }
                 if ( !failedJexlMatch &&
                         !justRead &&
-                        ( !SELECT_RANDOM_FRACTION || Utils.getRandomGenerator().nextDouble() < fractionRandom ) ) {
+                        ( !selectRandomFraction || Utils.getRandomGenerator().nextDouble() < fractionRandom ) ) {
                     vcfWriter.add(sub);
                 }
             }
@@ -656,19 +780,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     /*
-     * Determines if any of the alternate alleles are greater than the max indel size
+     * Determines if any of the alternate alleles are greater than the max indel size or less than the min indel size
      *
      * @param vc            the variant context to check
      * @param maxIndelSize  the maximum size of allowed indels
-     * @return true if the VC contains an indel larger than maxIndelSize and false otherwise
+     * @param minIndelSize  the minimum size of allowed indels
+     * @return true if the VC contains an indel larger than maxIndelSize or less than the minIndelSize, false otherwise
      */
-    protected static boolean containsIndelLargerThan(final VariantContext vc, final int maxIndelSize) {
+    protected static boolean containsIndelLargerOrSmallerThan(final VariantContext vc, final int maxIndelSize, final int minIndelSize) {
         final List<Integer> lengths = vc.getIndelLengths();
         if ( lengths == null )
             return false;
 
         for ( Integer indelLength : lengths ) {
-            if ( Math.abs(indelLength) > maxIndelSize )
+            if ( Math.abs(indelLength) > maxIndelSize || Math.abs(indelLength) < minIndelSize )
                 return true;
         }
 
@@ -677,16 +802,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     /**
      * Checks if vc has a variant call for (at least one of) the samples.
+     *
      * @param vc the variant rod VariantContext. Here, the variant is the dataset you're looking for discordances to (e.g. HapMap)
-     * @param compVCs the comparison VariantContext (discordance
-     * @return true if is discordant
+     * @param compVCs the comparison VariantContext (discordance)
+     * @return true VariantContexts are discordant, false otherwise
      */
     private boolean isDiscordant (VariantContext vc, Collection<VariantContext> compVCs) {
         if (vc == null)
             return false;
 
         // if we're not looking at specific samples then the absence of a compVC means discordance
-        if (NO_SAMPLES_SPECIFIED)
+        if (noSamplesSpecified)
             return (compVCs == null || compVCs.isEmpty());
 
         // check if we find it in the variant rod
@@ -712,12 +838,19 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return false; // we only get here if all samples have a variant in the comp rod.
     }
 
+    /**
+     * Checks if the two variants have the same genotypes for the selected samples
+     *
+     * @param vc the variant rod VariantContext.
+     * @param compVCs the comparison VariantContext
+     * @return true if VariantContexts are concordant, false otherwise
+     */
     private boolean isConcordant (VariantContext vc, Collection<VariantContext> compVCs) {
         if (vc == null || compVCs == null || compVCs.isEmpty())
             return false;
 
         // if we're not looking for specific samples then the fact that we have both VCs is enough to call it concordant.
-        if (NO_SAMPLES_SPECIFIED)
+        if (noSamplesSpecified)
             return true;
 
         // make a list of all samples contained in this variant VC that are being tracked by the user command line arguments.
@@ -744,7 +877,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     private boolean sampleHasVariant(Genotype g) {
-        return (g !=null && !g.isHomRef() && (g.isCalled() || (g.isFiltered() && !EXCLUDE_FILTERED)));
+        return (g !=null && !g.isHomRef() && (g.isCalled() || (g.isFiltered() && !XLfiltered)));
     }
 
     private boolean haveSameGenotypes(final Genotype g1, final Genotype g2) {
@@ -753,7 +886,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         if ((g1.isCalled() && g2.isFiltered()) ||
                 (g2.isCalled() && g1.isFiltered()) ||
-                (g1.isFiltered() && g2.isFiltered() && EXCLUDE_FILTERED))
+                (g1.isFiltered() && g2.isFiltered() && XLfiltered))
             return false;
 
         List<Allele> a1s = g1.getAlleles();
@@ -787,7 +920,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      */
     private VariantContext subsetRecord(final VariantContext vc, final boolean preserveAlleles, final boolean removeUnusedAlternates) {
         //subContextFromSamples() always decodes the vc, which is a fairly expensive operation.  Avoid if possible
-        if ( NO_SAMPLES_SPECIFIED && !removeUnusedAlternates )
+        if ( noSamplesSpecified && !removeUnusedAlternates )
             return vc;
 
         // strip out the alternate alleles that aren't being used
@@ -843,7 +976,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC, final Set<String> selectedSampleNames) {
         if ( fullyDecode ) return; // TODO -- annotations are broken with fully decoded data
 
-        if ( KEEP_ORIGINAL_CHR_COUNTS ) {
+        if ( keepOriginalChrCounts ) {
             final int[] indexOfOriginalAlleleForNewAllele;
             final List<Allele> newAlleles = builder.getAlleles();
             final int numOriginalAlleles = originalVC.getNAlleles();
@@ -879,7 +1012,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         VariantContextUtils.calculateChromosomeCounts(builder, false);
 
-        if (KEEP_ORIGINAL_DEPTH && originalVC.hasAttribute(VCFConstants.DEPTH_KEY))
+        if (keepOriginalDepth && originalVC.hasAttribute(VCFConstants.DEPTH_KEY))
             builder.attribute(GATKVCFConstants.ORIGINAL_DP_KEY, originalVC.getAttribute(VCFConstants.DEPTH_KEY));
 
         boolean sawDP = false;
