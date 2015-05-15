@@ -82,7 +82,13 @@ public abstract class GATKFeature implements Feature, HasGenomeLocation {
         /** Return the features reference sequence name, e.g chromosome or contig */
         @Override
         public String getChr() {
-            return feature.getChr();
+            return getContig();
+        }
+
+        /** Return the features reference sequence name, e.g chromosome or contig */
+        @Override
+        public String getContig() {
+            return feature.getContig();
         }
 
         /** Return the start position in 1-based coordinates (first base is 1) */

@@ -29,8 +29,8 @@ package org.broadinstitute.gatk.utils;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.tribble.BasicFeature;
 import htsjdk.tribble.Feature;
+import htsjdk.tribble.SimpleFeature;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -421,7 +421,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
 
     @Test
     public void testCreationFromFeature() {
-        final Feature feature = new BasicFeature("chr1", 1, 5);
+        final Feature feature = new SimpleFeature("chr1", 1, 5);
         final GenomeLoc loc = genomeLocParser.createGenomeLoc(feature);
         Assert.assertEquals(loc.getContig(), feature.getChr());
         Assert.assertEquals(loc.getStart(), feature.getStart());

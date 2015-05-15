@@ -44,15 +44,22 @@ public class BeagleFeature implements Feature {
     Allele AlleleA;
     Allele AlleleB;
 
-
+    @Override
     public String getChr() {
+        return getContig();
+    }
+
+    @Override
+    public String getContig() {
         return chr;
     }
 
+    @Override
     public int getStart() {
         return start;
     }
 
+    @Override
     public int getEnd() {
         return end;
     }

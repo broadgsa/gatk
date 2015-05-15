@@ -106,6 +106,14 @@ public class RawHapMapFeature implements Feature {
      * @return a string representing the contig
      */
     public String getChr() {
+        return getContig();
+    }
+
+    /**
+     * get the contig value
+     * @return a string representing the contig
+     */
+    public String getContig() {
         return contig;
     }
 

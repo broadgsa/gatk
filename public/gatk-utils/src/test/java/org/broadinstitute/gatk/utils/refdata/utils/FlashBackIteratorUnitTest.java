@@ -316,6 +316,11 @@ class FakeRODatum extends GATKFeature implements ReferenceOrderedDatum {
 
     @Override
     public String getChr() {
+        return getContig();
+    }
+
+    @Override
+    public String getContig() {
         return location.getContig();
     }
 

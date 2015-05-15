@@ -309,14 +309,22 @@ public class RefSeqFeature implements Transcript, Feature {
         this.name = name;
     }
 
+    @Override
     public String getChr() {
+        return getContig();
+    }
+
+    @Override
+    public String getContig() {
         return transcript_interval.getContig();
     }
 
+    @Override
     public int getStart() {
         return transcript_interval.getStart();
     }
 
+    @Override
     public int getEnd() {
         return transcript_interval.getStop();
     }
