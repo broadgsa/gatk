@@ -29,9 +29,9 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RefWalker;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
@@ -51,14 +51,15 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  * <p>
- *     If ok, nothing, else will throw an exception at the site where there's been a problem
+ *     If the reference is fully valid, the run will complete successfully. If not, an error message will be produced
+ *     at the site where the program encountered a problem.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
- *   -T QCRef
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T QCRef \
+ *   -R reference.fasta
  * </pre>
  *
  */

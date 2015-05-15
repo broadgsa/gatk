@@ -25,13 +25,16 @@
 
 package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +52,10 @@ public abstract class InfoFieldAnnotation extends VariantAnnotatorAnnotation {
         return annotate(null, null, null, null, vc, perReadAlleleLikelihoodMap);
     }
 
+    public Map<String, Object> annotate(ReferenceContext referenceContext, Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap, VariantContext vc) {
+
+        return annotate(null, null, referenceContext, null, vc, perReadAlleleLikelihoodMap);
+    }
 
     public abstract Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                                  final AnnotatorCompatible walker,
@@ -58,5 +65,11 @@ public abstract class InfoFieldAnnotation extends VariantAnnotatorAnnotation {
                                                  final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap);
 
     // return the descriptions used for the VCF INFO meta field
-    public abstract List<VCFInfoHeaderLine> getDescriptions();
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        final List<VCFInfoHeaderLine> lines = new ArrayList<>(5);
+        for (final String key : getKeyNames()) {
+            lines.add(GATKVCFHeaderLines.getInfoLine(key));
+        }
+        return lines;
+    }
 }

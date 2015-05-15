@@ -69,7 +69,7 @@ public class Sandbox {
      * change per JVM session
      * @param readDataHolderClass class type of JNIReadDataHolderClass
      * @param haplotypeDataHolderClass class type of JNIHaplotypeDataHolderClass
-     * @param mask mask is a 64 bit integer identical to the one received from jniGetMachineType(). Users can disable usage of some hardware features by zeroing some bits in the mask
+     * @param mask 64 bit integer identical to the one received from jniGetMachineType(). Users can disable usage of some hardware features by zeroing bits in the mask
      * */
     private native void jniInitializeClassFieldsAndMachineMask(Class<?> readDataHolderClass, Class<?> haplotypeDataHolderClass, long mask);
 
@@ -156,7 +156,7 @@ public class Sandbox {
     public native void jniClose();
     public void close()
     {
-        System.out.println("Time spent in setup for JNI call : "+(setupTime*1e-9)+" compute time : "+(computeTime*1e-9));
+        System.err.println("Time spent in setup for JNI call : " + (setupTime * 1e-9) + " compute time : " + (computeTime * 1e-9));
         jniClose();
     }
 
@@ -170,8 +170,8 @@ public class Sandbox {
       }
       catch(FileNotFoundException e)
       {
-        System.err.println("File "+filename+" cannot be found/read");
-        return;
+          System.err.println("File "+filename + " cannot be found/read");
+          return;
       }
       int idx = 0;
       int numReads = 0;

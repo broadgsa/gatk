@@ -31,13 +31,13 @@ import org.broadinstitute.gatk.utils.commandline.Input;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
@@ -51,41 +51,41 @@ import java.util.Set;
 
 
 /**
- * Generates an alternative reference sequence over the specified interval.
+ * Generate an alternative reference sequence over the specified interval
  *
- * <p>
- * Given variant tracks, it replaces the reference bases at variation sites with the bases supplied by the ROD(s).
- * Additionally, allows for one or more "snpmask" VCFs to set overlapping bases to 'N'.
+ * <p>Given a variant callset, this tool replaces the reference bases at variation sites with the bases supplied in the
+ * corresponding callset records. Additionally, it allows for one or more "snpmask" VCFs to set overlapping bases to 'N'.</p>
  *
- * The output format can be partially controlled using the provided command-line arguments.
+ * <p>The output format can be partially controlled using the provided command-line arguments.
  * Specify intervals with the usual -L argument to output only the reference bases within your intervals.
  * Overlapping intervals are automatically merged; reference bases for each disjoint interval will be output as a
- * separate fasta sequence (named numerically in order).
+ * separate fasta sequence (named numerically in order).</p>
  *
- * Several important notes:
- * 1) if there are multiple variants that start at a site, it chooses one of them randomly.
- * 2) when there are overlapping indels (but with different start positions) only the first will be chosen.
- * 3) this tool works only for SNPs and for simple indels (but not for things like complex substitutions).
- * Reference bases for each interval will be output as a separate fasta sequence (named numerically in order).
- *
+ * <h3>Caveats</h3>
+ * <ul>
+ *     <li>If there are multiple variants that start at a site, it chooses one of them randomly.</li>
+ *     <li>When there are overlapping indels (but with different start positions) only the first will be chosen.</li>
+ *     <li>This tool works only for SNPs and for simple indels (but not for things like complex substitutions).</li>
+ * </ul>
+
  * <h3>Input</h3>
  * <p>
- * The reference, requested intervals, and any number of variant rod files.
+ * The reference, requested intervals, and any number of variant ROD files.
  * </p>
  *
  * <h3>Output</h3>
  * <p>
- * A fasta file representing the requested intervals.
+ * A FASTA file representing the requested intervals.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T FastaAlternateReferenceMaker \
+ *   -R reference.fasta \
  *   -o output.fasta \
  *   -L input.intervals \
- *   --variant input.vcf \
+ *   -V input.vcf \
  *   [--snpmask mask.vcf]
  * </pre>
  *

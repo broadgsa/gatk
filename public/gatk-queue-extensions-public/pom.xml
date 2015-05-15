@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-aggregator</artifactId>
-        <version>3.3</version>
+        <version>3.4-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -39,6 +39,10 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.github.broadinstitute</groupId>
+            <artifactId>picard</artifactId>
+        </dependency>
         <!--
         Extensions generator dependency only applies to the exec:exec,
         not the artifact, but don't know another way to include
@@ -64,7 +68,7 @@
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-tools-public</artifactId>
+            <artifactId>gatk-utils</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

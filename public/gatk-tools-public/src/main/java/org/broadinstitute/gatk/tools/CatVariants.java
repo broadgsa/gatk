@@ -40,7 +40,7 @@ import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.text.XReadLines;
 import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.bcf2.BCF2Codec;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import htsjdk.variant.vcf.VCFCodec;
@@ -56,24 +56,23 @@ import java.util.*;
 
 /**
  *
- * Concatenates VCF files of non-overlapped genome intervals, all with the same set of samples
+ * Concatenate VCF files of non-overlapping genome intervals, all with the same set of samples
  *
  * <p>
  * The main purpose of this tool is to speed up the gather function when using scatter-gather parallelization.
  * This tool concatenates the scattered output VCF files. It assumes that:
- * - All the input VCFs (or BCFs) contain the same samples in the same order.
- * - The variants in each input file are from non-overlapping (scattered) intervals.
- *
- * When the input files are already sorted based on the intervals start positions, use -assumeSorted.
- *
- * Note: Currently the tool is more efficient when working with VCFs; we will work to make it as efficient for BCFs.
- *
+ * <ul>
+ *     <li>All the input VCFs (or BCFs) contain the same samples in the same order.</li>
+ *     <li>The variants in each input file are from non-overlapping (scattered) intervals.</li>
+ * </ul>
  * </p>
+ * <p>When the input files are already sorted based on the intervals start positions, use -assumeSorted.</p>
  *
  * <h3>Input</h3>
  * <p>
- * One or more variant sets to combine. They should be of non-overlapping genome intervals and with the same samples (in the same order).
- * If the files are ordered according to the appearance of intervals in the ref genome, then one can use the -assumeSorted flag.
+ * Two or more variant sets to combine. They should be of non-overlapping genome intervals and with the same
+ * samples (sorted in the same order). If the files are ordered according to the appearance of intervals in the ref
+ * genome, then one can use the -assumeSorted flag.
  * </p>
  *
  * <h3>Output</h3>
@@ -86,15 +85,18 @@ import java.util.*;
  * invoke it is a little different from other GATK tools (see example below), and it does not accept any of the
  * classic "CommandLineGATK" arguments.</p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
  * java -cp GenomeAnalysisTK.jar org.broadinstitute.gatk.tools.CatVariants \
- *    -R ref.fasta \
+ *    -R reference.fasta \
  *    -V input1.vcf \
  *    -V input2.vcf \
  *    -out output.vcf \
  *    -assumeSorted
  * </pre>
+ *
+ * <h3>Caveat</h3>
+ * <p>Currently the tool is more efficient when working with VCFs than with BCFs.</p>
  *
  * @author Ami Levy Moonshine
  * @since Jan 2012
@@ -147,37 +149,30 @@ public class CatVariants extends CommandLineProgram {
         INVALID
     }
 
-    private FileType fileExtensionCheck(File inFile, File outFile) {
+    private FileType fileExtensionCheck(File inFile, FileType previousFileType) {
         final String inFileName = inFile.toString().toLowerCase();
-        final String outFileName = outFile.toString().toLowerCase();
-
-        FileType inFileType = FileType.INVALID;
 
         if (inFileName.endsWith(".vcf")) {
-            inFileType = FileType.VCF;
-            if (outFileName.endsWith(".vcf"))
-                return inFileType;
+            if (previousFileType == FileType.VCF || previousFileType == null) {
+                return FileType.VCF;
+            }
         }
 
         if (inFileName.endsWith(".bcf")) {
-            inFileType = FileType.BCF;
-            if (outFileName.endsWith(".bcf"))
-                return inFileType;
+            if (previousFileType == FileType.BCF || previousFileType == null) {
+                return FileType.BCF;
+            }
         }
 
         for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
             if (inFileName.endsWith(".vcf" + extension)) {
-                inFileType = FileType.BLOCK_COMPRESSED_VCF;
-                if (outFileName.endsWith(".vcf" + extension))
-                    return inFileType;
+                if (previousFileType == FileType.BLOCK_COMPRESSED_VCF || previousFileType == null) {
+                    return FileType.BLOCK_COMPRESSED_VCF;
+                }
             }
         }
 
-        if (inFileType == FileType.INVALID)
-            System.err.println(String.format("File extension for input file %s is not valid for CatVariants", inFile));
-        else
-            System.err.println(String.format("File extension mismatch between input %s and output %s", inFile, outFile));
-
+        System.err.println(String.format("File extension for input file %s is not valid for CatVariants", inFile));
         printUsage();
         return FileType.INVALID;
     }
@@ -241,10 +236,10 @@ public class CatVariants extends CommandLineProgram {
         else
             priorityQueue = new PriorityQueue<>(10000, positionComparator);
 
-        FileType fileType = FileType.INVALID;
+        FileType fileType = null;
         for (File file : variant) {
             // if it returns a valid type, it will be the same for all files
-            fileType = fileExtensionCheck(file, outputFile);
+            fileType = fileExtensionCheck(file, fileType);
             if (fileType == FileType.INVALID)
                 return 1;
 
@@ -266,12 +261,11 @@ public class CatVariants extends CommandLineProgram {
                 reader.close();
                 priorityQueue.add(new Pair<>(firstPosition,file));
             }
-
         }
 
         FileOutputStream outputStream = new FileOutputStream(outputFile);
         EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
-        final IndexCreator idxCreator = GATKVCFUtils.getIndexCreator(variant_index_type, variant_index_parameter, outputFile, ref.getSequenceDictionary());
+        IndexCreator idxCreator = GATKVCFUtils.makeIndexCreator(variant_index_type, variant_index_parameter, outputFile, ref.getSequenceDictionary());
         final VariantContextWriter outputWriter = VariantContextWriterFactory.create(outputFile, outputStream, ref.getSequenceDictionary(), idxCreator, options);
 
         boolean firstFile = true;

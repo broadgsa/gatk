@@ -27,18 +27,18 @@ package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -48,11 +48,13 @@ import java.lang.reflect.Array;
 import java.util.*;
 
 /**
- * Emits specific fields from a VCF file to a tab-deliminated table
+ * Extract specific fields from a VCF file to a tab-delimited table
  *
  * <p>
- * This walker accepts a single VCF file and writes out user-selected fields from the
- * VCF as a header-containing, tab-deliminated file.  The user specifies one or more
+ * This tool is designed to extract fields from the VCF to a table format that is more convenient to work with in
+ * downstream analyses.</p>
+ *
+ * <p>The user specifies one or more
  * fields to print with the -F NAME, each of which appears as a single column in
  * the output file, with a header named NAME, and the value of this field in the VCF
  * one per line.  NAME can be any standard VCF column (CHROM, ID, QUAL) or any binding
@@ -62,9 +64,7 @@ import java.util.*;
  * genotypes), NO-CALL (count of no-call genotypes), TYPE (the type of event), VAR (count of
  * non-reference genotypes), NSAMPLES (number of samples), NCALLED (number of called samples),
  * GQ (from the genotype field; works only for a file with a single sample), and MULTI-ALLELIC
- * (is the record from a multi-allelic site).  Note that if a VCF record is missing a value, then the tool by
- * default throws an error, but the special value NA can be emitted instead with
- * appropriate tool arguments.
+ * (is the record from a multi-allelic site).  </p>
  *
  * </p>
  *
@@ -81,7 +81,7 @@ import java.util.*;
  * A tab-delimited file containing the values of the requested fields in the VCF file
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
  *     java -jar GenomeAnalysisTK.jar \
  *     -R reference.fasta
@@ -89,14 +89,18 @@ import java.util.*;
  *     -V file.vcf \
  *     -F CHROM -F POS -F ID -F QUAL -F AC \
  *     -o results.table
- *
- *     would produce a file that looks like:
- *
+ * </pre>
+ * <p>would produce a file that looks like:</p>
+ * <pre>
  *     CHROM    POS ID      QUAL    AC
  *     1        10  .       50      1
  *     1        20  rs10    99      10
  *     et cetera...
  * </pre>
+ *
+ * <h3>Caveat</h3>
+ * <p>If a VCF record is missing a value, then the tool by default throws an error, but the special value NA can
+ * be emitted instead if requested at the command line using --allowMissingData.</p>
  *
  * @author Mark DePristo
  * @since 2010
@@ -351,7 +355,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         }
         // otherwise, add the original value to all of the records
         else {
-            final String valStr = val.toString();
+            final String valStr = prettyPrintObject(val);
             for ( List<String> record : result )
                 record.add(valStr);
         }

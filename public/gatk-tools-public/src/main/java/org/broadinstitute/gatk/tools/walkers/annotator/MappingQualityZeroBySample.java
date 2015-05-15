@@ -25,20 +25,21 @@
 
 package org.broadinstitute.gatk.tools.walkers.annotator;
 
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
-import htsjdk.variant.vcf.VCFHeaderLineType;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypeBuilder;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
 import java.util.Arrays;
 import java.util.List;
@@ -47,6 +48,9 @@ import java.util.List;
  * Count of reads with mapping quality zero for each sample
  *
  * <p>This annotation gives you the count of all reads that have MAPQ = 0 for each sample. The count of reads with MAPQ0 can be used for quality control; high counts typically indicate regions where it is difficult to make confident calls.</p>
+ *
+ * <h3>Caveat</h3>
+ * <p>It is not useful to apply this annotation with HaplotypeCaller because HC filters out all reads with MQ0 upfront, so the annotation will always return a value of 0.</p>
  *
  * <h3>Related annotations</h3>
  * <ul>
@@ -76,11 +80,9 @@ public class MappingQualityZeroBySample extends GenotypeAnnotation {
         gb.attribute(getKeyNames().get(0), mq0);
     }
 
-    public List<String> getKeyNames() { return Arrays.asList(VCFConstants.MAPPING_QUALITY_ZERO_KEY); }
+    public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.MAPPING_QUALITY_ZERO_BY_SAMPLE_KEY); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(
-            new VCFFormatHeaderLine(getKeyNames().get(0), 1,
-                    VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(GATKVCFHeaderLines.getFormatLine(getKeyNames().get(0))); }
 
 
 }

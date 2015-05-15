@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.tools.walkers.qc;
 import htsjdk.samtools.CigarOperator;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.report.GATKReport;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.report.GATKReport;
 import org.broadinstitute.gatk.engine.walkers.DataSource;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.engine.walkers.Requires;
@@ -45,7 +45,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Walks over the input data set, counting the number of read events (from the CIGAR operator)
+ * Count the number of read events
+ *
+ * <p>This tool counts the number of "events" (I, D, M etc) encountered in the CIGAR strings of the sequence reads.</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -55,12 +57,13 @@ import java.util.Map;
  * <h3>Output</h3>
  * <p>
  * Number of read events for each category, formatted as a GATKReport table.
+ * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountReadEvents \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -I input.bam \
  *   -o output.grp \
  *   [-L input.intervals]

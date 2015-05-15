@@ -68,7 +68,7 @@ class HelloWorldQueueTest {
     QueueTest.executeTest(spec)
   }
 
-  @Test(timeOut=36000000)
+  @Test(enabled=false, timeOut=36000000)
   def testHelloWorldWithLsfResource() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfResource"
@@ -78,7 +78,7 @@ class HelloWorldQueueTest {
     QueueTest.executeTest(spec)
   }
 
-  @Test(timeOut=36000000)
+  @Test(enabled=false, timeOut=36000000)
   def testHelloWorldWithLsfResourceAndMemoryLimit() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfResourceAndMemoryLimit"
@@ -88,7 +88,7 @@ class HelloWorldQueueTest {
     QueueTest.executeTest(spec)
   }
 
-  @Test(timeOut=36000000)
+  @Test(enabled=false, timeOut=36000000)
   def testHelloWorldWithLsfEnvironment() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfEnvironment"

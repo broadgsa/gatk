@@ -27,18 +27,19 @@ package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.io.stubs.VariantContextWriterStub;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.Reference;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.walkers.TreeReducible;
 import org.broadinstitute.gatk.engine.walkers.Window;
-import org.broadinstitute.gatk.tools.walkers.annotator.ChromosomeCountConstants;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.utils.variant.ChromosomeCountConstants;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -51,41 +52,36 @@ import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 
+
 /**
- * Combines VCF records from different sources.
+ * Combine variant records from different sources
  *
- * <p>
- * CombineVariants combines VCF records from different sources. Any (unique) name can be used to bind your rod data
- * and any number of sources can be input. This tool currently supports two different combination types for each of
- * variants (the first 8 fields of the VCF) and genotypes (the rest).
- * Merge: combines multiple records into a single one; if sample names overlap then they are uniquified.
- * Union: assumes each rod represents the same set of samples (although this is not enforced); using the
- * priority list (if provided), it emits a single record instance at every position represented in the rods.
+ * <p>CombineVariants reads in variants records from separate ROD (Reference-Ordered Data) sources and combines them into
+ * a single VCF. Any (unique) name can be used to bind your ROD and any number of sources can be input. This tool aims
+ * to fulfill two main possible use cases, reflected by the two combination options (MERGE and UNION), for merging
+ * records at the variant level (the first 8 fields of the VCF) or at the genotype level (the rest).</p>
  *
- * CombineVariants will include a record at every site in all of your input VCF files, and annotate which input ROD
- * bindings the record is present, pass, or filtered in in the set attribute in the INFO field. In effect,
- * CombineVariants always produces a union of the input VCFs.  However, any part of the Venn of the N merged VCFs
- * can be exacted using JEXL expressions on the set attribute using SelectVariants.  If you want to extract just
+ * <ul>
+ * <li><b>MERGE:</b> combines multiple variant records present at the same site in the different input sources into a
+ * single variant record in the output. If sample names overlap, then they are "uniquified" by default, which means a
+ * suffix is appended to make them unique. <em>Note that in version 3.3, the automatic uniquifying was disabled
+ * (unintentionally), and required setting `-genotypeMergeOptions UNIQUIFY` manually.</em></li>
+ *
+ * <li><b>UNION:</b> assumes that each ROD source represents the same set of samples (although this is not enforced).
+ * It uses the priority list (if provided) to emit a single record instance at every position represented in the input RODs.</li>
+ * </ul>
+ *
+ * <p>CombineVariants will emit a record for every site that was present in any of your input VCF files, and will annotate
+ * (in the set attribute in the INFO field) whether the record had a PASS or FILTER status in each input ROD . In effect,
+ * CombineVariants always produces a union of the input VCFs.  However, any part of the Venn of the merged VCFs
+ * can be extracted using JEXL expressions on the set attribute using SelectVariants.  If you want to extract just
  * the records in common between two VCFs, you would first run CombineVariants on the two files to generate a single
- * VCF and then run SelectVariants to extract the common records with -select 'set == "Intersection"', as worked out
- * in the detailed example in the documentation guide.
- *
- * Note that CombineVariants supports multi-threaded parallelism (8/15/12).  This is particularly useful
- * when converting from VCF to BCF2, which can be expensive.  In this case each thread spends CPU time
- * doing the conversion, and the GATK engine is smart enough to merge the partial BCF2 blocks together
- * efficiency.  However, since this merge runs in only one thread, you can quickly reach diminishing
- * returns with the number of parallel threads.  -nt 4 works well but -nt 8 may be too much.
- *
- * Some fine details about the merging algorithm:
- *   <ul>
- *   <li> As of GATK 2.1, when merging multiple VCF records at a site, the combined VCF record has the QUAL of
- *      the first VCF record with a non-MISSING QUAL value.  The previous behavior was to take the
- *      max QUAL, which resulted in sometime strange downstream confusion</li>
- *   </ul>
+ * VCF and then run SelectVariants to extract the common records with `-select 'set == "Intersection"'`, as worked out
+ * in the detailed example in the documentation guide.</p>
  *
  * <h3>Input</h3>
  * <p>
- * One or more variant sets to combine.
+ * Two or more variant sets to combine.
  * </p>
  *
  * <h3>Output</h3>
@@ -93,25 +89,48 @@ import java.util.*;
  * A combined VCF.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage examples</h3>
+ * &nbsp;
+ * <h4>Merge two separate callsets</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CombineVariants \
+ *   -R reference.fasta \
  *   --variant input1.vcf \
  *   --variant input2.vcf \
  *   -o output.vcf \
  *   -genotypeMergeOptions UNIQUIFY
+ * </pre>
  *
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Get the union of calls made on the same samples </h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CombineVariants \
+ *   -R reference.fasta \
  *   --variant:foo input1.vcf \
  *   --variant:bar input2.vcf \
  *   -o output.vcf \
- *   -genotypeMergeOptions PRIORITIZE
+ *   -genotypeMergeOptions PRIORITIZE \
  *   -priority foo,bar
  * </pre>
+ *
+ * <h3>Caveats</h3>
+ * <ul>
+ * <li>This tool is not intended to manipulate GVCFS! To combine GVCF files output by HaplotypeCaller, use CombineGVCFs.</li>
+ * <li>To join intermediate VCFs produced by running jobs in parallel by interval (e.g. by chromosome), use CatVariants.</li>
+ * </ul>
+ *
+ * <h3>Additional notes</h3>
+ * <ul>
+ * <li> Using this tool's multi-threaded parallelism capability is particularly useful
+ * when converting from VCF to BCF2, which can be time-consuming. In this case each thread spends CPU time
+ * doing the conversion, and the GATK engine is smart enough to merge the partial BCF2 blocks together
+ * efficiently.  However, since this merge runs in only one thread, you can quickly reach diminishing
+ * returns with the number of parallel threads.  In our hands, `-nt 4` works well but `-nt 8` tends to be be too much.</li>
+ * <li>Since GATK 2.1, when merging multiple VCF records at a site, the combined VCF record has the QUAL of the first
+ * VCF record with a non-MISSING QUAL value.  The previous behavior was to take the max QUAL, which could result
+ * in strange downstream confusion</li>
+ * </ul>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
@@ -211,7 +230,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
         final boolean sampleNamesAreUnique = SampleUtils.verifyUniqueSamplesNames(vcfRods);
 
-        if (genotypeMergeOption == null) {
+        if (genotypeMergeOption == null && !ASSUME_IDENTICAL_SAMPLES) {
             if (!sampleNamesAreUnique)
                 throw new UserException("Duplicate sample names were discovered but no genotypemergeoption was supplied. " +
                     "To combine samples without merging specify --genotypemergeoption UNIQUIFY. Merging duplicate samples " +
@@ -337,7 +356,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             if ( mergedVC == null )
                 continue;
 
-            if ( mergedVC.hasAllele(GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE) )
+            if ( mergedVC.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE) )
                 throw new UserException("CombineVariants should not be used to merge gVCFs produced by the HaplotypeCaller; use CombineGVCFs instead");
 
             final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);

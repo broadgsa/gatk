@@ -27,9 +27,9 @@ package org.broadinstitute.gatk.tools.walkers.qc;
 
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.LocusWalker;
 import org.broadinstitute.gatk.engine.walkers.NanoSchedulable;
 import org.broadinstitute.gatk.engine.walkers.TreeReducible;
@@ -39,10 +39,10 @@ import org.broadinstitute.gatk.utils.help.HelpConstants;
 import java.io.PrintStream;
 
 /**
- * Walks over the input data set, calculating the total number of covered loci for diagnostic purposes.
+ * Count the total number of covered loci
  *
  * <p>
- * This is the simplest example of a locus walker.
+ * This tool counts the number of loci (positions in the reference) that are covered by sequence data.
  * </p>
  *
  * <h3>Input</h3>
@@ -56,11 +56,11 @@ import java.io.PrintStream;
  * Otherwise it will be sent to standard console output.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountLoci \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -I input.bam \
  *   -o output.txt \
  *   [-L input.intervals]

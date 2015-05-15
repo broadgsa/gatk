@@ -31,8 +31,8 @@ import org.broadinstitute.gatk.utils.commandline.Advanced;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.DataSource;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.engine.walkers.Requires;
@@ -48,23 +48,21 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 /**
- * Read clipping statistics for all reads.
+ * Collect read clipping statistics
  *
- * Walks over the input reads, printing out statistics about the read length, number of clipping events, and length
- * of the clipping to the output stream.
- *
- * Note: Ignores N's in the Cigar string.
+ * <p>This tool collects statistics about the read length, number of clipping events, and length
+ * of the clipping in all reads in the dataset.</p>
  *
  * <h3>Input</h3>
- * One or more BAM files
+ * One or more BAM files.
  *
  * <h3>Output</h3>
- * A simple tabulated text file with read length and clipping statistics for every read (or every N reads if the "skip"
- * option is used)
+ * A simple tabulated text file with read length and clipping statistics for every read (or every given number of reads
+ * if the "skip" option is used).
  *
- * User: depristo
- * Date: May 5, 2010
- * Time: 12:16:41 PM
+ * <h3>Caveat</h3>
+ * <p>This tool ignores "N" events in the CIGAR string.</p>
+ *
  */
 
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
@@ -109,11 +107,13 @@ public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClipping
                     info.nClippingEvents++;
                     info.nClippedBases += elt.getLength();
                     break;
-                case M :
+                case EQ : // sequence match
+                case M : // alignment match
                 case D : // deletion w.r.t. the reference
                 case P : // ignore pads
                 case I : // insertion w.r.t. the reference
                 case N : // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
+                case X : // sequence mismatch
                     break;
                 default : throw new IllegalStateException("Case statement didn't deal with cigar op: " + elt.getOperator());
             }

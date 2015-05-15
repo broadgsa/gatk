@@ -30,9 +30,10 @@ import org.broadinstitute.gatk.utils.io.{Resource}
 import org.broadinstitute.gatk.queue.engine.{JobRunInfo, QGraph}
 import org.broadinstitute.gatk.queue.function.QFunction
 import org.broadinstitute.gatk.utils.R.{RScriptLibrary, RScriptExecutor}
-import org.broadinstitute.gatk.engine.report.{GATKReportTable, GATKReport}
+import org.broadinstitute.gatk.utils.report.GATKReportTable
 import org.broadinstitute.gatk.utils.exceptions.UserException
 import org.apache.commons.io.{FileUtils, IOUtils}
+import org.broadinstitute.gatk.utils.report.{GATKReportTable, GATKReport}
 
 /**
  * Writes out RunInfo to a GATKReport

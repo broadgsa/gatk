@@ -30,16 +30,16 @@ import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.walkers.TreeReducible;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
 import org.broadinstitute.gatk.utils.interval.IntervalSetRule;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
@@ -51,8 +51,8 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Selects headers from a VCF source.
- * <p/>
+ * Selects headers from a VCF source
+ *
  * <p>
  * Often, a VCF containing many headers will need to be subset in order to facilitate certain formatting guidelines.
  * SelectHeaders can be used for this purpose. Given a single VCF file, one or more headers can be extracted from the
@@ -65,44 +65,49 @@ import java.util.*;
  * <p/>
  * <h3>Output</h3>
  * <p>
- * A header selected VCF.
+ * A VCF with the selected headers.
  * </p>
- * <p/>
- * <h3>Examples</h3>
+ *
+ * <h3>Usage examples</h3>
+ * <h4>Select only the FILTER, FORMAT, and INFO headers</h4>
  * <pre>
- * Select only the FILTER, FORMAT, and INFO headers:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectHeaders \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -hn FILTER \
  *   -hn FORMAT \
  *   -hn INFO
+ * </pre>
  *
- * Select only the FILTER, FORMAT, and INFO headers and add in the reference file names:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select only the FILTER, FORMAT, and INFO headers and add in the reference file names</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectHeaders \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -hn FILTER \
  *   -hn FORMAT \
  *   -hn INFO \
  *   -irn \
  *   -iln
+ * </pre>
  *
- * Select only the FILTER, FORMAT, and INFO headers, plus any headers with SnpEff:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * <h4>Select only the FILTER, FORMAT, and INFO headers, plus any headers with "SnpEff"</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
  *   -T SelectHeaders \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -hn FILTER \
  *   -hn FORMAT \
  *   -hn INFO \
  *   -he '.*SnpEff.*'
  * </pre>
+ *
  */
 @SuppressWarnings("unused")
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )

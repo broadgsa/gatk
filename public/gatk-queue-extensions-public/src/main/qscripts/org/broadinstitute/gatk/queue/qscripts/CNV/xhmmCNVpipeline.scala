@@ -134,6 +134,9 @@ class xhmmCNVpipeline extends QScript {
   @Argument(shortName = "subsegmentGenotypeThreshold", doc = "If genotypeSubsegments, this is the default genotype quality threshold for the sub-segments", required = false)
   var subsegmentGenotypeThreshold = 20.0
 
+  @Argument(shortName = "addGenotypeRegions", doc = "Additional interval list files to be genotyped", required = false)
+  var addGenotypeRegions: List[File] = List[File]()
+
   @Argument(shortName = "longJobQueue", doc = "Job queue to run the 'long-running' commands", required = false)
   var longJobQueue: String = ""
 
@@ -314,41 +317,7 @@ class xhmmCNVpipeline extends QScript {
     val discover = new DiscoverCNVs(filterZscore.filteredZscored, filterOriginal.sameFiltered)
     add(discover)
 
-
-    abstract class BaseGenotypeCNVs(inputParam: File, xcnv: File, origRDParam: File, outName: String) extends SamplesScatterable(xhmmExec, groups) with LongRunTime {
-      @Input(doc = "")
-      val input = inputParam
-
-      @Input(doc = "")
-      val xhmmParams = xhmmParamsArg
-
-      @Input(doc = "")
-      val origRD = origRDParam
-
-      @Input(doc = "")
-      val inXcnv = xcnv
-
-      @Output
-      @Gather(classOf[MergeVCFsGatherFunction])
-      val vcf: File = new File(outName)
-
-      override def commandLine =
-        xhmmExec + " --genotype" +
-          " -p " + xhmmParams +
-          " -r " + input +
-          " -g " + inXcnv +
-          " -F " + referenceFile +
-          " -R " + origRD +
-          " -v " +  vcf +
-          " " + genotypeCommandLineParams +
-          " " + addCommand
-    }
-
-    class GenotypeCNVs(inputParam: File, xcnv: File, origRDParam: File) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam, outputBase.getPath + ".vcf") {
-      override def description = "Genotypes discovered CNVs in all samples: " + commandLine
-    }
-
-    class GenotypeCNVandSubsegments(inputParam: File, xcnv: File, origRDParam: File) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam, outputBase.getPath + ".subsegments.vcf") {
+    class GenotypeCNVandSubsegments(inputParam: File, xcnv: File, origRDParam: File, xhmmParamsArg: File, referenceFile: File, genotypeCommandLineParams: String, xhmmExec: File, groups: List[Group]) extends BaseGenotypeCNVs(inputParam, xcnv, origRDParam, outputBase.getPath + ".subsegments.vcf", xhmmParamsArg, referenceFile, genotypeCommandLineParams, xhmmExec, groups) {
       override def commandLine =
         super.commandLine +
         " --subsegments" +
@@ -358,12 +327,18 @@ class xhmmCNVpipeline extends QScript {
       override def description = "Genotypes discovered CNVs (and their sub-segments, of up to " + maxTargetsInSubsegment + " targets) in all samples: " + commandLine
     }
 
-    val genotype = new GenotypeCNVs(filterZscore.filteredZscored, discover.xcnv, filterOriginal.sameFiltered)
+    val genotype = new GenotypeCNVs(filterZscore.filteredZscored, discover.xcnv, filterOriginal.sameFiltered, outputBase, xhmmParamsArg, referenceFile, genotypeCommandLineParams, xhmmExec, groups) with LongRunTime
     add(genotype)
 
     if (genotypeSubsegments) {
-      val genotypeSegs = new GenotypeCNVandSubsegments(filterZscore.filteredZscored, discover.xcnv, filterOriginal.sameFiltered)
+      val genotypeSegs = new GenotypeCNVandSubsegments(filterZscore.filteredZscored, discover.xcnv, filterOriginal.sameFiltered, xhmmParamsArg, referenceFile, genotypeCommandLineParams, xhmmExec, groups) with LongRunTime
       add(genotypeSegs)
+    }
+
+    addGenotypeRegions :+= prepTargets.out
+    for (regionsFile <- addGenotypeRegions) {
+    	val genotypeRegions = new GenotypeCNVs(filterZscore.filteredZscored, regionsFile, filterOriginal.sameFiltered, new File(outputBase.getParent + "/" + regionsFile.getName.replace(".interval_list", "") + "." + outputBase.getName), xhmmParamsArg, referenceFile, genotypeCommandLineParams, xhmmExec, groups) with LongRunTime
+	add(genotypeRegions)
     }
   }
 
@@ -530,86 +505,4 @@ class xhmmCNVpipeline extends QScript {
 
     override def description = "Filters original read-depth data to be the same as filtered, normalized data: " + command
   }
-}
-
-
-abstract class SamplesScatterable(val xhmmExec: File, val groups: List[Group]) extends ScatterGatherableFunction with CommandLineFunction {
-  this.scatterCount = groups.size
-  this.scatterClass = classOf[SamplesScatterFunction]
-
-  @Input(doc = "", required=false)
-  var keepSampleIDs: Option[String] = None
-
-  def addCommand = if (keepSampleIDs.isDefined) ("--keepSampleIDs " + keepSampleIDs.get) else ""
-}
-
-class SamplesScatterFunction extends ScatterFunction with InProcessFunction {
-  protected var groups: List[Group] = _
-  override def scatterCount = groups.size
-
-  @Output(doc="Scatter function outputs")
-  var scatterSamples: Seq[File] = Nil
-
-  override def init() {
-    this.groups = this.originalFunction.asInstanceOf[SamplesScatterable].groups
-  }
-
-  override def bindCloneInputs(cloneFunction: CloneFunction, index: Int) {
-    val scatterPart = IOUtils.absolute(cloneFunction.commandDirectory, "keepSampleIDs.txt")
-    cloneFunction.setFieldValue("keepSampleIDs", Some(scatterPart))
-    this.scatterSamples :+= scatterPart
-  }
-
-  override def run() {
-    if (groups.size != this.scatterSamples.size)
-      throw new Exception("Internal inconsistency error in scattering jobs")
-
-    (groups, this.scatterSamples).zipped foreach {
-      (group, sampsFile) => {
-        val sampsWriter = new PrintWriter(new PrintStream(sampsFile))
-
-        for (samp <- group.samples) {
-          try {
-            sampsWriter.printf("%s%n", samp)
-          }
-          catch {
-            case e: Exception => throw e
-          }
-        }
-        sampsWriter.close
-      }
-    }
-  }
-}
-
-trait MergeVCFs extends CommandLineFunction {
-  var xhmmExec: File = _
-
-  @Input(doc = "")
-  var inputVCFs: List[File] = Nil
-
-  @Output
-  var mergedVCF: File = null
-
-  override def commandLine =
-    xhmmExec + " --mergeVCFs" +
-      inputVCFs.map(input => " --mergeVCF " + input).reduceLeft(_ + "" + _) +
-      " -v " + mergedVCF
-
-  override def description = "Combines VCF outputs for multiple samples (at same loci): " + commandLine
-}
-
-class MergeVCFsGatherFunction extends MergeVCFs with GatherFunction {
-  override def freezeFieldValues() {
-    super.freezeFieldValues()
-
-    this.xhmmExec = originalFunction.asInstanceOf[SamplesScatterable].xhmmExec
-
-    this.inputVCFs = this.gatherParts.toList
-    this.mergedVCF = this.originalOutput
-  }
-}
-
-class DummyGatherFunction extends InProcessFunction with GatherFunction {
-  override def run() {}
 }

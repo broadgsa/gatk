@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.tools.walkers.qc;
 
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.DataSource;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.engine.walkers.Requires;
@@ -36,7 +36,7 @@ import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
 
 /**
- * Walks over the input data set, calculating the number of bases seen for diagnostic purposes.
+ * Count the number of bases in a set of reads
  *
  * <h3>Input</h3>
  * <p>
@@ -45,13 +45,14 @@ import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
  *
  * <h3>Output</h3>
  * <p>
- * Number of bases seen.
+ * Number of bases seen. If an output file name is provided, then the result will be written to that file.
+ * Otherwise it will be sent to standard console output.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
  *   -T CountBases \
  *   -I input.bam \
  *   [-L input.intervals]

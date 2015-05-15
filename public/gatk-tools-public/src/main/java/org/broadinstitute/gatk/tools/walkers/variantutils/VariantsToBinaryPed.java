@@ -30,15 +30,15 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.Reference;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.walkers.Window;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.QualityUtils;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -50,7 +50,32 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Converts a VCF file to a binary plink Ped file (.bed/.bim/.fam)
+ * Convert VCF to binary pedigree file
+ *
+ * <p>This tool takes a VCF and produces a binary pedigree as used by
+ * <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">PLINK</a>, consisting of three associated files (.bed/.bim/.fam).</p>
+ *
+ * <h3>Inputs</h3>
+ * <p>
+ * A VCF file and a metadata file
+ * </p>
+ *
+ * <h3>Outputs</h3>
+ * <p>
+ * A binary pedigree in PLINK format, composed of three files (.bed/.bim/.fam)
+ * </p>
+ *
+ * <h3>Example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T VariantsToBinaryPed \
+ *   -R reference.fasta \
+ *   -V variants.vcf \
+ *   -m metadata.fam \
+ *   -bed output.bed \
+ *   -bim output.bim \
+ *   -fam output.fam
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
@@ -62,37 +87,35 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     /**
-     * The metaData file can take two formats, the first of which is the first 6 lines of the standard ped file. This
-     * is what Plink describes as a fam file. An example fam file is (note that there is no header):
-     * <p><p>
-     * CEUTrio NA12878 NA12891 NA12892 2 -9</p><p>
-     * CEUTrio NA12891 UNKN1 UNKN2 2 -9</p><p>
-     * CEUTrio NA12892 UNKN3 UNKN4 1 -9</p><p>
-     * </p>
-     * where the entries are (FamilyID IndividualID DadID MomID Phenotype Sex)
+     * <p>The metaData file can take two formats, the first of which is the first 6 lines of the standard pedigree file. This
+     * is what Plink describes as a .fam file. An example .fam file is as follows (note that there is no header):</p>
+     * <pre>
+     * CEUTrio NA12878 NA12891 NA12892 2 -9
+     * CEUTrio NA12891 UNKN1 UNKN2 2 -9
+     * CEUTrio NA12892 UNKN3 UNKN4 1 -9
+     * </pre>
+     * <p>where the entries are: FamilyID IndividualID DadID MomID Phenotype Sex.</p>
+     * <p>An alternate format is a two-column key-value file:</p>
+     * <pre>
+     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9
+     * NA12891        fid=CEUTrio;sex=2;phenotype=-9
+     * NA12892        fid=CEUTrio;sex=1;phenotype=-9
+     * </pre>
+     * <p>where unknown parents do not need to be specified. The columns are the individual ID and a list of key-value pairs.</p>
      * <p>
-     * An alternate format is a two-column key-value file
-     * </p><p><p>
-     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9</p><p>
-     * NA12891        fid=CEUTrio;sex=2;phenotype=-9</p><p>
-     * NA12892        fid=CEUTrio;sex=1;phenotype=-9</p><p>
-     * </p><p>
-     * wherein unknown parents needn't be specified. The columns are the individual ID, and a list of key-value pairs.
-     * </p><p>
-     * Regardless of which file is specified, the walker will output a .fam file alongside the bed file. If the
-     * command line has "-md [name].fam", the fam file will be subset and reordered to match the sample content and ordering
-     * of the VCF. However, if a metadata file of the alternate format is passed by "-md [name].txt", the walker will
+     * Regardless of which file is specified, the tool will output a .fam file alongside the pedigree file. If the
+     * command line has "-m [name].fam", the fam file will be subset and reordered to match the sample content and ordering
+     * of the VCF. However, if a metadata file of the alternate format is passed by "-m [name].txt", the tool will
      * construct a formatted .fam file from the data.
      * </p>
      */
-    @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file. You may specify a .fam file " +
-            "(in which case it will be copied to the file you provide as fam output).")
+    @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file")
     File metaDataFile;
 
     @Input(shortName="mode",fullName="outputMode",required=false,doc="The output file mode (SNP major or individual major)")
     OutputMode mode = OutputMode.INDIVIDUAL_MAJOR;
 
-    @Output(shortName="bed",fullName = "bed",required=true,doc="output ped file")
+    @Output(shortName="bed",fullName = "bed",required=true,doc="output bed file")
     PrintStream outBed;
 
     @Output(shortName="bim",fullName="bim",required=true,doc="output map file")
@@ -208,8 +231,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         try {
             validateVariantSite(vc,ref,context);
         } catch (TribbleException e) {
-            throw new UserException("Input VCF file is invalid; we cannot guarantee the resulting ped file. "+
-            "Please run ValidateVariants for more detailed information. This error is: "+e.getMessage());
+            throw new UserException("Input VCF file is invalid. "+
+            "Please run ValidateVariants for more detailed information. The error is: "+e.getMessage());
         }
 
         String refOut;
@@ -461,12 +484,12 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 for ( String line : new XReadLines(metaDataFile) ) {
                     String[] famSplit = line.split("\\s+");
                     if ( famSplit.length != 6 ) {
-                        throw new UserException("Line of the fam file is malformatted. Expected 6 entries. Line is "+line);
+                        throw new UserException("Line of the fam file is malformed. Expected 6 entries. Line is "+line);
                     }
                     String sid = famSplit[1];
                     String fid = famSplit[0];
-                    String mom = famSplit[2];
-                    String dad = famSplit[3];
+                    String dad = famSplit[2];
+                    String mom = famSplit[3];
                     String sex = famSplit[4];
                     String pheno = famSplit[5];
                     HashMap<String,String> values = new HashMap<String, String>();
@@ -501,7 +524,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private void validateVariantSite(VariantContext vc, ReferenceContext ref, AlignmentContext context) {
         final Allele reportedRefAllele = vc.getReference();
         final int refLength = reportedRefAllele.length();
-        if ( refLength > 100 ) {
+        if ( refLength > 100 ) { //TODO: get rid of this hardcoded limit?
             logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", refLength, vc.getChr(), vc.getStart()));
             return;
         }

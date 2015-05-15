@@ -41,20 +41,22 @@ import java.util.List;
 
 public class SelectVariantsUnitTest extends BaseTest {
 
-    //////////////////////////////////////////
-    // Tests for maxIndelSize functionality //
-    //////////////////////////////////////////
+    ///////////////////////////////////////////////////////////
+    // Tests for maxIndelSize and minIndelSize functionality //
+    ///////////////////////////////////////////////////////////
 
-    @DataProvider(name = "MaxIndelSize")
-    public Object[][] MaxIndelSizeTestData() {
+    @DataProvider(name = "MaxMinIndelSize")
+    public Object[][] MaxMinIndelSizeTestData() {
 
         List<Object[]> tests = new ArrayList<Object[]>();
 
         for ( final int size : Arrays.asList(1, 3, 10, 100) ) {
             for ( final int otherSize : Arrays.asList(0, 1) ) {
                 for ( final int max : Arrays.asList(0, 1, 5, 50, 100000) ) {
-                    for ( final String op : Arrays.asList("D", "I") ) {
-                        tests.add(new Object[]{size, otherSize, max, op});
+                    for ( final int min : Arrays.asList(0, 1, 5, 50) ) {
+                        for (final String op : Arrays.asList("D", "I")) {
+                            tests.add(new Object[]{size, otherSize, max, min, op});
+                        }
                     }
                 }
             }
@@ -63,8 +65,8 @@ public class SelectVariantsUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "MaxIndelSize")
-    public void maxIndelSizeTest(final int size, final int otherSize, final int max, final String op) {
+    @Test(dataProvider = "MaxMinIndelSize")
+    public void maxIndelSizeTest(final int size, final int otherSize, final int max, final int min, final String op) {
 
         final byte[] largerAllele = Utils.dupBytes((byte) 'A', size+1);
         final byte[] smallerAllele = Utils.dupBytes((byte) 'A', 1);
@@ -74,15 +76,11 @@ public class SelectVariantsUnitTest extends BaseTest {
         final Allele alt = Allele.create(op.equals("D") ? smallerAllele : largerAllele, false);
         alleles.add(ref);
         alleles.add(alt);
-        if ( otherSize > 0 && otherSize != size ) {
-            final Allele otherAlt = Allele.create(op.equals("D") ? Utils.dupBytes((byte) 'A', size-otherSize+1) : Utils.dupBytes((byte) 'A', otherSize+1), false);
-            alleles.add(otherAlt);
-        }
 
         final VariantContext vc = new VariantContextBuilder("test", "1", 10, 10 + ref.length() - 1, alleles).make();
 
-        boolean hasTooLargeIndel = SelectVariants.containsIndelLargerThan(vc, max);
-        Assert.assertEquals(hasTooLargeIndel, size > max);
+        boolean hasIndelTooLargeOrSmall = SelectVariants.containsIndelLargerOrSmallerThan(vc, max, min);
+        Assert.assertEquals(hasIndelTooLargeOrSmall, size > max || size < min);
     }
 
 }

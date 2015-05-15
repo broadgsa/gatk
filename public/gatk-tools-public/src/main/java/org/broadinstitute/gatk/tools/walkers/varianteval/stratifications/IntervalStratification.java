@@ -27,8 +27,8 @@ package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications;
 
 import htsjdk.samtools.util.IntervalTree;
 import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
@@ -62,7 +62,7 @@ public class IntervalStratification extends VariantStratifier {
         if ( getVariantEvalWalker().intervalsFile == null )
             throw new UserException.MissingArgument("stratIntervals", "Must be provided when IntervalStratification is enabled");
 
-        final List<GenomeLoc> locs = getVariantEvalWalker().intervalsFile.getIntervals(getVariantEvalWalker().getToolkit());
+        final List<GenomeLoc> locs = getVariantEvalWalker().intervalsFile.getIntervals(getVariantEvalWalker().getToolkit().getGenomeLocParser());
 
         if ( locs.isEmpty() )
             throw new UserException.BadArgumentValue("stratIntervals", "Contains no intervals.  Perhaps the file is malformed or empty?");

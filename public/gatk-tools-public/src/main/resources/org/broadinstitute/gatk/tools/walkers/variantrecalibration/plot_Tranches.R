@@ -41,7 +41,7 @@ leftShift <- function(x, leftValue = 0) {
 # Tranches plot
 # -----------------------------------------------------------------------------------------------
 data2 = read.table(tranchesFile,sep=",",head=T)
-data2 = data2[order(data2$novelTiTv, decreasing=F),]
+data2 = data2[order(data2$targetTruthSensitivity, decreasing=T),]
 #data2 = data2[order(data2$FDRtranche, decreasing=T),]
 cols = c("cornflowerblue", "cornflowerblue", "darkorange", "darkorange")
 density=c(20, -1, -1, 20)

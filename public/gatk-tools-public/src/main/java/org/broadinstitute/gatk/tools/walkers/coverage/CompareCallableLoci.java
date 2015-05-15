@@ -31,9 +31,9 @@ import org.broadinstitute.gatk.utils.commandline.Input;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -45,7 +45,33 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Test routine for new VariantContext object
+ * Compare callability statistics
+ *
+ * <p>This tool can be used to evaluate how different sequence datasets compare in terms of "callability"
+ * based on the output of the CallableLoci tool. </p>
+ *
+ *
+ * <h3>Input</h3>
+ * <p>
+ * Two files to compare, output by two runs of CallableLoci
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * A table showing the callability status of each interval of interest in the two comparison sets and whether they match.
+ * </p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
+ *   -T CompareCallableLoci \
+ *   -comp1 callable_loci_1.bed \
+ *   -comp2 callable_loci_2.bed \
+ *   [-L input.intervals \]
+ *   -o comparison.table
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class CompareCallableLoci extends RodWalker<List<CallableLoci.CallableBaseState>, long[][]> {
@@ -103,7 +129,7 @@ public class CompareCallableLoci extends RodWalker<List<CallableLoci.CallableBas
         //System.out.printf("tracker %s%n", tracker);
         List<BEDFeature> bindings = tracker.getValues(rodBinding);
         if ( bindings.size() != 1 ) {
-            throw new UserException.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", rodBinding.getName()));
+            throw new UserException.MalformedFile(String.format("%s track isn't a properly formatted CallableBases object!", rodBinding.getName()));
         }
 
         BEDFeature bed = bindings.get(0);

@@ -24,21 +24,31 @@
 */
 
 package org.broadinstitute.gatk.tools;
-
-import org.apache.commons.lang.StringUtils;
+import htsjdk.tribble.index.Index;
+import htsjdk.tribble.index.IndexFactory;
+import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.tribble.AbstractFeatureReader;
+import org.apache.commons.lang.StringUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.MD5DB;
 import org.broadinstitute.gatk.utils.MD5Mismatch;
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.runtime.ProcessController;
 import org.broadinstitute.gatk.utils.runtime.ProcessSettings;
 import org.broadinstitute.gatk.utils.runtime.RuntimeUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFIndexType;
 import org.testng.Assert;
+import org.testng.TestException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 public class CatVariantsIntegrationTest {
     private final MD5DB md5db = new MD5DB();
@@ -64,13 +74,13 @@ public class CatVariantsIntegrationTest {
         }
 
         public final String getCmdLine() {
-            return String.format("java -cp %s %s -R %s -V %s -V %s -out %s",
+            return String.format("java -cp \"%s\" %s -R %s -V %s -V %s -out %s",
                     StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
                     CatVariants.class.getCanonicalName(), BaseTest.b37KGReference, file1, file2, outputFile);
         }
 
         public String toString() {
-            return "CatVariantsTestProvider " + outputFile;
+            return String.format("CatVariantsTestProvider %s + %s -> %s", file1.getName(), file2.getName(), outputFile.getName());
         }
     }
 
@@ -82,17 +92,22 @@ public class CatVariantsIntegrationTest {
         new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
         new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
 
-        for (String extension : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
-            final File file1 = new File(CatVariantsDir, "CatVariantsTest1.vcf" + extension);
-            final File file2 = new File(CatVariantsDir, "CatVariantsTest2.vcf" + extension);
-            final File outputFile = BaseTest.createTempFile("CatVariantsTest", ".vcf" + extension);
-            new CatVariantsTestProvider(file1, file2, outputFile, "33f728ac5c70ce2994f3619a27f47088");
+        for (String extension1 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
+            for (String extension2 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
+                final File file1 = new File(CatVariantsDir, "CatVariantsTest1.vcf" + extension1);
+                final File file2 = new File(CatVariantsDir, "CatVariantsTest2.vcf" + extension2);
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "33f728ac5c70ce2994f3619a27f47088");
+            }
+            new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "33f728ac5c70ce2994f3619a27f47088");
+            new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "f1a55575f59707f80b8c17e2591fbf53");
         }
 
         //Test list parsing functionality
-        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
 
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
     }
@@ -101,7 +116,7 @@ public class CatVariantsIntegrationTest {
     public void testExtensions(final CatVariantsTestProvider cfg) throws IOException {
 
         ProcessController pc = ProcessController.getThreadLocal();
-        ProcessSettings ps = new ProcessSettings(cfg.getCmdLine().split("\\s+"));
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cfg.getCmdLine()));
         pc.execAndCheck(ps);
 
         MD5DB.MD5Match result = md5db.testFileMD5("testExtensions", "CatVariantsTestProvider", cfg.outputFile, cfg.md5, false);
@@ -111,35 +126,124 @@ public class CatVariantsIntegrationTest {
         }
     }
 
-    @Test(expectedExceptions = IOException.class)
-    public void testMismatchedExtensions1() throws IOException {
+    @DataProvider(name = "MismatchedExtensionsTest")
+    public Object[][] makeMismatchedExtensionsTestProvider() {
+        return new Object[][]{
+                {".vcf", ".vcf.gz"},
+                {".vcf.gz", ".vcf"},
+                {".bcf", ".vcf.gz"},
+                {".vcf.gz", ".bcf"},
+                {".vcf", ".bcf"},
+                {".bcf", ".vcf"}
+        };
+    }
 
-        String cmdLine = String.format("java -cp %s %s -R %s -V %s -V %s -out %s",
+    @Test(dataProvider = "MismatchedExtensionsTest", expectedExceptions = IOException.class)
+    public void testMismatchedExtensions1(final String extension1, final String extension2) throws IOException {
+        String cmdLine = String.format("java -cp \"%s\" %s -R %s -V %s -V %s -out %s",
+                StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
+                CatVariants.class.getCanonicalName(),
+                BaseTest.b37KGReference,
+                new File(CatVariantsDir, "CatVariantsTest1" + extension1),
+                new File(CatVariantsDir, "CatVariantsTest2" + extension2),
+                BaseTest.createTempFile("CatVariantsTest", ".bcf"));
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cmdLine));
+        pc.execAndCheck(ps);
+    }
+
+    @Test(dataProvider = "MismatchedExtensionsTest", expectedExceptions = IOException.class)
+    public void testMismatchedExtensions2(final String extension1, final String extension2) throws IOException {
+
+        String cmdLine = String.format("java -cp \"%s\" %s -R %s -V %s -V %s -out %s",
+                StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
+                CatVariants.class.getCanonicalName(),
+                BaseTest.b37KGReference,
+                new File(CatVariantsDir, "CatVariantsTest1" + extension1),
+                new File(CatVariantsDir, "CatVariantsTest2" + extension2),
+                BaseTest.createTempFile("CatVariantsTest", ".vcf"));
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cmdLine));
+        pc.execAndCheck(ps);
+    }
+
+    //
+    //
+    // IndexCreator tests
+    //
+    //
+
+    private class VCFIndexCreatorTest extends BaseTest.TestDataProvider {
+        private final GATKVCFIndexType type;
+        private final int parameter;
+
+        private VCFIndexCreatorTest(GATKVCFIndexType type, int parameter) {
+            super(VCFIndexCreatorTest.class);
+
+            this.type = type;
+            this.parameter = parameter;
+        }
+
+        public String toString() {
+            return String.format("Index Type %s, Index Parameter %s", type, parameter);
+        }
+
+        public Index getIndex(final File vcfFile) {
+            switch (type) {
+                case DYNAMIC_SEEK : return IndexFactory.createDynamicIndex(vcfFile, new VCFCodec(), IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
+                case DYNAMIC_SIZE : return IndexFactory.createDynamicIndex(vcfFile, new VCFCodec(), IndexFactory.IndexBalanceApproach.FOR_SIZE);
+                case LINEAR : return IndexFactory.createLinearIndex(vcfFile, new VCFCodec(), parameter);
+                case INTERVAL : return IndexFactory.createIntervalIndex(vcfFile, new VCFCodec(), parameter);
+                default : throw new TestException("Invalid index type");
+            }
+        }
+    }
+
+    @DataProvider(name = "IndexDataProvider")
+    public Object[][] indexCreatorData() {
+        new VCFIndexCreatorTest(GATKVCFIndexType.DYNAMIC_SEEK, 0);
+        new VCFIndexCreatorTest(GATKVCFIndexType.DYNAMIC_SIZE, 0);
+        new VCFIndexCreatorTest(GATKVCFIndexType.LINEAR, 100);
+        new VCFIndexCreatorTest(GATKVCFIndexType.LINEAR, 10000);
+        new VCFIndexCreatorTest(GATKVCFIndexType.INTERVAL, 20);
+        new VCFIndexCreatorTest(GATKVCFIndexType.INTERVAL, 2000);
+
+        return BaseTest.TestDataProvider.getTests(VCFIndexCreatorTest.class);
+    }
+
+    @Test(dataProvider = "IndexDataProvider")
+    public void testCatVariantsVCFIndexCreation(VCFIndexCreatorTest testSpec) throws IOException{
+
+        String cmdLine = String.format("java -cp \"%s\" %s -R %s -V %s -V %s --variant_index_type %s --variant_index_parameter %s -out %s",
                 StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
                 CatVariants.class.getCanonicalName(),
                 BaseTest.b37KGReference,
                 CatVariantsVcf1,
                 CatVariantsVcf2,
-                BaseTest.createTempFile("CatVariantsTest", ".bcf"));
+                testSpec.type,
+                testSpec.parameter,
+                BaseTest.createTempFile("CatVariantsVCFIndexCreationTest", ".vcf"));
 
         ProcessController pc = ProcessController.getThreadLocal();
-        ProcessSettings ps = new ProcessSettings(cmdLine.split("\\s+"));
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cmdLine));
         pc.execAndCheck(ps);
     }
 
-    @Test(expectedExceptions = IOException.class)
-    public void testMismatchedExtensions2() throws IOException {
+    @Test()
+    public void testCatVariantsGVCFIndexCreation() throws IOException{
 
-        String cmdLine = String.format("java -cp %s %s -R %s -V %s -V %s -out %s",
+        String cmdLine = String.format("java -cp \"%s\" %s -R %s -V %s -V %s -out %s",
                 StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
                 CatVariants.class.getCanonicalName(),
                 BaseTest.b37KGReference,
                 CatVariantsVcf1,
-                CatVariantsBcf2,
-                BaseTest.createTempFile("CatVariantsTest", ".vcf"));
+                CatVariantsVcf2,
+                BaseTest.createTempFile("CatVariantsGVCFIndexCreationTest", "." + GATKVCFUtils.GVCF_EXT));
 
         ProcessController pc = ProcessController.getThreadLocal();
-        ProcessSettings ps = new ProcessSettings(cmdLine.split("\\s+"));
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cmdLine));
         pc.execAndCheck(ps);
     }
 }

@@ -36,9 +36,9 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
@@ -47,9 +47,9 @@ import org.broadinstitute.gatk.tools.walkers.varianteval.util.EvaluationContext;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.SortableJexlVCMatchExp;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -76,6 +76,7 @@ import java.util.*;
  * degeneracy of the site, etc. VariantEval facilitates these calculations in two ways: by providing several built-in
  * evaluation and stratification modules, and by providing a framework that permits the easy development of new evaluation
  * and stratification modules.
+ * </p>
  *
  * <h3>Input</h3>
  * <p>
@@ -86,8 +87,9 @@ import java.util.*;
  * <p>
  * Evaluation tables detailing the results of the eval modules which were applied.
  * For example:
+ * </p>
  * <pre>
- * output.eval.gatkreport:
+ * output.eval.grp:
  * ##:GATKReport.v0.1 CountVariants : Counts different classes of variants in the sample
  * CountVariants  CompRod   CpG      EvalRod  JexlExpression  Novelty  nProcessedLoci  nCalledLoci  nRefLoci  nVariantLoci  variantRate ...
  * CountVariants  dbsnp     CpG      eval     none            all      65900028        135770       0         135770        0.00206024  ...
@@ -103,12 +105,12 @@ import java.util.*;
  * </pre>
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T VariantEval \
- *   -o output.eval.gatkreport \
+ *   -R reference.fasta \
+ *   -o output.eval.grp \
  *   --eval:set1 set1.vcf \
  *   --eval:set2 set2.vcf \
  *   [--comp comp.vcf]
@@ -116,9 +118,11 @@ import java.util.*;
  *
  * <h3>Caveat</h3>
  *
- * <p>Some stratifications and evaluators are incompatible with each other due to their respective memory requirements, such as AlleleCount and VariantSummary, or Sample and VariantSummary.
- * If you specify such a combination, the program will output an error message and ask you to disable one of these options.
- * We do not currently provide an exhaustive list of incompatible combinations, so we recommend trying out combinations that you are interested in on a dummy command line, to rapidly ascertain whether it will work or not.</p>
+ * <p>Some stratifications and evaluators are incompatible with each other due to their respective memory requirements,
+ * such as AlleleCount and VariantSummary, or Sample and VariantSummary. If you specify such a combination, the program
+ * will output an error message and ask you to disable one of these options. We do not currently provide an exhaustive
+ * list of incompatible combinations, so we recommend trying out combinations that you are interested in on a dummy
+ * command line, to rapidly ascertain whether it will work or not.</p>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
@@ -380,7 +384,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     public final Map<String, IntervalTree<GenomeLoc>> createIntervalTreeByContig(final IntervalBinding<Feature> intervals) {
         final Map<String, IntervalTree<GenomeLoc>> byContig = new HashMap<String, IntervalTree<GenomeLoc>>();
 
-        final List<GenomeLoc> locs = intervals.getIntervals(getToolkit());
+        final List<GenomeLoc> locs = intervals.getIntervals(getToolkit().getGenomeLocParser());
 
         // set up the map from contig -> interval tree
         for ( final String contig : getContigNames() )

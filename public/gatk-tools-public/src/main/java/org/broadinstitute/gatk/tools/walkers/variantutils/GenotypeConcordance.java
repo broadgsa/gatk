@@ -27,16 +27,16 @@ package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.report.GATKReport;
-import org.broadinstitute.gatk.engine.report.GATKReportTable;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.report.GATKReport;
+import org.broadinstitute.gatk.utils.report.GATKReportTable;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.VCFHeader;
 
@@ -44,10 +44,10 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Genotype concordance (per-sample and aggregate counts and frequencies, NRD/NRS and site allele overlaps) between two callsets
+ * Genotype concordance between two callsets
  *
  * <p>
- *  GenotypeConcordance takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
+ *  This tool takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
  *  and for each sample, the genotype-by-genotype counts (e.g. the number of sites at which a sample was
  *  called homozygous-reference in the EVAL callset, but homozygous-variant in the COMP callset). It outputs these
  *  counts as well as convenient proportions (such as the proportion of het calls in the EVAL which were called REF in
@@ -74,15 +74,15 @@ import java.util.*;
  *  <h4>Tables</h4>
  *  <p>
  *  Headers for the (non-moltenized -- see below) GenotypeConcordance counts and proportions tables give the genotype of
- *  the COMP callset followed by the genotype of the EVAL callset. For example the value corresponding to HOM_REF_HET
- *  reflects variants called HOM_REF in the COMP callset and HET in the EVAL callset. Variants for which the alternate
+ *  the EVAL callset followed by the genotype of the COMP callset. For example the value corresponding to HOM_REF_HET
+ *  reflects variants called HOM_REF in the EVAL callset and HET in the COMP callset. Variants for which the alternate
  *  alleles between the EVAL and COMP sample did not match are excluded from genotype comparisons and given in the
  *  "Mismatching_Alleles" field.
  *  </p>
  *  <p>
  *  It may be informative to reshape rows of the GenotypeConcordance counts and proportions tables into separate row-major tables
  *  where the columns indicate the COMP genotype and the rows indicate the EVAL genotype for easy comparison between the
- *  two callsets. This can be done with a command similar to d <- matrix(sampleRow,nrow=6,byrow=T) in R where sampleRow is the 36-value row corresponding to the sample of interest, excluding "Mismatching_Alleles".
+ *  two callsets. This can be done with the gsa.reshape.concordance.table function in the gsalib R library.
  *  In Excel this can be accomplished using the OFFSET function.
  *  </p>
  *  <ul>
@@ -192,7 +192,17 @@ import java.util.*;
  *  NA12891  NO_CALL_HOM_VAR   0.000
  *  (...)
  *  </pre>
-
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T GenotypeConcordance \
+ *   -R reference.fasta \
+ *   -eval test_set.vcf \
+ *   -comp truth_set.vcf \
+ *   -o output.grp
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,VariantContext>>,ConcordanceMetrics> {

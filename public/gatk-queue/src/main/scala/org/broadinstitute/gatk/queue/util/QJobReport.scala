@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.queue.util
 
 import org.broadinstitute.gatk.queue.function.QFunction
-import org.broadinstitute.gatk.engine.report.GATKReportTable
 import org.broadinstitute.gatk.queue.engine.JobRunInfo
+import org.broadinstitute.gatk.utils.report.GATKReportTable
 
 /**
  * A mixin to add Job info to the class

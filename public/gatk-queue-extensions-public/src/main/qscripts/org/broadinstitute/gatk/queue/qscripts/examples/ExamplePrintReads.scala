@@ -41,6 +41,9 @@ class ExamplePrintReads extends QScript {
   @Output(doc="Bam output", shortName="out")
   var outFile: File = _
 
+  @Argument(doc="One or more genomic intervals over which to operate", shortName="L", required=false)
+  var intervals: Seq[String] = Nil
+
   def script() {
     val printReads = new PrintReads
     printReads.reference_sequence = referenceFile
@@ -48,6 +51,7 @@ class ExamplePrintReads extends QScript {
     printReads.scatterCount = 3
     printReads.input_file :+= bamFile
     printReads.out = outFile
+    printReads.intervalsString = intervals
     add(printReads)
   }
 }

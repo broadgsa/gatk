@@ -30,10 +30,13 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.gatk.engine.io.DirectOutputTracker;
+import org.broadinstitute.gatk.engine.io.OutputTracker;
+import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.DataSource;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.engine.walkers.Requires;
@@ -41,7 +44,6 @@ import org.broadinstitute.gatk.engine.walkers.WalkerName;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
-import org.broadinstitute.gatk.utils.sam.ReadUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,8 +51,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Divides the input data set into separate BAM files, one for each sample in the input data set.  The split
- * files are named concatenating the sample name to the end of the provided outputRoot command-line argument.
+ * Split a BAM file by sample
+ *
+ * <p>This tool divides the input data set into separate BAM files, one for each sample in the input data set. The split
+ * files are named by concatenating the sample name to the end of the provided outputRoot command-line argument.</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A single bam file.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * A separate bam file for each sample.
+ * </p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T SplitSamFile \
+ *   -R reference.fasta \
+ *   -I input.bam \
+ *   --outputRoot myproject_
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
 @WalkerName("SplitSamFile")
@@ -104,13 +127,15 @@ public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWrite
         }
 
         HashMap<String, SAMFileWriter> outputs = new HashMap<>();
+        final OutputTracker outputTracker = new DirectOutputTracker();
         for ( Map.Entry<String, SAMFileHeader> elt : headers.entrySet() ) {
             final String sample = elt.getKey();
             final String filename = outputRoot + sample + ".bam";
             logger.info(String.format("Creating BAM output file %s for sample %s", filename, sample));
 
-            final SAMFileWriter output = ReadUtils.createSAMFileWriter(filename, getToolkit(), elt.getValue());
+            final SAMFileWriter output = SAMFileWriterStub.createSAMFileWriter(filename, getToolkit(), elt.getValue());
             outputs.put(sample, output);
+            outputTracker.addOutput( (SAMFileWriterStub) output);
         }
 
         return outputs;

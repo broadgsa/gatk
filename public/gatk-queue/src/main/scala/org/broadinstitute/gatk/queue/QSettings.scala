@@ -98,4 +98,9 @@ class QSettings {
   
   @Argument(fullName="log_directory", shortName="logDir", doc="Directory to write log files into.", required=false)
   var logDirectory: File = _
+
+  /**
+   * If set, use Broad-specific cluster settings in the GridEngine job runner. Activated via the -qsub-broad argument in QGraphSettings.
+   */
+  var useBroadClusterSettings: Boolean = false
 }

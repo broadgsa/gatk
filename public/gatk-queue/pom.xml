@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-aggregator</artifactId>
-        <version>3.3</version>
+        <version>3.4-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -21,7 +21,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-tools-public</artifactId>
+            <artifactId>gatk-utils</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -47,7 +47,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>gatk-tools-public</artifactId>
+            <artifactId>gatk-utils</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

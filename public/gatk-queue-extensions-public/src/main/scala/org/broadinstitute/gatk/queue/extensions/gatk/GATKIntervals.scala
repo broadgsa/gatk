@@ -59,7 +59,7 @@ case class GATKIntervals(reference: File, intervals: Seq[File], intervalsString:
       this.excludeIntervalsString.map(GATKIntervals.createBinding(_, "excludeIntervalsString"))
 
     IntervalUtils.parseIntervalBindings(
-      referenceDataSource,
+      referenceDataSource.getReference,
       includeIntervalBindings,
       intervalSetRule, intervalMergingRule, intervalPadding.getOrElse(0),
       excludeIntervalBindings).toList

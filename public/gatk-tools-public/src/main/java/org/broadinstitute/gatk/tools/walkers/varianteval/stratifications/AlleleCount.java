@@ -25,14 +25,15 @@
 
 package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications;
 
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantSummary;
 import htsjdk.variant.vcf.VCFConstants;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.util.*;
 
@@ -72,9 +73,9 @@ public class AlleleCount extends VariantStratifier {
 
             try {
                 if ( eval.isBiallelic() ) {
-                    if ( eval.hasAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY) ) {
+                    if ( eval.hasAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY) ) {
                         // the MLEAC is allowed to be larger than the AN (e.g. in the case of all PLs being 0, the GT is ./. but the exact model may arbitrarily choose an AC>1)
-                        AC = Math.min(eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
+                        AC = Math.min(eval.getAttributeAsInt(GATKVCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
                     } else if ( eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
                         AC = eval.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
                     }

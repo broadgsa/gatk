@@ -31,9 +31,9 @@ import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.Reference;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.walkers.Window;
@@ -49,10 +49,10 @@ import java.util.*;
 
 
 /**
- * Validates a VCF file with an extra strict set of criteria.
+ * Validate a VCF file with an extra strict set of criteria
  *
  * <p>
- * ValidateVariants is a GATK tool that takes a VCF file and validates much of the information inside it.
+ * This tool is designed to validate much of the information inside a VCF file.
  * In addition to standard adherence to the VCF specification, this tool performs extra strict validations to ensure
  * the information contained within the file is correct. These include:
  * </p><p>
@@ -80,37 +80,33 @@ import java.util.*;
  * A variant set to validate using <code>-V</code> or <code>--variant</code> as shown below.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage examples</h3>
  *
- * <p>To perform VCF format and all strict validations: </p>
- *
+ * <h4>To perform VCF format tests and all strict validations</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
- * <p>To perform only VCF format tests:</p>
- *
+ * <h4>To perform only VCF format tests</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
- *   <b>--validationTypeToExclude ALL</b> \
- *   --variant input.vcf
+ *   -R reference.fasta \
+ *   -V input.vcf \
+ *   <b>--validationTypeToExclude ALL</b>
  * </pre>
  *
- * <p>To perform all validations except the strict <i>ALLELE</i> validation:</p>
- *
+ * <h4>To perform all validations except the strict <i>ALLELE</i> validation</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   <b>--validationTypeToExclude ALLELES</b>
- *   --variant input.vcf \
- *   --dbsnp dbsnp.vcf
  * </pre>
  *
  */

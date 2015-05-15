@@ -30,16 +30,15 @@ import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.vcf.VCFHeaderLineType;
-import htsjdk.variant.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -144,15 +143,15 @@ public class AlleleBalance extends InfoFieldAnnotation {
 
         Map<String, Object> map = new HashMap<>();
         if ( weightHet > 0.0 ) {
-            map.put("ABHet",ratioHet/weightHet);
+            map.put(GATKVCFConstants.ALLELE_BALANCE_HET_KEY,ratioHet/weightHet);
         }
 
         if ( weightHom > 0.0 ) {
-            map.put("ABHom",ratioHom/weightHom);
+            map.put(GATKVCFConstants.ALLELE_BALANCE_HOM_KEY,ratioHom/weightHom);
         }
 
         if ( overallNonDiploid > 0.0 ) {
-            map.put("OND",overallNonDiploid);
+            map.put(GATKVCFConstants.NON_DIPLOID_RATIO_KEY,overallNonDiploid);
         }
         return map;
     }
@@ -210,9 +209,10 @@ public class AlleleBalance extends InfoFieldAnnotation {
 
     }
 
-    public List<String> getKeyNames() { return Arrays.asList("ABHet","ABHom","OND"); }
-
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("ABHet", 1, VCFHeaderLineType.Float, "Allele Balance for heterozygous calls (ref/(ref+alt))"),
-            new VCFInfoHeaderLine("ABHom", 1, VCFHeaderLineType.Float, "Allele Balance for homozygous calls (A/(A+O)) where A is the allele (ref or alt) and O is anything other"),
-            new VCFInfoHeaderLine("OND", 1, VCFHeaderLineType.Float, "Overall non-diploid ratio (alleles/(alleles+non-alleles))")); }
+    @Override
+    public List<String> getKeyNames() {
+        return Arrays.asList(GATKVCFConstants.ALLELE_BALANCE_HET_KEY,
+                             GATKVCFConstants.ALLELE_BALANCE_HOM_KEY,
+                             GATKVCFConstants.NON_DIPLOID_RATIO_KEY);
+    }
 }

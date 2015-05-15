@@ -25,9 +25,9 @@
 
 package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
 import htsjdk.variant.variantcontext.VariantContext;

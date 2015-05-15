@@ -28,10 +28,10 @@ package org.broadinstitute.gatk.tools.walkers.diagnostics;
 import htsjdk.samtools.SAMReadGroupRecord;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.report.GATKReport;
-import org.broadinstitute.gatk.engine.report.GATKReportTable;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.report.GATKReport;
+import org.broadinstitute.gatk.utils.report.GATKReportTable;
 import org.broadinstitute.gatk.engine.walkers.ReadWalker;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
@@ -44,10 +44,10 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Outputs the read lengths of all the reads in a file.
+ * Collect read length statistics
  *
  *  <p>
- *     Generates a table with the read lengths categorized per sample. If the file has no sample information
+ *     This tool generates a table with the read lengths categorized per sample. If the file has no sample information
  *     (no read groups) it considers all reads to come from the same sample.
  *  </p>
  *
@@ -59,16 +59,15 @@ import java.util.TreeMap;
  *
  * <h3>Output</h3>
  *  <p>
- *      A human/R readable table of tab separated values with one column per sample and one row per read.
+ *      A human/R-readable table of tab-separated values with one column per sample and one row per read.
  *  </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  *  <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T ReadLengthDistribution
- *      -I example.bam
- *      -R reference.fasta
+ *    java -jar GenomeAnalysisTK.jar \
+ *      -T ReadLengthDistribution \
+ *      -R reference.fasta \
+ *      -I example.bam \
  *      -o example.tbl
  *  </pre>
  *

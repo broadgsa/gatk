@@ -29,21 +29,24 @@ import htsjdk.samtools.liftover.LiftOver;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
+import htsjdk.variant.vcf.VCFHeader;
+import htsjdk.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.variantcontext.writer.Options;
-import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -55,16 +58,43 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Lifts a VCF file over from one build to another.
+ * Lifts a VCF file over from one build to another
  *
- * "Lifting over" variants means adjusting variant calls from one reference to another. Specifically, the process adjusts the position of the call to match the corresponding position on the target reference.
- * For example, if you have variants called from reads aligned to the hg19 reference, and you want to compare them to calls made based on the b37 reference, you need to liftover one of the callsets to the other reference.
+ * <p>"Lifting over" variants means adjusting variant calls from one reference to another. Specifically, the process
+ * adjusts the position of the call to match the corresponding position on the target reference. For example, if you
+ * have variants called from reads aligned to the hg19 reference, and you want to compare them to calls made based on
+ * the b37 reference, you need to liftover one of the callsets to the other reference.</p>
  *
- * LiftoverVariants is intended to be the first of two processing steps for the liftover process.
- * The second step is to run FilterLiftedVariants on the output of LiftoverVariants. This will produce valid well-behaved VCF files, where you'll see that the contig names in the header have all been correctly replaced.
+ * <p>LiftoverVariants is intended to be the first of two processing steps for the liftover process.
+ * The second step is to run FilterLiftedVariants on the output of LiftoverVariants. This will produce valid
+ * well-behaved VCF files, where you'll see that the contig names in the header have all been correctly replaced.</p>
  *
- * To be clear, the VCF resulting from the LiftoverVariants run is not guaranteed to be valid according to the official specification.  The file could
- * possibly be mis-sorted and the header may not be complete. That is why you need to run FilterLiftedVariants on it.
+ * <h3>Caveat</h3>
+ * <p>To be clear, the VCF resulting from the LiftoverVariants run is not guaranteed to be valid according to the official specification.  The file could
+ * possibly be mis-sorted and the header may not be complete. That is why you need to run FilterLiftedVariants on it.</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A variant call set to lift over, the sequence  dictionary of the new reference build and the appropriate liftover
+ * chain file.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * The lifted-over call set.
+ * </p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T LiftoverVariants \
+ *   -R reference_hg19.fasta \
+ *   -V input_hg19.vcf \
+ *   -chain liftover_hg19_to_b37.txt \
+ *   -dict reference_b37.dict \
+ *   -o liftedover_output_b37.vcf
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
@@ -109,12 +139,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
         Map<String, VCFHeader> vcfHeaders = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
+        Set<VCFHeaderLine> metaData = new HashSet<>();
         if ( vcfHeaders.containsKey(trackName) )
             metaData.addAll(vcfHeaders.get(trackName).getMetaDataInSortedOrder());
         if ( RECORD_ORIGINAL_LOCATION ) {
-            metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
-            metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));
+            metaData.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_CONTIG_KEY));
+            metaData.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_START_KEY));
         }
 
 
@@ -140,8 +170,8 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
             if ( RECORD_ORIGINAL_LOCATION ) {
                 vc = new VariantContextBuilder(vc)
-                        .attribute("OriginalChr", fromInterval.getSequence())
-                        .attribute("OriginalStart", fromInterval.getStart()).make();
+                        .attribute(GATKVCFConstants.ORIGINAL_CONTIG_KEY, fromInterval.getSequence())
+                        .attribute(GATKVCFConstants.ORIGINAL_START_KEY, fromInterval.getStart()).make();
             }
 
             if ( originalVC.isSNP() && originalVC.isBiallelic() && GATKVariantContextUtils.getSNPSubstitutionType(originalVC) != GATKVariantContextUtils.getSNPSubstitutionType(vc) ) {

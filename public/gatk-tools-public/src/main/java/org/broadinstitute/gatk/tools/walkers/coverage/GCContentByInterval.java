@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.tools.walkers.coverage;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.collections.Pair;
@@ -41,7 +41,7 @@ import java.io.PrintStream;
 import java.util.List;
 
 /**
- * Walks along reference and calculates the GC content for each interval.
+ * Calculates the GC content of the reference sequence for each interval
  *
  *
  * <h3>Input</h3>
@@ -54,11 +54,11 @@ import java.util.List;
  *  GC content calculations per interval.
  * </p>
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T GCContentByInterval \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -o output.txt \
  *   -L input.intervals
  * </pre>

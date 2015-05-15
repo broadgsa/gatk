@@ -27,7 +27,6 @@ package org.broadinstitute.gatk.queue.extensions.gatk
 
 import java.io.{PrintStream, PrintWriter, File}
 import org.broadinstitute.gatk.queue.function.scattergather.ScatterGatherableFunction
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType
 import org.broadinstitute.gatk.utils.commandline.{Input, Gather, Output}
 import org.broadinstitute.gatk.queue.function.{InProcessFunction, CommandLineFunction}
 import org.broadinstitute.gatk.tools.walkers.coverage.CoverageUtils
@@ -35,11 +34,13 @@ import scala.collection.JavaConversions._
 import scala.Some
 import org.broadinstitute.gatk.utils.text.XReadLines
 import org.broadinstitute.gatk.queue.util.VCF_BAM_utilities
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType
 
 // Minimal refactor from a package object to a file full of classes/objects
 // due to ongoing bugs with inner classes/objects in package objects:
 //   https://issues.scala-lang.org/browse/SI-4344
 //   https://issues.scala-lang.org/browse/SI-5954
+
   class DoC(val bams: List[File], val DoC_output: File, val countType: CoverageUtils.CountPileupType, val MAX_DEPTH: Int, val minMappingQuality: Int, val minBaseQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int], val sampleRenameMappingFile: Option[File] = None) extends CommandLineGATK with ScatterGatherableFunction {
     val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
 

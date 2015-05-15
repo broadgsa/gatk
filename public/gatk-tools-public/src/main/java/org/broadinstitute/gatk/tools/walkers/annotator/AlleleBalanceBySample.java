@@ -32,9 +32,9 @@ import htsjdk.variant.variantcontext.GenotypeBuilder;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
 import htsjdk.variant.vcf.VCFHeaderLineType;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.GenotypeAnnotation;
@@ -43,6 +43,8 @@ import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -63,7 +65,7 @@ import java.util.Set;
  * <ul>
  *     <li>This annotation will only work properly for biallelic heterozygous calls.</li>
  *     <li>This annotation cannot currently be calculated for indels.</li>
- *     <li>tThe reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
+ *     <li>The reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
  *     <li>As stated above, this annotation is experimental and should be interpreted with caution as we cannot guarantee that it is appropriate. Basically, use it at your own risk.</li>
  * </ul>
  * <h3>Related annotations</h3>
@@ -92,7 +94,7 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
         // and isBiallelic() while ignoring the <NON_REF> allele
         boolean biallelicSNP = vc.isSNP() && vc.isBiallelic();
 
-        if(vc.hasAllele(GVCF_NONREF)){
+        if(vc.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE)){
             // If we have the GVCF <NON_REF> allele, then the SNP is biallelic
             // iff there are 3 alleles and both the reference and first alt
             // allele are length 1.
@@ -117,8 +119,6 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
 
         gb.attribute(getKeyNames().get(0), Double.valueOf(String.format("%.2f", ratio)));
     }
-
-    private static final Allele GVCF_NONREF = Allele.create("<NON_REF>", false);
 
     private Double annotateWithPileup(final AlignmentContext stratifiedContext, final VariantContext vc) {
 
@@ -175,7 +175,7 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
 
     }
 
-    public List<String> getKeyNames() { return Arrays.asList("AB"); }
+    public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.ALLELE_BALANCE_KEY); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Allele balance for each het genotype")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(GATKVCFHeaderLines.getFormatLine(getKeyNames().get(0))); }
 }

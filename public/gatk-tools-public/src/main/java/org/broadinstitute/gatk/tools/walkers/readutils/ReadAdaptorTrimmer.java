@@ -38,8 +38,8 @@ import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Hidden;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
@@ -50,47 +50,49 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 /**
- * Utility tool to blindly strip base adaptors. Main application is for FASTQ/unaligned BAM pre-processing where libraries
- * have very short inserts, and hence a substantial part of the sequencing data will have adaptor sequence present.
- * <p>
- * By design, tool will only work for Illumina-like library constructs, where the typical library architecture is:
- * [Adaptor 1]-[Genomic Insert]-[Adaptor 2 (index/barcode)]
- * <p>
- * It is assumed that when data is paired, one read will span the forward strand and one read will span the reverse strand.
- * Hence, when specifying adaptors they should be specified as both forward and reverse-complement to make sure they're removed in all cases.
+ * Utility tool to blindly strip base adaptors
+ *
+ * <p>This tool is mainly intended to be applied to FASTQ/unaligned BAM pre-processing where libraries
+ * have very short inserts, and hence a substantial part of the sequencing data will have adaptor sequence present. By
+ * design, tool will only work for Illumina-like library constructs, where the typical library architecture is:
+ * [Adaptor 1]-[Genomic Insert]-[Adaptor 2 (index/barcode)]</p>
+ *
+ * <p>We assume that when data is paired, one read will span the forward strand and one read will span the reverse strand.
+ * Hence, adaptors should be specified as both forward and reverse-complement to ensure they are removed in all cases.
  * By design, as well, "circular" constructions where a read can have an insert, then adaptor, then more genomic insert, are not supported.
  * When an adaptor is detected, all bases downstream from it (i.e. in the 3' direction) will be removed.
  * Adaptor detection is carried out by looking for overlaps between forward and reverse reads in a pair.
  * If a sufficiently high overlap is found, the insert size is computed and if insert size < read lengths adaptor bases are removed from reads.
+ * </p>
  *
- * Advantages over ReadClipper:
- * - No previous knowledge of adaptors or library structure is necessary
+ * <p> Advantage over ReadClipper: No previous knowledge of adaptors or library structure is necessary.</p>
  *
- * Advantages over 3rd party tools like SeqPrep:
- * - Can do BAM streaming instead of having to convert to fastq
- * - No need to merge reads - merging reads can have some advantages, but complicates downstream processing and loses information that can be used,
- *   e.g. in variant calling
- * <p>
+ * <p>Advantages over 3rd party tools like SeqPrep:</p>
+ * <ul>
+ *      <li>Can do BAM streaming instead of having to convert to fastq</li>
+ *      <li>No need to merge reads; merging reads can have some advantages, but complicates downstream processing and loses information that can be used,
+ *   e.g. in variant calling</li>
+ * </ul>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * The input read data in BAM format. Read data MUST be in query name ordering as produced, for example with Picard's FastqToBam
+ * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A merged BAM file with unaligned reads
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3Usage example</h3>
  * <pre>
- * java -Xmx4g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
  *   -T ReadAdaptorTrimmer \
  *   -I my_reads.bam \
- *   -R resources/Homo_sapiens_assembly18.fasta \
  *   -o trimmed_Reads.bam
  * </pre>
  */
-
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
 @PartitionBy(PartitionType.READ)
 public class ReadAdaptorTrimmer extends ReadWalker<List<GATKSAMRecord>, SAMFileWriter> implements NanoSchedulable {

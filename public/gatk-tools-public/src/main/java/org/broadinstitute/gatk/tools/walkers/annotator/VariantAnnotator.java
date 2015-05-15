@@ -30,17 +30,17 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContextUtils;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.downsampling.DownsampleType;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContextUtils;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotationHelpUtils;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.*;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.help.HelpUtils;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.BaseUtils;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.VariantContext;
@@ -50,11 +50,13 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import java.util.*;
 
 /**
- * Annotates variant calls with context information.
+ * Annotate variant calls with context information
  *
  * <p>
- * VariantAnnotator is a GATK tool for annotating variant calls based on their context.
- * The tool is modular; new annotations can be written easily without modifying VariantAnnotator itself.
+ * This tool is designed to annotate variant calls based on their context (ass opposed to functional annotation).
+ * Various annotation modules are available; see the
+ * <a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_VariantAnnotator.php#VariantAnnotations">documentation</a>
+ * for a complete list.
  *
  * <h3>Input</h3>
  * <p>
@@ -66,15 +68,15 @@ import java.util.*;
  * An annotated VCF.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
  *   -T VariantAnnotator \
  *   -I input.bam \
  *   -o output.vcf \
  *   -A Coverage \
- *   --variant input.vcf \
+ *   -V input.vcf \
  *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
@@ -206,7 +208,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public void initialize() {
 
         if ( LIST ) {
-            HelpUtils.listAnnotations();
+            AnnotationHelpUtils.listAnnotations();
             System.exit(0);
         }
 
@@ -224,7 +226,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
         final Set<VCFHeaderLine> hInfo = new HashSet<>();
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
-        for ( final VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variantCollection.variants.getName())) ) {
+        for ( final VCFHeaderLine line : GATKVCFUtils.getHeaderFields(getToolkit(), rodName) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
         }
@@ -256,6 +258,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
             }
         }
 
+        engine.makeHeaderInfoMap(hInfo);
         engine.invokeAnnotationInitializationMethods(hInfo);
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
@@ -293,8 +296,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         if ( tracker == null )
             return 0;
 
+        // get the variant contexts for all the variants at the location
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
-        if ( VCs.size() == 0 )
+        if ( VCs.isEmpty() )
             return 0;
 
         Collection<VariantContext> annotatedVCs = VCs;

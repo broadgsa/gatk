@@ -35,9 +35,9 @@ import org.broadinstitute.gatk.utils.MD5DB
 import org.broadinstitute.gatk.queue.{QScript, QCommandLine}
 import org.broadinstitute.gatk.queue.util.Logging
 import java.io.{FilenameFilter, File}
-import org.broadinstitute.gatk.engine.report.GATKReport
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.WildcardFileFilter
+import org.broadinstitute.gatk.utils.report.GATKReport
 
 object QueueTest extends BaseTest with Logging {
 
@@ -53,12 +53,12 @@ object QueueTest extends BaseTest with Logging {
   /**
    * All the job runners configured to run QueueTests at The Broad.
    */
-  final val allJobRunners = Seq("Lsf706", "GridEngine", "Shell")
+  final val allJobRunners = Seq("GridEngine", "Shell")
 
   /**
    * The default job runners to run.
    */
-  final val defaultJobRunners = Seq("Lsf706", "GridEngine")
+  final val defaultJobRunners = Seq("GridEngine")
 
   /**
    * Returns the top level output path to this test.

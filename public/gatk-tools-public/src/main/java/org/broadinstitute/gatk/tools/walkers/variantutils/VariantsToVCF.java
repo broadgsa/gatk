@@ -30,22 +30,22 @@ import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.refdata.VariantContextAdaptors;
-import org.broadinstitute.gatk.engine.refdata.tracks.RMDTrackBuilder;
-import org.broadinstitute.gatk.engine.refdata.utils.GATKFeature;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.refdata.VariantContextAdaptors;
+import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
+import org.broadinstitute.gatk.utils.refdata.utils.GATKFeature;
 import org.broadinstitute.gatk.engine.walkers.Reference;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
 import org.broadinstitute.gatk.engine.walkers.Window;
 import org.broadinstitute.gatk.tools.walkers.annotator.VariantOverlapAnnotator;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.*;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -58,14 +58,15 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Converts variants from other file formats to VCF format.
+ * Convert variants from other file formats to VCF format
  *
  * <p>
- * Note that there must be a Tribble feature/codec for the file format as well as an adaptor.
+ * Note that there must be a Tribble feature/codec available for the file format as well as an adaptor.
+ * </p>
  *
  * <h3>Input</h3>
  * <p>
- * A variant file to filter.
+ * A variant file to convert.
  * </p>
  *
  * <h3>Output</h3>
@@ -73,14 +74,13 @@ import java.util.*;
  * A VCF file.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T VariantsToVCF \
+ *   -R reference.fasta \
  *   -o output.vcf \
- *   --variant:RawHapMap input.hapmap \
- *   --dbsnp dbsnp.vcf
+ *   --variant:RawHapMap input.hapmap
  * </pre>
  *
  */

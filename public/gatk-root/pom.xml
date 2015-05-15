@@ -12,7 +12,7 @@
 
     <groupId>org.broadinstitute.gatk</groupId>
     <artifactId>gatk-root</artifactId>
-    <version>3.3</version>
+    <version>3.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>GATK Root</name>
 
@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>1.120.1620</htsjdk.version>
-        <picard.version>1.120.1579</picard.version>
+        <htsjdk.version>1.132</htsjdk.version>
+        <picard.version>1.131</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -67,7 +67,7 @@
                 <version>1.0-r139</version>
             </dependency>
             <dependency>
-                <groupId>samtools</groupId>
+                <groupId>com.github.samtools</groupId>
                 <artifactId>htsjdk</artifactId>
                 <version>${htsjdk.version}</version>
                 <exclusions>
@@ -82,7 +82,7 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>picard</groupId>
+                <groupId>com.github.broadinstitute</groupId>
                 <artifactId>picard</artifactId>
                 <version>${picard.version}</version>
             </dependency>
@@ -130,10 +130,16 @@
                 <artifactId>reflections</artifactId>
                 <version>0.9.9-RC1</version>
             </dependency>
+            <!-- slf4j bindings must only be at the package level: http://www.slf4j.org/manual.html -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.6.1</version>
+            </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
-                <version>1.6.1</version>
+                <version>1.7.5</version>
             </dependency>
             <dependency>
                 <groupId>gov.nist.math</groupId>
@@ -404,6 +410,7 @@
                             <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
+                            <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -458,8 +465,7 @@
                             <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
-                            <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <pipeline.run>${gatk.queuetests.run}</pipeline.run>
+                            <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>

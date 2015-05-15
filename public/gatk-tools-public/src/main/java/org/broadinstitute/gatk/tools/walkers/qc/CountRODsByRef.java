@@ -30,9 +30,9 @@ import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Input;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RefWalker;
 import org.broadinstitute.gatk.utils.collections.ExpandingArrayList;
 import org.broadinstitute.gatk.utils.collections.Pair;
@@ -43,7 +43,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Prints out counts of the number of reference ordered data objects encountered along the reference.
+ * Count the number of ROD objects encountered along the reference
  *
  * <p>CountRodsByRef is a RefWalker, and so traverses the data by position along the reference. It counts ROD
  * elements (such as, but not limited to, variants) found at each position or within specific intervals if you use
@@ -58,19 +58,19 @@ import java.util.List;
  *
  * <h3>Input</h3>
  * <p>
- * One or more rod files.
+ * One or more ROD files.
  * </p>
  *
  * <h3>Output</h3>
  * <p>
- * Number of rods seen.
+ * Number of RODs seen.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountRODsByRef \
- *   -R ref.fasta \
+ *   -R reference.fasta \
  *   -o output.txt \
  *   --rod input.vcf
  * </pre>

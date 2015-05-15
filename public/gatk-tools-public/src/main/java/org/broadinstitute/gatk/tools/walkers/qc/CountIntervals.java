@@ -31,9 +31,9 @@ import org.broadinstitute.gatk.utils.commandline.Input;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RefWalker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.collections.Pair;
@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Count contiguous regions in an interval list.
+ * Count contiguous regions in an interval list
  *
  * <p>When the GATK reads in intervals from an intervals list, any intervals that overlap each other get merged into
  * a single interval spanning the original ones. For example, if you have the following intervals:
@@ -63,7 +63,7 @@ import java.util.List;
  *
  * <h3>Input</h3>
  * <p>
- * One or more rod files containing intervals to check.
+ * One or more ROD files containing intervals to check.
  * </p>
  *
  * <h3>Output</h3>
@@ -73,12 +73,12 @@ import java.util.List;
  *
  * You can use the -numOverlaps argument to find out how many cases you have of a specific number of overlaps.
  *
- * <h3>Example</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T CountIntervals \
- *   -R ref.fasta \
- *   -0 output.txt \
+ *   -R reference.fasta \
+ *   -o output.txt \
  *   -check intervals.list
  * </pre>
  */
