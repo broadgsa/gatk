@@ -245,7 +245,7 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
         for (final PileupElement base : pileup) {
             rawDepth++;
 
-            if (!base.getRead().getProperPairFlag()){
+            if (base.getRead().getReadPairedFlag() && (base.getRead().getMateUnmappedFlag() || !base.getRead().getProperPairFlag())){
                 improperPairsCount++;
                 continue;
             }
