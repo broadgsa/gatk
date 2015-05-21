@@ -63,13 +63,13 @@ public class GATKVCFHeaderLines {
 
         // M2-related filters
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.ALT_ALLELE_IN_NORMAL_FILTER_NAME, "Evidence seen in the normal sample"));
-        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.CLUSTERED_EVENTS_FILTER_NAME, "Clustered events observed in the tumor "));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.CLUSTERED_EVENTS_FILTER_NAME, "Clustered events observed in the tumor"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.GERMLINE_RISK_FILTER_NAME, "Evidence indicates this site is germline, not somatic"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.HOMOLOGOUS_MAPPING_EVENT_FILTER_NAME, "More than three events were observed in the tumor"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.MULTI_EVENT_ALT_ALLELE_IN_NORMAL_FILTER_NAME, "Multiple events observed in tumor and normal"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.PON_FILTER_NAME, "Seen in at least 2 samples in the panel of normals"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TUMOR_LOD_FILTER_NAME, "Tumor does not meet likelihood threshold"));
-        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short repeat region"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short tandem repeat region"));
 
         addFormatLine(new VCFFormatHeaderLine(ALLELE_BALANCE_KEY, 1, VCFHeaderLineType.Float, "Allele balance for each het genotype"));
         addFormatLine(new VCFFormatHeaderLine(MAPPING_QUALITY_ZERO_BY_SAMPLE_KEY, 1, VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample"));
@@ -96,6 +96,11 @@ public class GATKVCFHeaderLines {
 
         // M2-related info lines
         addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.ALLELE_FRACTION_KEY, 1, VCFHeaderLineType.Float, "Allele fraction of the event in the tumor"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_ALT_F1R2_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F1R2 pair orientation supporting the alternate allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_ALT_F2R1_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F2R1 pair orientation supporting the alternate allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_REF_F1R2_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F1R2 pair orientation supporting the reference allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_REF_F2R1_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F2R1 pair orientation supporting the reference allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_FRACTION_KEY, 1, VCFHeaderLineType.Float, "Fraction of alt reads indicating OxoG error"));
 
 
         addInfoLine(new VCFInfoHeaderLine(MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed"));
