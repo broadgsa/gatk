@@ -57,6 +57,8 @@ public class CatVariantsIntegrationTest {
     private final File CatVariantsVcf2 = new File(CatVariantsDir, "CatVariantsTest2.vcf");
     private final File CatVariantsBcf1 = new File(CatVariantsDir, "CatVariantsTest1.bcf");
     private final File CatVariantsBcf2 = new File(CatVariantsDir, "CatVariantsTest2.bcf");
+    private final File CatVariantsVcf3 = new File(CatVariantsDir, "CatVariantsTest3.vcf");
+    private final File CatVariantsVcf4 = new File(CatVariantsDir, "CatVariantsTest4.vcf");
 
     private class CatVariantsTestProvider extends BaseTest.TestDataProvider {
         private final File file1;
@@ -120,6 +122,27 @@ public class CatVariantsIntegrationTest {
         pc.execAndCheck(ps);
 
         MD5DB.MD5Match result = md5db.testFileMD5("testExtensions", "CatVariantsTestProvider", cfg.outputFile, cfg.md5, false);
+        if(result.failed) {
+            final MD5Mismatch failure = new MD5Mismatch(result.actualMD5, result.expectedMD5, result.diffEngineOutput);
+            Assert.fail(failure.toString());
+        }
+    }
+
+    @DataProvider(name = "SortOrderTest")
+    public Object[][] makeSortOrderTestProvider() {
+        new CatVariantsTestProvider(CatVariantsVcf3, CatVariantsVcf4, BaseTest.createTempFile("CatVariantsSortOrderTest", ".vcf"), "7bfe34c78b9f1b56a28cc33262cdfd97");
+
+        return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
+    }
+
+    @Test(dataProvider = "SortOrderTest")
+    public void testSortOrder(final CatVariantsTestProvider cfg) throws IOException {
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cfg.getCmdLine()));
+        pc.execAndCheck(ps);
+
+        MD5DB.MD5Match result = md5db.testFileMD5("testSortOrder", "CatVariantsTestProvider", cfg.outputFile, cfg.md5, false);
         if(result.failed) {
             final MD5Mismatch failure = new MD5Mismatch(result.actualMD5, result.expectedMD5, result.diffEngineOutput);
             Assert.fail(failure.toString());
