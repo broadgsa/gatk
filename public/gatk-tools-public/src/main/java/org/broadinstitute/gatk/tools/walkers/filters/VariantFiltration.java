@@ -179,14 +179,20 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     /**
      * Invert the selection criteria for --filterExpression
      */
-    @Argument(fullName="invert_filter_expression", shortName="inv_fil_sel", doc="Invert the selection criteria for --filterExpression", required=false)
+    @Argument(fullName="invertFilterExpression", shortName="invfilter", doc="Invert the selection criteria for --filterExpression", required=false)
     protected boolean invertFilterExpression = false;
 
     /**
      * Invert the selection criteria for --genotypeFilterExpression
      */
-    @Argument(fullName="invert_genotype_filter_expression", shortName="inv_gen_fil_sel", doc="Invert the selection criteria for --genotypeFilterExpression", required=false)
+    @Argument(fullName="invertGenotypeFilterExpression", shortName="invG_filter", doc="Invert the selection criteria for --genotypeFilterExpression", required=false)
     protected boolean invertGenotypeFilterExpression = false;
+
+    /**
+     * If this argument is provided, set filtered genotypes to no-call (./.).
+     */
+    @Argument(fullName="setFilteredGtToNocall", required=false, doc="Set filtered genotypes to no-call")
+    private boolean setFilteredGenotypesToNocall = false;
 
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
@@ -201,8 +207,10 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     private static final int WINDOW_SIZE = 10;  // 10 variants on either end of the current one
     private ArrayList<FiltrationContext> windowInitializer = new ArrayList<FiltrationContext>();
 
+    private final List<Allele> diploidNoCallAlleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+
     /**
-     * Prepend inverse phrase to description if --invert_filter_expression
+     * Prepend inverse phrase to description if --invertFilterExpression
      *
      * @param description the description
      * @return the description with inverse prepended if --invert_filter_expression
@@ -379,7 +387,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         final VariantContextBuilder builder = new VariantContextBuilder(vc);
 
         // make new Genotypes based on filters
-        if ( !genotypeFilterExps.isEmpty() ) {
+        if ( !genotypeFilterExps.isEmpty() || setFilteredGenotypesToNocall ) {
             GenotypesContext genotypes = GenotypesContext.create(vc.getGenotypes().size());
 
             // for each genotype, check filters then create a new object
@@ -388,12 +396,17 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
                     final List<String> filters = new ArrayList<String>();
                     if ( g.isFiltered() ) filters.add(g.getFilters());
 
+                    // Add if expression filters the variant context
                     for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
                         if ( Utils.invertLogic(VariantContextUtils.match(vc, g, exp), invertGenotypeFilterExpression) )
                             filters.add(exp.name);
                     }
 
-                    genotypes.add(new GenotypeBuilder(g).filters(filters).make());
+                    // if sample is filtered and --setFilteredGtToNocall, set genotype to non-call
+                    if ( !filters.isEmpty() && setFilteredGenotypesToNocall )
+                        genotypes.add(new GenotypeBuilder(g).filters(filters).alleles(diploidNoCallAlleles).make());
+                    else
+                        genotypes.add(new GenotypeBuilder(g).filters(filters).make());
                 } else {
                     genotypes.add(g);
                 }
