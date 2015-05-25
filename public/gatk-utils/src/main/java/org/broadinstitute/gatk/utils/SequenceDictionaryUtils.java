@@ -165,7 +165,12 @@ public class SequenceDictionaryUtils {
             }
 
             case OUT_OF_ORDER: {
-                UserException ex = new UserException.IncompatibleSequenceDictionaries("Relative ordering of overlapping contigs differs, which is unsafe", name1, dict1, name2, dict2);
+                UserException ex = new UserException.IncompatibleSequenceDictionaries(
+			"The contig order in " + name1 + " and " + name2 + "is not "
+			+ "the same; to fix this please see: "
+			+ "(https://www.broadinstitute.org/gatk/guide/article?id=1328), "
+			+ " which describes reordering contigs in BAM and VCF files.",
+			name1, dict1, name2, dict2);
                 if ( allowNonFatalIncompabilities(validationExclusion) )
                     logger.warn(ex.getMessage());
                 else
