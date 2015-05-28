@@ -48,6 +48,9 @@ public class DeprecatedToolChecks {
         deprecatedGATKWalkers.put("AlignmentWalker", "2.2 (no replacement)");
         deprecatedGATKWalkers.put("CountBestAlignments", "2.2 (no replacement)");
         deprecatedGATKWalkers.put("SomaticIndelDetector", "2.0 (replaced by the standalone tool Indelocator; see Cancer Tools documentation)");
+        deprecatedGATKWalkers.put("BeagleOutputToVCF", "3,4 (replaced by Beagle native functions; see Beagle 4 documentation at https://faculty.washington.edu/browning/beagle/beagle.html)");
+        deprecatedGATKWalkers.put("VariantsToBeagleUnphased", "3.4 (replaced by Beagle native functions; see Beagle 4 documentation at https://faculty.washington.edu/browning/beagle/beagle.html)");
+        deprecatedGATKWalkers.put("ProduceBeagleInput", "3.4 (replaced by Beagle native functions; see Beagle 4 documentation at https://faculty.washington.edu/browning/beagle/beagle.html)");
     }
 
     // Mapping from walker name to major version number where the walker first disappeared and optional replacement options
