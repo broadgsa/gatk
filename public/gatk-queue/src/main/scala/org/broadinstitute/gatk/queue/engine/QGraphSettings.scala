@@ -77,7 +77,7 @@ class QGraphSettings {
   var jobReportFile: String = _
 
   @Advanced
-  @Argument(fullName="disableJobReport", shortName="disabpleJobReport", doc="If provided, we will not create a job report", required=false)
+  @Argument(fullName="disableJobReport", shortName="disableJobReport", doc="If provided, we will not create a job report", required=false)
   var disableJobReport: Boolean = false
 
   @ArgumentCollection
