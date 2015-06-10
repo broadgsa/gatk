@@ -46,6 +46,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     Allele ATref;
     Allele Anoref;
     Allele GT;
+    Allele Symbolic;
 
     private GenomeLocParser genomeLocParser;
 
@@ -63,6 +64,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         ATref = Allele.create("AT",true);
         Anoref = Allele.create("A",false);
         GT = Allele.create("GT",false);
+        Symbolic = Allele.create("<Symbolic>", false);
         genomeLocParser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(new File(hg18Reference)));
     }
 
@@ -1606,6 +1608,26 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         bases[0] = (byte) (reference  ? 'A' : 'C');
         BaseUtils.fillWithRandomBases(bases, 1, bases.length);
         return bases;
+    }
+
+    @Test
+    public void testCreateAlleleMapping(){
+        final List<Allele> alleles = Arrays.asList(Aref,Symbolic,T);
+        final VariantContext vc = new VariantContextBuilder().chr("chr1").alleles(alleles).make();
+        Map<Allele, Allele> map = GATKVariantContextUtils.createAlleleMapping(ATref, vc, alleles);
+
+        final List<Allele> expectedAlleles = Arrays.asList(Allele.create("<Symbolic>", false), Allele.create("TT", false));
+        for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ){
+            Assert.assertEquals(map.get(vc.getAlternateAlleles().get(i)), expectedAlleles.get(i));
+        }
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void testCreateAlleleMappingException(){
+        final List<Allele> alleles = Arrays.asList(Aref, Symbolic, T);
+        final VariantContext vc = new VariantContextBuilder().chr("chr1").alleles(alleles).make();
+        // Throws an exception if the ref allele length <= ref allele length to extend
+        Map<Allele, Allele> map = GATKVariantContextUtils.createAlleleMapping(Aref, vc, alleles);
     }
 }
 

@@ -393,7 +393,7 @@ public class GATKVariantContextUtils {
             if (repetitionCount[0] == 0 || repetitionCount[1] == 0)
                 return null;
 
-            if (lengths.size() == 0) {
+            if (lengths.isEmpty()) {
                 lengths.add(repetitionCount[0]); // add ref allele length only once
             }
             lengths.add(repetitionCount[1]);  // add this alt allele's length
@@ -947,7 +947,7 @@ public class GATKVariantContextUtils {
                                              final String setKey,
                                              final boolean filteredAreUncalled,
                                              final boolean mergeInfoWithMaxAC ) {
-        if ( unsortedVCs == null || unsortedVCs.size() == 0 )
+        if ( unsortedVCs == null || unsortedVCs.isEmpty() )
             return null;
 
         if (priorityListOfVCs != null && originalNumOfVCs != priorityListOfVCs.size())
@@ -965,7 +965,7 @@ public class GATKVariantContextUtils {
                 VCs.add(vc);
         }
 
-        if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
+        if ( VCs.isEmpty() ) // everything is filtered out and we're filteredAreUncalled
             return null;
 
         // establish the baseline info from the first VC
@@ -1289,7 +1289,7 @@ public class GATKVariantContextUtils {
      * @param currentAlleles     the list of alleles already created
      * @return a non-null mapping of original alleles to new (extended) ones
      */
-    private static Map<Allele, Allele> createAlleleMapping(final Allele refAllele,
+    protected static Map<Allele, Allele> createAlleleMapping(final Allele refAllele,
                                                            final VariantContext oneVC,
                                                            final Collection<Allele> currentAlleles) {
         final Allele myRef = oneVC.getReference();
@@ -1305,6 +1305,8 @@ public class GATKVariantContextUtils {
                     if ( extended.equals(b) )
                         extended = b;
                 map.put(a, extended);
+            } else if ( a.isSymbolic() ) {
+                map.put(a, a);
             }
         }
 
@@ -1696,7 +1698,7 @@ public class GATKVariantContextUtils {
                         // otherVC has a type different than vc and its alleles are a subset of vc: remove otherVC from its list and add it to vc's type list
                         vcList.remove(k);
                         // avoid having empty lists
-                        if (vcList.size() == 0)
+                        if (vcList.isEmpty())
                             mappedVCs.remove(type);
                         if ( !mappedVCs.containsKey(vcType) )
                             mappedVCs.put(vcType, new ArrayList<VariantContext>());
