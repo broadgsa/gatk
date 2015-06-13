@@ -69,8 +69,9 @@ public class GATKVCFUtils {
     public final static GATKVCFIndexType DEFAULT_GVCF_INDEX_TYPE = GATKVCFIndexType.LINEAR;
     public final static Integer DEFAULT_GVCF_INDEX_PARAMETER = 128000;
 
-    // GVCF file extension
+    // GVCF file extensions
     public final static String GVCF_EXT = "g.vcf";
+    public final static String GVCF_GZ_EXT = "g.vcf.gz";
 
     // Message for using the deprecated --variant_index_type or --variant_index_parameter arguments.
     public final static String DEPRECATED_INDEX_ARGS_MSG = "Naming your output file using the .g.vcf extension will automatically set the appropriate values " +
@@ -389,7 +390,7 @@ public class GATKVCFUtils {
             indexType = variantIndexType;
             indexParameter = variantIndexParameter;
             logger.warn(DEPRECATED_INDEX_ARGS_MSG);
-        } else if (outputFile.getName().endsWith("."  + GVCF_EXT)) {
+        } else if (outputFile.getName().endsWith("."  + GVCF_EXT) || outputFile.getName().endsWith("."  + GVCF_GZ_EXT)) {
             indexType = DEFAULT_GVCF_INDEX_TYPE;
             indexParameter = DEFAULT_GVCF_INDEX_PARAMETER;
         }
