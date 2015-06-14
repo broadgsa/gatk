@@ -38,7 +38,7 @@ public class CramIntegrationTest extends WalkerTest {
     @DataProvider(name="cramData")
     public Object[][] getCRAMData() {
         return new Object[][] {
-                {"PrintReads", "exampleBAM.bam", "", "cram", "026ebc00c2a8f9832e37f1a6a0f53521"},
+                {"PrintReads", "exampleBAM.bam", "", "cram", "fc6e3919a8a34266c89ef66e97ceaba9"},
                 //{"PrintReads", "exampleCRAM.cram", "", "cram", "026ebc00c2a8f9832e37f1a6a0f53521"}, https://github.com/samtools/htsjdk/issues/148
                 {"PrintReads", "exampleCRAM.cram", "", "bam", "99e5f740b43594a5b8e5bc1a007719e0"},
                 {"PrintReads", "exampleCRAM-noindex.cram", "", "bam", "99e5f740b43594a5b8e5bc1a007719e0"},
