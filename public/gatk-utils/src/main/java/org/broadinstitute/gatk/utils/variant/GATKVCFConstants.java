@@ -102,6 +102,11 @@ public final class GATKVCFConstants {
     public static final String TUMOR_LOD_KEY =                      "TLOD"; //M2
     public static final String VARIANT_TYPE_KEY =                   "VariantType";
     public static final String VQS_LOD_KEY =                        "VQSLOD";
+    public static final String OXOG_ALT_F1R2_KEY =                  "ALT_F1R2";
+    public static final String OXOG_ALT_F2R1_KEY =                  "ALT_F2R1";
+    public static final String OXOG_REF_F1R2_KEY =                  "REF_F1R2";
+    public static final String OXOG_REF_F2R1_KEY =                  "REF_F2R1";
+    public static final String OXOG_FRACTION_KEY =                  "FOXOG";
 
     //FORMAT keys
     public static final String ALLELE_BALANCE_KEY =                 "AB";
