@@ -133,7 +133,7 @@ public class AnnotationInterfaceManager {
 
         // note that technically an annotation can work on both the INFO and FORMAT fields
         for ( Class c : classes )
-            annotations.add(pluginManager.createByType(c));
+            annotations.add((T)pluginManager.createByType(c));
 
         return annotations;
     }
