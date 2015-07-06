@@ -55,7 +55,15 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  * <p>
- * A fasta file representing the requested intervals.
+ * A fasta file representing the requested intervals. Each interval has a description line starting with a greater-than (">") symbol followed by sequence data.
+ * The description begins with the contig name followed by the beginning position on the contig.
+ * <pre>
+ * For example, the fasta file for contig 1 and intervals 1:3-1:4 and 1:6-1:9
+ * >1 1:3
+ * AT
+ * >1 1:6
+ * GGGG
+ * </pre>
  * </p>
  *
  * <h3>Usage example</h3>
@@ -104,18 +112,20 @@ public class FastaReferenceMaker extends RefWalker<Pair<GenomeLoc, String>, Geno
         // if there is no interval to the left, then this is the first one
         if ( sum == null ) {
             sum = value.first;
+            fasta.setName(fasta.getName() + " " + sum.toString());
             fasta.append(value.second);
         }
-        // if the intervals don't overlap, print out the leftmost one and start a new one
+        // if the intervals are not contiguous, print out the leftmost one and start a new one
         // (end of contig or new interval)
-        else if ( value.first.getStart() != sum.getStop() + 1 ) {
+        else if ( value.first.getStart() != sum.getStop() + 1 || ! value.first.getContig().equals(sum.getContig()) ) {
             fasta.flush();
             sum = value.first;
+            fasta.setName(fasta.getName() + " " + sum.toString());
             fasta.append(value.second);
         }
         // otherwise, merge them
         else {
-            sum = getToolkit().getGenomeLocParser().setStop(sum, value.first.getStop());
+            sum = sum.setStop(sum, value.first.getStop());
             fasta.append(value.second);
         }
 		return sum;
