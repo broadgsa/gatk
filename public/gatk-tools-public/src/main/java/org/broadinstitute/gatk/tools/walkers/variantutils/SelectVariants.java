@@ -146,7 +146,7 @@ import java.util.*;
  *   -o output.vcf \
  *   -se 'SAMPLE.+PARC' \
  *   -select "QD > 10.0"
- *   --invert_selection
+ *   -invertSelect
  * </pre>
  *
  * <h4>Select a sample and exclude non-variant loci and filtered loci (trim remaining alleles by default):</h4>
@@ -207,7 +207,7 @@ import java.util.*;
  *   -sn mySample
  * </pre>
  *
- * <h4>Generating a VCF of all the variants that are mendelian violations. The optional argument `-mvq` restricts the selection to sites that have a QUAL score of 50 or more</h4>
+ * <h4>Generating a VCF of all the variants that are mendelian violations. The optional argument '-mvq' restricts the selection to sites that have a QUAL score of 50 or more</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
@@ -218,14 +218,14 @@ import java.util.*;
  *   -o violations.vcf
  * </pre>
  *
- * <h4>Generating a VCF of all the variants that are not mendelian violations. The optional argument `-mvq` together with '-inv_mv' restricts the selection to sites that have a QUAL score of 50 or less</h4>
+ * <h4>Generating a VCF of all the variants that are not mendelian violations. The optional argument '-mvq' together with '-invMv' restricts the selection to sites that have a QUAL score of 50 or less</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T SelectVariants \
  *   -R reference.fasta \
  *   -V input.vcf \
  *   -ped family.ped \
- *   -mv -mvq 50 -inv_mv \
+ *   -mv -mvq 50 -invMv \
  *   -o violations.vcf
  * </pre>
  *
@@ -275,7 +275,7 @@ import java.util.*;
  *
  * <h4>Select IDs in fileKeep and exclude IDs in fileExclude:</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ * java -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
@@ -284,9 +284,35 @@ import java.util.*;
  *   -excludeIDs fileExclude
  * </pre>
  *
+ * <h4>Select sites where there are between 2 and 5 samples and between 10 and 50 percent of the sample genotypes are filtered:</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   --maxFilteredGenotypes 5
+ *   --minFilteredGenotypes 2
+ *   --maxFractionFilteredGenotypes 0.60
+ *   --minFractionFilteredGenotypes 0.10
+ * </pre>
+ *
+ *  <h4>Set filtered genotypes to no-call (./.):</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R ref.fasta \
+ *   -T SelectVariants \
+ *   --variant input.vcf \
+ *   --setFilteredGenotypesToNocall
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
+    static final int MAX_FILTERED_GENOTYPES_DEFAULT_VALUE  = Integer.MAX_VALUE;
+    static final int MIN_FILTERED_GENOTYPES_DEFAULT_VALUE  = 0;
+    static final double MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE = 1.0;
+    static final double MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE = 0.0;
+    
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
@@ -359,10 +385,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     public ArrayList<String> selectExpressions = new ArrayList<>();
 
     /**
-     * Invert the selection criteria for --select.
+     * Invert the selection criteria for -select.
      */
-    @Argument(fullName="invert_selection", shortName="inv_sel", doc="Invert the selection criteria for --select", required=false)
-    protected boolean invertSelection = false;
+    @Argument(shortName="invertSelect", doc="Invert the selection criteria for -select", required=false)
+    protected boolean invertSelect = false;
 
     /*
      * If this flag is enabled, sites that are found to be non-variant after the subsetting procedure (i.e. where none
@@ -436,8 +462,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * determined on the basis of family structure. Requires passing a pedigree file using the engine-level
      * `-ped` argument.
      */
-    @Argument(fullName="invert_mendelianViolation", shortName="inv_mv", doc="Output non-mendelian violation sites only", required=false)
-    private Boolean invert_mendelianViolations = false;
+    @Argument(fullName="invertMendelianViolation", shortName="invMv", doc="Output non-mendelian violation sites only", required=false)
+    private Boolean invertMendelianViolations = false;
 
     /**
      * This argument specifies the genotype quality (GQ) threshold that all members of a trio must have in order
@@ -514,6 +540,36 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="minIndelSize", required=false, doc="Minimum size of indels to include")
     private int minIndelSize = 0;
 
+    /**
+     * If this argument is provided, select sites where at most a maximum number of samples are filtered at the genotype level.
+     */
+    @Argument(fullName="maxFilteredGenotypes", required=false, doc="Maximum number of samples filtered at the genotype level")
+    private int maxFilteredGenotypes = MAX_FILTERED_GENOTYPES_DEFAULT_VALUE;
+
+    /**
+     * If this argument is provided, select sites where at least a minimum number of samples are filtered at the genotype level.
+     */
+    @Argument(fullName="minFilteredGenotypes", required=false, doc="Minimum number of samples filtered at the genotype level")
+    private int minFilteredGenotypes = MIN_FILTERED_GENOTYPES_DEFAULT_VALUE;
+
+    /**
+     * If this argument is provided, select sites where a fraction or less of the samples are filtered at the genotype level.
+     */
+    @Argument(fullName="maxFractionFilteredGenotypes", required=false, doc="Maximum fraction of samples filtered at the genotype level")
+    private double maxFractionFilteredGenotypes = MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
+
+    /**
+     * If this argument is provided, select sites where a fraction or more of the samples are filtered at the genotype level.
+     */
+    @Argument(fullName="minFractionFilteredGenotypes", required=false, doc="Maximum fraction of samples filtered at the genotype level")
+    private double minFractionFilteredGenotypes = MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
+
+    /**
+     * If this argument is provided, set filtered genotypes to no-call (./.).
+     */
+    @Argument(fullName="setFilteredGtToNocall", required=false, doc="Set filtered genotypes to no-call")
+    private boolean setFilteredGenotypesToNocall = false;
+
     @Hidden
     @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", required=false, doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
     private boolean allowNonOverlappingCommandLineSamples = false;
@@ -546,6 +602,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private Set<String> IDsToKeep = null;
     private Set<String> IDsToRemove = null;
     private Map<String, VCFHeader> vcfRods;
+
+    private final List<Allele> diploidNoCallAlleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -619,7 +677,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 selectedTypes.add(t);
         }
 
-        // remove specifed types
+        // remove specified types
         for (VariantContext.Type t : typesToExclude)
             selectedTypes.remove(t);
 
@@ -713,16 +771,16 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         for (VariantContext vc : vcs) {
             // an option for performance testing only
-            if ( fullyDecode )
-                vc = vc.fullyDecode(vcfRods.get(vc.getSource()), getToolkit().lenientVCFProcessing() );
+            if (fullyDecode)
+                vc = vc.fullyDecode(vcfRods.get(vc.getSource()), getToolkit().lenientVCFProcessing());
 
-            if ( IDsToKeep != null && !IDsToKeep.contains(vc.getID()) )
+            if (IDsToKeep != null && !IDsToKeep.contains(vc.getID()))
                 continue;
 
-            if ( IDsToRemove != null && IDsToRemove.contains(vc.getID()) )
+            if (IDsToRemove != null && IDsToRemove.contains(vc.getID()))
                 continue;
 
-            if ( mendelianViolations && Utils.invertLogic(mv.countViolations(this.getSampleDB().getFamilies(samples), vc) == 0, invert_mendelianViolations) )
+            if (mendelianViolations && Utils.invertLogic(mv.countViolations(this.getSampleDB().getFamilies(samples), vc) == 0, invertMendelianViolations))
                 break;
 
             if (discordanceOnly) {
@@ -745,20 +803,30 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
-            if ( containsIndelLargerOrSmallerThan(vc, maxIndelSize, minIndelSize) )
+            if (containsIndelLargerOrSmallerThan(vc, maxIndelSize, minIndelSize))
                 continue;
+
+            if ( needNumFilteredGenotypes()) {
+                int numFilteredSamples = numFilteredGenotypes(vc);
+                double fractionFilteredGenotypes = samples.isEmpty() ? 0.0 : numFilteredSamples / samples.size();
+                if (numFilteredSamples > maxFilteredGenotypes || numFilteredSamples < minFilteredGenotypes ||
+                        fractionFilteredGenotypes > maxFractionFilteredGenotypes || fractionFilteredGenotypes < minFractionFilteredGenotypes)
+                    continue;
+            }
 
             VariantContext sub = subsetRecord(vc, preserveAlleles, removeUnusedAlternates);
 
+            VariantContext filteredGenotypeToNocall = setFilteredGenotypeToNocall(sub, setFilteredGenotypesToNocall);
+
             // Not excluding non-variants or subsetted polymorphic variants AND including filtered loci or subsetted variant is not filtered
-            if ( (!XLnonVariants || sub.isPolymorphicInSamples()) && (!XLfiltered || !sub.isFiltered()) ) {
+            if ( (!XLnonVariants || filteredGenotypeToNocall.isPolymorphicInSamples()) && (!XLfiltered || !filteredGenotypeToNocall.isFiltered()) ) {
 
                 // Write the subsetted variant if it matches all of the expressions
                 boolean failedJexlMatch = false;
 
                 try {
                     for (VariantContextUtils.JexlVCMatchExp jexl : jexls) {
-                        if ( Utils.invertLogic(!VariantContextUtils.match(sub, jexl), invertSelection) ){
+                        if ( Utils.invertLogic(!VariantContextUtils.match(filteredGenotypeToNocall, jexl), invertSelect) ){
                             failedJexlMatch = true;
                             break;
                         }
@@ -771,7 +839,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 if ( !failedJexlMatch &&
                         !justRead &&
                         ( !selectRandomFraction || Utils.getRandomGenerator().nextDouble() < fractionRandom ) ) {
-                    vcfWriter.add(sub);
+                    vcfWriter.add(filteredGenotypeToNocall);
                 }
             }
         }
@@ -801,13 +869,33 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     /**
+     * Find the number of filtered samples
+     *
+     * @param vc the variant rod VariantContext
+     * @return number of filtered samples
+     */
+    private int numFilteredGenotypes(final VariantContext vc){
+        if (vc == null)
+            return 0;
+
+        int numFiltered = 0;
+        // check if we find it in the variant rod
+        GenotypesContext genotypes = vc.getGenotypes(samples);
+        for (final Genotype g : genotypes)
+            if ( g.isFiltered() && !g.getFilters().isEmpty())
+                numFiltered++;
+
+        return numFiltered;
+    }
+
+    /**
      * Checks if vc has a variant call for (at least one of) the samples.
      *
      * @param vc the variant rod VariantContext. Here, the variant is the dataset you're looking for discordances to (e.g. HapMap)
      * @param compVCs the comparison VariantContext (discordance)
      * @return true VariantContexts are discordant, false otherwise
      */
-    private boolean isDiscordant (VariantContext vc, Collection<VariantContext> compVCs) {
+    private boolean isDiscordant (final VariantContext vc, final Collection<VariantContext> compVCs) {
         if (vc == null)
             return false;
 
@@ -845,7 +933,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * @param compVCs the comparison VariantContext
      * @return true if VariantContexts are concordant, false otherwise
      */
-    private boolean isConcordant (VariantContext vc, Collection<VariantContext> compVCs) {
+    private boolean isConcordant (final VariantContext vc, final Collection<VariantContext> compVCs) {
         if (vc == null || compVCs == null || compVCs.isEmpty())
             return false;
 
@@ -876,7 +964,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return true;
     }
 
-    private boolean sampleHasVariant(Genotype g) {
+    private boolean sampleHasVariant(final Genotype g) {
         return (g !=null && !g.isHomRef() && (g.isCalled() || (g.isFiltered() && !XLfiltered)));
     }
 
@@ -945,8 +1033,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             for ( Genotype genotype : newGC ) {
                 //Set genotype to no call if it falls in the fraction.
                 if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
-                    final List<Allele> alleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
-                    genotypes.add(new GenotypeBuilder(genotype).alleles(alleles).noGQ().make());
+                    genotypes.add(new GenotypeBuilder(genotype).alleles(diploidNoCallAlleles).noGQ().make());
                 }
                 else{
                     genotypes.add(genotype);
@@ -966,6 +1053,30 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return trimmed;
     }
 
+    /**
+     * If --setFilteredGtToNocall, set filtered genotypes to no-call
+     *
+     * @param vc the VariantContext record to set filtered genotypes to no-call
+     * @param filteredGenotypesToNocall  set filtered genotypes to non-call?
+     * @return the VariantContext with no-call genotypes if the sample was filtered
+     */
+    private VariantContext setFilteredGenotypeToNocall(final VariantContext vc, final boolean filteredGenotypesToNocall) {
+
+        if ( !filteredGenotypesToNocall )
+            return vc;
+
+        final VariantContextBuilder builder = new VariantContextBuilder(vc);
+        final GenotypesContext genotypes = GenotypesContext.create(vc.getGenotypes().size());
+
+        for ( final Genotype g : vc.getGenotypes() ) {
+            if ( g.isCalled() && g.isFiltered() )
+                genotypes.add(new GenotypeBuilder(g).alleles(diploidNoCallAlleles).make());
+            else
+                genotypes.add(g);
+        }
+
+        return builder.genotypes(genotypes).make();
+    }
     /*
      * Add annotations to the new VC
      *
@@ -1060,5 +1171,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             result.add(tokens[index]);
         }
         return result;
+    }
+
+    /**
+     * Need the number of filtered genotypes samples?
+     *
+     * @return true if any of the filtered genotype samples arguments is used (not the default value), false otherwise
+     */
+    private boolean needNumFilteredGenotypes(){
+        return maxFilteredGenotypes != MAX_FILTERED_GENOTYPES_DEFAULT_VALUE ||
+                minFilteredGenotypes != MIN_FILTERED_GENOTYPES_DEFAULT_VALUE ||
+                maxFractionFilteredGenotypes != MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE ||
+                minFractionFilteredGenotypes != MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
     }
 }

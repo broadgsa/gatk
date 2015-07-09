@@ -246,4 +246,20 @@ public class CatVariantsIntegrationTest {
         ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cmdLine));
         pc.execAndCheck(ps);
     }
+
+    @Test()
+    public void testCatVariantsGVCFGzIndexCreation() throws IOException{
+
+        String cmdLine = String.format("java -cp \"%s\" %s -R %s -V %s -V %s -out %s",
+                StringUtils.join(RuntimeUtils.getAbsoluteClassPaths(), File.pathSeparatorChar),
+                CatVariants.class.getCanonicalName(),
+                BaseTest.b37KGReference,
+                CatVariantsVcf1,
+                CatVariantsVcf2,
+                BaseTest.createTempFile("CatVariantsGVCFIndexCreationTest", "." + GATKVCFUtils.GVCF_GZ_EXT));
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cmdLine));
+        pc.execAndCheck(ps);
+    }
 }

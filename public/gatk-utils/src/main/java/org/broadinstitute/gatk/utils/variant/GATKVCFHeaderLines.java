@@ -25,16 +25,11 @@
 
 package org.broadinstitute.gatk.utils.variant;
 
-import htsjdk.variant.vcf.VCFFilterHeaderLine;
-import htsjdk.variant.vcf.VCFFormatHeaderLine;
-import htsjdk.variant.vcf.VCFHeaderLineCount;
-import htsjdk.variant.vcf.VCFHeaderLineType;
-import htsjdk.variant.vcf.VCFInfoHeaderLine;
+import htsjdk.variant.vcf.*;
 
 import static org.broadinstitute.gatk.utils.variant.GATKVCFConstants.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This class contains the VCFHeaderLine definitions for the annotation keys in GATKVCFConstants.
@@ -66,6 +61,16 @@ public class GATKVCFHeaderLines {
         addFilterLine(new VCFFilterHeaderLine(LOW_QUAL_FILTER_NAME, "Low quality"));
         addFilterLine(new VCFFilterHeaderLine(BEAGLE_MONO_FILTER_NAME, "This site was set to monomorphic by Beagle"));
 
+        // M2-related filters
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.ALT_ALLELE_IN_NORMAL_FILTER_NAME, "Evidence seen in the normal sample"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.CLUSTERED_EVENTS_FILTER_NAME, "Clustered events observed in the tumor"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.GERMLINE_RISK_FILTER_NAME, "Evidence indicates this site is germline, not somatic"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.HOMOLOGOUS_MAPPING_EVENT_FILTER_NAME, "More than three events were observed in the tumor"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.MULTI_EVENT_ALT_ALLELE_IN_NORMAL_FILTER_NAME, "Multiple events observed in tumor and normal"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.PON_FILTER_NAME, "Seen in at least 2 samples in the panel of normals"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TUMOR_LOD_FILTER_NAME, "Tumor does not meet likelihood threshold"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short tandem repeat region"));
+
         addFormatLine(new VCFFormatHeaderLine(ALLELE_BALANCE_KEY, 1, VCFHeaderLineType.Float, "Allele balance for each het genotype"));
         addFormatLine(new VCFFormatHeaderLine(MAPPING_QUALITY_ZERO_BY_SAMPLE_KEY, 1, VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample"));
         addFormatLine(new VCFFormatHeaderLine(MLE_PER_SAMPLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alternate allele count, in the same order as listed, for each individual sample"));
@@ -88,6 +93,15 @@ public class GATKVCFHeaderLines {
         addFormatLine(new VCFFormatHeaderLine(JOINT_LIKELIHOOD_TAG_NAME, 1, VCFHeaderLineType.Integer, "Phred-scaled joint likelihood of the genotype combination (before applying family priors)"));
         addFormatLine(new VCFFormatHeaderLine(JOINT_POSTERIOR_TAG_NAME, 1, VCFHeaderLineType.Integer, "Phred-scaled joint posterior probability of the genotype combination (after applying family priors)"));
         addFormatLine(new VCFFormatHeaderLine(ORIGINAL_GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Original Genotype input to Beagle"));
+
+        // M2-related info lines
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.ALLELE_FRACTION_KEY, 1, VCFHeaderLineType.Float, "Allele fraction of the event in the tumor"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_ALT_F1R2_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F1R2 pair orientation supporting the alternate allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_ALT_F2R1_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F2R1 pair orientation supporting the alternate allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_REF_F1R2_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F1R2 pair orientation supporting the reference allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_REF_F2R1_KEY, 1, VCFHeaderLineType.Integer, "Count of reads in F2R1 pair orientation supporting the reference allele"));
+        addFormatLine(new VCFFormatHeaderLine(GATKVCFConstants.OXOG_FRACTION_KEY, 1, VCFHeaderLineType.Float, "Fraction of alt reads indicating OxoG error"));
+
 
         addInfoLine(new VCFInfoHeaderLine(MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed"));
         addInfoLine(new VCFInfoHeaderLine(MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed"));
@@ -132,7 +146,7 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(ORIGINAL_DP_KEY, 1, VCFHeaderLineType.Integer, "Original DP"));
         addInfoLine(new VCFInfoHeaderLine(ORIGINAL_CONTIG_KEY, 1, VCFHeaderLineType.String, "Original contig name for the record"));
         addInfoLine(new VCFInfoHeaderLine(ORIGINAL_START_KEY, 1, VCFHeaderLineType.Integer, "Original start position for the record"));
-        addInfoLine(new VCFInfoHeaderLine(VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
+        addInfoLine(new VCFInfoHeaderLine(VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds of being a true variant versus being false under the trained gaussian mixture model"));
         addInfoLine(new VCFInfoHeaderLine(CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
         addInfoLine(new VCFInfoHeaderLine(POSITIVE_LABEL_KEY, 1, VCFHeaderLineType.Flag, "This variant was used to build the positive training set of good variants"));
         addInfoLine(new VCFInfoHeaderLine(NEGATIVE_LABEL_KEY, 1, VCFHeaderLineType.Flag, "This variant was used to build the negative training set of bad variants"));
@@ -147,5 +161,15 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(BEAGLE_AC_COMP_KEY, 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
         addInfoLine(new VCFInfoHeaderLine(BEAGLE_AF_COMP_KEY, 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
         addInfoLine(new VCFInfoHeaderLine(BEAGLE_AN_COMP_KEY, 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
+
+        // M2-related info lines
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.EVENT_COUNT_IN_HAPLOTYPE_KEY, 1, VCFHeaderLineType.String, "Number of events in this haplotype"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.EVENT_DISTANCE_MAX_KEY, 1, VCFHeaderLineType.Integer, "Maximum distance between events in this active region"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.EVENT_DISTANCE_MIN_KEY, 1, VCFHeaderLineType.Integer, "Minimum distance between events in this active region"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.HAPLOTYPE_COUNT_KEY, 1, VCFHeaderLineType.String, "Number of haplotypes that support this variant"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.NORMAL_LOD_KEY, 1, VCFHeaderLineType.String, "Normal LOD score"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.PANEL_OF_NORMALS_COUNT_KEY, 1, VCFHeaderLineType.String, "Count from Panel of Normals"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TUMOR_LOD_KEY, 1, VCFHeaderLineType.String, "Tumor LOD score"));
+
     }
 }
