@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.tools;
 
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
 import org.apache.log4j.BasicConfigurator;
@@ -47,6 +48,7 @@ import htsjdk.variant.vcf.VCFCodec;
 import htsjdk.variant.vcf.VCFHeader;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextComparator;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
@@ -228,9 +230,9 @@ public class CatVariants extends CommandLineProgram {
 
         variant = parseVariantList(variant);
 
-        Comparator<Pair<Integer,File>> positionComparator = new PositionComparator();
+        Comparator<Pair<VariantContext,File>> positionComparator = new PositionComparator(ref.getSequenceDictionary());
 
-        Queue<Pair<Integer,File>> priorityQueue;
+        Queue<Pair<VariantContext,File>> priorityQueue;
         if (assumeSorted)
             priorityQueue = new LinkedList<>();
         else
@@ -244,7 +246,7 @@ public class CatVariants extends CommandLineProgram {
                 return 1;
 
             if (assumeSorted){
-                priorityQueue.add(new Pair<>(0,file));
+                priorityQueue.add(new Pair<VariantContext,File>(null,file));
             }
             else{
                 if (!file.exists()) {
@@ -257,9 +259,8 @@ public class CatVariants extends CommandLineProgram {
                     continue;
                 }
                 VariantContext vc = it.next();
-                int firstPosition = vc.getStart();
                 reader.close();
-                priorityQueue.add(new Pair<>(firstPosition,file));
+                priorityQueue.add(new Pair<>(vc,file));
             }
         }
 
@@ -318,15 +319,19 @@ public class CatVariants extends CommandLineProgram {
         }
     }
 
-    private static class PositionComparator implements Comparator<Pair<Integer,File>> {
+    private static class PositionComparator implements Comparator<Pair<VariantContext,File>> {
+    	
+    	VariantContextComparator comp;
+    	
+    	public PositionComparator(final SAMSequenceDictionary dict){
+    		comp = new VariantContextComparator(dict);
+    	}
 
         @Override
-        public int compare(Pair<Integer,File> p1, Pair<Integer,File> p2) {
-            int startPositionP1 = p1.getFirst();
-            int startPositionP2 = p2.getFirst();
-            if (startPositionP1  == startPositionP2)
-                return 0;
-            return startPositionP1 < startPositionP2 ? -1 : 1 ;
+        public int compare(final Pair<VariantContext,File> p1, final Pair<VariantContext,File> p2) {
+            final VariantContext startPositionP1 = p1.getFirst();
+            final VariantContext startPositionP2 = p2.getFirst();
+            return comp.compare(startPositionP1, startPositionP2);
         }
     }
 }
