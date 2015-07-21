@@ -410,6 +410,15 @@ public class GATKVariantContextUtils {
         return new Pair<List<Integer>, byte[]>(lengths,repeatUnit);
     }
 
+    /**
+     *
+     * @param refBases
+     * @param altBases
+     * @param remainingRefContext
+     * @return
+     * @deprecated there is still no alternative for this method but eventually there needs to be one implemented in TandemRepeatFinder (protected for now).
+     */
+    @Deprecated
     public static Pair<int[],byte[]> getNumTandemRepeatUnits(final byte[] refBases, final byte[] altBases, final byte[] remainingRefContext) {
          /* we can't exactly apply same logic as in basesAreRepeated() to compute tandem unit and number of repeated units.
            Consider case where ref =ATATAT and we have an insertion of ATAT. Natural description is (AT)3 -> (AT)2.
@@ -474,7 +483,9 @@ public class GATKVariantContextUtils {
      * @param testString             String to test
      * @oaram lookForward            Look for repetitions forward (at beginning of string) or backward (at end of string)
      * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
+     * @deprecated Move to use TandemRepeatFinder in protected (move to public if needed).
      */
+    @Deprecated
     public static int findNumberOfRepetitions(byte[] repeatUnit, byte[] testString, boolean lookForward) {
         int numRepeats = 0;
         if (lookForward) {
