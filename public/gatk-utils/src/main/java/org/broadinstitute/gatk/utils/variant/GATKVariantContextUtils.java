@@ -1214,7 +1214,10 @@ public class GATKVariantContextUtils {
      * @param allelesToUse     the new (sub)set of alleles to use
      * @return a new non-null GenotypesContext
      */
-    static private GenotypesContext fixADFromSubsettedAlleles(final GenotypesContext originalGs, final VariantContext originalVC, final List<Allele> allelesToUse) {
+    public static GenotypesContext fixADFromSubsettedAlleles(final GenotypesContext originalGs, final VariantContext originalVC, final List<Allele> allelesToUse) {
+        if (originalGs == null) throw new IllegalArgumentException("the original Gs cannot be null");
+        if (originalVC == null) throw new IllegalArgumentException("the original VC cannot be null");
+        if (allelesToUse == null) throw new IllegalArgumentException("the alleles to use list cannot be null");
 
         // the bitset representing the allele indexes we want to keep
         final boolean[] alleleIndexesToUse = getAlleleIndexBitset(originalVC, allelesToUse);
