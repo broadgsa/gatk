@@ -50,6 +50,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class GATKArgumentCollection {
 
+    // the default value of the stop of the expanded window
+    public static final int DEFAULT_REFERENCE_WINDOW_STOP = 0;
+
     /** the constructor */
     public GATKArgumentCollection() {
     }
@@ -663,5 +666,17 @@ public class GATKArgumentCollection {
     @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="Parameter to pass to the VCF/BCF IndexCreator",required=false)
     @Advanced
     public int variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Window arguments
+    //
+    // -------------------------------------------------------------------------------------------------------------
+    /**
+     * Stop of the expanded window for which the reference context should be provided, relative to the locus.
+     */
+    @Argument(fullName = "reference_window_stop", shortName = "ref_win_stop", doc = "Reference window stop", minValue = 0, required = false)
+    @Advanced
+    public int reference_window_stop = DEFAULT_REFERENCE_WINDOW_STOP;
 }
 
