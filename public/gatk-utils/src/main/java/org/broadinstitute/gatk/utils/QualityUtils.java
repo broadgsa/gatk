@@ -205,7 +205,7 @@ public class QualityUtils {
     @Ensures("result <= 0.0")
     public static double qualToErrorProbLog10(final double qual) {
         if ( qual < 0.0 ) throw new IllegalArgumentException("qual must be >= 0.0 but got " + qual);
-        return qual / -10.0;
+        return qual * -0.1;
     }
 
     // ----------------------------------------------------------------------
