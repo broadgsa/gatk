@@ -75,12 +75,10 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         if(stub.getOutputFile() != null) {
             try {
                 if (stub.getOutputFile().getName().toLowerCase().endsWith(".cram")) {
-                    this.writer = createCRAMWriter(factory, stub.getFileHeader(), new FileOutputStream(file), this.referenceFasta);
+                    this.writer = createCRAMWriter(factory, stub.getFileHeader(), file, this.referenceFasta);
                 } else {
                     this.writer = createBAMWriter(factory,stub.getFileHeader(),stub.isPresorted(),file,stub.getCompressionLevel());
                 }
-            } catch(IOException ex) {
-                throw new UserException.CouldNotCreateOutputFile(file, "file could not be created", ex);
             } catch(RuntimeIOException ex) {
                 throw new UserException.CouldNotCreateOutputFile(file,"file could not be created",ex);
             }
@@ -129,9 +127,9 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
 
     private SAMFileWriter createCRAMWriter(final SAMFileWriterFactory factory,
                                            final SAMFileHeader header,
-                                           final OutputStream outputStream,
+                                           final File file,
                                            final File referenceFasta) {
-        return factory.makeCRAMWriter(header, outputStream, referenceFasta);
+        return factory.makeCRAMWriter(header, file, referenceFasta);
     }
 
     private SAMFileWriter createBAMWriter(final SAMFileWriterFactory factory,

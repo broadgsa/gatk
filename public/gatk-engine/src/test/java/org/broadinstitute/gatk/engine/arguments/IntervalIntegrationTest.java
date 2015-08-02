@@ -29,7 +29,6 @@ import org.broadinstitute.gatk.engine.walkers.WalkerTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -45,7 +44,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -R " + hg18Reference +
                         " -o %s",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testAllIntervalsImplicit",spec);
     }
 
@@ -82,6 +81,32 @@ public class IntervalIntegrationTest extends WalkerTest {
         spec.addAuxFile("fadcdf88597b9609c5f2a17f4c6eb455", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
         executeTest("testUnmappedReadInclusion",spec);
+    }
+
+    @Test
+    public void testMultipleIntervalInclusionOnCRAM() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T TestPrintReadsWalker" +
+                        " -I " + validationDataLocation + "MV1994.cram" +
+                        " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
+                        " -L Escherichia_coli_K12:11000" +
+                        " -L Escherichia_coli_K12:12000" +
+                        " -L Escherichia_coli_K12:13000" +
+                        " -L Escherichia_coli_K12:14000" +
+                        " -L Escherichia_coli_K12:15000" +
+                        " -L Escherichia_coli_K12:16000" +
+                        " -L Escherichia_coli_K12:17000" +
+                        " -L unmapped",
+                0, // two output files
+                Collections.<String>emptyList());
+
+        // our base file
+        File baseOutputFile = createTempFile("testUnmappedReadInclusion", ".cram");
+        spec.setOutputFileLocation(baseOutputFile);
+        spec.addAuxFile("36b3dfdcc3a5ab4e240a6e3237101489", createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("ebbe6e311b6bb240554ec96ed9809216", createTempFileFromBase(baseOutputFile.getAbsolutePath() + ".bai"));
+
+        executeTest("testUnmappedReadInclusionCRAM", spec);
     }
 
     @Test
@@ -136,7 +161,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L " + validationDataLocation + "intervalTest.1.vcf",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testIntervalParsingFromFile", spec);
     }
 
@@ -151,7 +176,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "intervalTest.1.vcf" +
                         " -L " + validationDataLocation + "intervalTest.2.vcf",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testIntervalMergingFromFiles", spec);
     }
 
@@ -166,7 +191,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "intervalTest.1.vcf" +
                         " -XL " + validationDataLocation + "intervalTest.2.vcf",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testIntervalExclusionsFromFiles", spec);
     }
 
@@ -181,7 +206,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "intervalTest.1.vcf" +
                         " -L chr1:1677524-1677528",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testMixedIntervalMerging", spec);
     }
 
@@ -195,7 +220,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L " + validationDataLocation + "intervalTest.bed",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testBed", spec);
     }
 
@@ -209,7 +234,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L " + validationDataLocation + "intervalTest.3.vcf",
                 1, // just one output file
-                Arrays.asList(md5));
+                Collections.singletonList(md5));
         executeTest("testComplexVCF", spec);
     }
 
@@ -224,7 +249,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L " + validationDataLocation + "intervalTest.3.vcf",
                 1, // just one output file
-                Arrays.asList(md5));
+                Collections.singletonList(md5));
         executeTest("testComplexVCFWithPadding", spec);
     }
 
@@ -239,7 +264,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "intervalTest.1.vcf" +
                         " -XL " + validationDataLocation + "intervalTest.3.vcf",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testMergingWithComplexVCF", spec);
     }
 
@@ -253,7 +278,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L " + validationDataLocation + "intervalTest.empty.vcf",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testEmptyVCFWarning", spec);
     }
 
@@ -268,7 +293,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -L " + validationDataLocation + "intervalTest.1.vcf" +
                         " -XL " + validationDataLocation + "intervalTest.1.vcf",
                         1, // just one output file
-                        Arrays.asList(md5));
+                        Collections.singletonList(md5));
         executeTest("testIncludeExcludeIsTheSame", spec);
     }
 
@@ -282,7 +307,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L " + privateTestDir + "symbolic_alleles_1.vcf",
                 1, // just one output file
-                Arrays.asList(md5));
+                Collections.singletonList(md5));
         executeTest("testSymbolicAlleles", spec);
     }
 
@@ -298,7 +323,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                 " -isr INTERSECTION" +
                 " -o %s",
                 1, // just one output file
-                Arrays.asList(md5));
+                Collections.singletonList(md5));
         executeTest("testIntersectionOfLexicographicallySortedIntervals", spec);
     }
 }

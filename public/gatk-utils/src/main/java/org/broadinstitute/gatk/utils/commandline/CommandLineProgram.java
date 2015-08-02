@@ -421,9 +421,9 @@ public abstract class CommandLineProgram {
             throw new ReviewedGATKException("SamException found with no message!", t);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A BAM ERROR has occurred (version %s): %n", getVersionNumber());
+        errorPrintf("A BAM/CRAM ERROR has occurred (version %s): %n", getVersionNumber());
         errorPrintf("%n");
-        errorPrintf("This means that there is something wrong with the BAM file(s) you provided.%n");
+        errorPrintf("This means that there is something wrong with the BAM/CRAM file(s) you provided.%n");
         errorPrintf("The error message below tells you what is the problem.%n");
         errorPrintf("%n");
         printDocumentationReference();
@@ -432,6 +432,9 @@ public abstract class CommandLineProgram {
         errorPrintf("- Make sure that your BAM file is well-formed by running Picard's validator on it%n");
         errorPrintf("(see http://picard.sourceforge.net/command-line-overview.shtml#ValidateSamFile for details)%n");
         errorPrintf("- Ensure that your BAM index is not corrupted: delete the current one and regenerate it with 'samtools index'%n");
+        errorPrintf("- Ensure that your CRAM index is not corrupted: delete the current one and regenerate it with%n");
+        errorPrintf("'java -jar cramtools-3.0.jar index --bam-style-index --input-file <input cram file> --reference-fasta-file <reference fasta file>'%n");
+        errorPrintf("(see https://github.com/enasequence/cramtools/tree/v3.0 for details)%n");
         errorPrintf("%n");
         errorPrintf("MESSAGE: %s%n", t.getMessage().trim());
         errorPrintf("------------------------------------------------------------------------------------------%n");

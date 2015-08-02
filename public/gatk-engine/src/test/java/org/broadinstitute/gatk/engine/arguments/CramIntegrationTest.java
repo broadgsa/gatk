@@ -26,10 +26,11 @@
 package org.broadinstitute.gatk.engine.arguments;
 
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Test the GATK core CRAM parsing mechanism.
@@ -39,19 +40,13 @@ public class CramIntegrationTest extends WalkerTest {
     public Object[][] getCRAMData() {
         return new Object[][] {
                 {"PrintReads", "exampleBAM.bam", "", "cram", "fc6e3919a8a34266c89ef66e97ceaba9"},
-                //{"PrintReads", "exampleCRAM.cram", "", "cram", "026ebc00c2a8f9832e37f1a6a0f53521"}, https://github.com/samtools/htsjdk/issues/148
-                {"PrintReads", "exampleCRAM.cram", "", "bam", "99e5f740b43594a5b8e5bc1a007719e0"},
-                {"PrintReads", "exampleCRAM-noindex.cram", "", "bam", "99e5f740b43594a5b8e5bc1a007719e0"},
+                {"PrintReads", "exampleCRAM.cram", "", "cram", "fc6e3919a8a34266c89ef66e97ceaba9"},
+                {"PrintReads", "exampleCRAM.cram", "", "bam", "d89efbc3bd867749a2864ebd2d2cd6e1"},
                 {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "072435e8272411c31b2234f851706384"},
-                {"PrintReads", "exampleCRAM-noindex.cram", " -L chr1:200", "bam", "072435e8272411c31b2234f851706384"},
                 {"CountLoci", "exampleCRAM.cram", "", "txt", "ade93df31a6150321c1067e749cae9be"},
-                {"CountLoci", "exampleCRAM-noindex.cram", "", "txt", "ade93df31a6150321c1067e749cae9be"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
-                {"CountLoci", "exampleCRAM-noindex.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
                 {"CountReads", "exampleCRAM.cram", "", "txt", "4fbafd6948b6529caa2b78e476359875"},
-                {"CountReads", "exampleCRAM-noindex.cram", "", "txt", "4fbafd6948b6529caa2b78e476359875"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
-                {"CountReads", "exampleCRAM-noindex.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
                 {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "9598062587ad8d2ec596a8ecb19be979"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
@@ -67,8 +62,27 @@ public class CramIntegrationTest extends WalkerTest {
                     args +
                     " -o %s",
                 1, // just one output file
-                Arrays.asList(ext),
-                Arrays.asList(md5));
+                Collections.singletonList(ext),
+                Collections.singletonList(md5));
         executeTest(String.format("testCRAM %s %s -> %s: %s", walker, input, ext, args), spec);
+    }
+
+    @DataProvider(name = "cramNoBaiData")
+    public Object[][] getCRAMNoBaiData() {
+        return new Object[][]{
+                {"exampleCRAM-nobai-nocrai.cram"},
+                {"exampleCRAM-nobai-withcrai.cram"},
+        };
+    }
+
+    @Test(dataProvider = "cramNoBaiData")
+    public void testCRAMNoBai(String input) {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                " -T TestPrintReadsWalker" +
+                        " -I " + publicTestDir + input +
+                        " -R " + exampleFASTA,
+                0,
+                UserException.class);
+        executeTest(String.format("testCRAMNoBai %s", input), spec);
     }
 }
