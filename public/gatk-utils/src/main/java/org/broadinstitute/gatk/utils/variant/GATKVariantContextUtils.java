@@ -149,7 +149,7 @@ public class GATKVariantContextUtils {
     }
 
     /**
-     * Calculates the total ploidy of a variant context as the sum of all plodies across genotypes.
+     * Calculates the total ploidy of a variant context as the sum of all ploidies across genotypes.
      * @param vc the target variant context.
      * @param defaultPloidy the default ploidy to be assume when there is no ploidy information for a genotype.
      * @return never {@code null}.
