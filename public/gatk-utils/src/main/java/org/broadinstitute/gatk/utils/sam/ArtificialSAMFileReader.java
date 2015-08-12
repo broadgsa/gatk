@@ -26,14 +26,12 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
-import htsjdk.samtools.cram.build.CramIO;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;

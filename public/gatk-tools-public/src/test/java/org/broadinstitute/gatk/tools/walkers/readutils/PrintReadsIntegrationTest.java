@@ -32,6 +32,7 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class PrintReadsIntegrationTest extends WalkerTest {
@@ -65,6 +66,7 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                 // See: GATKBAMIndex.getStartOfLastLinearBin(), BAMScheduler.advance(), IntervalOverlapFilteringIterator.advance()
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, "", "d7f23fd77d7dc7cb50d3397f644c6d8a")},
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1", "c601db95b20248d012b0085347fcb6d1")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.cram"}, " -L 1:10001 -L GL000192.1:500204", "b16f6ed6cc1e7640b08bf9bcc86f1596")},
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L unmapped", "2d32440e47e8d9d329902fe573ad94ce")},
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1 -L unmapped", "c601db95b20248d012b0085347fcb6d1")},
                 {new PRTest(b37KGReference, new String[]{"oneReadAllInsertion.bam"}, "",  "349650b6aa9e574b48a2a62627f37c7d")},
@@ -98,7 +100,7 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                         params.args +
                         " --no_pg_tag" +
                         " -o %s",
-                Arrays.asList(params.md5));
+                Collections.singletonList(params.md5));
         executeTest("testPrintReads-"+params.args, spec).getFirst();
     }
 

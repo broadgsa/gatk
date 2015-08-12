@@ -56,15 +56,15 @@ public class GATKArgumentCollection {
 
     // parameters and their defaults
     /**
-     * An input file containing sequence data mapped to a reference, in SAM or BAM format, or a text file containing a
-     * list of input files (with extension .list). Note that the GATK requires an accompanying index for each SAM or
-     * BAM file. Please see our online documentation for more details on input formatting requirements.
+     * An input file containing sequence data mapped to a reference, in BAM or CRAM format, or a text file containing a
+     * list of input files (with extension .list). Note that the GATK requires an accompanying .bai index for each BAM
+     * or CRAM file. Please see our online documentation for more details on input formatting requirements.
      */
-    @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (SAM or BAM)", required = false)
+    @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (BAM or CRAM)", required = false)
     public List<String> samFiles = new ArrayList<>();
 
     @Advanced
-    @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list files).")
+    @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list or .cram.list files).")
     public Boolean showFullBamList = false;
 
     @Advanced
@@ -278,8 +278,8 @@ public class GATKArgumentCollection {
     public boolean FIX_MISENCODED_QUALS = false;
     /**
      * This flag tells GATK to ignore warnings when encountering base qualities that are too high and that seemingly
-     * indicate a problem with the base quality encoding of the BAM file. You should only use this if you really know
-     * what you are doing; otherwise you could seriously mess up your data and ruin your analysis.
+     * indicate a problem with the base quality encoding of the BAM or CRAM file. You should only use this if you really
+     * know what you are doing; otherwise you could seriously mess up your data and ruin your analysis.
      */
     @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Ignore warnings about base quality score encoding", required = false)
     public boolean ALLOW_POTENTIALLY_MISENCODED_QUALS = false;
@@ -320,7 +320,8 @@ public class GATKArgumentCollection {
     /**
      * Enables on-the-fly recalibrate of base qualities, intended primarily for use with BaseRecalibrator and PrintReads
      * (see Best Practices workflow documentation). The covariates tables are produced by the BaseRecalibrator tool.
-     * Please be aware that you should only run recalibration with the covariates file created on the same input bam(s).
+     * Please be aware that you should only run recalibration with the covariates file created on the same input BAM(s)
+     * or CRAM(s).
      */
     @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Input covariates table file for on-the-fly base quality score recalibration")
     public File BQSR_RECAL_FILE = null;
@@ -343,14 +344,14 @@ public class GATKArgumentCollection {
     public boolean disableIndelQuals = false;
 
     /**
-     * By default, the OQ tag in not emitted when using the -BQSR argument. Use this flag to include OQ tags in the output BAM file.
+     * By default, the OQ tag in not emitted when using the -BQSR argument. Use this flag to include OQ tags in the output BAM or CRAM file.
      * Note that this may results in significant file size increase.
      */
     @Argument(fullName="emit_original_quals", shortName = "EOQ", doc = "Emit the OQ tag with the original base qualities (with -BQSR)", required=false)
     public boolean emitOriginalQuals = false;
 
     /**
-     * This flag tells GATK not to modify quality scores less than this value. Instead they will be written out unmodified in the recalibrated BAM file.
+     * This flag tells GATK not to modify quality scores less than this value. Instead they will be written out unmodified in the recalibrated BAM or CRAM file.
      * In general it's unsafe to change qualities scores below < 6, since base callers use these values to indicate random or bad bases.
      * For example, Illumina writes Q2 bases when the machine has really gone wrong. This would be fine in and of itself,
      * but when you select a subset of these reads based on their ability to align to the reference and their dinucleotide effect,
@@ -379,7 +380,7 @@ public class GATKArgumentCollection {
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public ValidationStringency strictnessLevel = ValidationStringency.SILENT;
     /**
-     * Some tools keep program records in the SAM header by default. Use this argument to override that behavior and discard program records for the SAM header.
+     * Some tools keep program records in the SAM header by default. Use this argument to override that behavior and discard program records for the SAM header. Does not work on CRAM files.
      */
     @Argument(fullName = "remove_program_records", shortName = "rpr", doc = "Remove program records from the SAM header", required = false)
     public boolean removeProgramRecords = false;
@@ -390,12 +391,12 @@ public class GATKArgumentCollection {
     public boolean keepProgramRecords = false;
 
     /**
-     * On-the-fly sample renaming works only with single-sample BAM and VCF files. Each line of the mapping file must
-     * contain the absolute path to a BAM or VCF file, followed by whitespace, followed by the new sample name for that
-     * BAM or VCF file. The sample name may contain non-tab whitespace, but leading or trailing whitespace will be 
-     * ignored. The engine will verify at runtime that each BAM/VCF targeted for sample renaming has only a single 
-     * sample specified in its header (though, in the case of BAM files, there may be multiple read groups for that 
-     * sample).
+     * On-the-fly sample renaming works only with single-sample BAM, CRAM, and VCF files. Each line of the mapping file
+     * must contain the absolute path to a BAM, CRAM, or VCF file, followed by whitespace, followed by the new sample
+     * name for that BAM, CRAM, or VCF file. The sample name may contain non-tab whitespace, but leading or trailing
+     * whitespace will be ignored. The engine will verify at runtime that each BAM/CRAM/VCF targeted for sample
+     * renaming has only a single sample specified in its header (though, in the case of BAM/CRAM files, there may be
+     * multiple read groups for that sample).
      */
     @Advanced
     @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file", doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file", required = false)
@@ -453,12 +454,12 @@ public class GATKArgumentCollection {
 
     @Advanced
     @Argument(fullName = "simplifyBAM", shortName = "simplifyBAM",
-              doc = "If provided, output BAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
+              doc = "If provided, output BAM/CRAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
               required = false)
     public boolean simplifyBAM = false;
 
     @Advanced
-    @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM files.",
+    @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM/CRAM files.",
             required = false)
     public boolean disableBAMIndexing = false;
 
@@ -488,7 +489,7 @@ public class GATKArgumentCollection {
     @Argument(fullName="num_cpu_threads_per_data_thread", shortName = "nct", doc="Number of CPU threads to allocate per data thread", required = false, minValue = 1)
     public int numberOfCPUThreadsPerDataThread = 1;
 
-    @Argument(fullName="num_io_threads", shortName = "nit", doc="Number of given threads to allocate to IO", required = false, minValue = 0)
+    @Argument(fullName="num_io_threads", shortName = "nit", doc="Number of given threads to allocate to BAM IO", required = false, minValue = 0)
     @Hidden
     public int numberOfIOThreads = 0;
 
@@ -500,7 +501,8 @@ public class GATKArgumentCollection {
     @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable threading efficiency monitoring", required = false)
     public Boolean monitorThreadEfficiency = false;
 
-    @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="Total number of BAM file handles to keep open simultaneously", required=false, minValue = 1)
+    @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="When using IO threads, total number of BAM file handles to keep open simultaneously", required=false, minValue = 1)
+    @Hidden
     public Integer numberOfBAMFileHandles = null;
     /**
      * This will filter out read groups matching <TAG>:<STRING> (e.g. SM:sample1) or a .txt file containing the filter strings one per line.
@@ -598,7 +600,7 @@ public class GATKArgumentCollection {
     /**
      * NO INTEGRATION TESTS are available.  Use at your own risk.
      */
-    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM",required=false)
+    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM/CRAM",required=false)
     @Hidden
     public boolean allowIntervalsWithUnindexedBAM = false;
 
