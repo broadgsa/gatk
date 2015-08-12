@@ -42,11 +42,12 @@ import java.util.*;
 public class OverclippedReadFilterUnitTest extends ReadFilterTest {
 
     @Test(enabled = true, dataProvider= "OverclippedDataProvider")
-    public void testOverclippedFilter(final String cigarString, final boolean expectedResult) {
+    public void testOverclippedFilter(final String cigarString, boolean doNotRequireSoftclipsOnBothEnds, final boolean expectedResult) {
 
-       final OverclippedReadFilter filter = new OverclippedReadFilter();
-       final SAMRecord read = buildSAMRecord(cigarString);
-       Assert.assertEquals(filter.filterOut(read), expectedResult, cigarString);
+        final OverclippedReadFilter filter = new OverclippedReadFilter();
+        filter.doNotRequireSoftclipsOnBothEnds = doNotRequireSoftclipsOnBothEnds;
+        final SAMRecord read = buildSAMRecord(cigarString);
+        Assert.assertEquals(filter.filterOut(read), expectedResult, cigarString);
     }
 
     private SAMRecord buildSAMRecord(final String cigarString) {
@@ -58,20 +59,47 @@ public class OverclippedReadFilterUnitTest extends ReadFilterTest {
     public Iterator<Object[]> overclippedDataProvider() {
         final List<Object[]> result = new LinkedList<Object[]>();
 
-        result.add(new Object[] { "1S10M1S", true });
-        result.add(new Object[] { "1S10X1S", true });
-        result.add(new Object[] { "1H1S10M1S1H", true });
-        result.add(new Object[] { "1S40M1S", false });
-        result.add(new Object[] { "1S40X1S", false });
-        result.add(new Object[] { "1H10M1S", false });
-        result.add(new Object[] { "1S10M1H", false });
-        result.add(new Object[] { "10M1S", false });
-        result.add(new Object[] { "1S10M", false });
-        result.add(new Object[] { "1S10M10D10M1S", true });
-        result.add(new Object[] { "1S1M40I1S", false });
-        result.add(new Object[] { "1S10I1S", true });
-        result.add(new Object[] { "1S40I1S", false });
+        result.add(new Object[] { "1S10M1S", false, true });
+        result.add(new Object[] { "1S10X1S", false, true });
+        result.add(new Object[] { "1H1S10M1S1H", false, true });
+        result.add(new Object[] { "1S40M1S", false, false});
+        result.add(new Object[] { "1S40X1S", false, false });
+        result.add(new Object[] { "1H10M1S", false, false});
+        result.add(new Object[] { "1S10M1H", false, false});
+
+        result.add(new Object[] { "10M1S", false, false});
+        result.add(new Object[] { "1S10M", false, false});
+
+        result.add(new Object[] { "10M1S", true, true});
+        result.add(new Object[] { "1S10M", true, true});
+
+        result.add(new Object[] { "1S10M10D10M1S", false, true });
+        result.add(new Object[] { "1S1M40I1S", false, false });
+
+        result.add(new Object[] { "1S10I1S", false, true });
+        result.add(new Object[] { "1S40I1S", false, false });
+        result.add(new Object[] { "1S40I1S", true, false });
+
+        result.add(new Object[] { "25S40I25M", true, false });
+
+        //Read is too short once soft-clipping removed
+        result.add(new Object[] { "25S25M", true, true });
+        result.add(new Object[] { "25S25X", true, true });
+        result.add(new Object[] { "25S25H", true, true });
+        result.add(new Object[] { "25S25H", false, false });
+
+        result.add(new Object[] { "25S25M25S", false, true });
+        result.add(new Object[] { "25M25S", true, true });
+        result.add(new Object[] { "25S25M", true, true });
+
+        result.add(new Object[] { "25S35S", true, true });
+
+        //Read long enough even with soft clipping removed
+        result.add(new Object[] { "25S35M25S", true, false });
+        result.add(new Object[] { "35M25S", true, false });
+        result.add(new Object[] { "25S35M", true, false });
 
         return result.iterator();
     }
+
 }
