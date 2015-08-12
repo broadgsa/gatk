@@ -1,6 +1,6 @@
 /*
 * Copyright 2012-2015 Broad Institute, Inc.
-* 
+*
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -23,38 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.tools.walkers.readutils;
+package org.broadinstitute.gatk.utils.codecs.beagle;
 
-import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-
-/**
- * Created with IntelliJ IDEA.
- * User: delangel
- * Date: 4/13/13
- * Time: 7:28 AM
- * To change this template use File | Settings | File Templates.
- */
-public class ReadAdaptorTrimmerIntegrationTest extends WalkerTest {
-    private String getBaseCommand(final String BAM) {
-        return  "-T ReadAdaptorTrimmer -R " + b37KGReference +
-                " -I " + privateTestDir + BAM +
-                " -o %s";
-    }
+public class BeagleCodecUnitTest {
 
     @Test
-    public void testBasicTrimmer() {
-        WalkerTestSpec spec = new WalkerTestSpec( getBaseCommand("shortInsertTest.bam"),  1, Arrays.asList("c7d7f69e6b532ec693bfbd821c2e9766"));
-        executeTest(String.format("testBasicTrimmer"), spec);
+    public void testCanDecode() {
+        final String EXTRA_CHAR = "1";
+        BeagleCodec codec = new BeagleCodec();
+        Assert.assertTrue(codec.canDecode("filename." + BeagleCodec.FILE_EXT));
+        Assert.assertTrue(codec.canDecode("filename" + EXTRA_CHAR + "." + BeagleCodec.FILE_EXT));
+        Assert.assertFalse(codec.canDecode("filename." + BeagleCodec.FILE_EXT + EXTRA_CHAR));
+        Assert.assertFalse(codec.canDecode("filename" + BeagleCodec.FILE_EXT));
     }
-
-    @Test
-    public void testSkippingBadPairs() {
-        WalkerTestSpec spec = new WalkerTestSpec( getBaseCommand("shortInsertTest2.bam")+" -removeUnpairedReads",  1, Arrays.asList("f7aa76d1a2535774764e06ba610c21de"));
-        executeTest(String.format("testSkippingBadPairs"), spec);
-    }
-
 }

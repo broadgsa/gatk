@@ -39,15 +39,15 @@ public class CramIntegrationTest extends WalkerTest {
     @DataProvider(name="cramData")
     public Object[][] getCRAMData() {
         return new Object[][] {
-                {"PrintReads", "exampleBAM.bam", "", "cram", "fc6e3919a8a34266c89ef66e97ceaba9"},
-                {"PrintReads", "exampleCRAM.cram", "", "cram", "fc6e3919a8a34266c89ef66e97ceaba9"},
-                {"PrintReads", "exampleCRAM.cram", "", "bam", "d89efbc3bd867749a2864ebd2d2cd6e1"},
-                {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "072435e8272411c31b2234f851706384"},
+                {"PrintReads", "exampleBAM.bam", "", "cram", "95cce9111a377d8e84fd076f7f0744df"},
+                {"PrintReads", "exampleCRAM.cram", "", "cram", "95cce9111a377d8e84fd076f7f0744df"},
+                {"PrintReads", "exampleCRAM.cram", "", "bam", "7c716d5103c20e95a8115b3c2848bf0d"},
+                {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "5cc9cac96f7f9819688d47a28ed97778"},
                 {"CountLoci", "exampleCRAM.cram", "", "txt", "ade93df31a6150321c1067e749cae9be"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
                 {"CountReads", "exampleCRAM.cram", "", "txt", "4fbafd6948b6529caa2b78e476359875"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
-                {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "9598062587ad8d2ec596a8ecb19be979"},
+                {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "2e1b175c9b36154e2bbd1a23ebaf4c22"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
         };

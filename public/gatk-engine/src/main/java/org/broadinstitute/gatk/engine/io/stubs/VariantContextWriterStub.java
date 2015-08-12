@@ -246,6 +246,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         setWriteFullFormatField(argumentCollection.neverTrimVCFFormatField);
     }
 
+    @Override
     public void writeHeader(VCFHeader header) {
         vcfHeader = header;
 
@@ -274,6 +275,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     /**
      * @{inheritDoc}
      */
+    @Override
     public void close() {
         outputTracker.getStorage(this).close();
     }
@@ -299,5 +301,13 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
                 ! isCompressed() && // for non-compressed outputs
                 getOutputFile() != null && // that are going to disk
                 engine.getArguments().generateShadowBCF; // and we actually want to do it
+    }
+
+    /**
+     * Check the return from PrintStream.checkError() if underlying stream for a java.io.PrintStream
+     * @return true if PrintStream.checkError() returned true, false otherwise
+     */
+    public boolean checkError(){
+        return genotypeStream.checkError();
     }
 }

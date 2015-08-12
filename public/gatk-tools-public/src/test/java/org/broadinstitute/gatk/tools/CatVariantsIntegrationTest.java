@@ -91,25 +91,25 @@ public class CatVariantsIntegrationTest {
         final File catVariantsTempList1 = BaseTest.createTempListFile("CatVariantsTest1", CatVariantsVcf1.getAbsolutePath());
         final File catVariantsTempList2 = BaseTest.createTempListFile("CatVariantsTest2", CatVariantsVcf2.getAbsolutePath());
 
-        new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
+        new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "2a82e959b3b07b461d64bd5ed7298aa3");
 
         for (String extension1 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
             for (String extension2 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
                 final File file1 = new File(CatVariantsDir, "CatVariantsTest1.vcf" + extension1);
                 final File file2 = new File(CatVariantsDir, "CatVariantsTest2.vcf" + extension2);
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "33f728ac5c70ce2994f3619a27f47088");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "2a82e959b3b07b461d64bd5ed7298aa3");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "3beb2c58fb795fcdc485de9868eda576");
             }
-            new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "33f728ac5c70ce2994f3619a27f47088");
-            new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "f1a55575f59707f80b8c17e2591fbf53");
+            new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "3beb2c58fb795fcdc485de9868eda576");
+            new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "b9f31b6a00226c58181c19d421503693");
         }
 
         //Test list parsing functionality
-        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
 
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
     }
@@ -130,7 +130,7 @@ public class CatVariantsIntegrationTest {
 
     @DataProvider(name = "SortOrderTest")
     public Object[][] makeSortOrderTestProvider() {
-        new CatVariantsTestProvider(CatVariantsVcf3, CatVariantsVcf4, BaseTest.createTempFile("CatVariantsSortOrderTest", ".vcf"), "7bfe34c78b9f1b56a28cc33262cdfd97");
+        new CatVariantsTestProvider(CatVariantsVcf3, CatVariantsVcf4, BaseTest.createTempFile("CatVariantsSortOrderTest", ".vcf"), "fb0b4ebe98ca23862b45fcd672fbfc3e");
 
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
     }

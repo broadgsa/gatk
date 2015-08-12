@@ -77,6 +77,8 @@ public class RawHapMapCodec extends AsciiFeatureCodec<RawHapMapFeature> {
     private static final int minimumFeatureCount = 11;
 
     private String headerLine;
+    // codec file extension
+    protected static final String FILE_EXT = "hapmap";
 
     public RawHapMapCodec() {
         super(RawHapMapFeature.class);
@@ -109,6 +111,14 @@ public class RawHapMapCodec extends AsciiFeatureCodec<RawHapMapFeature> {
                 Arrays.copyOfRange(array,11,array.length),
                 headerLine);
     }
+
+    /**
+     * Can the file be decoded?
+     * @param path path the file to test for parsability with this codec
+     * @return true if the path has the correct file extension, false otherwise
+     */
+    @Override
+    public boolean canDecode(final String path) { return path.endsWith("." + FILE_EXT); }
 
     @Override
     public Object readActualHeader(final LineIterator lineIterator) {
