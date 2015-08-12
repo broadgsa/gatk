@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>1.138</htsjdk.version>
-        <picard.version>1.138</picard.version>
+        <htsjdk.version>1.139</htsjdk.version>
+        <picard.version>1.139</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -717,6 +717,17 @@
             <id>gatk.public.repo.local</id>
             <name>GATK Public Local Repository</name>
             <url>file:${gatk.basedir}/public/repo</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>broad.artifactory.snapshots</id>
+            <name>Broad Institute Artifactory SNAPSHOTs</name>
+            <url>https://artifactory.broadinstitute.org/artifactory/libs-snapshot</url>
         </repository>
     </repositories>
 

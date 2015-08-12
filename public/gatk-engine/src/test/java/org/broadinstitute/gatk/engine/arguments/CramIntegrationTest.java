@@ -50,11 +50,14 @@ public class CramIntegrationTest extends WalkerTest {
                 {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "2e1b175c9b36154e2bbd1a23ebaf4c22"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
+                {"PrintReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "bam", "2e1b175c9b36154e2bbd1a23ebaf4c22"},
+                {"CountLoci", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
+                {"CountReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
         };
     }
 
     @Test(dataProvider = "cramData")
-    public void testCRAM(String walker, String input, String args, String ext, String md5) {
+    public void testCram(String walker, String input, String args, String ext, String md5) {
         WalkerTestSpec spec = new WalkerTestSpec(
                 " -T Test" + walker + "Walker" +
                     " -I " + publicTestDir + input +
@@ -64,25 +67,24 @@ public class CramIntegrationTest extends WalkerTest {
                 1, // just one output file
                 Collections.singletonList(ext),
                 Collections.singletonList(md5));
-        executeTest(String.format("testCRAM %s %s -> %s: %s", walker, input, ext, args), spec);
+        executeTest(String.format("testCram %s %s -> %s: %s", walker, input, ext, args), spec);
     }
 
-    @DataProvider(name = "cramNoBaiData")
-    public Object[][] getCRAMNoBaiData() {
+    @DataProvider(name = "cramNoIndexData")
+    public Object[][] getCramNoIndexData() {
         return new Object[][]{
                 {"exampleCRAM-nobai-nocrai.cram"},
-                {"exampleCRAM-nobai-withcrai.cram"},
         };
     }
 
-    @Test(dataProvider = "cramNoBaiData")
-    public void testCRAMNoBai(String input) {
+    @Test(dataProvider = "cramNoIndexData")
+    public void testCramNoIndex(String input) {
         WalkerTestSpec spec = new WalkerTestSpec(
                 " -T TestPrintReadsWalker" +
                         " -I " + publicTestDir + input +
                         " -R " + exampleFASTA,
                 0,
                 UserException.class);
-        executeTest(String.format("testCRAMNoBai %s", input), spec);
+        executeTest(String.format("testCramNoIndex %s", input), spec);
     }
 }

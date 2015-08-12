@@ -52,14 +52,19 @@ public class GATKBAMIndexUnitTest extends BaseTest {
      */
     private GATKBAMIndex bamIndex;
 
-    
+    /**
+     * Sequences.
+     */
+    private SAMSequenceDictionary sequenceDictionary;
+
+
     @BeforeClass
     public void init() throws FileNotFoundException {
         SAMFileReader reader = new SAMFileReader(bamFile);
-        SAMSequenceDictionary sequenceDictionary = reader.getFileHeader().getSequenceDictionary();
+        this.sequenceDictionary = reader.getFileHeader().getSequenceDictionary();
         reader.close();
         
-        bamIndex = new GATKBAMIndex(bamIndexFile);
+        bamIndex = new GATKBAMIndex(bamIndexFile, sequenceDictionary);
     }
 
     @Test
@@ -95,13 +100,13 @@ public class GATKBAMIndexUnitTest extends BaseTest {
 
     @Test( expectedExceptions = UserException.MalformedFile.class )
     public void testDetectTruncatedBamIndexWordBoundary() {
-        GATKBAMIndex index = new GATKBAMIndex(new File(privateTestDir + "truncated_at_word_boundary.bai"));
+        GATKBAMIndex index = new GATKBAMIndex(new File(privateTestDir + "truncated_at_word_boundary.bai"), sequenceDictionary);
         index.readReferenceSequence(0);
     }
 
     @Test( expectedExceptions = UserException.MalformedFile.class )
     public void testDetectTruncatedBamIndexNonWordBoundary() {
-        GATKBAMIndex index = new GATKBAMIndex(new File(privateTestDir + "truncated_at_non_word_boundary.bai"));
+        GATKBAMIndex index = new GATKBAMIndex(new File(privateTestDir + "truncated_at_non_word_boundary.bai"), sequenceDictionary);
         index.readReferenceSequence(0);
     }
 

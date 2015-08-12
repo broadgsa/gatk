@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SamFileHeaderMerger;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.CloserUtil;
 import htsjdk.samtools.util.RuntimeIOException;
@@ -372,10 +373,19 @@ public class SAMDataSource {
             originalToMergedReadGroupMappings.put(id,mappingToMerged);
         }
 
+        final SAMSequenceDictionary samSequenceDictionary;
+        if (referenceFile == null) {
+            samSequenceDictionary = mergedHeader.getSequenceDictionary();
+        } else {
+            samSequenceDictionary = ReferenceSequenceFileFactory.
+                    getReferenceSequenceFile(referenceFile).
+                    getSequenceDictionary();
+        }
+
         for(SAMReaderID id: readerIDs) {
             File indexFile = findIndexFile(id.getSamFile());
             if(indexFile != null)
-                bamIndices.put(id,new GATKBAMIndex(indexFile));
+                bamIndices.put(id,new GATKBAMIndex(indexFile, samSequenceDictionary));
         }
 
         resourcePool.releaseReaders(readers);
