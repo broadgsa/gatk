@@ -48,21 +48,6 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testAllIntervalsImplicit",spec);
     }
 
-// '-L all' is no longer supported
-//    @Test(enabled = true)
-//    public void testAllExplicitIntervalParsing() {
-//        String md5 = "7821db9e14d4f8e07029ff1959cd5a99";
-//        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-//                "-T TestCountLociWalker" +
-//                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
-//                        " -R " + hg18Reference +
-//                        " -L all" +
-//                        " -o %s",
-//                        1, // just one output file
-//                        Arrays.asList(md5));
-//        executeTest("testAllIntervalsExplicit",spec);
-//    }
-
     @Test
     public void testUnmappedReadInclusion() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -77,7 +62,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("95e98192e5b90cf80eaa87a4ace263da",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("c66bb2c3c5382e2acff09b2b359562bb",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("fadcdf88597b9609c5f2a17f4c6eb455", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
         executeTest("testUnmappedReadInclusion",spec);
@@ -103,7 +88,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadInclusion", ".cram");
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("36b3dfdcc3a5ab4e240a6e3237101489", createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("0f11cc035455cd68fb388e33aaf5feff", createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("ebbe6e311b6bb240554ec96ed9809216", createTempFileFromBase(baseOutputFile.getAbsolutePath() + ".bai"));
 
         executeTest("testUnmappedReadInclusionCRAM", spec);
@@ -124,7 +109,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("3944b5a6bfc06277ed3afb928a20d588",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("c64cff3ed376bc8f2977078dbdac4518",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("fa90ff91ac0cc689c71a3460a3530b8b", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
         executeTest("testUnmappedReadInclusion",spec);

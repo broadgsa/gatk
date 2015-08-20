@@ -128,6 +128,9 @@ public class SAMPileupCodec extends AsciiFeatureCodec<SAMPileupFeature> {
     private static final String baseT = "T";
     private static final String emptyStr = ""; // we will use this for "reference" allele in insertions
 
+    // codec file extension
+    protected static final String FILE_EXT = "samp";
+
     public SAMPileupCodec() {
         super(SAMPileupFeature.class);
     }
@@ -239,6 +242,14 @@ public class SAMPileupCodec extends AsciiFeatureCodec<SAMPileupFeature> {
         }
         return feature;
     }
+
+    /**
+     * Can the file be decoded?
+     * @param path path the file to test for parsability with this codec
+     * @return true if the path has the correct file extension, false otherwise
+     */
+    @Override
+    public boolean canDecode(final String path) { return path.endsWith("." + FILE_EXT); }
 
     @Override
     public Object readActualHeader(LineIterator lineIterator) {

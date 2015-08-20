@@ -142,13 +142,23 @@ public class HapMapUnitTest extends BaseTest {
             codec.readHeader(reader);
             line = reader.next();
             RawHapMapFeature feature = (RawHapMapFeature) codec.decode(line);
-            Assert.assertEquals(feature.getSampleIDs().length,87);
+            Assert.assertEquals(feature.getSampleIDs().length, 87);
 
         } catch (IOException e) {
             Assert.fail("IOException " + e.getMessage());
         } finally {
             codec.close(reader);
         }
+    }
+
+    @Test
+    public void testCanDecode() {
+        final String EXTRA_CHAR = "1";
+        RawHapMapCodec codec = new RawHapMapCodec();
+        Assert.assertTrue(codec.canDecode("filename." + RawHapMapCodec.FILE_EXT));
+        Assert.assertTrue(codec.canDecode("filename" + EXTRA_CHAR + "." + RawHapMapCodec.FILE_EXT));
+        Assert.assertFalse(codec.canDecode("filename." + RawHapMapCodec.FILE_EXT + EXTRA_CHAR));
+        Assert.assertFalse(codec.canDecode("filename" + RawHapMapCodec.FILE_EXT));
     }
 
 

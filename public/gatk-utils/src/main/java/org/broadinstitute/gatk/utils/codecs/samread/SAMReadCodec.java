@@ -57,6 +57,8 @@ public class SAMReadCodec extends AsciiFeatureCodec<SAMReadFeature> {
 
     // the number of tokens we expect to parse from a read line
     private static final int expectedTokenCount = 11;
+    // codec file extension
+    protected static final String FILE_EXT = "samr";
 
     public SAMReadCodec() {
         super(SAMReadFeature.class);
@@ -67,6 +69,7 @@ public class SAMReadCodec extends AsciiFeatureCodec<SAMReadFeature> {
      * @param line line to decode.
      * @return A SAMReadFeature modeling that line.
      */
+    @Override
     public SAMReadFeature decode(String line) {
         // we may be asked to process a header line; ignore it
         if (line.startsWith("@")) return null;        
@@ -114,6 +117,14 @@ public class SAMReadCodec extends AsciiFeatureCodec<SAMReadFeature> {
                                   bases,
                                   qualities);
     }
+
+    /**
+     * Can the file be decoded?
+     * @param path path the file to test for parsability with this codec
+     * @return true if the path has the correct file extension, false otherwise
+     */
+    @Override
+    public boolean canDecode(final String path) { return path.endsWith("." + FILE_EXT); }
 
     @Override
     public Object readActualHeader(LineIterator lineIterator) {
