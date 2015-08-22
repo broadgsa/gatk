@@ -1021,7 +1021,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         final VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         // if there are fewer alternate alleles now in the selected VC, we need to fix the PL and AD values
-        GenotypesContext newGC = GATKVariantContextUtils.updatePLsAndAD(sub, vc);
+        GenotypesContext newGC = GATKVariantContextUtils.updatePLsSACsAD(sub, vc);
 
         // since the VC has been subset (either by sample or allele), we need to strip out the MLE tags
         builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY);
