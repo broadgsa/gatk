@@ -333,7 +333,26 @@ public class GATKArgumentCollection {
      * Any value greater than zero will be used to recalculate the quantization using that many levels.
      * Negative values mean that we should quantize using the recalibration report's quantization level.
      */
+
+
+    /**
+     * Static quantized quals are entirely separate from the quantize_qual option which uses dynamic binning.
+     * The two types of binning should not be used together.
+     */
     @Advanced
+    @Argument(fullName="static_quantized_quals", shortName = "SQQ", doc = "Use static quantized quality scores to a given number of levels (with -BQSR)", required=false,  exclusiveOf = "quantize_quals", minValue = QualityUtils.MIN_USABLE_Q_SCORE, maxValue = QualityUtils.MAX_QUAL)
+    public List<Integer> staticQuantizationQuals = null;
+
+    /**
+     * Round down quantized only works with the static_quantized_quals option, and should not be used with
+     * the dynamic binning option provided by quantize_quals.  When roundDown = false, rounding is done in
+     * probability space to the nearest bin.  When roundDown = true, the value is rounded to the nearest bin
+     * that is smaller than the current bin.
+     */
+    @Advanced
+    @Argument(fullName="round_down_quantized", shortName = "RDQ", doc = "Round quals down to nearest quantized qual", required=false, exclusiveOf="quantize_quals")
+    public boolean roundDown = false;
+
     @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
     public int quantizationLevels = 0;
 
