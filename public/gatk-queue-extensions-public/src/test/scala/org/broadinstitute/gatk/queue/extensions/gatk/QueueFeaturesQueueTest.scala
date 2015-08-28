@@ -43,7 +43,7 @@ class QueueFeaturesQueueTest {
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM_with_unmapped.bam",
       " -out " + testOut).mkString
-    spec.fileMD5s += testOut -> "c7f086293509b1c506f7a25b13754637"
+    spec.fileMD5s += testOut -> "4ddbae75782f34244612d28b3542f2ad"
     QueueTest.executeTest(spec)
 
     //Second case: When intervals are explicitly provided, unmapped reads should not be included
@@ -56,7 +56,7 @@ class QueueFeaturesQueueTest {
       " -I " + BaseTest.publicTestDir + "exampleBAM_with_unmapped.bam",
       " -L chr1",
       " -out " + testOut2).mkString
-    spec2.fileMD5s += testOut2 -> "44bda07e3421a79c56213900ad3f7d7c"
+    spec2.fileMD5s += testOut2 -> "b3e92a9ed0f420ddfa87e93a9120251a"
     QueueTest.executeTest(spec2)
   }
 
