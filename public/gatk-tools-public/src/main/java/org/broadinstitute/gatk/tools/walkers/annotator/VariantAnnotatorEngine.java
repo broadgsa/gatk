@@ -197,23 +197,23 @@ public class VariantAnnotatorEngine {
                                           final Map<String, AlignmentContext> stratifiedContexts,
                                           final VariantContext vc,
                                           final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
-        final Map<String, Object> infoAnnotations = new LinkedHashMap<>(vc.getAttributes());
+        // annotate genotypes
+        final VariantContextBuilder builder = new VariantContextBuilder(vc).genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap));
+        VariantContext newGenotypeAnnotatedVC = builder.make();
 
         // annotate expressions where available
-        annotateExpressions(tracker, ref.getLocus(), vc, infoAnnotations);
+        final Map<String, Object> infoAnnotations = new LinkedHashMap<>(newGenotypeAnnotatedVC.getAttributes());
+        annotateExpressions(tracker, ref.getLocus(), newGenotypeAnnotatedVC, infoAnnotations);
 
         // go through all the requested info annotationTypes
         for ( final InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap);
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, newGenotypeAnnotatedVC, perReadAlleleLikelihoodMap);
             if ( annotationsFromCurrentType != null )
                 infoAnnotations.putAll(annotationsFromCurrentType);
         }
 
-        // generate a new annotated VC
-        final VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
-
-        // annotate genotypes, creating another new VC in the process
-        final VariantContext annotated = builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap)).make();
+        // create a new VC in the with info and genotype annotations
+        final VariantContext annotated = builder.attributes(infoAnnotations).make();
 
         // annotate db occurrences
         return annotateDBs(tracker, annotated);
@@ -234,24 +234,25 @@ public class VariantAnnotatorEngine {
                                                          final RefMetaDataTracker tracker,
                                                          final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap,
                                                          final VariantContext vc) {
-        final Map<String, Object> infoAnnotations = new LinkedHashMap<>(vc.getAttributes());
+        // annotate genotypes
+        final VariantContextBuilder builder = new VariantContextBuilder(vc).genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap));
+        VariantContext newGenotypeAnnotatedVC = builder.make();
+
+        final Map<String, Object> infoAnnotations = new LinkedHashMap<>(newGenotypeAnnotatedVC.getAttributes());
 
         // go through all the requested info annotationTypes
         for ( final InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
             if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
                 continue;
 
-            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(referenceContext, perReadAlleleLikelihoodMap, vc);
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(referenceContext, perReadAlleleLikelihoodMap, newGenotypeAnnotatedVC);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
             }
         }
 
-        // generate a new annotated VC
-        final VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
-
-        // annotate genotypes, creating another new VC in the process
-        final VariantContext annotated = builder.genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap)).make();
+        // create a new VC with info and genotype annotations
+        final VariantContext annotated = builder.attributes(infoAnnotations).make();
 
         // annotate db occurrences
         return annotateDBs(tracker, annotated);
