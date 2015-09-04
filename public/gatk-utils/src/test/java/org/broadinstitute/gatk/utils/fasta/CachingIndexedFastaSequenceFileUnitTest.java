@@ -236,7 +236,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     @Test(enabled = true)
     public void testIupacChanges() throws FileNotFoundException, InterruptedException {
         final String testFasta = privateTestDir + "iupacFASTA.fasta";
-        final CachingIndexedFastaSequenceFile iupacPreserving = new CachingIndexedFastaSequenceFile(new File(testFasta), CachingIndexedFastaSequenceFile.DEFAULT_CACHE_SIZE, false, true);
+        final CachingIndexedFastaSequenceFile iupacPreserving = new CachingIndexedFastaSequenceFile(new File(testFasta), false, true);
         final CachingIndexedFastaSequenceFile makeNs = new CachingIndexedFastaSequenceFile(new File(testFasta));
 
         int preservingNs = 0;

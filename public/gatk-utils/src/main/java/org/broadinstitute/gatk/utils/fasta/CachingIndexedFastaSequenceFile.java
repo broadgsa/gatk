@@ -125,8 +125,9 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param fasta The file to open.
      * @param cacheSize the size of the cache to use in this CachingIndexedFastaReader, must be >= 0
      * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
+     * @param preserveIUPAC If true, we will keep the IUPAC bases in the FASTA, otherwise they are converted to Ns
      */
-    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize, final boolean preserveCase, final boolean  preserveIUPAC) throws FileNotFoundException {
+    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize, final boolean preserveCase, final boolean preserveIUPAC) throws FileNotFoundException {
         super(fasta);
         if ( cacheSize < 0 ) throw new IllegalArgumentException("cacheSize must be > 0");
         this.cacheSize = cacheSize;
@@ -170,6 +171,19 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      */
     public CachingIndexedFastaSequenceFile(final File fasta, final boolean preserveCase) throws FileNotFoundException {
         this(fasta, DEFAULT_CACHE_SIZE, preserveCase, false);
+    }
+
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     *
+     * Looks for a index file for fasta on disk
+     *
+     * @param fasta The file to open.
+     * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
+     * @param preserveIUPAC If true, we will keep the IUPAC bases in the FASTA, otherwise they are converted to Ns
+     */
+    public CachingIndexedFastaSequenceFile(final File fasta, final boolean preserveCase, final boolean preserveIUPAC) throws FileNotFoundException {
+        this(fasta, DEFAULT_CACHE_SIZE, preserveCase, preserveIUPAC);
     }
 
     /**
