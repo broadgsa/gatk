@@ -234,7 +234,9 @@ public class Sample implements Comparable<Sample> { // implements java.io.Serial
                 return o1; // keep o1, since it's a real value
             else {
                 // both o1 and o2 have a value
-                if ( o1 == o2 )
+                if ( o1 instanceof String && o1.equals(o2) )
+                    return o1;
+                else if ( o1 == o2 )
                     return o1;
                 else
                     throw new UserException("Inconsistent values detected for " + name + " for field " + field + " value1 " + o1 + " value2 " + o2);
