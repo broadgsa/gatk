@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.tools.walkers.filters;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
@@ -51,7 +51,7 @@ public class VariantFiltrationUnitTest extends BaseTest {
     @BeforeTest
     public void before() {
         // Create GenomeLoc
-        IndexedFastaSequenceFile fasta = CachingIndexedFastaSequenceFile.checkAndCreate(new File(privateTestDir + "iupacFASTA.fasta"));
+        ReferenceSequenceFile fasta = CachingIndexedFastaSequenceFile.checkAndCreate(new File(privateTestDir + "iupacFASTA.fasta"));
         GenomeLocParser genomeLocParser = new GenomeLocParser(fasta);
         chr1 = fasta.getSequenceDictionary().getSequence(0).getSequenceName();
         genomeLoc = genomeLocParser.createGenomeLoc(chr1, 5, 10);

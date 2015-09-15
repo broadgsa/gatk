@@ -418,6 +418,7 @@
                             <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
+                        <groups>sra</groups>
                     </configuration>
                     <executions>
                         <execution>

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.rmd;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
@@ -46,7 +46,7 @@ public class ReferenceOrderedQueryDataPoolUnitTest extends BaseTest{
         // Build up query parameters
         File file = new File(BaseTest.privateTestDir + "NA12878.hg19.example1.vcf");
         RMDTriplet triplet = new RMDTriplet("test", "VCF", file.getAbsolutePath(), RMDTriplet.RMDStorageType.FILE, new Tags());
-        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
+        ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
         GenomeLocParser parser = new GenomeLocParser(seq);
         GenomeLoc loc = parser.createGenomeLoc("20", 1, 100000);
         TestRMDTrackBuilder builder = new TestRMDTrackBuilder(seq.getSequenceDictionary(), parser);

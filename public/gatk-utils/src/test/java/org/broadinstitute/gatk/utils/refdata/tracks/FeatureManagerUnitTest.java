@@ -25,8 +25,7 @@
 
 package org.broadinstitute.gatk.utils.refdata.tracks;
 
-
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.FeatureCodec;
 import org.broadinstitute.gatk.utils.BaseTest;
@@ -66,7 +65,7 @@ public class FeatureManagerUnitTest extends BaseTest {
     public void setup() {
         File referenceFile = new File(b36KGReference);
         try {
-            IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(referenceFile);
+            final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(referenceFile);
             genomeLocParser = new GenomeLocParser(seq);
             manager = new FeatureManager();
         }

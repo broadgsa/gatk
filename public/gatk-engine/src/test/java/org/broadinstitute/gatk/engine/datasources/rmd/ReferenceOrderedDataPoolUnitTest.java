@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.rmd;
 
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.utils.refdata.tracks.RMDTrackBuilder;
 import org.testng.Assert;
@@ -68,7 +69,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
     private RMDTriplet triplet = null;
     private RMDTrackBuilder builder = null;
 
-    private IndexedFastaSequenceFile seq;
+    private ReferenceSequenceFile seq;
     private GenomeLocParser genomeLocParser;
 
     private GenomeLoc testSite1;

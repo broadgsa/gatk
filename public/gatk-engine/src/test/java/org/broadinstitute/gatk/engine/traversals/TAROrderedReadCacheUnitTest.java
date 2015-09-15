@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.traversals;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.sam.ArtificialBAMBuilder;
@@ -43,7 +43,7 @@ import java.util.List;
 
 public class TAROrderedReadCacheUnitTest extends BaseTest {
     // example fasta index file, can be deleted if you don't use the reference
-    private IndexedFastaSequenceFile seq;
+    private ReferenceSequenceFile seq;
 
     @BeforeClass
     public void setup() throws FileNotFoundException {

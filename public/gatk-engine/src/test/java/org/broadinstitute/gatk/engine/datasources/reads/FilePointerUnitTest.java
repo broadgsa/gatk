@@ -25,9 +25,9 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.GATKBAMFileSpan;
 import htsjdk.samtools.GATKChunk;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
@@ -45,7 +45,7 @@ import java.io.FileNotFoundException;
  *
  */
 public class FilePointerUnitTest extends BaseTest {
-    private IndexedFastaSequenceFile seq;
+    private ReferenceSequenceFile seq;
     private GenomeLocParser genomeLocParser;
     private SAMReaderID readerID = new SAMReaderID("samFile",new Tags());
 

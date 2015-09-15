@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.traversals;
 
 import com.google.java.contract.PreconditionError;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.*;
@@ -39,7 +40,6 @@ import org.broadinstitute.gatk.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 import org.broadinstitute.gatk.utils.sam.*;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.datasources.providers.LocusShardDataProvider;
@@ -80,7 +80,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     }
 
     private File referenceFile;
-    private IndexedFastaSequenceFile reference;
+    private ReferenceSequenceFile reference;
     private SAMSequenceDictionary dictionary;
     private GenomeLocParser genomeLocParser;
 

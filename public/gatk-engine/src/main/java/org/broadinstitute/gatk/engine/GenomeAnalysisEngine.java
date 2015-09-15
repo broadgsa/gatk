@@ -905,7 +905,7 @@ public class GenomeAnalysisEngine {
      * @return A data source for the given set of reads.
      */
     private SAMDataSource createReadsDataSource(final GATKArgumentCollection argCollection, final GenomeLocParser genomeLocParser,
-                                                final IndexedFastaSequenceFile refReader, final Map<String, String> sampleRenameMap) {
+                                                final ReferenceSequenceFile refReader, final Map<String, String> sampleRenameMap) {
         DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when

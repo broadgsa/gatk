@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.utils;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
@@ -36,7 +36,7 @@ import java.io.File;
  * Caliper microbenchmark of genome loc parser
  */
 public class GenomeLocParserBenchmark extends SimpleBenchmark {
-    private IndexedFastaSequenceFile seq;
+    private ReferenceSequenceFile seq;
     private final int ITERATIONS = 1000000;
 
     @Param({"NEW", "NONE"})
