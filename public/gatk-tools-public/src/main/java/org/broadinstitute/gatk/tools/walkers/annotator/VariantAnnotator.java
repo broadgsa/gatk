@@ -68,7 +68,10 @@ import java.util.*;
  * An annotated VCF.
  * </p>
  *
- * <h3>Usage example</h3>
+ * <h3>Usage examples</h3>
+ * <br />
+ *
+ * <h4>Annotate a VCF with dbSNP IDs and depth of coverage for each sample</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -R reference.fasta \
@@ -81,6 +84,19 @@ import java.util.*;
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
+ * <h4>Annotate a VCF with allele frequency by an external resource. Annotation will only occur if there is allele concordance between the resource and the input VCF </h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
+ *   -T VariantAnnotator \
+ *   -I input.bam \
+ *   -o output.vcf \
+ *   -V input.vcf \
+ *   -L input.vcf \
+ *   --resource:foo resource.vcf
+ *   -E foo.AF
+ *   --resourceAlleleConcordance
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Requires(value={})
@@ -127,7 +143,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
       * '-E my_resource.AC' (-E is short for --expression, also documented on this page). In the resulting output
       * VCF, any records for which there is a record at the same position in the resource file will be annotated with
       * 'my_resource.AC=N'. Note that if there are multiple records in the resource file that overlap the given
-      * position, one is chosen randomly. Note also that this does not currently check for allele concordance;
+      * position, one is chosen randomly. Check for allele concordance if using --resourceAlleleConcordance, otherwise
       * the match is based on position only.
       */
     @Input(fullName="resource", shortName = "resource", doc="External resource VCF file", required=false)
@@ -170,6 +186,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls", required=false)
     protected Set<String> expressionsToUse = new ObjectOpenHashSet();
+
+    /**
+     * If this argument is specified, add annotations (specified by --expression) from an external resource
+     * (specified by --resource) to the input VCF (specified by --variant) only if the alleles are
+     * concordant between input and the resource VCFs. Otherwise, always add the annotations.
+     */
+    @Argument(fullName="resourceAlleleConcordance", shortName="rac", doc="Check for allele concordances when using an external resource VCF file", required=false)
+    protected Boolean expressionAlleleConcordance = false;
 
     /**
      * You can use the -XL argument in combination with this one to exclude specific annotations.Note that some
@@ -227,6 +251,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         else
             engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, annotationsToExclude, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
+        engine.setExpressionAlleleConcordance(expressionAlleleConcordance);
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones
