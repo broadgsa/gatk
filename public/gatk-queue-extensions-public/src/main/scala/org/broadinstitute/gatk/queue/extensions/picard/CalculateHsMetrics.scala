@@ -58,11 +58,15 @@ class CalculateHsMetrics extends org.broadinstitute.gatk.queue.function.JavaComm
   @Argument(doc="The level(s) at which to accumulate metrics. Possible values: {ALL_READS, SAMPLE, LIBRARY, READ_GROUP} This option may be specified 0 or more times.", shortName = "level", fullName = "metric_accumulation_level", required = false)
   var level: Seq[picard.analysis.MetricAccumulationLevel] = Seq(MetricAccumulationLevel.SAMPLE)
 
+  @Argument(doc="Optional file to output per-target coverage", shortName = "coverage", fullName = "per_target_coverage", required = false)
+  var perTargetCoverage: File = _
+
   override def inputBams = input
   override def outputFile = output
   override def commandLine = super.commandLine +
     required("BAIT_INTERVALS=" + baits) +
     required("TARGET_INTERVALS=" + targets) +
     required("REFERENCE_SEQUENCE=" + reference) +
-    repeat("METRIC_ACCUMULATION_LEVEL=", level, spaceSeparated=false, escape=true, format="%s")
+    repeat("METRIC_ACCUMULATION_LEVEL=", level, spaceSeparated=false, escape=true, format="%s") +
+    optional("PER_TARGET_COVERAGE=", perTargetCoverage, spaceSeparated = false)
 }
