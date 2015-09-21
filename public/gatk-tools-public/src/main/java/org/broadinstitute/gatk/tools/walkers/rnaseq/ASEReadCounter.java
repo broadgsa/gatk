@@ -27,8 +27,6 @@ package org.broadinstitute.gatk.tools.walkers.rnaseq;
 
 import htsjdk.variant.variantcontext.VariantContext;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.filters.DuplicateReadFilter;
-import org.broadinstitute.gatk.engine.walkers.DisabledReadFilters;
 import org.broadinstitute.gatk.engine.walkers.Downsample;
 import org.broadinstitute.gatk.engine.walkers.LocusWalker;
 import org.broadinstitute.gatk.tools.walkers.coverage.CoverageUtils;
@@ -87,8 +85,8 @@ import java.util.List;
  * <h3>Note</h3>
  * <ul>
  *     <li>Like most GATK tools, this tools filters out duplicate reads by default. However, some ASE methods
- *     recommend including duplicate reads in the analysis, so the DuplicateReads filter can be disabled using the
- *     "-drf DuplicateReads" flag in the command-line.</li>
+ *     recommend including duplicate reads in the analysis, so the DuplicateRead filter can be disabled using the
+ *     "-drf DuplicateRead" flag in the command-line.</li>
  * </ul>
  * <h3>Caveat</h3>
  * <ul>
