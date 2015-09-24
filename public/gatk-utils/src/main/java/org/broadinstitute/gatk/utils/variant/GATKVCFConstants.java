@@ -112,6 +112,7 @@ public final class GATKVCFConstants {
     //FORMAT keys
     public static final String ALLELE_BALANCE_KEY =                 "AB";
     public static final String ALLELE_FRACTION_KEY =                "AF"; //M2
+    public static final String BASE_COUNTS_BY_SAMPLE_KEY =          "BCS";
     public static final String PL_FOR_ALL_SNP_ALLELES_KEY =         "APL";
     public static final String RBP_HAPLOTYPE_KEY =                  "HP"; //ReadBackedPhasing
     public static final String AVG_INTERVAL_DP_BY_SAMPLE_KEY =      "IDP"; //DiagnoseTargets
