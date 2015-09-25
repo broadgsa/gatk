@@ -97,6 +97,19 @@ import java.util.*;
  *   -E foo.AF
  *   --resourceAlleleConcordance
  * </pre>
+ *
+ * <h4>Annotate with AF and FILTER fields from an external resource </h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
+ *   -T VariantAnnotator \
+ *   -o output.vcf \
+ *   --resource:foo resource.vcf \
+ *   --expression foo.AF \
+ *   --expression foo.FILTER \
+ *   -V input.vcf \
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Requires(value={})
@@ -181,6 +194,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * 'resource_file.vcf', you tag it with '-resource:my_resource resource_file.vcf' (see the -resource argument, also
      * documented on this page) and you specify '-E my_resource.AC'. In the resulting output VCF, any records for
      * which there is a record at the same position in the resource file will be annotated with 'my_resource.AC=N'.
+     * INFO field data, ID, ALT, and FILTER fields may be used as expression values.
      * Note that if there are multiple records in the resource file that overlap the given position, one is chosen
      * randomly.
      */
