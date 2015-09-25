@@ -302,7 +302,7 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   --setFilteredGenotypesToNocall
+ *   --setFilteredGtToNocall
  * </pre>
  *
  */
