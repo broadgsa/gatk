@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.tools.walkers.filters;
 
 import com.google.common.annotations.VisibleForTesting;
 import htsjdk.tribble.Feature;
+import org.broadinstitute.gatk.engine.walkers.TreeReducible;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
@@ -97,7 +98,7 @@ import java.util.*;
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VAREVAL, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
-public class VariantFiltration extends RodWalker<Integer, Integer> {
+public class VariantFiltration extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
 
     // -----------------------------------------------------------------------------------------------
     // Arguments
@@ -232,7 +233,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     // -----------------------------------------------------------------------------------------------
     // public methods from base classes
     // -----------------------------------------------------------------------------------------------
-
+    @Override
     public void initialize() {
 
         if ( maskExtension < 0 ) {
@@ -262,6 +263,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
      * @param context  the context for the given locus
      * @return 1 if the locus was successfully processed, 0 otherwise
      */
+    @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null ) {
             return 0;
@@ -320,17 +322,25 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         return 1;
     }
 
+    @Override
+    public Integer reduceInit() { return 0; }
+
+    @Override
     public Integer reduce(Integer value, Integer sum) {
         return sum + value;
     }
 
-    public Integer reduceInit() { return 0; }
+    @Override
+    public Integer treeReduce( Integer value, Integer sum ) {
+        return reduce(value, sum);
+    }
 
     /**
      * Tell the user the number of loci processed and close out the new variants file.
      *
      * @param result  the number of loci seen.
      */
+    @Override
     public void onTraversalDone(Integer result) {
         // move the window over so that we can filter the last few variants
         if ( windowInitializer != null ) {
