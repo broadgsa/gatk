@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.queue.engine
 import java.io.File
 import org.broadinstitute.gatk.queue.QSettings
 import org.broadinstitute.gatk.queue.util.{EmailSettings, SystemUtils}
-import org.broadinstitute.gatk.utils.commandline.{Advanced, ArgumentCollection, Argument}
+import org.broadinstitute.gatk.utils.commandline.{ClassType, Advanced, ArgumentCollection, Argument}
 
 /**
  * Command line options for a QGraph.
@@ -81,8 +81,9 @@ class QGraphSettings {
   var disableJobReport: Boolean = false
 
   @Advanced
+  @ClassType(classOf[Int])
   @Argument(fullName="maximumNumberOfJobsToRunConcurrently", shortName="maxConcurrentRun", doc="The maximum number of jobs to start at any given time. (Default is no limit)", required=false)
-  var maximumNumberOfConcurrentJobs: Int = -1
+  var maximumNumberOfConcurrentJobs: Option[Int] = None
 
   @ArgumentCollection
   val emailSettings = new EmailSettings

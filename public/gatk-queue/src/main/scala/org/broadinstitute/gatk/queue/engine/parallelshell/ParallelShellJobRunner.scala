@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -63,7 +63,7 @@ class ParallelShellJobRunner(val function: CommandLineFunction) extends CommandL
     val commandLine = Array("sh", jobScript.getAbsolutePath)
     val stdoutSettings = new OutputStreamSettings
     val stderrSettings = new OutputStreamSettings
-    val mergeError = (function.jobErrorFile == null)
+    val mergeError = function.jobErrorFile == null
 
     stdoutSettings.setOutputFile(function.jobOutputFile, true)
     if (function.jobErrorFile != null)
@@ -90,25 +90,20 @@ class ParallelShellJobRunner(val function: CommandLineFunction) extends CommandL
 
     // Register a callback on the completion of the future, making sure that
     // the status of the job is updated accordingly. 
-    executedFuture.onComplete { tryExitStatus =>
-
-      tryExitStatus match {
-        case Success(exitStatus) => {
-          logger.debug(commandLine.mkString(" ") + " :: Got return on exit status in future: " + exitStatus)
-          finalExitStatus.success(exitStatus)
-          getRunInfo.doneTime = new Date()
-          exitStatusUpdateJobRunnerStatus(exitStatus)
-        }
-        case Failure(throwable) => {
-          logger.debug(
-            "Failed in return from run with: " +
-              throwable.getClass.getCanonicalName + " :: " +
-              throwable.getMessage)
-          finalExitStatus.failure(throwable)
-          getRunInfo.doneTime = new Date()
-          updateStatus(RunnerStatus.FAILED)
-        }
-      }
+    executedFuture.onComplete {
+      case Success(exitStatus) =>
+        logger.debug(commandLine.mkString(" ") + " :: Got return on exit status in future: " + exitStatus)
+        finalExitStatus.success(exitStatus)
+        getRunInfo.doneTime = new Date()
+        exitStatusUpdateJobRunnerStatus(exitStatus)
+      case Failure(throwable) =>
+        logger.debug(
+          "Failed in return from run with: " +
+            throwable.getClass.getCanonicalName + " :: " +
+            throwable.getMessage)
+        finalExitStatus.failure(throwable)
+        getRunInfo.doneTime = new Date()
+        updateStatus(RunnerStatus.FAILED)
     }
   }
 

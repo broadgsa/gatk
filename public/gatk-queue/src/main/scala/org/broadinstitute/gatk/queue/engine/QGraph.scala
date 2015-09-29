@@ -437,8 +437,8 @@ class QGraph extends Logging {
         def startJobs: Boolean = {
 
           def canRunMoreConcurrentJobs: Boolean =
-            if(settings.maximumNumberOfConcurrentJobs > 0)
-              runningJobs.size + startedJobs.size < settings.maximumNumberOfConcurrentJobs
+            if(settings.maximumNumberOfConcurrentJobs.isDefined)
+              runningJobs.size + startedJobs.size < settings.maximumNumberOfConcurrentJobs.get
             else
               true
 
