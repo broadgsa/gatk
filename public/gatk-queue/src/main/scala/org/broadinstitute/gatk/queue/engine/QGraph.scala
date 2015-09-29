@@ -434,7 +434,20 @@ class QGraph extends Logging {
         var doneJobs = Set.empty[FunctionEdge]
         var failedJobs = Set.empty[FunctionEdge]
 
-        while (running && readyJobs.size > 0 && !readyRunningCheck(lastRunningCheck)) {
+        def startJobs: Boolean = {
+
+          def canRunMoreConcurrentJobs: Boolean =
+            if(settings.maximumNumberOfConcurrentJobs.isDefined)
+              runningJobs.size + startedJobs.size < settings.maximumNumberOfConcurrentJobs.get
+            else
+              true
+
+          running && readyJobs.size > 0 &&
+            !readyRunningCheck(lastRunningCheck) &&
+            canRunMoreConcurrentJobs
+        }
+
+        while (startJobs) {
           val edge = readyJobs.head
           edge.runner = newRunner(edge.function)
           edge.start()

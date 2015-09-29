@@ -149,4 +149,23 @@ class HelloWorldQueueTest {
     spec.expectedFilePaths = Seq("pipelineLogDir/HelloWorld-1.out")
     QueueTest.executeTest(spec)
   }
+
+  @Test(timeOut=36000000)
+  def testHelloWorldParallelShell() {
+    val spec = new QueueTestSpec
+    spec.name = "HelloWorldWithLogDirectory"
+    spec.args = "-S " + QueueTest.publicQScriptsPackageDir + "examples/HelloWorld.scala"
+    spec.jobRunners = Seq("ParallelShell")
+    QueueTest.executeTest(spec)
+  }
+
+  @Test(timeOut=36000000)
+  def testHelloWorldParallelShellMaxConcurrentRun() {
+    val spec = new QueueTestSpec
+    spec.name = "HelloWorldWithLogDirectory"
+    spec.args = "-S " + QueueTest.publicQScriptsPackageDir + "examples/HelloWorld.scala" +
+      " -maxConcurrentRun 10"
+    spec.jobRunners = Seq("ParallelShell")
+    QueueTest.executeTest(spec)
+  }
 }
