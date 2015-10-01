@@ -32,6 +32,7 @@ import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.engine.walkers.*;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.*;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
@@ -39,7 +40,6 @@ import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.IntervalStratification;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager.StratificationManager;
@@ -609,7 +609,34 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
         for ( final EvaluationContext nec : stratManager.values() )
             for ( final VariantEvaluator ve : nec.getVariantEvaluators() )
                 ve.finalizeEvaluation();
-        
+
+        //send data to MetricsCollection
+        CompOverlap compOverlap = null;
+        IndelSummary indelSummary = null;
+        CountVariants countVariants = null;
+        MultiallelicSummary multiallelicSummary = null;
+        TiTvVariantEvaluator tiTvVariantEvaluator = null;
+        MetricsCollection metricsCollection = null;
+        for(final EvaluationContext nec: stratManager.values()) {
+            for(final VariantEvaluator ve : nec.getVariantEvaluators()) {
+                if (ve instanceof CompOverlap)
+                    compOverlap = (CompOverlap) ve;
+                else if (ve instanceof IndelSummary)
+                    indelSummary = (IndelSummary) ve;
+                else if (ve instanceof CountVariants)
+                    countVariants = (CountVariants) ve;
+                else if (ve instanceof MultiallelicSummary)
+                    multiallelicSummary = (MultiallelicSummary) ve;
+                else if (ve instanceof TiTvVariantEvaluator)
+                    tiTvVariantEvaluator = (TiTvVariantEvaluator) ve;
+                else if (ve instanceof MetricsCollection)
+                    metricsCollection = (MetricsCollection) ve;
+            }
+
+        if(metricsCollection != null)
+            metricsCollection.setData(compOverlap.concordantRate, indelSummary.n_SNPs, countVariants.nSNPs, indelSummary.n_indels, multiallelicSummary.nIndels, indelSummary.insertion_to_deletion_ratio, countVariants.insertionDeletionRatio, tiTvVariantEvaluator.tiTvRatio);
+        }
+
         VariantEvalReportWriter.writeReport(out, stratManager, stratManager.getStratifiers(), stratManager.get(0).getVariantEvaluators());
     }
 

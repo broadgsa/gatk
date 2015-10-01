@@ -176,6 +176,11 @@ public class VariantEvalUtils {
             }
         }
 
+        //add MetricsCollection if required modules are included
+
+        if(evals.contains(classMap.get("CompOverlap")) && evals.contains(classMap.get("IndelSummary")) && evals.contains(classMap.get("TiTvVariantEvaluator")) && evals.contains(classMap.get("CountVariants")) && evals.contains(classMap.get("MultiallelicSummary")) )
+            evals.add(classMap.get("MetricsCollection"));
+
         return evals;
     }
 
