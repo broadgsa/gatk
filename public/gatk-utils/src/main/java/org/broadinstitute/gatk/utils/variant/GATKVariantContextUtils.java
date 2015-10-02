@@ -1468,7 +1468,9 @@ public class GATKVariantContextUtils {
                     if ( extended.equals(b) )
                         extended = b;
                 map.put(a, extended);
-            } else if ( a.isSymbolic() ) {
+            }
+            // as long as it's not a reference allele then we want to add it as is (this covers e.g. symbolic and spanning deletion alleles)
+            else if ( !a.isReference() ) {
                 map.put(a, a);
             }
         }
@@ -1477,7 +1479,7 @@ public class GATKVariantContextUtils {
     }
 
     static private boolean isUsableAlternateAllele(final Allele allele) {
-        return ! (allele.isReference() || allele.isSymbolic() );
+        return ! (allele.isReference() || allele.isSymbolic() || allele == Allele.SPAN_DEL );
     }
 
     public static List<VariantContext> sortVariantContextsByPriority(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs, GenotypeMergeType mergeOption ) {
