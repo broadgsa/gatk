@@ -29,7 +29,6 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.*;
-import org.apache.commons.collections.ListUtils;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
@@ -51,6 +50,7 @@ public class VariantAnnotatorEngine {
     private List<InfoFieldAnnotation> requestedInfoAnnotations = Collections.emptyList();
     private List<GenotypeAnnotation> requestedGenotypeAnnotations = Collections.emptyList();
     private List<VAExpression> requestedExpressions = new ArrayList<>();
+    private boolean expressionAlleleConcordance = false;
 
     private final AnnotatorCompatible walker;
     private final GenomeAnalysisEngine toolkit;
@@ -113,6 +113,11 @@ public class VariantAnnotatorEngine {
         // set up the expressions
         for ( final String expression : expressionsToUse )
             requestedExpressions.add(new VAExpression(expression, walker.getResourceRodBindings()));
+    }
+
+    // set whether enforing allele concordance for expression
+    public void setExpressionAlleleConcordance(Boolean expressionAlleleConcordance){
+        this.expressionAlleleConcordance = expressionAlleleConcordance;
     }
 
     protected List<VAExpression> getRequestedExpressions() { return requestedExpressions; }
@@ -301,98 +306,67 @@ public class VariantAnnotatorEngine {
                 infoAnnotations.put(expression.fullName, expressionVC.getAlternateAllele(0).getDisplayString());
             } else if ( expressionVC.hasAttribute(expression.fieldName) ) {
                 // find the info field
-                final VCFInfoHeaderLine  hInfo = hInfoMap.get(expression.fullName);
+                final VCFInfoHeaderLine hInfo = hInfoMap.get(expression.fullName);
                 if ( hInfo == null ){
                     throw new UserException("Cannot annotate expression " + expression.fullName + " at " + loc + " for variant allele(s) " + vc.getAlleles() + ", missing header info");
-                }
-
-                // can not annotate if more variant than expression alleles
-                if ( expressionVC.getNAlleles() < vc.getNAlleles() ) {
-                    logger.warn("Skipping expression " + expression.fullName + " at " + loc + ", can not match " + expressionVC.getNAlleles() + " in the expression to " +
-                            vc.getNAlleles() + " in the variant");
-                    continue;
                 }
 
                 //
                 // Add the info field annotations
                 //
-
-                final boolean isMultiAllelic = expressionVC.getNAlleles() > 2;
                 final boolean useRefAndAltAlleles = VCFHeaderLineCount.R == hInfo.getCountType();
                 final boolean useAltAlleles = VCFHeaderLineCount.A == hInfo.getCountType();
-                List<Allele> usedExpressionAlleles = null;
 
-                // Multiallelic and count of A or R
-                if ( isMultiAllelic && (useAltAlleles || useRefAndAltAlleles) ){
+                // Annotation uses ref and/or alt alleles or enforce allele concordance
+                if ( (useAltAlleles || useRefAndAltAlleles) || expressionAlleleConcordance ){
 
-                    // remove brackets and spaces from expression attribute
-                    final String cleanedExpression = expressionVC.getAttribute(expression.fieldName).toString().replaceAll("[\\[\\]\\s]", "");
-
-                    // map where key = expression allele string value = expression value corresponding to the allele
-                    final Map<String, String> mapAlleleToExpressionValue = new HashMap<String, String>();
+                    // remove brackets and spaces from expression value
+                    final String cleanedExpressionValue = expressionVC.getAttribute(expression.fieldName).toString().replaceAll("[\\[\\]\\s]", "");
 
                     // get comma separated expression values
-                    ArrayList<String> expressionValuesList = new ArrayList<String>(Arrays.asList(cleanedExpression.split(",")));
+                    final ArrayList<String> expressionValuesList = new ArrayList<String>(Arrays.asList(cleanedExpressionValue.split(",")));
 
-                    if ( vc.isSNP() && expressionVC.isMixed() ){
-                        final VariantContextBuilder builder = new VariantContextBuilder(expressionVC);
-                        List<Allele> sameLengthAlleles = new ArrayList<Allele>();
+                    // get the minimum biallelics without genotypes
+                    final List<VariantContext> minBiallelicVCs = getMinRepresentationBiallelics(vc);
+                    final List<VariantContext> minBiallelicExprVCs = getMinRepresentationBiallelics(expressionVC);
 
-                        // get alt alleles that are the same length as the ref allele
-                        Iterator<String> expressionValuesIterator = expressionValuesList.iterator();
-                        for ( Allele allele : expressionVC.getAlleles() ){
-                            if ( allele.isNonReference() ){
-                                if ( !expressionValuesIterator.hasNext() ){
-                                    logger.warn("Cannot annotate expression " + expression.fullName + " at " + loc + " for expression allele): " + allele);
-                                    break;
-                                }
-                                expressionValuesIterator.next();
-                                if ( allele.length() == expressionVC.getReference().length() ) {
-                                    sameLengthAlleles.add(allele);
-                                }
-                                else {
-                                    // remove unused expression values
-                                    expressionValuesIterator.remove();
-                                }
-                            } else {
-                                if ( useRefAndAltAlleles )
-                                    expressionValuesIterator.remove();
+                    // check concordance
+                    final List<String> annotationValues = new ArrayList<>();
+                    boolean canAnnotate = false;
+                    for ( final VariantContext biallelicVC : minBiallelicVCs ) {
+                        // check that ref and alt alleles are the same
+                        List<Allele> exprAlleles = biallelicVC.getAlleles();
+                        boolean isAlleleConcordant = false;
+                        int i = 0;
+                        for ( final VariantContext biallelicExprVC : minBiallelicExprVCs ){
+                            List<Allele> alleles = biallelicExprVC.getAlleles();
+                            // concordant
+                            if ( alleles.equals(exprAlleles) ){
+                                // get the value for the reference if needed.
+                                if ( i == 0 && useRefAndAltAlleles )
+                                    annotationValues.add(expressionValuesList.get(i++));
+                                // use annotation expression and add to vc
+                                annotationValues.add(expressionValuesList.get(i));
+                                isAlleleConcordant = true;
+                                canAnnotate = true;
+                                break;
                             }
+                            i++;
                         }
 
-                        if (!sameLengthAlleles.isEmpty()) {
-                            sameLengthAlleles.add(0, expressionVC.getReference());
-                            VariantContext variantContext = builder.alleles(sameLengthAlleles).make();
-                            // extract the SNPs
-                            VariantContext variantContextTrimmed = GATKVariantContextUtils.trimAlleles(variantContext, true, true);
-                            usedExpressionAlleles = useRefAndAltAlleles ? variantContextTrimmed.getAlleles() : variantContextTrimmed.getAlternateAlleles();
-                        }
-                    } else {
-                        // get the alleles common to the expression and variant
-                        usedExpressionAlleles = useRefAndAltAlleles ? expressionVC.getAlleles() : expressionVC.getAlternateAlleles();
+                        // can not find allele match so set to annotation value to zero
+                        if ( !isAlleleConcordant )
+                            annotationValues.add("0");
                     }
 
-                    final List<Allele> commonAlleles = ListUtils.intersection(usedExpressionAlleles, vc.getAlleles());
-
-                    // the number of expression values must be the same as the number of alleles
-                    if ( expressionValuesList.size() != usedExpressionAlleles.size() ) {
-                        logger.warn("Cannot annotate expression " + expression.fullName + " at " + loc + " for variant allele(s): " + vc.getAlleles() + ", " +
-                                expressionValuesList.size() + " expression values is not equal to " + usedExpressionAlleles.size() + " expression alleles");
+                    // no allele matches so can not annotate
+                    if ( !canAnnotate )
                         continue;
-                    }
 
-                    // map the used expression alleles to it's value
-                    for (int i = 0; i != expressionValuesList.size(); i++)
-                        mapAlleleToExpressionValue.put(usedExpressionAlleles.get(i).getBaseString(), expressionValuesList.get(i));
-
-                    // add the variants expression values to the annotation
-                    final List<String> annotationValues = new ArrayList<String>();
-                    for (final Allele commonAllele : commonAlleles) {
-                        annotationValues.add(mapAlleleToExpressionValue.get(commonAllele.getBaseString()));
-                    }
-
+                    // add the annotation values
                     infoAnnotations.put(expression.fullName, annotationValues);
                 } else {
+                    // use all of the expression values
                     infoAnnotations.put(expression.fullName, expressionVC.getAttribute(expression.fieldName));
                 }
             }
@@ -424,5 +398,29 @@ public class VariantAnnotatorEngine {
         }
 
         return genotypes;
+    }
+
+    /**
+     * Break the variant context into bialleles (reference and alternate alleles) and trim to a minimum representation
+     *
+     * @param vc variant context to annotate
+     * @return list of biallelics trimmed to a minimum representation
+     */
+    private List<VariantContext> getMinRepresentationBiallelics(final VariantContext vc){
+        final List<VariantContext> minRepresentationBiallelicVCs = new ArrayList<VariantContext>();
+        final boolean isMultiAllelic = vc.getNAlleles() > 2;
+        if ( isMultiAllelic ){
+            final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics(vc);
+            for (final VariantContext biallelicVC: vcList) {
+                if ( !biallelicVC.isSNP() )
+                    minRepresentationBiallelicVCs.add(GATKVariantContextUtils.trimAlleles(biallelicVC, true, true));
+                else
+                    minRepresentationBiallelicVCs.add(biallelicVC);
+            }
+        } else {
+            minRepresentationBiallelicVCs.add(vc);
+        }
+
+        return minRepresentationBiallelicVCs;
     }
 }

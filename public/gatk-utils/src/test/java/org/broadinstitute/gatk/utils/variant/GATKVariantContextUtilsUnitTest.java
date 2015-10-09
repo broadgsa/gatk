@@ -986,6 +986,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         tests.add(new Object[]{Arrays.asList("ACGTT", "ACCTT"), Arrays.asList("G", "C"), 2});
         tests.add(new Object[]{Arrays.asList("ACGTT", "ACCCTT"), Arrays.asList("G", "CC"), 2});
         tests.add(new Object[]{Arrays.asList("ACGTT", "ACGCTT"), Arrays.asList("G", "GC"), 2});
+        tests.add(new Object[]{Arrays.asList("ATCGAGCCGTG", "AAGCCGTG"), Arrays.asList("ATCG", "A"), 0});
 
         return tests.toArray(new Object[][]{});
     }
