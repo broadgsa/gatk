@@ -117,6 +117,9 @@ public class SampleDBUnitTest extends BaseTest {
     private static final String testPEDStringInconsistentGender =
             "fam1 kid 0   0   2 2";
 
+    private static final String testPEDStringConsistent =
+            "fam1 kid dad   mom   1 2";
+
     private static final Set<Sample> testPEDSamplesAsSet =
             new HashSet<Sample>(testPEDSamples);
 
@@ -128,20 +131,20 @@ public class SampleDBUnitTest extends BaseTest {
 
     @Test()
     public void loadPEDFile() {
-        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED))
+                                   .getFinalSampleDB();
         Assert.assertEquals(testPEDSamplesAsSet, db.getSamples());
     }
 
     @Test()
     public void loadPEDString() {
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDString));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDString))
+                             .getFinalSampleDB();
         Assert.assertEquals(testPEDSamplesAsSet, db.getSamples());
     }
 
     private static final void addSAMHeader() {
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         ArtificialSAMUtils.createEnumeratedReadGroups(header, Arrays.asList("1", "2", "3"),
                 Arrays.asList("kid", "mom", "dad"));
         builder.addSamplesFromSAMHeader(header);
@@ -150,66 +153,84 @@ public class SampleDBUnitTest extends BaseTest {
     @Test()
     public void loadSAMHeader() {
         addSAMHeader();
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.getFinalSampleDB();
         Assert.assertEquals(testSAMSamples, db.getSamples());
     }
 
     @Test()
     public void loadSAMHeaderPlusPED() {
         addSAMHeader();
-        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED))
+                                   .getFinalSampleDB();
         Assert.assertEquals(testPEDSamples, db.getSamples());
     }
 
     @Test()
     public void loadDuplicateData() {
-        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
-        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED))
+                                   .addSamplesFromPedigreeFiles(Arrays.asList(testPED))
+                                   .getFinalSampleDB();
         Assert.assertEquals(testPEDSamples, db.getSamples());
     }
 
     @Test(expectedExceptions = UserException.class)
     public void loadNonExistentFile() {
-        builder.addSamplesFromPedigreeFiles(Arrays.asList(new File("non-existence-file.txt")));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeFiles(Arrays.asList(new File("non-existence-file.txt")))
+                           .getFinalSampleDB();
         Assert.assertEquals(testSAMSamples, db.getSamples());
     }
 
     @Test(expectedExceptions = UserException.class)
     public void loadInconsistentData() {
-        builder = new SampleDBBuilder(PedigreeValidationType.STRICT);
-        builder.addSamplesFromPedigreeFiles(Arrays.asList(testPED));
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender));
+        builder = new SampleDBBuilder(PedigreeValidationType.STRICT)
+                      .addSamplesFromPedigreeFiles(Arrays.asList(testPED))
+                      .addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender));
         builder.getFinalSampleDB();
+    }
+
+    @Test
+    public void loadConsistentData() {
+        // build a temporary DB and get the resulting sample to use for test result comparison
+        final Sample baseKidSample = new SampleDBBuilder(PedigreeValidationType.STRICT)
+                                        .addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringConsistent))
+                                        .getFinalSampleDB()
+                                        .getSample("kid");
+
+        // build a sample DB and then merge in the consistent test string
+        final SampleDB finalDB = new SampleDBBuilder(PedigreeValidationType.STRICT)
+                                     .addSamplesFromPedigreeFiles(Arrays.asList(testPED))
+                                     .addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringConsistent))
+                                     .getFinalSampleDB();
+
+        Assert.assertEquals(finalDB.getSamples().size(), 3);
+        Assert.assertTrue(finalDB.getSample("kid").equals(baseKidSample));
     }
 
     @Test(expectedExceptions = UserException.class)
     public void sampleInSAMHeaderNotInSamplesDB() {
         addSAMHeader();
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender));
-        builder.getFinalSampleDB();
+        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDStringInconsistentGender))
+               .getFinalSampleDB();
     }
 
     @Test()
     public void getFamilyIDs() {
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies))
+                                   .getFinalSampleDB();
         Assert.assertEquals(db.getFamilyIDs(), new TreeSet<String>(Arrays.asList("fam1", "fam2", "fam3")));
     }
 
     @Test()
     public void getFamily() {
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies))
+                                   .getFinalSampleDB();
         Assert.assertEquals(db.getFamily("fam1"), testPEDSamplesAsSet);
     }
 
     @Test()
     public void getFamilies(){
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies))
+                                   .getFinalSampleDB();
         Assert.assertEquals(db.getFamilies(),testGetFamilies);
         Assert.assertEquals(db.getFamilies(null),testGetFamilies);
         Assert.assertEquals(db.getFamilies(testGetPartialFamiliesIds),testGetPartialFamilies);
@@ -218,8 +239,8 @@ public class SampleDBUnitTest extends BaseTest {
     @Test()
     public void testGetChildrenWithParents()
     {
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies2));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies2))
+                                   .getFinalSampleDB();
         Assert.assertEquals(db.getChildrenWithParents(), testKidsWithParentsFamilies2);
         Assert.assertEquals(db.getChildrenWithParents(false), testKidsWithParentsFamilies2);
         Assert.assertEquals(db.getChildrenWithParents(true), new HashSet<Sample>(Arrays.asList(new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED))));
@@ -227,16 +248,16 @@ public class SampleDBUnitTest extends BaseTest {
 
     @Test()
     public void testGetFounderIds(){
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies2));
-        SampleDB db = builder.getFinalSampleDB();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies2))
+                                   .getFinalSampleDB();
         Assert.assertEquals(db.getFounderIds(), new HashSet<String>(Arrays.asList("dad","mom","dad2","mom2","dad4")));
     }
 
     @Test()
     public void loadFamilyIDs() {
-        builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies));
-        SampleDB db = builder.getFinalSampleDB();
-        Map<String, Set<Sample>> families = db.getFamilies();
+        final SampleDB db = builder.addSamplesFromPedigreeStrings(Arrays.asList(testPEDMultipleFamilies))
+                                   .getFinalSampleDB();
+        final Map<String, Set<Sample>> families = db.getFamilies();
         Assert.assertEquals(families.size(), 3);
         Assert.assertEquals(families.keySet(), new TreeSet<String>(Arrays.asList("fam1", "fam2", "fam3")));
 
