@@ -304,6 +304,12 @@ public class VariantAnnotatorEngine {
                     infoAnnotations.put(expression.fullName, expressionVC.getID());
             } else if (expression.fieldName.equals("ALT")) {
                 infoAnnotations.put(expression.fullName, expressionVC.getAlternateAllele(0).getDisplayString());
+            } else if (expression.fieldName.equals("FILTER")) {
+                if ( expressionVC.isFiltered() ) {
+                    infoAnnotations.put(expression.fullName, expressionVC.getFilters().toString().replace("[", "").replace("]", "").replace(" ", ""));
+                } else {
+                    infoAnnotations.put(expression.fullName, "PASS");
+                }
             } else if ( expressionVC.hasAttribute(expression.fieldName) ) {
                 // find the info field
                 final VCFInfoHeaderLine hInfo = hInfoMap.get(expression.fullName);
