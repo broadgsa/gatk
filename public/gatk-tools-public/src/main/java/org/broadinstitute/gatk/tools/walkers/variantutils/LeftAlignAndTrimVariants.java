@@ -60,11 +60,12 @@ import java.util.*;
  * Left-align indels in a variant callset
  *
  * <p>
- * LeftAlignAndTrimVariants is a tool that takes a VCF file and left-aligns the indels inside it.  The same indel can often be
- * placed at multiple positions and still represent the same haplotype.  While the standard convention with VCF is to
- * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
- * Note that this tool cannot handle anything other than bi-allelic, simple indels.  Complex events are written out unchanged.
- * Optionally, the tool will also trim common bases from indels, leaving them with a minimum representation.</p>
+ * LeftAlignAndTrimVariants is a tool that takes a VCF file, left-aligns the indels and trims common bases from indels,
+ * leaving them with a minimum representation. The same indel can often be placed at multiple positions and still
+ * represent the same haplotype. While the standard convention with VCF is to place an indel at the left-most position
+ * this isn't always done, so this tool can be used to left-align them. This tool optionally splits multiallelic
+ * sites into biallelics and left-aligns individual alleles. Optionally, the tool will not trim common bases from indels.
+ * </p>
  *
  * <h3>Input</h3>
  * <p>
@@ -76,13 +77,46 @@ import java.util.*;
  * A left-aligned VCF.
  * </p>
  *
- * <h3>Usage example</h3>
+ * <h3>Usage examples</h3>
+ *
+ * <h4>Left align and trim alleles</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T LeftAlignAndTrimVariants \
  *   -R reference.fasta \
  *   --variant input.vcf \
  *   -o output.vcf
+ * </pre>
+ *
+ * <h4>Left align and don't trim alleles</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T LeftAlignAndTrimVariants \
+ *   -R reference.fasta \
+ *   --variant input.vcf \
+ *   -o output.vcf
+ *   --dontTrimAlleles
+ * </pre>
+ *
+ * <h4>Split multiallics into biallelics, left align and trim alleles</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T LeftAlignAndTrimVariants \
+ *   -R reference.fasta \
+ *   --variant input.vcf \
+ *   -o output.vcf
+ *   --splitMultiallelics
+ * </pre>
+ *
+ * <h4>Split multiallelics into biallics, left align but don't trim alleles</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T LeftAlignAndTrimVariants \
+ *   -R reference.fasta \
+ *   --variant input.vcf \
+ *   -o output.vcf
+ *   --splitMultiallelics
+ *   --dontTrimAlleles
  * </pre>
  *
  */
@@ -94,10 +128,10 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * If this argument is set, bases common to all alleles will be removed, leaving only their minimal representation.
+     * If this argument is set, bases common to all alleles will not be removed and will not leave their minimal representation.
      */
-    @Argument(fullName="trimAlleles", shortName="trim", doc="Trim alleles to remove bases common to all of them", required=false)
-    protected boolean trimAlleles = false;
+    @Argument(fullName="dontTrimAlleles", shortName="notrim", doc="Do not Trim alleles to remove bases common to all of them", required=false)
+    protected boolean dontTrimAlleles = false;
 
     /**
      * If this argument is set, split multiallelic records and left-align individual alleles.
@@ -132,32 +166,16 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
 
         int changedSites = 0;
         for ( final VariantContext vc : VCs ) {
-            // split first into biallelics, and optionally trim alleles to minimal representation
-            Pair<VariantContext,Integer> result = new Pair<VariantContext, Integer>(vc,0); // default value
+            // split first into biallelics, and optionally don't trim alleles to minimal representation
             if (splitMultiallelics) {
                 final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics(vc);
                 for (final VariantContext biallelicVC: vcList) {
-                    final VariantContext v = (trimAlleles ? GATKVariantContextUtils.trimAlleles(biallelicVC,true,true) : biallelicVC);
-                    result = alignAndWrite(v, ref);
-
-                    // strip out PLs and AD if we've subsetted the alleles
-                    if ( vcList.size() > 1 )
-                        result.first = new VariantContextBuilder(result.first).genotypes(GATKVariantContextUtils.stripPLsAndAD(result.first.getGenotypes())).make();
-
-                    writer.add(result.first);
-                    changedSites += result.second;
+                    changedSites += trimAlignWrite(biallelicVC, ref, vcList.size());
                 }
             }
             else {
-                if (trimAlleles)
-                    result = alignAndWrite(GATKVariantContextUtils.trimAlleles(vc,true,true), ref);
-                else
-                    result = alignAndWrite(vc,ref);
-                writer.add(result.first);
-                changedSites += result.second;
-
+                changedSites += trimAlignWrite(vc, ref, 1);
             }
-
         }
 
         return changedSites;
@@ -175,11 +193,39 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
     }
 
     /**
-     * Main routine workhorse. By definitio, it will only take biallelic vc's. Splitting into multiple alleles has to be
+     * Trim, align and write out the vc.
+     *
+     * @param vc                Input VC with variants to left align
+     * @param ref               Reference context
+     * @param numBiallelics     Number of biallelics from the original VC
+     * @return                  Number of records left-aligned (0 or 1)
+     */
+    @Requires("vc != null")
+    protected int trimAlignWrite(final VariantContext vc, final ReferenceContext ref, final int numBiallelics ){
+
+        // optionally don't trim VC
+        final VariantContext v = dontTrimAlleles ? vc : GATKVariantContextUtils.trimAlleles(vc, true, true);
+
+        // align the VC
+        final Pair<VariantContext,Integer> result = alignAndWrite(v, ref);
+
+        // strip out PLs and AD if we've subsetted the alleles
+        if ( numBiallelics > 1 )
+            result.first = new VariantContextBuilder(result.first).genotypes(GATKVariantContextUtils.stripPLsAndAD(result.first.getGenotypes())).make();
+
+        // write out new VC
+        writer.add(result.first);
+
+        // number of records left aligned
+        return result.second;
+    }
+
+    /**
+     * Main routine workhorse. By definition, it will only take biallelic vc's. Splitting into multiple alleles has to be
      * handled by calling routine.
      * @param vc                  Input VC with variants to left align
      * @param ref                 Reference context
-     * @return                    # of records left-aligned (0 or 1) and new VC.
+     * @return                    Number of records left-aligned (0 or 1) and new VC.
      */
     @Requires({"vc != null","ref != null", "vc.isBiallelic() == true","ref.getBases().length>=2*MAX_INDEL_LENGTH+1"})
     @Ensures({"result != null","result.first != null", "result.second >=0"})
