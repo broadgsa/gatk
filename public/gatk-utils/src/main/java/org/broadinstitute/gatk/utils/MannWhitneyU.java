@@ -25,483 +25,534 @@
 
 package org.broadinstitute.gatk.utils;
 
-import cern.jet.math.Arithmetic;
-import cern.jet.random.Normal;
-import com.google.java.contract.Ensures;
-import com.google.java.contract.Requires;
-import org.apache.commons.math.MathException;
-import org.apache.commons.math.distribution.NormalDistribution;
-import org.apache.commons.math.distribution.NormalDistributionImpl;
-import org.broadinstitute.gatk.utils.collections.Pair;
-import org.broadinstitute.gatk.utils.exceptions.GATKException;
+import htsjdk.samtools.util.Histogram;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
-import java.io.Serializable;
-import java.util.Comparator;
-import java.util.TreeSet;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by IntelliJ IDEA.
- * User: chartl
+ * Imported with changes from Picard private.
+ *
+ * @author Tim Fennell
  */
 public class MannWhitneyU {
 
-    private static Normal STANDARD_NORMAL = new Normal(0.0,1.0,null);
-    private static NormalDistribution APACHE_NORMAL = new NormalDistributionImpl(0.0,1.0,1e-2);
-    private static double LNSQRT2PI = Math.log(Math.sqrt(2.0*Math.PI));
+    private static final class Rank implements Comparable<Rank> {
+        final double value;
+        float rank;
+        final int series;
 
-    private TreeSet<Pair<Number,USet>> observations;
-    private int sizeSet1;
-    private int sizeSet2;
-    private ExactMode exactMode;
-
-    public MannWhitneyU(ExactMode mode, boolean dither) {
-        if ( dither )
-            observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
-        else
-            observations = new TreeSet<Pair<Number,USet>>(new NumberedPairComparator());
-        sizeSet1 = 0;
-        sizeSet2 = 0;
-        exactMode = mode;
-    }
-
-    public MannWhitneyU() {
-        this(ExactMode.POINT,true);
-    }
-
-    public MannWhitneyU(boolean dither) {
-        this(ExactMode.POINT,dither);
-    }
-
-    public MannWhitneyU(ExactMode mode) {
-        this(mode,true);
-    }
-
-    /**
-     * Add an observation into the observation tree
-     * @param n: the observation (a number)
-     * @param set: whether the observation comes from set 1 or set 2
-     */
-    public void add(Number n, USet set) {
-        observations.add(new Pair<Number,USet>(n,set));
-        if ( set == USet.SET1 ) {
-            ++sizeSet1;
-        } else {
-            ++sizeSet2;
-        }
-    }
-
-    public Pair<Long,Long> getR1R2() {
-        long u1 = calculateOneSidedU(observations,MannWhitneyU.USet.SET1);
-        long n1 = sizeSet1*(sizeSet1+1)/2;
-        long r1 = u1 + n1;
-        long n2 = sizeSet2*(sizeSet2+1)/2;
-        long u2 = n1*n2-u1;
-        long r2 = u2 + n2;
-
-        return new Pair<Long,Long>(r1,r2);
-    }
-
-    /**
-     * Runs the one-sided test under the hypothesis that the data in set "lessThanOther" stochastically
-     * dominates the other set
-     * @param lessThanOther - either Set1 or Set2
-     * @return - u-based z-approximation, and p-value associated with the test (p-value is exact for small n,m)
-     */
-    @Requires({"lessThanOther != null"})
-    @Ensures({"validateObservations(observations) || Double.isNaN(result.getFirst())","result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public Pair<Double,Double> runOneSidedTest(USet lessThanOther) {
-        long u = calculateOneSidedU(observations, lessThanOther);
-        int n = lessThanOther == USet.SET1 ? sizeSet1 : sizeSet2;
-        int m = lessThanOther == USet.SET1 ? sizeSet2 : sizeSet1;
-        if ( n == 0 || m == 0 ) {
-            // test is uninformative as one or both sets have no observations
-            return new Pair<Double,Double>(Double.NaN,Double.NaN);
+        private Rank(double value, float rank, int series) {
+            this.value = value;
+            this.rank = rank;
+            this.series = series;
         }
 
-        // the null hypothesis is that {N} is stochastically less than {M}, so U has counted
-        // occurrences of {M}s before {N}s. We would expect that this should be less than (n*m+1)/2 under
-        // the null hypothesis, so we want to integrate from K=0 to K=U for cumulative cases. Always.
-        return calculateP(n, m, u, false, exactMode);
-    }
-
-    /**
-     * Runs the standard two-sided test,
-     * returns the u-based z-approximate and p values.
-     * @return a pair holding the u and p-value.
-     */
-    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    //@Requires({"validateObservations(observations)"})
-    public Pair<Double,Double> runTwoSidedTest() {
-        Pair<Long,USet> uPair = calculateTwoSidedU(observations);
-        long u = uPair.first;
-        int n = uPair.second == USet.SET1 ? sizeSet1 : sizeSet2;
-        int m = uPair.second == USet.SET1 ? sizeSet2 : sizeSet1;
-        if ( n == 0 || m == 0 ) {
-            // test is uninformative as one or both sets have no observations
-            return new Pair<Double,Double>(Double.NaN,Double.NaN);
-        }
-        return calculateP(n, m, u, true, exactMode);
-    }
-
-    /**
-     * Given a u statistic, calculate the p-value associated with it, dispatching to approximations where appropriate
-     * @param n - The number of entries in the stochastically smaller (dominant) set
-     * @param m - The number of entries in the stochastically larger (dominated) set
-     * @param u - the Mann-Whitney U value
-     * @param twoSided - is the test twosided
-     * @return the (possibly approximate) p-value associated with the MWU test, and the (possibly approximate) z-value associated with it
-     * todo -- there must be an approximation for small m and large n
-     */
-    @Requires({"m > 0","n > 0"})
-    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    protected static Pair<Double,Double> calculateP(int n, int m, long u, boolean twoSided, ExactMode exactMode) {
-        Pair<Double,Double> zandP;
-        if ( n > 8 && m > 8 ) {
-            // large m and n - normal approx
-            zandP = calculatePNormalApproximation(n,m,u, twoSided);
-        } else if ( n > 5 && m > 7 ) {
-            // large m, small n - sum uniform approx
-            // todo -- find the appropriate regimes where this approximation is actually better enough to merit slowness
-            // pval = calculatePUniformApproximation(n,m,u);
-            zandP = calculatePNormalApproximation(n, m, u, twoSided);
-        } else if ( n > 8 || m > 8 ) {
-            zandP = calculatePFromTable(n, m, u, twoSided);
-        } else {
-            // small m and n - full approx
-            zandP = calculatePRecursively(n,m,u,twoSided,exactMode);
+        @Override
+        public int compareTo(Rank that) {
+            return (int) (this.value - that.value);
         }
 
-        return zandP;
-    }
-
-    public static Pair<Double,Double> calculatePFromTable(int n, int m, long u, boolean twoSided) {
-        // todo -- actually use a table for:
-        // todo      - n large, m small
-        return calculatePNormalApproximation(n,m,u, twoSided);
-    }
-
-    /**
-     * Uses a normal approximation to the U statistic in order to return a cdf p-value. See Mann, Whitney [1947]
-     * @param n - The number of entries in the stochastically smaller (dominant) set
-     * @param m - The number of entries in the stochastically larger (dominated) set
-     * @param u - the Mann-Whitney U value
-     * @param twoSided - whether the test should be two sided
-     * @return p-value associated with the normal approximation
-     */
-    @Requires({"m > 0","n > 0"})
-    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public static Pair<Double,Double> calculatePNormalApproximation(int n,int m,long u, boolean twoSided) {
-        double z = getZApprox(n,m,u);
-        if ( twoSided ) {
-            return new Pair<Double,Double>(z,2.0*(z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z)));
-        } else {
-            return new Pair<Double,Double>(z,STANDARD_NORMAL.cdf(z));
+        @Override
+        public String toString() {
+            return "Rank{" +
+                    "value=" + value +
+                    ", rank=" + rank +
+                    ", series=" + series +
+                    '}';
         }
     }
 
     /**
-     * Calculates the Z-score approximation of the u-statistic
-     * @param n - The number of entries in the stochastically smaller (dominant) set
-     * @param m - The number of entries in the stochastically larger (dominated) set
-     * @param u - the Mann-Whitney U value
-     * @return the asymptotic z-approximation corresponding to the MWU p-value for n < m
+     * The results of performing a rank sum test.
      */
-    @Requires({"m > 0","n > 0"})
-    @Ensures({"! Double.isNaN(result)", "! Double.isInfinite(result)"})
-    private static double getZApprox(int n, int m, long u) {
-        double mean = ( ((long)m)*n+1.0)/2;
-        double var = (((long) n)*m*(n+m+1.0))/12;
-        double z = ( u - mean )/Math.sqrt(var);
-        return z;
+    public static class Result {
+        private final double u;
+        private final double z;
+        private final double p;
+        private final double medianShift;
+
+        public Result(double u, double z, double p, double medianShift) {
+            this.u = u;
+            this.z = z;
+            this.p = p;
+            this.medianShift = medianShift;
+        }
+
+        public double getU() {
+            return u;
+        }
+
+        public double getZ() {
+            return z;
+        }
+
+        public double getP() {
+            return p;
+        }
+
+        public double getMedianShift() {
+            return medianShift;
+        }
     }
 
     /**
-     * Uses a sum-of-uniform-0-1 random variable approximation to the U statistic in order to return an approximate
-     * p-value. See Buckle, Kraft, van Eeden [1969] (approx) and Billingsly [1995] or Stephens, MA [1966, biometrika] (sum of uniform CDF)
-     * @param n - The number of entries in the stochastically smaller (dominant) set
-     * @param m - The number of entries in the stochastically larger (dominated) set
-     * @param u - mann-whitney u value
-     * @return p-value according to sum of uniform approx
-     * todo -- this is currently not called due to not having a good characterization of where it is significantly more accurate than the
-     * todo -- normal approxmation (e.g. enough to merit the runtime hit)
+     * The values of U1, U2 and the transformed number of ties needed for the calculation of sigma
+     * in the normal approximation.
      */
-    public static double calculatePUniformApproximation(int n, int m, long u) {
-        long R = u + (n*(n+1))/2;
-        double a = Math.sqrt(m*(n+m+1));
-        double b = (n/2.0)*(1-Math.sqrt((n+m+1)/m));
-        double z = b + ((double)R)/a;
-        if ( z < 0 ) { return 1.0; }
-        else if ( z > n ) { return 0.0; }
-        else {
-            if ( z > ((double) n) /2 ) {
-                return 1.0-1/(Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
-            } else {
-                return 1/(Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
+    public static class TestStatistic {
+        private final double u1;
+        private final double u2;
+        private final double trueU;
+        private final double numOfTiesTransformed;
+
+        public TestStatistic(double u1, double u2, double numOfTiesTransformed) {
+            this.u1 = u1;
+            this.u2 = u2;
+            this.numOfTiesTransformed = numOfTiesTransformed;
+            this.trueU = Double.NaN;
+        }
+
+        public TestStatistic(double trueU, double numOfTiesTransformed) {
+            this.trueU = trueU;
+            this.numOfTiesTransformed = numOfTiesTransformed;
+            this.u1 = Double.NaN;
+            this.u2 = Double.NaN;
+        }
+
+        public double getU1() {
+            return u1;
+        }
+
+        public double getU2() {
+            return u2;
+        }
+
+        public double getTies() {
+            return numOfTiesTransformed;
+        }
+
+        public double getTrueU() {
+            return trueU;
+        }
+    }
+
+    /**
+     * The ranked data in one list and a list of the number of ties.
+     */
+    public static class RankedData {
+        private final Rank[] rank;
+        private final ArrayList numOfTies;
+
+        public RankedData(Rank[] rank, ArrayList numOfTies) {
+            this.rank = rank;
+            this.numOfTies = numOfTies;
+        }
+
+        public Rank[] getRank() {
+            return rank;
+        }
+
+        public ArrayList getNumOfTies() {
+            return numOfTies;
+        }
+    }
+
+    /**
+     * Key for the map from Integer[] to set of all permutations of that array.
+     */
+    private static class Key {
+        final Integer[] listToPermute;
+
+        private Key(Integer[] listToPermute) {
+            this.listToPermute = listToPermute;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Key that = (Key) o;
+            return (Arrays.deepEquals(this.listToPermute, that.listToPermute));
+        }
+
+        @Override
+        public int hashCode() {
+            int result = 17;
+            for (Integer i : listToPermute) {
+                result = 31 * result + listToPermute[i];
             }
+            return result;
         }
     }
 
+    // Constructs a normal distribution; actual values of mean and SD don't matter since it's
+    // just used to convert a z-score into a cumulative probability
+    private static final double NORMAL_MEAN = 100;
+    private static final double NORMAL_SD = 15;
+    private static final NormalDistribution NORMAL = new NormalDistribution(NORMAL_MEAN, NORMAL_SD);
+
     /**
-     * Helper function for the sum of n uniform random variables
-     * @param z - value at which to compute the (un-normalized) cdf
-     * @param m - a cutoff integer (defined by m <= z < m + 1)
-     * @param n - the number of uniform random variables
-     * @param k - holder variable for the recursion (alternatively, the index of the term in the sequence)
-     * @return the (un-normalized) cdf for the sum of n random variables
+     * A map of an Integer[] of the labels to the set of all possible permutations of those labels.
      */
-    private static double uniformSumHelper(double z, int m, int n, int k) {
-        if ( k > m ) { return 0; }
-        int coef = (k % 2 == 0) ? 1 : -1;
-        return coef*Arithmetic.binomial(n,k)*Math.pow(z-k,n) + uniformSumHelper(z,m,n,k+1);
+    private static Map<Key, Set<List<Integer>>> PERMUTATIONS = new ConcurrentHashMap<Key, Set<List<Integer>>>();
+
+    /**
+     * The minimum length for both data series in order to use a normal distribution
+     * to calculate Z and p. If both series are shorter than this value then a permutation test
+     * will be used.
+     */
+    private int minimumNormalN = 10;
+
+    /**
+     * If the exact p-value is 1 then the z-score is infinite, so we need a max cutoff instead.
+     */
+    private double maxZScore = 9.0;
+
+    /**
+     * Sets the minimum number of values in each data series to use the normal distribution approximation.
+     */
+    public void setMinimumSeriesLengthForNormalApproximation(final int n) {
+        this.minimumNormalN = n;
     }
 
     /**
-     * Calculates the U-statistic associated with a two-sided test (e.g. the RV from which one set is drawn
-     * stochastically dominates the RV from which the other set is drawn); two-sidedness is accounted for
-     * later on simply by multiplying the p-value by 2.
-     *
-     * Recall: If X stochastically dominates Y, the test is for occurrences of Y before X, so the lower value of u is chosen
-     * @param observed - the observed data
-     * @return the minimum of the U counts (set1 dominates 2, set 2 dominates 1)
+     * A variable that indicates if the test is one sided or two sided and if it's one sided
+     * which group is the dominator in the null hypothesis.
      */
-    @Requires({"observed != null", "observed.size() > 0"})
-    @Ensures({"result != null","result.first > 0"})
-    public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed) {
-        int set1SeenSoFar = 0;
-        int set2SeenSoFar = 0;
-        long uSet1DomSet2 = 0;
-        long uSet2DomSet1 = 0;
-        USet previous = null;
-        for ( Pair<Number,USet> dataPoint : observed ) {
+    public enum TestType {
+        FIRST_DOMINATES,
+        SECOND_DOMINATES,
+        TWO_SIDED
+    }
 
-            if ( dataPoint.second == USet.SET1 ) {
-                ++set1SeenSoFar;
-            } else {
-                ++set2SeenSoFar;
-            }
+    public RankedData calculateRank(final double[] series1, final double[] series2) {
+        Arrays.sort(series1);
+        Arrays.sort(series2);
 
-            if ( previous != null ) {
-                if ( dataPoint.second == USet.SET1 ) {
-                    uSet2DomSet1 += set2SeenSoFar;
+        // Make a merged ranks array
+        final Rank[] ranks = new Rank[series1.length + series2.length];
+        {
+            int i = 0, j = 0, r = 0;
+            while (r < ranks.length) {
+                if (i >= series1.length) {
+                    ranks[r++] = new Rank(series2[j++], r, 2);
+                } else if (j >= series2.length) {
+                    ranks[r++] = new Rank(series1[i++], r, 1);
+                } else if (series1[i] <= series2[j]) {
+                    ranks[r++] = new Rank(series1[i++], r, 1);
                 } else {
-                    uSet1DomSet2 += set1SeenSoFar;
+                    ranks[r++] = new Rank(series2[j++], r, 2);
                 }
             }
-
-            previous = dataPoint.second;
         }
 
-        return uSet1DomSet2 < uSet2DomSet1 ? new Pair<Long,USet>(uSet1DomSet2,USet.SET1) : new Pair<Long,USet>(uSet2DomSet1,USet.SET2);
+        ArrayList<Integer> numOfTies = new ArrayList<>();
+
+        // Now sort out any tie bands
+        for (int i = 0; i < ranks.length; ) {
+            float rank = ranks[i].rank;
+            int count = 1;
+
+            for (int j = i + 1; j < ranks.length && ranks[j].value == ranks[i].value; ++j) {
+                rank += ranks[j].rank;
+                ++count;
+            }
+
+            if (count > 1) {
+                rank /= count;
+                for (int j = i; j < i + count; ++j) {
+                    ranks[j].rank = rank;
+                }
+                numOfTies.add(count);
+            }
+
+            // Skip forward the right number of items
+            i += count;
+        }
+
+        return new RankedData(ranks, numOfTies);
     }
 
     /**
-     * Calculates the U-statistic associated with the one-sided hypothesis that "dominator" stochastically dominates
-     * the other U-set. Note that if S1 dominates S2, we want to count the occurrences of points in S2 coming before points in S1.
-     * @param observed - the observed data points, tagged by each set
-     * @param dominator - the set that is hypothesized to be stochastically dominating
-     * @return the u-statistic associated with the hypothesis that dominator stochastically dominates the other set
+     * Rank both groups together and return a TestStatistic object that includes U1, U2 and number of ties for sigma
      */
-    @Requires({"observed != null","dominator != null","observed.size() > 0"})
-    @Ensures({"result >= 0"})
-    public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
-        long otherBeforeDominator = 0l;
-        int otherSeenSoFar = 0;
-        for ( Pair<Number,USet> dataPoint : observed ) {
-            if ( dataPoint.second != dominator ) {
-                ++otherSeenSoFar;
-            } else {
-                otherBeforeDominator += otherSeenSoFar;
+    public TestStatistic calculateU1andU2(final double[] series1, final double[] series2) {
+        RankedData ranked = calculateRank(series1, series2);
+        Rank[] ranks = ranked.getRank();
+        ArrayList<Integer> numOfTies = ranked.getNumOfTies();
+
+        //Calculate number of ties transformed for formula for Sigma to calculate Z-score
+        ArrayList<Integer> transformedTies = new ArrayList<>();
+        for (int count : numOfTies) {
+            //If every single datapoint is tied then we want to return a p-value of .5 and
+            //the formula for sigma that includes the number of ties breaks down. Setting
+            //the number of ties to 0 in this case gets the desired result.
+            if (count != ranks.length) {
+                transformedTies.add((count * count * count) - count);
             }
         }
 
-        return otherBeforeDominator;
+        double numOfTiesForSigma = 0.0;
+        for (int count : transformedTies) {
+            numOfTiesForSigma += count;
+        }
+
+        // Calculate R1 and R2 and U.
+        float r1 = 0, r2 = 0;
+        for (Rank rank : ranks) {
+            if (rank.series == 1) r1 += rank.rank;
+            else r2 += rank.rank;
+        }
+
+        double n1 = series1.length;
+        double n2 = series2.length;
+        double u1 = r1 - ((n1 * (n1 + 1)) / 2);
+        double u2 = r2 - ((n2 * (n2 + 1)) / 2);
+
+        TestStatistic result = new TestStatistic(u1, u2, numOfTiesForSigma);
+        return result;
     }
 
     /**
-     * The Mann-Whitney U statistic follows a recursive equation (that enumerates the proportion of possible
-     * binary strings of "n" zeros, and "m" ones, where a one precedes a zero "u" times). This accessor
-     * calls into that recursive calculation.
-     * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
-     * @param m: number of set-two entries
-     * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
-     * @param twoSided: whether the test is two sided or not. The recursive formula is symmetric, multiply by two for two-sidedness.
-     * @param  mode: whether the mode is a point probability, or a cumulative distribution
-     * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
+     * Calculates the rank-sum test statisic U (sometimes W) from two sets of input data for a one-sided test
+     * with an int indicating which group is the dominator. Returns a test statistic object with trueU and number of
+     * ties for sigma.
      */
-    @Requires({"m > 0","n > 0","u >= 0"})
-    @Ensures({"result != null","! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided, ExactMode mode) {
-        if ( m > 8 && n > 5 ) { throw new GATKException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
-        double p = mode == ExactMode.POINT ? cpr(n,m,u) : cumulativeCPR(n,m,u);
-        //p *= twoSided ? 2.0 : 1.0;
+    public TestStatistic calculateOneSidedU(final double[] series1, final double[] series2, final TestType whichSeriesDominates) {
+        TestStatistic stat = calculateU1andU2(series1, series2);
+        TestStatistic result;
+        if (whichSeriesDominates == TestType.FIRST_DOMINATES) {
+            result = new TestStatistic(stat.getU1(), stat.getTies());
+        } else {
+            result = new TestStatistic(stat.getU2(), stat.getTies());
+        }
+        return result;
+    }
+
+    /**
+     * Calculates the two-sided rank-sum test statisic U (sometimes W) from two sets of input data.
+     * Returns a test statistic object with trueU and number of ties for sigma.
+     */
+    public TestStatistic calculateTwoSidedU(final double[] series1, final double[] series2) {
+        TestStatistic u1AndU2 = calculateU1andU2(series1, series2);
+        double u = Math.min(u1AndU2.getU1(), u1AndU2.getU2());
+        TestStatistic result = new TestStatistic(u, u1AndU2.getTies());
+        return result;
+    }
+
+    /**
+     * Calculates the Z score (i.e. standard deviations from the mean) of the rank sum
+     * test statistics given input data of lengths n1 and n2 respectively, as well as the number of ties, for normal
+     * approximation only.
+     */
+    public double calculateZ(final double u, final int n1, final int n2, final double nties, final TestType whichSide) {
+        double m = (n1 * n2) / 2d;
+
+        //Adds a continuity correction
+        double correction;
+        if (whichSide == TestType.TWO_SIDED) {
+            correction = (u - m) >= 0 ? .5 : -.5;
+        } else {
+            correction = whichSide == TestType.FIRST_DOMINATES ? -.5 : .5;
+        }
+
+        //If all the data is tied, the number of ties for sigma is set to 0. In order to get a p-value of .5 we need to
+        //remove the continuity correction.
+        if (nties == 0) {
+            correction = 0;
+        }
+
+        double sigma = Math.sqrt((n1 * n2 / 12d) * ((n1 + n2 + 1) - nties / ((n1 + n2) * (n1 + n2 - 1))));
+        return (u - m - correction) / sigma;
+    }
+
+    /**
+     * Finds or calculates the median value of a sorted array of double.
+     */
+    public double median(final double[] data) {
+        final int len = data.length;
+        final int mid = len / 2;
+        if (data.length % 2 == 0) {
+            return (data[mid] + data[mid - 1]) / 2d;
+        } else {
+            return data[mid];
+        }
+    }
+
+
+    /**
+     * Constructs a new rank sum test with the given data.
+     *
+     * @param series1   group 1 data
+     * @param series2   group 2 data
+     * @param whichSide indicator of two sided test, 0 for two sided, 1 for series1 as dominator, 2 for series2 as dominator
+     * @return Result including U statistic, Z score, p-value, and difference in medians.
+     */
+    public Result test(final double[] series1, final double[] series2, final TestType whichSide) {
+        final int n1 = series1.length;
+        final int n2 = series2.length;
+
+        //If one of the groups is empty we return NaN
+        if (n1 == 0 || n2 == 0) {
+            return new Result(Float.NaN, Float.NaN, Float.NaN, Float.NaN);
+        }
+
+        double u;
+        double nties;
+
+        if (whichSide == TestType.TWO_SIDED) {
+            TestStatistic result = calculateTwoSidedU(series1, series2);
+            u = result.getTrueU();
+            nties = result.getTies();
+        } else {
+            TestStatistic result = calculateOneSidedU(series1, series2, whichSide);
+            u = result.getTrueU();
+            nties = result.getTies();
+        }
+
         double z;
-        try {
+        double p;
 
-            if ( mode == ExactMode.CUMULATIVE ) {
-                z = APACHE_NORMAL.inverseCumulativeProbability(p);
+        if (n1 >= this.minimumNormalN || n2 >= this.minimumNormalN) {
+            z = calculateZ(u, n1, n2, nties, whichSide);
+            p = 2 * NORMAL.cumulativeProbability(NORMAL_MEAN + z * NORMAL_SD);
+            if (whichSide != TestType.TWO_SIDED) {
+                p = p / 2;
+            }
+        } else {
+            // TODO -- This exact test is only implemented for the one sided test, but we currently don't call the two sided version
+            Histogram<Double> distribution = permutationTest(series1, series2);
+            p = distribution.getCumulativeProbability(u);
+            if (p == 1) {
+                z = maxZScore;
+            } else if (p == 0) {
+                z = -1.0 * maxZScore;
             } else {
-                double sd = Math.sqrt((1.0+1.0/(1+n+m))*(n*m)*(1.0+n+m)/12); // biased variance empirically better fit to distribution then asymptotic variance
-                //System.out.printf("SD is %f and Max is %f and prob is %f%n",sd,1.0/Math.sqrt(sd*sd*2.0*Math.PI),p);
-                if ( p > 1.0/Math.sqrt(sd*sd*2.0*Math.PI) ) { // possible for p-value to be outside the range of the normal. Happens at the mean, so z is 0.
-                    z = 0.0;
-                } else {
-                    if ( u >= n*m/2 ) {
-                        z = Math.sqrt(-2.0*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
-                    } else {
-                        z = -Math.sqrt(-2.0*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
-                    }
+                z = NORMAL.inverseCumulativeProbability(p);
+            }
+        }
+
+        return new Result(u, z, p, Math.abs(median(series1) - median(series2)));
+    }
+
+    private void swap(Integer[] arr, int i, int j) {
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+
+    /**
+     * Uses a method that generates permutations in lexicographic order. (https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order)
+     * @param temp Sorted list of elements to be permuted.
+     * @param allPermutations Empty set that will hold all possible permutations.
+     */
+    private void calculatePermutations(Integer[] temp, Set<List<Integer>> allPermutations) {
+        allPermutations.add(new ArrayList<>(Arrays.asList(temp)));
+        while (true) {
+            int k = -1;
+            for (int i = temp.length - 2; i >= 0; i--) {
+                if (temp[i] < temp[i + 1]) {
+                    k = i;
+                    break;
                 }
             }
 
-        } catch (MathException me) {
-            throw new GATKException("A math exception occurred in inverting the probability",me);
+            if (k == -1) {
+                break;
+            }
+
+            int l = -1;
+            for (int i = temp.length - 1; i >= k + 1; i--) {
+                if (temp[k] < temp[i]) {
+                    l = i;
+                    break;
+                }
+            }
+
+            swap(temp, k, l);
+
+            int end = temp.length - 1;
+            for (int begin = k + 1; begin < end; begin++) {
+                swap(temp, begin, end);
+                end--;
+            }
+            allPermutations.add(new ArrayList<>(Arrays.asList(temp)));
         }
-
-        return new Pair<Double,Double>(z,(twoSided ? 2.0*p : p));
     }
 
     /**
-     * Hook into CPR with sufficient warning (for testing purposes)
-     * calls into that recursive calculation.
-     * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
-     * @param m: number of set-two entries
-     * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
-     * @return same as cpr
+     * Checks to see if the permutations have already been computed before creating them from scratch.
+     * @param listToPermute List of tags in numerical order to be permuted
+     * @param numOfPermutations The number of permutations this list will have (n1+n2 choose n1)
+     * @return Set of all possible permutations for the given list.
      */
-    protected static double calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(int n, int m, long u) {
-        return cpr(n,m,u);
+    Set<List<Integer>> getPermutations(final Integer[] listToPermute, int numOfPermutations) {
+        Key key = new Key(listToPermute);
+        Set<List<Integer>> permutations = PERMUTATIONS.get(key);
+        if (permutations == null) {
+            permutations = new HashSet<>(numOfPermutations);
+            calculatePermutations(listToPermute, permutations);
+            PERMUTATIONS.put(key, permutations);
+        }
+        return permutations;
     }
 
     /**
-     * For testing
+     * Creates histogram of test statistics from a permutation test.
      *
-     * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
-     * @param m: number of set-two entries
-     * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
+     * @param series1 Data from group 1
+     * @param series2 Data from group 2
+     * @return Histogram with u calculated for every possible permutation of group tag.
      */
-    protected static long countSequences(int n, int m, long u) {
-        if ( u < 0 ) { return 0; }
-        if ( m == 0 || n == 0 ) { return u == 0 ? 1 : 0; }
+    public Histogram permutationTest(final double[] series1, final double[] series2) {
+        final Histogram<Double> histo = new Histogram<Double>();
+        final int n1 = series1.length;
+        final int n2 = series2.length;
 
-        return countSequences(n-1,m,u-m) + countSequences(n,m-1,u);
-    }
+        RankedData rankedGroups = calculateRank(series1, series2);
+        Rank[] ranks = rankedGroups.getRank();
 
-    /**
-     * : just a shorter name for calculatePRecursively. See Mann, Whitney, [1947]
-     * @param n: number of set-1 entries
-     * @param m: number of set-2 entries
-     * @param u: number of times a set-2 entry as preceded a set-1 entry
-     * @return recursive p-value
-     */
-    private static double cpr(int n, int m, long u) {
-        if ( u < 0 ) {
-            return 0.0;
-        }
-        if ( m == 0 || n == 0 ) {
-            // there are entries in set 1 or set 2, so no set-2 entry can precede a set-1 entry; thus u must be zero.
-            // note that this exists only for edification, as when we reach this point, the coefficient on this term is zero anyway
-            return ( u == 0 ) ? 1.0 : 0.0;
-        }
+        Integer[] firstPermutation = new Integer[n1 + n2];
 
-
-        return (((double)n)/(n+m))*cpr(n-1,m,u-m) + (((double)m)/(n+m))*cpr(n,m-1,u);
-    }
-
-    private static double cumulativeCPR(int n, int m, long u ) {
-        // from above:
-        // the null hypothesis is that {N} is stochastically less than {M}, so U has counted
-        // occurrences of {M}s before {N}s. We would expect that this should be less than (n*m+1)/2 under
-        // the null hypothesis, so we want to integrate from K=0 to K=U for cumulative cases. Always.
-        double p = 0.0;
-        // optimization using symmetry, use the least amount of sums possible
-        long uSym = ( u <= n*m/2 ) ? u : ((long)n)*m-u;
-        for ( long uu = 0; uu < uSym; uu++ ) {
-            p += cpr(n,m,uu);
-        }
-        // correct by 1.0-p if the optimization above was used (e.g. 1-right tail = left tail)
-        return (u <= n*m/2) ? p : 1.0-p;
-    }
-
-    /**
-     * hook into the data tree, for testing purposes only
-     * @return  observations
-     */
-    protected TreeSet<Pair<Number,USet>> getObservations() {
-        return observations;
-    }
-
-    /**
-     * hook into the set sizes, for testing purposes only
-     * @return size set 1, size set 2
-     */
-    protected Pair<Integer,Integer> getSetSizes() {
-        return new Pair<Integer,Integer>(sizeSet1,sizeSet2);
-    }
-
-    /**
-     * Validates that observations are in the correct format for a MWU test -- this is only called by the contracts API during testing
-     * @param tree - the collection of labeled observations
-     * @return true iff the tree set is valid (no INFs or NaNs, at least one data point in each set)
-     */
-    protected static boolean validateObservations(TreeSet<Pair<Number,USet>> tree) {
-        boolean seen1 = false;
-        boolean seen2 = false;
-        boolean seenInvalid = false;
-        for ( Pair<Number,USet> p : tree) {
-            if ( ! seen1 && p.getSecond() == USet.SET1 ) {
-                seen1 = true;
+        for (int i = 0; i < firstPermutation.length; i++) {
+            if (i < n1) {
+                firstPermutation[i] = 0;
+            } else {
+                firstPermutation[i] = 1;
             }
+        }
 
-            if ( ! seen2 && p.getSecond() == USet.SET2 ) {
-                seen2 = true;
+        final int numOfPerms = (int) MathUtils.binomialCoefficient(n1 + n2, n2);
+        Set<List<Integer>> allPermutations = getPermutations(firstPermutation, numOfPerms);
+
+        double[] newSeries1 = new double[n1];
+        double[] newSeries2 = new double[n2];
+
+        //iterate over all permutations
+        for (List<Integer> currPerm : allPermutations) {
+            int series1End = 0;
+            int series2End = 0;
+            for (int i = 0; i < currPerm.size(); i++) {
+                int grouping = currPerm.get(i);
+                if (grouping == 0) {
+                    newSeries1[series1End] = ranks[i].rank;
+                    series1End++;
+                } else {
+                    newSeries2[series2End] = ranks[i].rank;
+                    series2End++;
+                }
             }
+            assert (series1End == n1);
+            assert (series2End == n2);
 
-            if ( Double.isNaN(p.getFirst().doubleValue()) || Double.isInfinite(p.getFirst().doubleValue())) {
-                seenInvalid = true;
-            }
-
+            double newU = MathUtils.sum(newSeries1) - ((n1 * (n1 + 1)) / 2.0);
+            histo.increment(newU);
         }
 
-            return ! seenInvalid && seen1 && seen2;
+        return histo;
     }
-
-    /**
-     * A comparator class which uses dithering on tie-breaking to ensure that the internal treeset drops no values
-     * and to ensure that rank ties are broken at random.
-     */
-    private static class DitheringComparator implements Comparator<Pair<Number,USet>>, Serializable {
-
-        public DitheringComparator() {}
-
-        @Override
-        public boolean equals(Object other) { return false; }
-
-        @Override
-        public int compare(Pair<Number,USet> left, Pair<Number,USet> right) {
-            double comp = Double.compare(left.first.doubleValue(),right.first.doubleValue());
-            if ( comp > 0 ) { return 1; }
-            if ( comp < 0 ) { return -1; }
-            return Utils.getRandomGenerator().nextBoolean() ? -1 : 1;
-        }
-    }
-
-    /**
-     * A comparator that reaches into the pair and compares numbers without tie-braking.
-     */
-    private static class NumberedPairComparator implements Comparator<Pair<Number,USet>>, Serializable {
-
-        public NumberedPairComparator() {}
-
-        @Override
-        public boolean equals(Object other) { return false; }
-
-        @Override
-        public int compare(Pair<Number,USet> left, Pair<Number,USet> right ) {
-            return Double.compare(left.first.doubleValue(),right.first.doubleValue());
-        }
-    }
-
-    public enum USet { SET1, SET2 }
-    public enum ExactMode { POINT, CUMULATIVE }
 
 }
