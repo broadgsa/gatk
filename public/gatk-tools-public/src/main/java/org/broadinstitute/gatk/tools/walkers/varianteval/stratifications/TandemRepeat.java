@@ -48,7 +48,7 @@ public class TandemRepeat extends VariantStratifier {
     }
 
     @Override
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
         if ( eval == null || ! eval.isIndel() )
             return ALL;
         else if ( GATKVariantContextUtils.isTandemRepeat(eval, ref.getForwardBases()) ) {

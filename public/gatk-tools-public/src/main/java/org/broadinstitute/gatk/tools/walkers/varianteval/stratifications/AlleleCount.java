@@ -67,7 +67,7 @@ public class AlleleCount extends VariantStratifier {
         getVariantEvalWalker().getLogger().info("AlleleCount using " + nchrom + " chromosomes");
     }
 
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String familyName) {
         if (eval != null) {
             int AC = 0; // by default, the site is considered monomorphic
 

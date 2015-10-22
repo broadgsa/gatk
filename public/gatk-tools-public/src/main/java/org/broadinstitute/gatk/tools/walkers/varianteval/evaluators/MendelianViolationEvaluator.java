@@ -172,7 +172,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
             HomVarHet_inheritedRef += mv.getParentsVarHetInheritedRef();
             HomVarHet_inheritedVar += mv.getParentsVarHetInheritedVar();
 
-            if(mv.getFamilyCalledCount()>0){
+            if(mv.getFamilyCalledCount()>0 || mv.getFamilyLowQualsCount()>0 || mv.getFamilyCalledCount()>0){
                 nVariants++;
                 nFamCalled += mv.getFamilyCalledCount();
                 nLowQual += mv.getFamilyLowQualsCount();

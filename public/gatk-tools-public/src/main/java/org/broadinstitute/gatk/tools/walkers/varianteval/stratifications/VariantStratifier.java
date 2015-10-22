@@ -54,7 +54,7 @@ public abstract class VariantStratifier implements Comparable<VariantStratifier>
 
     public abstract void initialize();
 
-    public abstract List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName);
+    public abstract List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String familyName);
 
     // -------------------------------------------------------------------------------------
     //

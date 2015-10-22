@@ -47,7 +47,7 @@ public class AlleleFrequency extends VariantStratifier {
         }
     }
 
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
         if (eval != null) {
             try {
                 return Collections.singletonList((Object)String.format("%.3f", (5.0 * MathUtils.round(eval.getAttributeAsDouble("AF", 0.0) / 5.0, 3))));

@@ -64,7 +64,8 @@ public class SnpEffPositionModifier extends VariantStratifier {
 			final String compName,
 			final VariantContext eval,
 			final String evalName,
-			final String sampleName)
+			final String sampleName,
+            final String FamilyName)
 	{
 		final List<Object> relevantStates = new ArrayList<Object>();
 		if (eval != null && eval.isVariant() && eval.hasAttribute(InfoFieldKey.EFFECT_KEY.getKeyName())) {

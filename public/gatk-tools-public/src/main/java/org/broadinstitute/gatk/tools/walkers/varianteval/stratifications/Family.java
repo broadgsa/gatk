@@ -1,6 +1,6 @@
 /*
 * Copyright 2012-2015 Broad Institute, Inc.
-* 
+*
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -27,28 +27,29 @@ package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications;
 
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantSummary;
 import htsjdk.variant.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
- * Stratifies the evaluation by each contig in the reference sequence
+ * Stratifies the eval RODs by each family in the eval ROD, as described by the pedigree.
+ *
+ * This allows the system to analyze each family separately.  This is particularly useful for the MendelianViolationEvaluator module.
  */
-public class Contig extends VariantStratifier {
+public class Family extends VariantStratifier {
     @Override
     public void initialize() {
-        states.addAll(getVariantEvalWalker().getContigNames());
-        states.add("all");
+        states.addAll(getVariantEvalWalker().getFamilyNamesForStratification());
+    }
+
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String familyName) {
+        return Collections.singletonList((Object) familyName);
     }
 
     @Override
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
-        if (eval != null) {
-            return Arrays.asList((Object)"all", eval.getChr());
-        } else {
-            return Collections.emptyList();
-        }
+    public Set<Class<? extends VariantEvaluator>> getIncompatibleEvaluators() {
+        return new HashSet<Class<? extends VariantEvaluator>>(Arrays.asList(VariantSummary.class));
     }
 }
