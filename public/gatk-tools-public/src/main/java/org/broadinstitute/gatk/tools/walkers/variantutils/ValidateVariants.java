@@ -91,7 +91,7 @@ import java.util.*;
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
- * <h4>To perform VCF format tests and all strict validations with the VCFs containing alleles > 208 bases</h4>
+ * <h4>To perform VCF format tests and all strict validations with the VCFs containing alleles <= 208 bases</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
