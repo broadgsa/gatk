@@ -352,7 +352,7 @@ public class GATKArgumentCollection {
      * probability space to the nearest bin.  When roundDown = true, the value is rounded to the nearest bin
      * that is smaller than the current bin.
      */
-    @Advanced
+    @Hidden
     @Argument(fullName="round_down_quantized", shortName = "RDQ", doc = "Round quals down to nearest quantized qual", required=false, exclusiveOf="quantize_quals")
     public boolean roundDown = false;
 
