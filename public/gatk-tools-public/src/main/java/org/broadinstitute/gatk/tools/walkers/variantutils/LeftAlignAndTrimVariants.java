@@ -94,8 +94,18 @@ import java.util.*;
  *   -T LeftAlignAndTrimVariants \
  *   -R reference.fasta \
  *   --variant input.vcf \
- *   -o output.vcf
+ *   -o output.vcf \
  *   --dontTrimAlleles
+ * </pre>
+ *
+ * <h4>Left align and trim alleles, process alleles <= 208 bases</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T LeftAlignAndTrimVariants \
+ *   -R reference.fasta \
+ *   --variant input.vcf \
+ *   -o output.vcf \
+ *   --reference_window_stop 208
  * </pre>
  *
  * <h4>Split multiallics into biallelics, left align and trim alleles</h4>
@@ -104,7 +114,7 @@ import java.util.*;
  *   -T LeftAlignAndTrimVariants \
  *   -R reference.fasta \
  *   --variant input.vcf \
- *   -o output.vcf
+ *   -o output.vcf \
  *   --splitMultiallelics
  * </pre>
  *
@@ -114,8 +124,8 @@ import java.util.*;
  *   -T LeftAlignAndTrimVariants \
  *   -R reference.fasta \
  *   --variant input.vcf \
- *   -o output.vcf
- *   --splitMultiallelics
+ *   -o output.vcf \
+ *   --splitMultiallelics \
  *   --dontTrimAlleles
  * </pre>
  *
@@ -123,6 +133,9 @@ import java.util.*;
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-200,stop=200))    // WARNING: if this changes,MAX_INDEL_LENGTH needs to change as well!
 public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
+
+    // Log message for a reference allele that is too long
+    protected static final String REFERENCE_ALLELE_TOO_LONG_MSG = "Reference allele is too long";
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -147,6 +160,10 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
     private VariantContextWriter writer;
 
     private static final int MAX_INDEL_LENGTH = 200; // needs to match reference window size!
+
+    // Stop of the expanded window for which the reference context should be provided, relative to the locus.
+    private int referenceWindowStop;
+
     public void initialize() {
         String trackName = variantCollection.variants.getName();
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
@@ -155,7 +172,9 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaDataInSortedOrder();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, 200);
+        writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, MAX_INDEL_LENGTH);
+
+        referenceWindowStop = getToolkit().getArguments().reference_window_stop;
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -202,6 +221,15 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
      */
     @Requires("vc != null")
     protected int trimAlignWrite(final VariantContext vc, final ReferenceContext ref, final int numBiallelics ){
+
+        final int refLength =  vc.getReference().length();
+
+        // ignore if the reference length is greater than the reference window stop before and after expansion
+        if ( refLength > MAX_INDEL_LENGTH && refLength > referenceWindowStop ) {
+            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --referenceWindowStop >= %d",
+                        REFERENCE_ALLELE_TOO_LONG_MSG, refLength, vc.getChr(), vc.getStart(), refLength));
+            return 0;
+        }
 
         // optionally don't trim VC
         final VariantContext v = dontTrimAlleles ? vc : GATKVariantContextUtils.trimAlleles(vc, true, true);
