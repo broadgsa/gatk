@@ -31,15 +31,15 @@ import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
-import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
-import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.*;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.genotyper.ReadLikelihoods;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 
 import java.util.*;
@@ -351,13 +351,15 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( final InfoFieldAnnotation annotationType : requestedReducibleInfoAnnotations ) {
+
             ReducibleAnnotation currentASannotation = (ReducibleAnnotation)annotationType;
-                final Map<String, Object> annotationsFromCurrentType = currentASannotation.finalizeRawData(vc, originalVC);
-                if ( annotationsFromCurrentType != null ) {
-                    infoAnnotations.putAll(annotationsFromCurrentType);
-                    //clean up raw annotation data after annotations are finalized
-                    infoAnnotations.remove(currentASannotation.getRawKeyName());
-                }
+
+            final Map<String, Object> annotationsFromCurrentType = currentASannotation.finalizeRawData(vc, originalVC);
+            if ( annotationsFromCurrentType != null ) {
+                infoAnnotations.putAll(annotationsFromCurrentType);
+                //clean up raw annotation data after annotations are finalized
+                infoAnnotations.remove(currentASannotation.getRawKeyName());
+            }
         }
 
         // generate a new annotated VC

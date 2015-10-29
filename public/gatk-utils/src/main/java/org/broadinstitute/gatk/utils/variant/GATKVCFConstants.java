@@ -61,6 +61,7 @@ public final class GATKVCFConstants {
     public static final String EVENT_DISTANCE_MIN_KEY =             "MIN_ED"; //M2
     public static final String FISHER_STRAND_KEY =                  "FS";
     public static final String AS_FISHER_STRAND_KEY =               "AS_FS";
+    public static final String FRACTION_INFORMATIVE_READS_KEY =     "FractionInformativeReads";
     public static final String AS_SB_TABLE_KEY =                    "AS_SB_TABLE";
     public static final String GC_CONTENT_KEY =                     "GC";
     public static final String GQ_MEAN_KEY =                        "GQ_MEAN";

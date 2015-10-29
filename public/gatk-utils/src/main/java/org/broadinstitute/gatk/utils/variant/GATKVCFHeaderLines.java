@@ -27,9 +27,10 @@ package org.broadinstitute.gatk.utils.variant;
 
 import htsjdk.variant.vcf.*;
 
-import static org.broadinstitute.gatk.utils.variant.GATKVCFConstants.*;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.util.*;
+import static org.broadinstitute.gatk.utils.variant.GATKVCFConstants.*;
 
 /**
  * This class contains the VCFHeaderLine definitions for the annotation keys in GATKVCFConstants.
@@ -84,6 +85,7 @@ public class GATKVCFHeaderLines {
         addFormatLine(new VCFFormatHeaderLine(PL_FOR_ALL_SNP_ALLELES_KEY, 10, VCFHeaderLineType.Integer, "Phred-scaled genotype likelihoods for all 4 possible bases regardless of whether there is statistical evidence for them. Ordering is always PL for AA AC CC GA GC GG TA TC TG TT."));
         addFormatLine(new VCFFormatHeaderLine(HAPLOTYPE_CALLER_PHASING_ID_KEY, 1, VCFHeaderLineType.String, "Physical phasing ID information, where each unique ID within a given sample (but not across samples) connects records within a phasing group"));
         addFormatLine(new VCFFormatHeaderLine(HAPLOTYPE_CALLER_PHASING_GT_KEY, 1, VCFHeaderLineType.String, "Physical phasing haplotype information, describing how the alternate alleles are phased in relation to one another"));
+
         addFormatLine(new VCFFormatHeaderLine(MIN_DP_FORMAT_KEY, 1, VCFHeaderLineType.Integer, "Minimum DP observed within the GVCF block"));
         addFormatLine(new VCFFormatHeaderLine(REFERENCE_GENOTYPE_QUALITY, 1, VCFHeaderLineType.Integer, "Unconditional reference genotype confidence, encoded as a phred quality -10*log10 p(genotype call is wrong)"));
         addFormatLine(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_KEY, 1, VCFHeaderLineType.Integer, "Phred score of the genotype combination and phase given that the genotypes are correct"));
@@ -141,6 +143,7 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Raw data for Mapping Quality Rank Sum"));
         addInfoLine(new VCFInfoHeaderLine(AS_RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "Allele-specfic raw data for Mapping Quality Rank Sum"));
         addInfoLine(new VCFInfoHeaderLine(AS_MAP_QUAL_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific Mapping Quality Rank Sum"));
+        addInfoLine(new VCFInfoHeaderLine(FRACTION_INFORMATIVE_READS_KEY, 1, VCFHeaderLineType.Float, "The fraction of informative reads out of the total reads"));
 
         addInfoLine(new VCFInfoHeaderLine(MENDEL_VIOLATION_LR_KEY, 1, VCFHeaderLineType.Float, "Mendelian violation likelihood ratio: L[MV] - L[No MV]"));
         addInfoLine(new VCFInfoHeaderLine(HI_CONF_DENOVO_KEY, 1, VCFHeaderLineType.String, "High confidence possible de novo mutation (GQ >= 20 for all trio members)=[comma-delimited list of child samples]"));
