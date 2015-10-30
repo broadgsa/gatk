@@ -48,7 +48,7 @@ public class Novelty extends VariantStratifier implements StandardStratification
         knowns = getVariantEvalWalker().getKnowns();
     }
 
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
         if (tracker != null && eval != null) {
             final Collection<VariantContext> knownComps = tracker.getValues(knowns, ref.getLocus());
             for ( final VariantContext c : knownComps ) {

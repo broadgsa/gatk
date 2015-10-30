@@ -42,7 +42,7 @@ public class VariantType extends VariantStratifier {
             states.add(t.toString());
     }
 
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
         return eval == null ? Collections.emptyList() : Collections.singletonList((Object)eval.getType().toString());
     }
 

@@ -47,7 +47,7 @@ public class OneBPIndel extends VariantStratifier {
     }
 
     @Override
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
         if (eval != null && eval.isIndel()) {
             for ( int l : eval.getIndelLengths() )
                 if ( Math.abs(l) > 1 )

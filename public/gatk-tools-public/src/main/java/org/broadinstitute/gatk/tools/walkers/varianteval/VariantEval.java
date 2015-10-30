@@ -29,8 +29,10 @@ import com.google.java.contract.Requires;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.SAMSequenceRecord;
+import oracle.jrockit.jfr.StringConstantPool;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
+import org.broadinstitute.gatk.engine.samples.Trio;
 import org.broadinstitute.gatk.engine.walkers.*;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.*;
 import org.broadinstitute.gatk.utils.commandline.*;
@@ -105,7 +107,7 @@ import java.util.*;
  * </pre>
  * </p>
  *
- * <h3>Usage example</h3>
+ * <h3>Usage examples</h3>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T VariantEval \
@@ -114,6 +116,18 @@ import java.util.*;
  *   --eval:set1 set1.vcf \
  *   --eval:set2 set2.vcf \
  *   [--comp comp.vcf]
+ * </pre>
+ *
+ * Count Mendelian violations for each family in a callset with multiple families (and provided pedigree)
+ * <pre>
+ * Java -jar GenomeAnalysisTK.jar \
+ *   -T VariantEval \
+ *   -R reference.fasta \
+ *   -o output.MVs.byFamily.table \
+ *   --eval multiFamilyCallset.vcf \
+ *   -noEV -noST \
+ *   -ST Family \
+ *   -EV MendelianViolationEvaluator
  * </pre>
  *
  * <h3>Caveat</h3>
@@ -249,14 +263,18 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 
     private boolean isSubsettingSamples;
     private Set<String> sampleNamesForEvaluation = new LinkedHashSet<String>();
+    private Set<String> familyNamesForEvaluation = new LinkedHashSet<String>();
     private Set<String> sampleNamesForStratification = new LinkedHashSet<String>();
+    private Set<String> familyNamesForStratification = new LinkedHashSet<String>();
 
     // important stratifications
     private boolean byFilterIsEnabled = false;
     private boolean perSampleIsEnabled = false;
+    private boolean perFamilyIsEnabled = false;
 
     // Public constants
-    private static String ALL_SAMPLE_NAME = "all";
+    final private static String ALL_SAMPLE_NAME = "all";
+    final private static String ALL_FAMILY_NAME = "all";
 
     // the number of processed bp for this walker
     long nProcessedLoci = 0;
@@ -303,11 +321,21 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
         final Set<String> allSampleNames = SampleUtils.getSamplesFromCommandLineInput(vcfSamples);
         sampleNamesForEvaluation.addAll(new TreeSet<String>(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS)));
         isSubsettingSamples = ! sampleNamesForEvaluation.containsAll(allSampleNames);
+        familyNamesForEvaluation.addAll(getSampleDB().getFamilyIDs());
 
-        if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
+        //If stratifying by sample name, assign a stratification for each sample we're evaluating (based on commandline args)...
+        if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample") ) {
             sampleNamesForStratification.addAll(sampleNamesForEvaluation);
         }
+        //...and also a stratification for the sum over all samples
         sampleNamesForStratification.add(ALL_SAMPLE_NAME);
+
+        //If stratifying by sample name, assign a stratification for each family...
+        if ( Arrays.asList(STRATIFICATIONS_TO_USE).contains("Family") ) {
+            familyNamesForStratification.addAll(familyNamesForEvaluation);
+        }
+        //...and also a stratification for the sum over all families
+        familyNamesForStratification.add(ALL_FAMILY_NAME);
 
         // Initialize select expressions
         for (VariantContextUtils.JexlVCMatchExp jexl : VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS)) {
@@ -327,7 +355,16 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
                 byFilterIsEnabled = true;
             else if ( vs.getName().equals("Sample") )
                 perSampleIsEnabled = true;
+            else if ( vs.getName().equals("Family"))
+                perFamilyIsEnabled = true;
         }
+
+        if (perSampleIsEnabled && perFamilyIsEnabled)
+            throw new UserException.BadArgumentValue("ST", "Variants cannot be stratified by sample and family at the same time");
+
+        if (perFamilyIsEnabled && getSampleDB().getTrios().isEmpty())
+            throw new UserException.BadArgumentValue("ST", "Cannot stratify by family without *.ped file");
+
 
         if ( intervalsFile != null ) {
             boolean fail = true;
@@ -420,17 +457,24 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 //            }
 
             //      --------- track ---------           sample  - VariantContexts -
-            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, mergeEvals);
-            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> evalVCs = variantEvalUtils.bindVariantContexts(tracker, ref, evals, byFilterIsEnabled, true, perSampleIsEnabled, perFamilyIsEnabled, mergeEvals);
+            HashMap<RodBinding<VariantContext>, HashMap<String, Collection<VariantContext>>> compVCs = variantEvalUtils.bindVariantContexts(tracker, ref, comps, byFilterIsEnabled, false, false, false, false);
 
             // for each eval track
             for ( final RodBinding<VariantContext> evalRod : evals ) {
                 final Map<String, Collection<VariantContext>> emptyEvalMap = Collections.emptyMap();
                 final Map<String, Collection<VariantContext>> evalSet = evalVCs.containsKey(evalRod) ? evalVCs.get(evalRod) : emptyEvalMap;
 
+                Set<String> statificationLevels;
+
                 // for each sample stratifier
-                for ( final String sampleName : sampleNamesForStratification ) {
-                    Collection<VariantContext> evalSetBySample = evalSet.get(sampleName);
+                if (perFamilyIsEnabled)
+                    statificationLevels = familyNamesForStratification;
+                else
+                    statificationLevels = sampleNamesForStratification;
+                for ( final String stratLevelName : statificationLevels ) {
+                    Collection<VariantContext> evalSetBySample = evalSet.get(stratLevelName);
+
                     if ( evalSetBySample == null ) {
                         evalSetBySample = new HashSet<VariantContext>(1);
                         evalSetBySample.add(null);
@@ -452,7 +496,18 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
                             // find the comp
                             final VariantContext comp = findMatchingComp(eval, compSet);
 
-                            for ( EvaluationContext nec : getEvaluationContexts(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), sampleName) ) {
+                            Collection<EvaluationContext> contextsForStratification;
+                            if (perFamilyIsEnabled)
+                                contextsForStratification = getEvaluationContexts(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), null, stratLevelName);
+                            else {
+                                String familyID;
+                                if (stratLevelName.equals("all"))
+                                    familyID = "all";
+                                else
+                                    familyID = getSampleDB().getSample(stratLevelName).getFamilyID();
+                                contextsForStratification = getEvaluationContexts(tracker, ref, eval, evalRod.getName(), comp, compRod.getName(), stratLevelName, familyID);
+                            }
+                            for ( EvaluationContext nec : contextsForStratification ) {
 
                                 // eval against the comp
                                 synchronized (nec) {
@@ -521,10 +576,11 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
                                                                   final String evalName,
                                                                   final VariantContext comp,
                                                                   final String compName,
-                                                                  final String sampleName ) {
+                                                                  final String sampleName,
+                                                                  final String familyName) {
         final List<List<Object>> states = new LinkedList<List<Object>>();
         for ( final VariantStratifier vs : stratManager.getStratifiers() ) {
-            states.add(vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName));
+            states.add(vs.getRelevantStates(ref, tracker, comp, compName, eval, evalName, sampleName, familyName));
         }
         return stratManager.values(states);
     }
@@ -649,6 +705,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     public double getMendelianViolationQualThreshold() { return MENDELIAN_VIOLATION_QUAL_THRESHOLD; }
 
     public static String getAllSampleName() { return ALL_SAMPLE_NAME; }
+    public static String getAllFamilyName() { return ALL_FAMILY_NAME; }
 
     public List<RodBinding<VariantContext>> getKnowns() { return knowns; }
 
@@ -656,6 +713,8 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 
     public boolean isSubsettingToSpecificSamples() { return isSubsettingSamples; }
     public Set<String> getSampleNamesForEvaluation() { return sampleNamesForEvaluation; }
+
+    public Set<String> getFamilyNamesForEvaluation() { return familyNamesForEvaluation; }
 
     public int getNumberOfSamplesForEvaluation() {
         if (sampleNamesForEvaluation!= null &&  !sampleNamesForEvaluation.isEmpty())
@@ -666,6 +725,8 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 
     }
     public Set<String> getSampleNamesForStratification() { return sampleNamesForStratification; }
+
+    public Set<String> getFamilyNamesForStratification() { return familyNamesForStratification; }
 
     public List<RodBinding<VariantContext>> getComps() { return comps; }
 
