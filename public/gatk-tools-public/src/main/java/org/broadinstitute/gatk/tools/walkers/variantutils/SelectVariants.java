@@ -574,6 +574,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", required=false, doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
     private boolean allowNonOverlappingCommandLineSamples = false;
 
+    @Argument(fullName="forceValidOutput", required=false, doc="Forces output VCF to be compliant to up to date version")
+    private boolean forceValidOutput = false;
+
     public enum NumberAlleleRestriction {
         ALL,
         BIALLELIC,
@@ -1008,7 +1011,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      */
     private VariantContext subsetRecord(final VariantContext vc, final boolean preserveAlleles, final boolean removeUnusedAlternates) {
         //subContextFromSamples() always decodes the vc, which is a fairly expensive operation.  Avoid if possible
-        if ( noSamplesSpecified && !removeUnusedAlternates )
+        if ( noSamplesSpecified && !removeUnusedAlternates && !forceValidOutput )
             return vc;
 
         // strip out the alternate alleles that aren't being used
