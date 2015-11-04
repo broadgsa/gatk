@@ -574,7 +574,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", required=false, doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
     private boolean allowNonOverlappingCommandLineSamples = false;
 
-    @Argument(fullName="forceValidOutput", required=false, doc="Forces output VCF to be compliant to up to date version")
+    /**
+     * If this argument is provided, the output will be compliant with the version in the header, however it will also
+     * cause the tool to run slower than without the argument. Without the argument the header will be compliant with
+     * the up-to-date version, but the output in the body may not be compliant. If an up-to-date input file is used,
+     * then the output will also be up-to-date regardless of this argument.
+     */
+    @Argument(fullName="forceValidOutput", required=false, doc="Forces output VCF to be compliant to up-to-date version")
     private boolean forceValidOutput = false;
 
     public enum NumberAlleleRestriction {
