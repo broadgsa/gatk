@@ -866,7 +866,7 @@ public class GATKVariantContextUtils {
                     newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
                 }
 
-                if ( newLikelihoods == null || likelihoodsAreUninformative(newLikelihoods) )
+                if ( newLikelihoods == null || (originalVC.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0) == 0 && likelihoodsAreUninformative(newLikelihoods) ))
                     gb.noPL();
                 else
                     gb.PL(newLikelihoods);
