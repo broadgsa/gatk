@@ -248,8 +248,8 @@ import java.util.*;
  *   -V input.vcf \
  *   -o output.vcf \
  *   -selectType INDEL
- *   -minIndelSize 2
- *   -maxIndelSize 5
+ *   --minIndelSize 2
+ *   --maxIndelSize 5
  * </pre>
  *
  * <h4>Exclude indels from a VCF:</h4>
@@ -259,7 +259,7 @@ import java.util.*;
  *   -T SelectVariants \
  *   --variant input.vcf \
  *   -o output.vcf \
- *   -selectTypeToExclude INDEL
+ *   --selectTypeToExclude INDEL
  * </pre>
  *
  * <h4>Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column):</h4>

@@ -57,12 +57,35 @@ import java.util.*;
  *
  * <h3>Inputs</h3>
  * <p>
- * A VCF file and a metadata file
+ * A VCF file and a metadata file.
+ * </p>
+ *
+* <p>The metaData file can take two formats, the first of which is the first 6 lines of the standard pedigree file. This
+ * is what Plink describes as a .fam file. Note that the sex encoding convention is 1=male; 2=female; other=unknown. An example .fam file is as follows (note that there is no header):</p>
+ * <pre>
+ * CEUTrio NA12878 NA12891 NA12892 2 -9
+ * CEUTrio NA12891 UNKN1 UNKN2 1 -9
+ * CEUTrio NA12892 UNKN3 UNKN4 2 -9
+ * </pre>
+ * <p>where the entries are: FamilyID IndividualID DadID MomID Sex Phenotype.</p>
+ * <p>An alternate format is a two-column key-value file:</p>
+ * <pre>
+ * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9
+ * NA12891        fid=CEUTrio;sex=1;phenotype=-9
+ * NA12892        fid=CEUTrio;sex=2;phenotype=-9
+ * </pre>
+ * <p>where unknown parents do not need to be specified. The columns are the individual ID and a list of key-value pairs.</p>
+ *
+ * <p>
+ * Regardless of which file is specified, the tool will output a .fam file alongside the pedigree file. If the
+ * command line has "-m [name].fam", the fam file will be subset and reordered to match the sample content and ordering
+ * of the VCF. However, if a metadata file of the alternate format is passed by "-m [name].txt", the tool will
+ * construct a formatted .fam file from the data.
  * </p>
  *
  * <h3>Outputs</h3>
  * <p>
- * A binary pedigree in PLINK format, composed of three files (.bed/.bim/.fam)
+ * A binary pedigree in PLINK format, composed of three files (.bed/.bim/.fam). See the <a href='http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped'>PLINK format specification</a> for more details.
  * </p>
  *
  * <h3>Example</h3>
@@ -85,30 +108,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
-
-    /**
-     * <p>The metaData file can take two formats, the first of which is the first 6 lines of the standard pedigree file. This
-     * is what Plink describes as a .fam file. An example .fam file is as follows (note that there is no header):</p>
-     * <pre>
-     * CEUTrio NA12878 NA12891 NA12892 2 -9
-     * CEUTrio NA12891 UNKN1 UNKN2 2 -9
-     * CEUTrio NA12892 UNKN3 UNKN4 1 -9
-     * </pre>
-     * <p>where the entries are: FamilyID IndividualID DadID MomID Phenotype Sex.</p>
-     * <p>An alternate format is a two-column key-value file:</p>
-     * <pre>
-     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9
-     * NA12891        fid=CEUTrio;sex=2;phenotype=-9
-     * NA12892        fid=CEUTrio;sex=1;phenotype=-9
-     * </pre>
-     * <p>where unknown parents do not need to be specified. The columns are the individual ID and a list of key-value pairs.</p>
-     * <p>
-     * Regardless of which file is specified, the tool will output a .fam file alongside the pedigree file. If the
-     * command line has "-m [name].fam", the fam file will be subset and reordered to match the sample content and ordering
-     * of the VCF. However, if a metadata file of the alternate format is passed by "-m [name].txt", the tool will
-     * construct a formatted .fam file from the data.
-     * </p>
-     */
+    
     @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file")
     File metaDataFile;
 
