@@ -126,6 +126,8 @@ public class VariantAnnotatorEngine {
 
     protected List<VAExpression> getRequestedExpressions() { return requestedExpressions; }
 
+    public List<InfoFieldAnnotation> getRequestedReducibleInfoAnnotations() { return Collections.unmodifiableList(requestedReducibleInfoAnnotations); }
+
     private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude) {
         AnnotationInterfaceManager.validateAnnotations(annotationGroupsToUse, annotationsToUse);
         requestedInfoAnnotations = AnnotationInterfaceManager.createInfoFieldAnnotations(annotationGroupsToUse, annotationsToUse);
@@ -349,10 +351,7 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( final InfoFieldAnnotation annotationType : requestedReducibleInfoAnnotations ) {
-            if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
-                continue;
-
-                ReducibleAnnotation currentASannotation = (ReducibleAnnotation)annotationType;
+            ReducibleAnnotation currentASannotation = (ReducibleAnnotation)annotationType;
                 final Map<String, Object> annotationsFromCurrentType = currentASannotation.finalizeRawData(vc, originalVC);
                 if ( annotationsFromCurrentType != null ) {
                     infoAnnotations.putAll(annotationsFromCurrentType);

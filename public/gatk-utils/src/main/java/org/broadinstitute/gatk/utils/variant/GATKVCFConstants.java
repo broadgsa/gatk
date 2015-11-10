@@ -73,6 +73,7 @@ public final class GATKVCFConstants {
     public static final String AVG_INTERVAL_DP_KEY =                "IDP"; //DiagnoseTargets
     public static final String INTERVAL_GC_CONTENT_KEY =            "IGC";
     public static final String INBREEDING_COEFFICIENT_KEY =         "InbreedingCoeff";
+    public static final String AS_INBREEDING_COEFFICIENT_KEY =      "AS_InbreedingCoeff";
     public static final String EXCESS_HET_KEY =                     "ExcessHet";
     public static final String AS_HETEROZYGOSITY_KEY =              "AS_InbreedingCoeff";
     public static final String LIKELIHOOD_RANK_SUM_KEY =            "LikelihoodRankSum";
@@ -102,6 +103,8 @@ public final class GATKVCFConstants {
     public static final String PANEL_OF_NORMALS_COUNT_KEY =         "PON"; //M2
     public static final String POSITIVE_LABEL_KEY =                 "POSITIVE_TRAIN_SITE";
     public static final String QUAL_BY_DEPTH_KEY =                  "QD";
+    public static final String AS_QUAL_BY_DEPTH_KEY =               "AS_QD";
+    public static final String AS_QUAL_KEY =                        "AS_QUAL";
     public static final String BEAGLE_R2_KEY =                      "R2"; //BeagleOutputToVCF
     public static final String AS_READ_POS_RANK_SUM_KEY =           "AS_ReadPosRankSum";
     public static final String AS_RAW_READ_POS_RANK_SUM_KEY =       "AS_RAW_ReadPosRankSum";
