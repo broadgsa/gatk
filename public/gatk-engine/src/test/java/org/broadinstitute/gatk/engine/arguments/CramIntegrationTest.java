@@ -39,18 +39,18 @@ public class CramIntegrationTest extends WalkerTest {
     @DataProvider(name="cramData")
     public Object[][] getCRAMData() {
         return new Object[][] {
-                {"PrintReads", "exampleBAM.bam", "", "cram", "95cce9111a377d8e84fd076f7f0744df"},
-                {"PrintReads", "exampleCRAM.cram", "", "cram", "95cce9111a377d8e84fd076f7f0744df"},
-                {"PrintReads", "exampleCRAM.cram", "", "bam", "7c716d5103c20e95a8115b3c2848bf0d"},
-                {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "5cc9cac96f7f9819688d47a28ed97778"},
+                {"PrintReads", "exampleBAM.bam", "", "cram", "424c725c4ffe7215e358ecf5abd5e5e8"},
+                {"PrintReads", "exampleCRAM.cram", "", "cram", "424c725c4ffe7215e358ecf5abd5e5e8"},
+                {"PrintReads", "exampleCRAM.cram", "", "bam", "247805098718dd74b8a871796424d359"},
+                {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "a5b26631cd89f86f6184bcac7bc9c9ca"},
                 {"CountLoci", "exampleCRAM.cram", "", "txt", "ade93df31a6150321c1067e749cae9be"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
                 {"CountReads", "exampleCRAM.cram", "", "txt", "4fbafd6948b6529caa2b78e476359875"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
-                {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "2e1b175c9b36154e2bbd1a23ebaf4c22"},
+                {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "24dbd14b60220461f47ec5517962cb7f"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
-                {"PrintReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "bam", "2e1b175c9b36154e2bbd1a23ebaf4c22"},
+                {"PrintReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "bam", "84bee5063d8fa0d07e7c3ff7e825ae3a"},
                 {"CountLoci", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
         };

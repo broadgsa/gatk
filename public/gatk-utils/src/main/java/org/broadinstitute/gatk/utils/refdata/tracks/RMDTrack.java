@@ -93,7 +93,7 @@ public class RMDTrack {
      * @param dict the sam sequence dictionary
      * @param codec the feature codec we use to decode this type
      */
-    public RMDTrack(Class type, String name, File file, AbstractFeatureReader reader, SAMSequenceDictionary dict, GenomeLocParser genomeLocParser, FeatureCodec codec) {
+    public RMDTrack(final Class type, final String name, final File file, final AbstractFeatureReader reader, final SAMSequenceDictionary dict, final GenomeLocParser genomeLocParser, final FeatureCodec codec) {
         this.type = type;
         this.name = name;
         this.file = file;
