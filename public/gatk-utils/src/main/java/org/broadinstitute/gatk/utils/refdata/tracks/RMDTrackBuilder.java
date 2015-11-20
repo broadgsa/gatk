@@ -26,6 +26,9 @@
 package org.broadinstitute.gatk.utils.refdata.tracks;
 
 import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.variant.vcf.VCFContigHeaderLine;
+import htsjdk.variant.vcf.VCFHeader;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.AbstractFeatureReader;
 import htsjdk.tribble.FeatureCodec;
@@ -34,6 +37,7 @@ import htsjdk.tribble.TribbleException;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.util.LittleEndianOutputStream;
+import org.broadinstitute.gatk.utils.SequenceDictionaryUtils;
 import org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.utils.ValidationExclusion;
@@ -49,6 +53,8 @@ import org.broadinstitute.gatk.utils.instrumentation.Sizeof;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 
@@ -131,7 +137,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      *
      * @return an instance of the track
      */
-    public RMDTrack createInstanceOfTrack(RMDTriplet fileDescriptor) {
+    public RMDTrack createInstanceOfTrack(final RMDTriplet fileDescriptor) {
         String name = fileDescriptor.getName();
         File inputFile = new File(fileDescriptor.getFile());
 
@@ -146,7 +152,41 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         else
             pair = getFeatureSource(descriptor, name, inputFile, fileDescriptor.getStorageType());
         if (pair == null) throw new UserException.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
+
+        validateVariantAgainstSequenceDictionary(name, descriptor.getName(), pair.first, pair.second);
+
         return new RMDTrack(descriptor.getCodecClass(), name, inputFile, pair.first, pair.second, genomeLocParser, createCodec(descriptor, name, inputFile));
+    }
+
+    /**
+     * Validate the VCF dictionary against the sequence dictionary.
+     *
+     * @param name      the name of this specific track
+     * @param descriptorName  the name of the feature
+     * @param reader    the feature reader to use as the underlying data source
+     * @param dict      the sam sequence dictionary
+     */
+    private void validateVariantAgainstSequenceDictionary(final String name, final String descriptorName, final AbstractFeatureReader reader, final SAMSequenceDictionary dict ) throws UserException {
+        // only process if the variant is a VCF
+        if ( name.equals("variant") && descriptorName.equals("VCF") ){
+            if ( reader != null && dict != null && reader.getHeader() != null ){
+                final List<VCFContigHeaderLine> contigs = ((VCFHeader) reader.getHeader()).getContigLines();
+                if (contigs != null) {
+                    // make the VCF dictionary from the contig header fields
+                    final List<SAMSequenceRecord> vcfContigRecords = new ArrayList<SAMSequenceRecord>();
+                    for (final VCFContigHeaderLine contig : contigs)
+                        vcfContigRecords.add(contig.getSAMSequenceRecord());
+
+                    // have VCF contig fields so can make a dictionary and compare it to the sequence dictionary
+                    if (!vcfContigRecords.isEmpty()) {
+                        final SAMSequenceDictionary vcfDictionary = new SAMSequenceDictionary(vcfContigRecords);
+                        final SAMSequenceDictionary sequenceDictionary = new SAMSequenceDictionary(dict.getSequences());
+
+                        SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, name, vcfDictionary, "sequence", sequenceDictionary, false, null);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -228,7 +268,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                 sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
 
                 // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
-                if (sequenceDictionary.size() == 0 && dict != null) {
+                if (sequenceDictionary.isEmpty() && dict != null) {
                     validateAndUpdateIndexSequenceDictionary(inputFile, index, dict);
 
                     if ( ! disableAutoIndexCreation ) {
