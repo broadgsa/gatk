@@ -39,7 +39,7 @@ public class CramIntegrationTest extends WalkerTest {
     @DataProvider(name="cramData")
     public Object[][] getCRAMData() {
         return new Object[][] {
-                {"PrintReads", "exampleBAM.bam", "", "cram", "424c725c4ffe7215e358ecf5abd5e5e8"},
+                {"PrintReads", "exampleBAM.bam", "", "cram", "97470174cd313a4d200b2a96ffd73e99"},
                 {"PrintReads", "exampleCRAM.cram", "", "cram", "424c725c4ffe7215e358ecf5abd5e5e8"},
                 {"PrintReads", "exampleCRAM.cram", "", "bam", "247805098718dd74b8a871796424d359"},
                 {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "a5b26631cd89f86f6184bcac7bc9c9ca"},
