@@ -47,10 +47,19 @@ public class DeprecatedToolChecks {
         deprecatedGATKWalkers.put("TableRecalibration", "2.0 (use PrintReads with -BQSR instead; see documentation for usage)");
         deprecatedGATKWalkers.put("AlignmentWalker", "2.2 (no replacement)");
         deprecatedGATKWalkers.put("CountBestAlignments", "2.2 (no replacement)");
-        deprecatedGATKWalkers.put("SomaticIndelDetector", "2.0 (replaced by the standalone tool Indelocator; see Cancer Tools documentation)");
+        deprecatedGATKWalkers.put("SomaticIndelDetector", "2.0 (replaced by MuTect2; see documentation for usage)");
         deprecatedGATKWalkers.put("BeagleOutputToVCF", "3,4 (replaced by Beagle native functions; see Beagle 4 documentation at https://faculty.washington.edu/browning/beagle/beagle.html)");
         deprecatedGATKWalkers.put("VariantsToBeagleUnphased", "3.4 (replaced by Beagle native functions; see Beagle 4 documentation at https://faculty.washington.edu/browning/beagle/beagle.html)");
         deprecatedGATKWalkers.put("ProduceBeagleInput", "3.4 (replaced by Beagle native functions; see Beagle 4 documentation at https://faculty.washington.edu/browning/beagle/beagle.html)");
+        deprecatedGATKWalkers.put("ReadAdaptorTrimmer","3.5 (this tool was unsound and untested -- no specific replacement, see Picard tools for alternatives)");
+        deprecatedGATKWalkers.put("BaseCoverageDistribution","3.5 (use DiagnoseTargets instead; see documentation for usage)");
+        deprecatedGATKWalkers.put("CoveredByNSamplesSites","3.5 (use DiagnoseTargets instead; see documentation for usage)");
+        deprecatedGATKWalkers.put("FindCoveredIntervals","3.5 (use DiagnoseTargets instead; see documentation for usage)");
+        deprecatedGATKWalkers.put("VariantValidationAssessor","3.5 (this tool was unsound and untested -- no replacement)");
+        deprecatedGATKWalkers.put("LiftOverVariants","3.5 (use Picard LiftoverVCF instead; see documentation for usage)");
+        deprecatedGATKWalkers.put("FilterLiftedVariants","3.5 (use Picard LiftoverVCF instead; see documentation for usage)");
+        deprecatedGATKWalkers.put("ListAnnotations","3.5 (this tool was impractical; see the online documentation instead)");
+
     }
 
     // Mapping from walker name to major version number where the walker first disappeared and optional replacement options
