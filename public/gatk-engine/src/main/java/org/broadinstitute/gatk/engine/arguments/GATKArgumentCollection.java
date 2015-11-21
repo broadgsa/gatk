@@ -336,7 +336,8 @@ public class GATKArgumentCollection {
      * Any value greater than zero will be used to recalculate the quantization using that many levels.
      * Negative values mean that we should quantize using the recalibration report's quantization level.
      */
-
+    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
+    public int quantizationLevels = 0;
 
     /**
      * Static quantized quals are entirely separate from the quantize_qual option which uses dynamic binning.
@@ -355,9 +356,6 @@ public class GATKArgumentCollection {
     @Hidden
     @Argument(fullName="round_down_quantized", shortName = "RDQ", doc = "Round quals down to nearest quantized qual", required=false, exclusiveOf="quantize_quals")
     public boolean roundDown = false;
-
-    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
-    public int quantizationLevels = 0;
 
     /**
      * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument. Only the base substitution qualities will be produced.
