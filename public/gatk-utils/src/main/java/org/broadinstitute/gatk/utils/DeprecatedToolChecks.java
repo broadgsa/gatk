@@ -54,7 +54,6 @@ public class DeprecatedToolChecks {
         deprecatedGATKWalkers.put("ReadAdaptorTrimmer","3.5 (this tool was unsound and untested -- no specific replacement, see Picard tools for alternatives)");
         deprecatedGATKWalkers.put("BaseCoverageDistribution","3.5 (use DiagnoseTargets instead; see documentation for usage)");
         deprecatedGATKWalkers.put("CoveredByNSamplesSites","3.5 (use DiagnoseTargets instead; see documentation for usage)");
-        deprecatedGATKWalkers.put("FindCoveredIntervals","3.5 (use DiagnoseTargets instead; see documentation for usage)");
         deprecatedGATKWalkers.put("VariantValidationAssessor","3.5 (this tool was unsound and untested -- no replacement)");
         deprecatedGATKWalkers.put("LiftOverVariants","3.5 (use Picard LiftoverVCF instead; see documentation for usage)");
         deprecatedGATKWalkers.put("FilterLiftedVariants","3.5 (use Picard LiftoverVCF instead; see documentation for usage)");
