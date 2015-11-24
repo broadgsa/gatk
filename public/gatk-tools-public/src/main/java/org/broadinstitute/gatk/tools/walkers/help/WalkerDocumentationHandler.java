@@ -228,13 +228,17 @@ public class WalkerDocumentationHandler extends GenericDocumentationHandler {
      */
     private HashMap<String, Object> getDownSamplingSettings(Class myClass, HashMap<String, Object> dsSettings) {
         //
-        // Retrieve annotation
-        if (myClass.isAnnotationPresent(Downsample.class)) {
-            final Annotation thisAnnotation = myClass.getAnnotation(Downsample.class);
-            if(thisAnnotation instanceof Downsample) {
-                final Downsample dsAnnotation = (Downsample) thisAnnotation;
-                dsSettings.put("by", dsAnnotation.by().toString());
-                dsSettings.put("to_cov", dsAnnotation.toCoverage());
+        // Check for RODWalker first
+        if (!checkForRODWalker(myClass).equals("yes")) {
+            //
+            // Retrieve annotation
+            if (myClass.isAnnotationPresent(Downsample.class)) {
+                final Annotation thisAnnotation = myClass.getAnnotation(Downsample.class);
+                if(thisAnnotation instanceof Downsample) {
+                    final Downsample dsAnnotation = (Downsample) thisAnnotation;
+                    dsSettings.put("by", dsAnnotation.by().toString());
+                    dsSettings.put("to_cov", dsAnnotation.toCoverage());
+                }
             }
         }
         return dsSettings;
@@ -318,6 +322,24 @@ public class WalkerDocumentationHandler extends GenericDocumentationHandler {
             return "";
         }
         return getWalkerType(mySuperClass);
+    }
+
+    /**
+     * Utility function that checks whether an instance of class c is a subclass of RODWalker.
+     *
+     * @param myClass the class to query for the annotation
+     * @return "yes" or "no" (can't use a Boolean because of the recursion)
+     */
+    private String checkForRODWalker(Class myClass) {
+        //
+        // Look up superclasses recursively until we find either RODWalker or (Walker or Object)
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass.getSimpleName().equals("RodWalker")) {
+            return "yes";
+        } else if (mySuperClass.getSimpleName().equals("Object") || mySuperClass.getSimpleName().equals("Walker")) {
+            return "";
+        }
+        return checkForRODWalker(mySuperClass);
     }
 
     /**
