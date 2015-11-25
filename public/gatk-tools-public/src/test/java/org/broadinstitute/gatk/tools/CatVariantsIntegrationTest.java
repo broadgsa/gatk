@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -57,6 +57,8 @@ public class CatVariantsIntegrationTest {
     private final File CatVariantsVcf2 = new File(CatVariantsDir, "CatVariantsTest2.vcf");
     private final File CatVariantsBcf1 = new File(CatVariantsDir, "CatVariantsTest1.bcf");
     private final File CatVariantsBcf2 = new File(CatVariantsDir, "CatVariantsTest2.bcf");
+    private final File CatVariantsVcf3 = new File(CatVariantsDir, "CatVariantsTest3.vcf");
+    private final File CatVariantsVcf4 = new File(CatVariantsDir, "CatVariantsTest4.vcf");
 
     private class CatVariantsTestProvider extends BaseTest.TestDataProvider {
         private final File file1;
@@ -89,25 +91,25 @@ public class CatVariantsIntegrationTest {
         final File catVariantsTempList1 = BaseTest.createTempListFile("CatVariantsTest1", CatVariantsVcf1.getAbsolutePath());
         final File catVariantsTempList2 = BaseTest.createTempListFile("CatVariantsTest2", CatVariantsVcf2.getAbsolutePath());
 
-        new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
+        new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "2a82e959b3b07b461d64bd5ed7298aa3");
 
         for (String extension1 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
             for (String extension2 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
                 final File file1 = new File(CatVariantsDir, "CatVariantsTest1.vcf" + extension1);
                 final File file2 = new File(CatVariantsDir, "CatVariantsTest2.vcf" + extension2);
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "6a57fcbbf3cae490896d13a288670d83");
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "33f728ac5c70ce2994f3619a27f47088");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "2a82e959b3b07b461d64bd5ed7298aa3");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "3beb2c58fb795fcdc485de9868eda576");
             }
-            new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "33f728ac5c70ce2994f3619a27f47088");
-            new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "f1a55575f59707f80b8c17e2591fbf53");
+            new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "3beb2c58fb795fcdc485de9868eda576");
+            new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "b9f31b6a00226c58181c19d421503693");
         }
 
         //Test list parsing functionality
-        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
-        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "d0d81eb7fd3905256c4ac7c0fc480094");
+        new CatVariantsTestProvider(catVariantsTempList1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+        new CatVariantsTestProvider(CatVariantsVcf1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
+        new CatVariantsTestProvider(catVariantsTempList1, catVariantsTempList2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
 
         return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
     }
@@ -120,6 +122,27 @@ public class CatVariantsIntegrationTest {
         pc.execAndCheck(ps);
 
         MD5DB.MD5Match result = md5db.testFileMD5("testExtensions", "CatVariantsTestProvider", cfg.outputFile, cfg.md5, false);
+        if(result.failed) {
+            final MD5Mismatch failure = new MD5Mismatch(result.actualMD5, result.expectedMD5, result.diffEngineOutput);
+            Assert.fail(failure.toString());
+        }
+    }
+
+    @DataProvider(name = "SortOrderTest")
+    public Object[][] makeSortOrderTestProvider() {
+        new CatVariantsTestProvider(CatVariantsVcf3, CatVariantsVcf4, BaseTest.createTempFile("CatVariantsSortOrderTest", ".vcf"), "fb0b4ebe98ca23862b45fcd672fbfc3e");
+
+        return CatVariantsTestProvider.getTests(CatVariantsTestProvider.class);
+    }
+
+    @Test(dataProvider = "SortOrderTest")
+    public void testSortOrder(final CatVariantsTestProvider cfg) throws IOException {
+
+        ProcessController pc = ProcessController.getThreadLocal();
+        ProcessSettings ps = new ProcessSettings(Utils.escapeExpressions(cfg.getCmdLine()));
+        pc.execAndCheck(ps);
+
+        MD5DB.MD5Match result = md5db.testFileMD5("testSortOrder", "CatVariantsTestProvider", cfg.outputFile, cfg.md5, false);
         if(result.failed) {
             final MD5Mismatch failure = new MD5Mismatch(result.actualMD5, result.expectedMD5, result.diffEngineOutput);
             Assert.fail(failure.toString());

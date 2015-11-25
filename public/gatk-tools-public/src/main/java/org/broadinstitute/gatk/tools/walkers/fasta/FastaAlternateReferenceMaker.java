@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -102,11 +102,16 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * Snps from this file are used as a mask (inserting N's in the sequence) when constructing the alternate reference
-     * (regardless of whether they overlap a variant site).
+     * SNPs from this file are used as a mask (inserting N's in the sequence) when constructing the alternate reference
      */
     @Input(fullName="snpmask", shortName = "snpmask", doc="SNP mask VCF file", required=false)
     protected RodBinding<VariantContext> snpmask;
+
+    /**
+     * Gives priority to a SNP mask over an input VCF for a site. Only has an effect if the --snpmask argument is used.
+     */
+    @Argument(fullName="snpmaskPriority", shortName = "snpmaskPriority", doc="SNP mask priority", required=false)
+    protected Boolean snpmaskPriority = false;
 
     /**
      * This option will generate an error if the specified sample does not exist in the VCF.
@@ -138,6 +143,13 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
 
         final String refBase = String.valueOf((char)ref.getBase());
 
+        // If we have a mask at this site, use it
+        if ( snpmaskPriority ){
+            final Pair<GenomeLoc, String> mask = maskSnp(tracker, context);
+            if ( mask != null )
+                return mask;
+        }
+
         // Check to see if we have a called snp
         for ( final VariantContext vc : tracker.getValues(variantCollection.variants, ref.getLocus()) ) {
             if ( vc.isFiltered() )
@@ -155,15 +167,31 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
             }
         }
 
-        // if we don't have a called site, and we have a mask at this site, mask it
-        for ( final VariantContext vc : tracker.getValues(snpmask) ) {
-            if ( vc.isSNP()) {
-                return new Pair<>(context.getLocation(), "N");
-            }
+        if ( !snpmaskPriority ){
+            final Pair<GenomeLoc, String> mask = maskSnp(tracker, context);
+            if ( mask != null )
+                return mask;
         }
 
         // if we got here then we're just ref
         return new Pair<>(context.getLocation(), refBase);
+    }
+
+    /**
+     * Mask a SNP (inserting N's in the sequence)
+     *
+     * @param tracker the Reference Metadata available at a particular site in the genome
+     * @param context the locus context data
+     * @return mask at the locus or null if no SNP at that locus
+     */
+    private Pair<GenomeLoc, String> maskSnp(final RefMetaDataTracker tracker, final AlignmentContext context){
+        for (final VariantContext vc : tracker.getValues(snpmask)) {
+            if (vc.isSNP()) {
+                return new Pair<>(context.getLocation(), "N");
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -23,32 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.tools.walkers.variantutils;
+package org.broadinstitute.gatk.utils.codecs.beagle;
 
-import org.broadinstitute.gatk.utils.BaseTest;
-import htsjdk.variant.variantcontext.Allele;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
-public class FilterLiftedVariantsUnitTest extends BaseTest {
+public class BeagleCodecUnitTest {
 
     @Test
-    public void testIndelAtEndOfContig() {
-
-        final List<Allele> alleles = new ArrayList<>(2);
-        alleles.add(Allele.create("AAAAA", true));
-        alleles.add(Allele.create("A", false));
-        final VariantContext vc = new VariantContextBuilder("test", "1", 10, 14, alleles).make();
-
-        final FilterLiftedVariants filter = new FilterLiftedVariants();
-
-        Assert.assertFalse(filter.filterOrWrite(new byte[]{'A'}, vc));
+    public void testCanDecode() {
+        final String EXTRA_CHAR = "1";
+        BeagleCodec codec = new BeagleCodec();
+        Assert.assertTrue(codec.canDecode("filename." + BeagleCodec.FILE_EXT));
+        Assert.assertTrue(codec.canDecode("filename" + EXTRA_CHAR + "." + BeagleCodec.FILE_EXT));
+        Assert.assertFalse(codec.canDecode("filename." + BeagleCodec.FILE_EXT + EXTRA_CHAR));
+        Assert.assertFalse(codec.canDecode("filename" + BeagleCodec.FILE_EXT));
     }
-
 }

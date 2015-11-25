@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.tools.walkers.varianteval.util;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.gatk.engine.samples.Sample;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
@@ -176,6 +177,11 @@ public class VariantEvalUtils {
             }
         }
 
+        //add MetricsCollection if required modules are included
+
+        if(evals.contains(classMap.get("CompOverlap")) && evals.contains(classMap.get("IndelSummary")) && evals.contains(classMap.get("TiTvVariantEvaluator")) && evals.contains(classMap.get("CountVariants")) && evals.contains(classMap.get("MultiallelicSummary")) )
+            evals.add(classMap.get("MetricsCollection"));
+
         return evals;
     }
 
@@ -250,6 +256,7 @@ public class VariantEvalUtils {
                         boolean byFilter,
                         boolean subsetBySample,
                         boolean trackPerSample,
+                        boolean trackPerFamily,
                         boolean mergeTracks) {
         if (tracker == null)
             return null;
@@ -265,9 +272,10 @@ public class VariantEvalUtils {
                 // First, filter the VariantContext to represent only the samples for evaluation
                 VariantContext vcsub = vc;
 
-                if (subsetBySample && vc.hasGenotypes())
+                if ((subsetBySample) && vc.hasGenotypes())
                     vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
 
+                //always add a mapping for all samples together
                 if ((byFilter || !vcsub.isFiltered())) {
                     addMapping(mapping, VariantEval.getAllSampleName(), vcsub);
                 }
@@ -279,6 +287,26 @@ public class VariantEvalUtils {
 
                         if (byFilter || !samplevc.isFiltered()) {
                             addMapping(mapping, sampleName, samplevc);
+                        }
+                    }
+                }
+                else if (vc.hasGenotypes() && trackPerFamily) {
+                    for (final String familyName : variantEvalWalker.getFamilyNamesForEvaluation()) {
+                        Set<String> familyMemberNames = new HashSet<>();
+                        //if the current stratification family name is "all", then add all the families to the VC for evaluation here
+                        if (familyName.equals(VariantEval.getAllFamilyName())) {
+                            familyMemberNames = variantEvalWalker.getSampleNamesForEvaluation();
+                        }
+                        else {
+                            Set<Sample> familyMembers = variantEvalWalker.getToolkit().getSampleDB().getFamily(familyName);
+                            for (final Sample s : familyMembers) {
+                                familyMemberNames.add(s.getID());
+                            }
+                        }
+                        VariantContext samplevc = getSubsetOfVariantContext(vc, familyMemberNames);
+
+                        if (byFilter || !samplevc.isFiltered()) {
+                            addMapping(mapping, familyName, samplevc);
                         }
                     }
                 }

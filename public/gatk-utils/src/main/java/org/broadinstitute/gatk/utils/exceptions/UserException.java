@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -100,11 +100,11 @@ public class UserException extends ReviewedGATKException {
 
     public static class MalformedGenomeLoc extends UserException {
         public MalformedGenomeLoc(String message, GenomeLoc loc) {
-            super(String.format("Badly formed genome loc: %s: %s", message, loc));
+            super(String.format("Badly formed genome location: %s: %s", message, loc));
         }
 
         public MalformedGenomeLoc(String message) {
-            super(String.format("Badly formed genome loc: %s", message));
+            super(String.format("Badly formed genome location: %s", message));
         }
     }
 
@@ -129,66 +129,66 @@ public class UserException extends ReviewedGATKException {
 
     public static class UnknownTribbleType extends CommandLineException {
         public UnknownTribbleType(String type, String message) {
-            super(String.format("Unknown tribble type %s: %s", type, message));
+            super(String.format("Unknown variant input file type %s: %s", type, message));
         }
     }
 
 
     public static class BadTmpDir extends UserException {
         public BadTmpDir(String message) {
-            super(String.format("Failure working with the tmp directory %s. Override with -Djava.io.tmpdir=X on the command line to a bigger/better file system.  Exact error was %s", System.getProperties().get("java.io.tmpdir"), message));
+            super(String.format("An error occurred while working with the tmp directory %s. You can specify -Djava.io.tmpdir=X on the command line (before the -jar argument) where X is a directory path, to use a more appropriate temporary directory. The exact error was %s", System.getProperties().get("java.io.tmpdir"), message));
         }
     }
 
     public static class TooManyOpenFiles extends UserException {
         public TooManyOpenFiles() {
-            super(String.format("There was a failure because there are too many files open concurrently; your system's open file handle limit is too small.  See the unix ulimit command to adjust this limit"));
+            super(String.format("An error occurred because there were too many files open concurrently; your system's open file handle limit is probably too small.  See the unix ulimit command to adjust this limit or ask your system administrator for help."));
         }
     }
 
     public static class LocalParallelizationProblem extends UserException {
         public LocalParallelizationProblem(final File file) {
-            super(String.format("There was a failure because temporary file %s could not be found while running the GATK with more than one thread.  Possible causes for this problem include: your system's open file handle limit is too small, your output or temp directories do not have sufficient space, or just an isolated file system blip", file.getAbsolutePath()));
+            super(String.format("An error occurred because temporary file %s could not be found while running the GATK with more than one thread. Possible causes for this problem include: your system's open file handle limit is too small, your output or temp directories do not have sufficient space, or your system experienced a temporary instability. Your system administrator can help you resolve these problems.", file.getAbsolutePath()));
         }
     }
 
     public static class NotEnoughMemory extends UserException {
         public NotEnoughMemory() {
-            super(String.format("There was a failure because you did not provide enough memory to run this program.  See the -Xmx JVM argument to adjust the maximum heap size provided to Java"));
+            super(String.format("An error occurred because you did not provide enough memory to run this program. You can use the -Xmx argument (before the -jar argument) to adjust the maximum heap size provided to Java. Note that this is a JVM argument, not a GATK argument."));
         }
     }
 
     public static class ErrorWritingBamFile extends UserException {
         public ErrorWritingBamFile(String message) {
-            super(String.format("An error occurred when trying to write the BAM file.  Usually this happens when there is not enough space in the directory to which the data is being written (generally the temp directory) or when your system's open file handle limit is too small.  To tell Java to use a bigger/better file system use -Djava.io.tmpdir=X on the command line.  The exact error was %s", message));
+            super(String.format("An error occurred when trying to write the BAM file.  Usually this happens when there is not enough space in the directory to which the data is being written (generally the temp directory) or when your system's open file handle limit is too small.  Your system administrator can help you resolve these issues. If you know what temporary directory to use, you can specify it by adding -Djava.io.tmpdir=X to the command line (before the -jar argument), where X is the directory path. The exact error was %s", message));
         }
     }
 
     public static class NoSpaceOnDevice extends UserException {
         public NoSpaceOnDevice() {
-            super("There is no space left on the device, so writing failed");
+            super("Writing failed because there is no space left on the disk or hard drive. Please make some space or specify a different location for writing output files.");
         }
     }
 
     public static class CouldNotReadInputFile extends UserException {
         public CouldNotReadInputFile(String message, Exception e) {
-            super(String.format("Couldn't read file because %s caused by %s", message, getMessage(e)));
+            super(String.format("Could not read file because %s caused by %s", message, getMessage(e)));
         }
 
         public CouldNotReadInputFile(File file) {
-            super(String.format("Couldn't read file %s", file.getAbsolutePath()));
+            super(String.format("Could not read file %s", file.getAbsolutePath()));
         }
 
         public CouldNotReadInputFile(File file, String message) {
-            super(String.format("Couldn't read file %s because %s", file.getAbsolutePath(), message));
+            super(String.format("Could not read file %s because %s", file.getAbsolutePath(), message));
         }
 
         public CouldNotReadInputFile(String file, String message) {
-            super(String.format("Couldn't read file %s because %s", file, message));
+            super(String.format("Could not read file %s because %s", file, message));
         }
 
         public CouldNotReadInputFile(File file, String message, Exception e) {
-            super(String.format("Couldn't read file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
+            super(String.format("Could not read file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
         }
 
         public CouldNotReadInputFile(File file, Exception e) {
@@ -203,19 +203,19 @@ public class UserException extends ReviewedGATKException {
 
     public static class CouldNotCreateOutputFile extends UserException {
         public CouldNotCreateOutputFile(File file, String message, Exception e) {
-            super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
+            super(String.format("Could not write file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(File file, String message) {
-            super(String.format("Couldn't write file %s because %s", file.getAbsolutePath(), message));
+            super(String.format("Could not write file %s because %s", file.getAbsolutePath(), message));
         }
 
         public CouldNotCreateOutputFile(String filename, String message, Exception e) {
-            super(String.format("Couldn't write file %s because %s with exception %s", filename, message, getMessage(e)));
+            super(String.format("Could not write file %s because %s with exception %s", filename, message, getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(File file, Exception e) {
-            super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), getMessage(e)));
+            super(String.format("Could not write file %s because exception %s", file.getAbsolutePath(), getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(String message, Exception e) {
@@ -225,20 +225,20 @@ public class UserException extends ReviewedGATKException {
 
     public static class MissortedBAM extends UserException {
         public MissortedBAM(SAMFileHeader.SortOrder order, File file, SAMFileHeader header) {
-            super(String.format("Missorted Input SAM/BAM/CRAM files: %s is must be sorted in %s order but order was: %s", file, order, header.getSortOrder()));
+            super(String.format("Missorted input SAM/BAM/CRAM files: %s must be sorted in %s order but order was: %s. Please see " + HelpConstants.forumPost("discussion/1317/collected-faqs-about-input-files-for-sequence-read-data-bam-cram") + "for more information.", file, order, header.getSortOrder()));
         }
 
         public MissortedBAM(SAMFileHeader.SortOrder order, String message) {
-            super(String.format("Missorted Input SAM/BAM/CRAM files: files are not sorted in %s order; %s", order, message));
+            super(String.format("Missorted input SAM/BAM/CRAM files: files are not sorted in %s order. Please see " + HelpConstants.forumPost("discussion/1317/collected-faqs-about-input-files-for-sequence-read-data-bam-cram") + "for more information. Error details: %s", order, message));
         }
 
         public MissortedBAM(SAMFileHeader.SortOrder order, SAMRecord read, String message) {
-            super(String.format("Missorted Input SAM/BAM/CRAM file %s: file sorted in %s order but %s is required; %s",
+            super(String.format("Missorted input SAM/BAM/CRAM file %s: file sorted in %s order but %s is required. Please see " + HelpConstants.forumPost("discussion/1317/collected-faqs-about-input-files-for-sequence-read-data-bam-cram") + "for more information. Error details: %s",
                     read.getFileSource().getReader(), read.getHeader().getSortOrder(), order, message));
         }
 
         public MissortedBAM(String message) {
-            super(String.format("Missorted Input SAM/BAM/CRAM files: %s", message));
+            super(String.format("Missorted input SAM/BAM/CRAM files. Please see " + HelpConstants.forumPost("discussion/1317/collected-faqs-about-input-files-for-sequence-read-data-bam-cram") + "for more information. Error details: %s", message));
         }
     }
 
@@ -252,7 +252,7 @@ public class UserException extends ReviewedGATKException {
         }
 
         public MalformedBAM(String source, String message) {
-            super(String.format("SAM/BAM/CRAM file %s is malformed: %s", source, message));
+            super(String.format("SAM/BAM/CRAM file %s is malformed. Please see " + HelpConstants.forumPost("discussion/1317/collected-faqs-about-input-files-for-sequence-read-data-bam-cram") + "for more information. Error details: %s", source, message));
         }
     }
 
@@ -262,7 +262,7 @@ public class UserException extends ReviewedGATKException {
         }
 
         public MisencodedBAM(String source, String message) {
-            super(String.format("SAM/BAM/CRAM file %s appears to be using the wrong encoding for quality scores: %s; please see the GATK --help documentation for options related to this error", source, message));
+            super(String.format("SAM/BAM/CRAM file %s appears to be using the wrong encoding for quality scores: %s. Please see https://www.broadinstitute.org/gatk/guide?id=6470 for more details and options related to this error.", source, message));
         }
     }
 
@@ -294,25 +294,25 @@ public class UserException extends ReviewedGATKException {
 
     public static class ReadMissingReadGroup extends MalformedBAM {
         public ReadMissingReadGroup(final SAMRecord read) {
-            super(read, String.format("Read %s is missing the read group (RG) tag, which is required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+            super(read, String.format("Read %s is missing the read group (RG) tag, which is required by the GATK. Please see " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
         }
     }
 
     public static class ReadHasUndefinedReadGroup extends MalformedBAM {
         public ReadHasUndefinedReadGroup(final SAMRecord read, final String rgID) {
-            super(read, String.format("Read %s uses a read group (%s) that is not defined in the BAM header, which is not valid.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName(), rgID));
+            super(read, String.format("Read %s uses a read group (%s) that is not defined in the BAM header, which is not valid.  Please see " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName(), rgID));
         }
     }
 
     public static class VariantContextMissingRequiredField extends UserException {
         public VariantContextMissingRequiredField(String field, VariantContext vc) {
-            super(String.format("Variant at %s:%d is is missing the required field %s", vc.getChr(), vc.getStart(), field));
+            super(String.format("Variant at %s:%d is is missing the required field %s.", vc.getChr(), vc.getStart(), field));
         }
     }
 
     public static class MissortedFile extends UserException {
         public MissortedFile(File file, String message, Exception e) {
-            super(String.format("Missorted Input file: %s is must be sorted in coordinate order. %s and got error %s", file, message, getMessage(e)));
+            super(String.format("Missorted input file: %s is must be sorted in coordinate order. Please see " + HelpConstants.forumPost("discussion/1317/collected-faqs-about-input-files-for-sequence-read-data-bam-cram") + "for more information. Error details: %s and got error %s", file, message, getMessage(e)));
         }
     }
 
@@ -366,18 +366,14 @@ public class UserException extends ReviewedGATKException {
 
     public static class IncompatibleSequenceDictionaries extends UserException {
         public IncompatibleSequenceDictionaries(String message, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
-            super(String.format("Input files %s and %s have incompatible contigs: %s.\n  %s contigs = %s\n  %s contigs = %s",
+            super(String.format("Input files %s and %s have incompatible contigs. Please see " + HelpConstants.forumPost("discussion/63/input-files-have-incompatible-contigs") + "for more information. Error details: %s.\n  %s contigs = %s\n  %s contigs = %s",
                     name1, name2, message, name1, ReadUtils.prettyPrintSequenceRecords(dict1), name2, ReadUtils.prettyPrintSequenceRecords(dict2)));
         }
     }
 
     public static class LexicographicallySortedSequenceDictionary extends UserException {
         public LexicographicallySortedSequenceDictionary(String name, SAMSequenceDictionary dict) {
-            super(String.format("Lexicographically sorted human genome sequence detected in %s."
-                    + "\nFor safety's sake the GATK requires human contigs in karyotypic order: 1, 2, ..., 10, 11, ..., 20, 21, 22, X, Y with M either leading or trailing these contigs."
-                    + "\nThis is because all distributed GATK resources are sorted in karyotypic order, and your processing will fail when you need to use these files."
-                    + "\nYou can use the ReorderSam utility to fix this problem: " + HelpConstants.forumPost("discussion/58/companion-utilities-reordersam")
-                    + "\n  %s contigs = %s",
+            super(String.format("Lexicographically sorted human genome sequence detected in %s. Please see " + HelpConstants.forumPost("discussion/58/companion-utilities-reordersam") + "for more information. Error details: %s contigs = %s",
                     name, name, ReadUtils.prettyPrintSequenceRecords(dict)));
         }
     }

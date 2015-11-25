@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -43,7 +43,7 @@ class QueueFeaturesQueueTest {
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM_with_unmapped.bam",
       " -out " + testOut).mkString
-    spec.fileMD5s += testOut -> "c7f086293509b1c506f7a25b13754637"
+    spec.fileMD5s += testOut -> "3134a6c732d7f235373095586bc7d470"
     QueueTest.executeTest(spec)
 
     //Second case: When intervals are explicitly provided, unmapped reads should not be included
@@ -56,7 +56,7 @@ class QueueFeaturesQueueTest {
       " -I " + BaseTest.publicTestDir + "exampleBAM_with_unmapped.bam",
       " -L chr1",
       " -out " + testOut2).mkString
-    spec2.fileMD5s += testOut2 -> "44bda07e3421a79c56213900ad3f7d7c"
+    spec2.fileMD5s += testOut2 -> "aa33e589879c4baf6a470d22da76d885"
     QueueTest.executeTest(spec2)
   }
 

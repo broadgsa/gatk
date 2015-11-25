@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -205,7 +205,7 @@ public class QualityUtils {
     @Ensures("result <= 0.0")
     public static double qualToErrorProbLog10(final double qual) {
         if ( qual < 0.0 ) throw new IllegalArgumentException("qual must be >= 0.0 but got " + qual);
-        return qual / -10.0;
+        return qual * -0.1;
     }
 
     // ----------------------------------------------------------------------

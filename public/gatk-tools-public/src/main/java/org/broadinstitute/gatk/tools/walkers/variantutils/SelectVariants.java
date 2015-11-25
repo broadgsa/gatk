@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -248,8 +248,8 @@ import java.util.*;
  *   -V input.vcf \
  *   -o output.vcf \
  *   -selectType INDEL
- *   -minIndelSize 2
- *   -maxIndelSize 5
+ *   --minIndelSize 2
+ *   --maxIndelSize 5
  * </pre>
  *
  * <h4>Exclude indels from a VCF:</h4>
@@ -259,7 +259,7 @@ import java.util.*;
  *   -T SelectVariants \
  *   --variant input.vcf \
  *   -o output.vcf \
- *   -selectTypeToExclude INDEL
+ *   --selectTypeToExclude INDEL
  * </pre>
  *
  * <h4>Select only multi-allelic SNPs and MNPs from a VCF (i.e. SNPs with more than one allele listed in the ALT column):</h4>
@@ -302,7 +302,7 @@ import java.util.*;
  *   -R ref.fasta \
  *   -T SelectVariants \
  *   --variant input.vcf \
- *   --setFilteredGenotypesToNocall
+ *   --setFilteredGtToNocall
  * </pre>
  *
  */
@@ -573,6 +573,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Hidden
     @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", required=false, doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
     private boolean allowNonOverlappingCommandLineSamples = false;
+
+    /**
+     * If this argument is provided, the output will be compliant with the version in the header, however it will also
+     * cause the tool to run slower than without the argument. Without the argument the header will be compliant with
+     * the up-to-date version, but the output in the body may not be compliant. If an up-to-date input file is used,
+     * then the output will also be up-to-date regardless of this argument.
+     */
+    @Argument(fullName="forceValidOutput", required=false, doc="Forces output VCF to be compliant to up-to-date version")
+    private boolean forceValidOutput = false;
 
     public enum NumberAlleleRestriction {
         ALL,
@@ -1008,7 +1017,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      */
     private VariantContext subsetRecord(final VariantContext vc, final boolean preserveAlleles, final boolean removeUnusedAlternates) {
         //subContextFromSamples() always decodes the vc, which is a fairly expensive operation.  Avoid if possible
-        if ( noSamplesSpecified && !removeUnusedAlternates )
+        if ( noSamplesSpecified && !removeUnusedAlternates && !forceValidOutput )
             return vc;
 
         // strip out the alternate alleles that aren't being used
@@ -1021,7 +1030,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         final VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         // if there are fewer alternate alleles now in the selected VC, we need to fix the PL and AD values
-        GenotypesContext newGC = GATKVariantContextUtils.updatePLsAndAD(sub, vc);
+        GenotypesContext newGC = GATKVariantContextUtils.updatePLsSACsAD(sub, vc);
 
         // since the VC has been subset (either by sample or allele), we need to strip out the MLE tags
         builder.rmAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY);

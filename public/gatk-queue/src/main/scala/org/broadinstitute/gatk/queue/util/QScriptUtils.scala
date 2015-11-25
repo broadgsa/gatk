@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -40,6 +40,27 @@ import collection.JavaConversions._
  */
 
 object QScriptUtils {
+
+  /**
+   * Exchanges the extension on a file.
+   * @param file File to look for the extension.
+   * @param oldExtension Old extension to strip off, if present.
+   * @param newExtension New extension to append.
+   * @return new File with the new extension in the current directory.
+   */
+  def swapExt(file: File, oldExtension: String, newExtension: String) =
+    new File(file.getName.stripSuffix(oldExtension) + newExtension)
+
+  /**
+   * Exchanges the extension on a file.
+   * @param dir New directory for the file.
+   * @param file File to look for the extension.
+   * @param oldExtension Old extension to strip off, if present.
+   * @param newExtension New extension to append.
+   * @return new File with the new extension in dir.
+   */
+  def swapExt(dir: File, file: File, oldExtension: String, newExtension: String) =
+    new File(dir, file.getName.stripSuffix(oldExtension) + newExtension)
 
   /**
    * Takes a bam list file and produces a scala sequence with each file allowing the bam list

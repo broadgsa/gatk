@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -62,6 +62,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     // TODO - WARNING WARNING WARNING code somehow depends on the name of the contig being null!
     public static final GenomeLoc UNMAPPED = new GenomeLoc((String)null);
     public static final GenomeLoc WHOLE_GENOME = new GenomeLoc("all");
+    public static final GenomeLoc END_OF_GENOME = new GenomeLoc("Y", 23, 59347566, 59347566);
 
     public static final boolean isUnmapped(GenomeLoc loc) {
         return loc == UNMAPPED;

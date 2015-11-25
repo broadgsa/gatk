@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -38,7 +38,7 @@ public class GATKKeyIntegrationTest extends WalkerTest {
     public static final String BASE_COMMAND = String.format("-T TestPrintReadsWalker -R %s -I %s -o %%s",
                                                             publicTestDir + "exampleFASTA.fasta",
                                                             publicTestDir + "exampleBAM.bam");
-    public static final String MD5_UPON_SUCCESSFUL_RUN = "e7b4a5b62f9d4badef1cd07040011b2b";
+    public static final String MD5_UPON_SUCCESSFUL_RUN = "462656ec9632f8c21ee534d35093c3f8";
 
 
     private void runGATKKeyTest ( String testName, String etArg, String keyArg, Class expectedException, String md5 ) {

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -64,7 +64,8 @@ public class SnpEffPositionModifier extends VariantStratifier {
 			final String compName,
 			final VariantContext eval,
 			final String evalName,
-			final String sampleName)
+			final String sampleName,
+            final String FamilyName)
 	{
 		final List<Object> relevantStates = new ArrayList<Object>();
 		if (eval != null && eval.isVariant() && eval.hasAttribute(InfoFieldKey.EFFECT_KEY.getKeyName())) {

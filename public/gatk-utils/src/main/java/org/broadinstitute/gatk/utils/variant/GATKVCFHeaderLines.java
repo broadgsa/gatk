@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -27,9 +27,10 @@ package org.broadinstitute.gatk.utils.variant;
 
 import htsjdk.variant.vcf.*;
 
-import static org.broadinstitute.gatk.utils.variant.GATKVCFConstants.*;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.util.*;
+import static org.broadinstitute.gatk.utils.variant.GATKVCFConstants.*;
 
 /**
  * This class contains the VCFHeaderLine definitions for the annotation keys in GATKVCFConstants.
@@ -70,8 +71,10 @@ public class GATKVCFHeaderLines {
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.PON_FILTER_NAME, "Seen in at least 2 samples in the panel of normals"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TUMOR_LOD_FILTER_NAME, "Tumor does not meet likelihood threshold"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short tandem repeat region"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TRIALLELIC_SITE_FILTER_NAME, "Site filtered because more than two alt alleles pass tumor LOD"));
 
         addFormatLine(new VCFFormatHeaderLine(ALLELE_BALANCE_KEY, 1, VCFHeaderLineType.Float, "Allele balance for each het genotype"));
+        addFormatLine(new VCFFormatHeaderLine(BASE_COUNTS_BY_SAMPLE_KEY, 4, VCFHeaderLineType.Integer, "Counts of each base by sample"));
         addFormatLine(new VCFFormatHeaderLine(MAPPING_QUALITY_ZERO_BY_SAMPLE_KEY, 1, VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample"));
         addFormatLine(new VCFFormatHeaderLine(MLE_PER_SAMPLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alternate allele count, in the same order as listed, for each individual sample"));
         addFormatLine(new VCFFormatHeaderLine(MLE_PER_SAMPLE_ALLELE_FRACTION_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the alternate allele fraction, in the same order as listed, for each individual sample"));
@@ -82,6 +85,7 @@ public class GATKVCFHeaderLines {
         addFormatLine(new VCFFormatHeaderLine(PL_FOR_ALL_SNP_ALLELES_KEY, 10, VCFHeaderLineType.Integer, "Phred-scaled genotype likelihoods for all 4 possible bases regardless of whether there is statistical evidence for them. Ordering is always PL for AA AC CC GA GC GG TA TC TG TT."));
         addFormatLine(new VCFFormatHeaderLine(HAPLOTYPE_CALLER_PHASING_ID_KEY, 1, VCFHeaderLineType.String, "Physical phasing ID information, where each unique ID within a given sample (but not across samples) connects records within a phasing group"));
         addFormatLine(new VCFFormatHeaderLine(HAPLOTYPE_CALLER_PHASING_GT_KEY, 1, VCFHeaderLineType.String, "Physical phasing haplotype information, describing how the alternate alleles are phased in relation to one another"));
+
         addFormatLine(new VCFFormatHeaderLine(MIN_DP_FORMAT_KEY, 1, VCFHeaderLineType.Integer, "Minimum DP observed within the GVCF block"));
         addFormatLine(new VCFFormatHeaderLine(REFERENCE_GENOTYPE_QUALITY, 1, VCFHeaderLineType.Integer, "Unconditional reference genotype confidence, encoded as a phred quality -10*log10 p(genotype call is wrong)"));
         addFormatLine(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_KEY, 1, VCFHeaderLineType.Integer, "Phred score of the genotype combination and phase given that the genotypes are correct"));
@@ -113,8 +117,12 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(LOW_MQ_KEY, 3, VCFHeaderLineType.Float, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total number of reads>"));
         addInfoLine(new VCFInfoHeaderLine(N_BASE_COUNT_KEY, 1, VCFHeaderLineType.Float, "Percentage of N bases in the pileup"));
         addInfoLine(new VCFInfoHeaderLine(BASE_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities"));
+        addInfoLine(new VCFInfoHeaderLine(AS_BASE_QUAL_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "allele specific Z-score from Wilcoxon rank sum test of each Alt Vs. Ref base qualities"));
+        addInfoLine(new VCFInfoHeaderLine(AS_RAW_BASE_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "raw data for allele specific rank sum test of base qualities"));
         addInfoLine(new VCFInfoHeaderLine(CLIPPING_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Z-score From Wilcoxon rank sum test of Alt vs. Ref number of hard clipped bases"));
         addInfoLine(new VCFInfoHeaderLine(FISHER_STRAND_KEY, 1, VCFHeaderLineType.Float, "Phred-scaled p-value using Fisher's exact test to detect strand bias"));
+        addInfoLine(new VCFInfoHeaderLine(AS_FISHER_STRAND_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "allele specific phred-scaled p-value using Fisher's exact test to detect strand bias of each alt allele"));
+        addInfoLine(new VCFInfoHeaderLine(AS_SB_TABLE_KEY, 1, VCFHeaderLineType.String, "Allele-specific forward/reverse read counts for strand bias tests"));
         addInfoLine(new VCFInfoHeaderLine(GC_CONTENT_KEY, 1, VCFHeaderLineType.Float, "GC content around the variant (see docs for window size details)"));
         addInfoLine(new VCFInfoHeaderLine(NOCALL_CHROM_KEY, 1, VCFHeaderLineType.Integer, "Number of no-called samples"));
         addInfoLine(new VCFInfoHeaderLine(GQ_MEAN_KEY, 1, VCFHeaderLineType.Float, "Mean of all GQ values"));
@@ -123,16 +131,33 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(HARDY_WEINBERG_KEY, 1, VCFHeaderLineType.Float, "Phred-scaled p-value for Hardy-Weinberg violation"));
         addInfoLine(new VCFInfoHeaderLine(HOMOPOLYMER_RUN_KEY, 1, VCFHeaderLineType.Integer, "Largest Contiguous Homopolymer Run of Variant Allele In Either Direction"));
         addInfoLine(new VCFInfoHeaderLine(INBREEDING_COEFFICIENT_KEY, 1, VCFHeaderLineType.Float, "Inbreeding coefficient as estimated from the genotype likelihoods per-sample when compared against the Hardy-Weinberg expectation"));
+        addInfoLine(new VCFInfoHeaderLine(AS_INBREEDING_COEFFICIENT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific inbreeding coefficient as estimated from the genotype likelihoods per-sample when compared against the Hardy-Weinberg expectation"));
+        addInfoLine(new VCFInfoHeaderLine(EXCESS_HET_KEY, 1, VCFHeaderLineType.Float, "Phred-scaled p-value for exact test of excess heterozygosity"));
+        addInfoLine(new VCFInfoHeaderLine(AS_HETEROZYGOSITY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "allele specific heterozygosity as estimated from the genotype likelihoods per-sample when compared against the Hardy-Weinberg expectation; relate to inbreeding coefficient"));
         addInfoLine(new VCFInfoHeaderLine(LIKELIHOOD_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt Vs. Ref haplotype likelihoods"));
         addInfoLine(new VCFInfoHeaderLine(MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Z-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities"));
+        addInfoLine(new VCFInfoHeaderLine(AS_MAP_QUAL_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "allele specific Z-score From Wilcoxon rank sum test of each Alt vs. Ref read mapping qualities"));
+        addInfoLine(new VCFInfoHeaderLine(RAW_RMS_MAPPING_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Raw data for RMS Mapping Quality"));
+        addInfoLine(new VCFInfoHeaderLine(AS_RAW_RMS_MAPPING_QUALITY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specfic raw data for RMS Mapping Quality"));
+        addInfoLine(new VCFInfoHeaderLine(AS_RMS_MAPPING_QUALITY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific RMS Mapping Quality"));
+        addInfoLine(new VCFInfoHeaderLine(RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Raw data for Mapping Quality Rank Sum"));
+        addInfoLine(new VCFInfoHeaderLine(AS_RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "Allele-specfic raw data for Mapping Quality Rank Sum"));
+        addInfoLine(new VCFInfoHeaderLine(AS_MAP_QUAL_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific Mapping Quality Rank Sum"));
+        addInfoLine(new VCFInfoHeaderLine(FRACTION_INFORMATIVE_READS_KEY, 1, VCFHeaderLineType.Float, "The fraction of informative reads out of the total reads"));
+
         addInfoLine(new VCFInfoHeaderLine(MENDEL_VIOLATION_LR_KEY, 1, VCFHeaderLineType.Float, "Mendelian violation likelihood ratio: L[MV] - L[No MV]"));
         addInfoLine(new VCFInfoHeaderLine(HI_CONF_DENOVO_KEY, 1, VCFHeaderLineType.String, "High confidence possible de novo mutation (GQ >= 20 for all trio members)=[comma-delimited list of child samples]"));
         addInfoLine(new VCFInfoHeaderLine(LO_CONF_DENOVO_KEY, 1, VCFHeaderLineType.String, "Low confidence possible de novo mutation (GQ >= 10 for child, GQ > 0 for parents)=[comma-delimited list of child samples]"));
         addInfoLine(new VCFInfoHeaderLine(QUAL_BY_DEPTH_KEY, 1, VCFHeaderLineType.Float, "Variant Confidence/Quality by Depth"));
+        addInfoLine(new VCFInfoHeaderLine(AS_QUAL_BY_DEPTH_KEY, 1, VCFHeaderLineType.Float, "Allele-specific Variant Confidence/Quality by Depth"));
+        addInfoLine(new VCFInfoHeaderLine(AS_QUAL_KEY, 1, VCFHeaderLineType.Float, "Allele-specific Variant Qual Score"));
         addInfoLine(new VCFInfoHeaderLine(READ_POS_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias"));
+        addInfoLine(new VCFInfoHeaderLine(AS_READ_POS_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "allele specific Z-score from Wilcoxon rank sum test of each Alt vs. Ref read position bias"));
+        addInfoLine(new VCFInfoHeaderLine(AS_RAW_READ_POS_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "allele specific raw data for rank sum test of read position bias"));
         addInfoLine(new VCFInfoHeaderLine(SAMPLE_LIST_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "List of polymorphic samples"));
         addInfoLine(new VCFInfoHeaderLine(SPANNING_DELETIONS_KEY, 1, VCFHeaderLineType.Float, "Fraction of Reads Containing Spanning Deletions"));
         addInfoLine(new VCFInfoHeaderLine(STRAND_ODDS_RATIO_KEY, 1, VCFHeaderLineType.Float, "Symmetric Odds Ratio of 2x2 contingency table to detect strand bias"));
+        addInfoLine(new VCFInfoHeaderLine(AS_STRAND_ODDS_RATIO_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele specific strand Odds Ratio of 2x|Alts| contingency table to detect allele specific strand bias"));
         addInfoLine(new VCFInfoHeaderLine(STR_PRESENT_KEY, 0, VCFHeaderLineType.Flag, "Variant is a short tandem repeat"));
         addInfoLine(new VCFInfoHeaderLine(REPEAT_UNIT_KEY, 1, VCFHeaderLineType.String, "Tandem repeat unit (bases)"));
         addInfoLine(new VCFInfoHeaderLine(REPEATS_PER_ALLELE_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Number of times tandem repeat unit is repeated, for each allele (including reference)"));

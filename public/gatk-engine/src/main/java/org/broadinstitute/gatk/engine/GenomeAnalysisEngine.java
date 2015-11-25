@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -642,7 +642,7 @@ public class GenomeAnalysisEngine {
         // If reads are present, assume that accessing the reads is always the dominant factor and shard based on that supposition.
         if(!readsDataSource.isEmpty()) {
             if(!readsDataSource.hasIndex() && !exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
-                throw new UserException.CommandLineException("Cannot process the provided BAM file(s) because they were not indexed.  The GATK does offer limited processing of unindexed BAMs in --unsafe mode, but this GATK feature is currently unsupported.");
+                throw new UserException.CommandLineException("Cannot process the provided BAM/CRAM file(s) because they were not indexed.  The GATK does offer limited processing of unindexed BAM/CRAMs in --unsafe mode, but this feature is unsupported -- use it at your own risk!");
             if(!readsDataSource.hasIndex() && intervals != null && !argCollection.allowIntervalsWithUnindexedBAM)
                 throw new UserException.CommandLineException("Cannot perform interval processing when reads are present but no index is available.");
 
@@ -886,8 +886,8 @@ public class GenomeAnalysisEngine {
             // Compile a set of sequence names that exist in the BAM files.
             SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
 
-            if (readsDictionary.size() == 0) {
-                logger.info("Reads file is unmapped.  Skipping validation against reference.");
+            if (readsDictionary.isEmpty()) {
+                logger.info("Reads file is unmapped. Skipping validation against reference.");
                 return;
             }
 

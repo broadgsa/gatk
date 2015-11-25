@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.utils;
 
+import java.math.BigInteger;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
@@ -79,7 +80,7 @@ public class SequenceDictionaryUtils {
         IDENTICAL,                      // the dictionaries are identical
         COMMON_SUBSET,                  // there exists a common subset of equivalent contigs
         NO_COMMON_CONTIGS,              // no overlap between dictionaries
-        UNEQUAL_COMMON_CONTIGS,         // common subset has contigs that have the same name but different lengths
+        UNEQUAL_COMMON_CONTIGS,         // common subset has contigs that have the same name but different lengths and/or MD5s
         NON_CANONICAL_HUMAN_ORDER,      // human reference detected but the order of the contigs is non-standard (lexicographic, for examine)
         OUT_OF_ORDER,                   // the two dictionaries overlap but the overlapping contigs occur in different
                                         // orders with respect to each other
@@ -92,7 +93,7 @@ public class SequenceDictionaryUtils {
      * @param validationExclusion exclusions to validation
      * @return Returns true if the engine is in tolerant mode and we'll let through dangerous but not fatal dictionary inconsistency
      */
-    private static boolean allowNonFatalIncompabilities(ValidationExclusion.TYPE validationExclusion) {
+    private static boolean allowNonFatalIncompabilities(final ValidationExclusion.TYPE validationExclusion) {
         return ( validationExclusion == ValidationExclusion.TYPE.ALLOW_SEQ_DICT_INCOMPATIBILITY ||
                         validationExclusion == ValidationExclusion.TYPE.ALL );
     }
@@ -133,15 +134,23 @@ public class SequenceDictionaryUtils {
                 throw new UserException.IncompatibleSequenceDictionaries("No overlapping contigs found", name1, dict1, name2, dict2);
 
             case UNEQUAL_COMMON_CONTIGS: {
-                List<SAMSequenceRecord> x = findDisequalCommonContigs(getCommonContigsByName(dict1, dict2), dict1, dict2);
-                SAMSequenceRecord elt1 = x.get(0);
-                SAMSequenceRecord elt2 = x.get(1);
+                final List<SAMSequenceRecord> x = findNotEqualCommonContigs(getCommonContigsByName(dict1, dict2), dict1, dict2);
+                final SAMSequenceRecord elt1 = x.get(0);
+                final SAMSequenceRecord elt2 = x.get(1);
+
+                String msg = "Found contigs with the same name but different lengths";
+                String contig1  = "  contig  " + name1 + " is named " + elt1.getSequenceName()  + " with length " + Integer.toString(elt1.getSequenceLength());
+                if ( elt1.getMd5() != null )
+                    contig1 += " and MD5 " + elt1.getMd5();
+                String contig2  = "  contig  " + name2 + " is named " + elt2.getSequenceName()  + " with length " + Integer.toString(elt2.getSequenceLength());
+                if ( elt2.getMd5() != null )
+                    contig2 += " and MD5 " + elt2.getMd5();
+                if ( elt1.getMd5() != null ||  elt2.getMd5() != null )
+                    msg += " or MD5s:";
+                msg += "\n" + contig1 + "\n" + contig2;
 
                 // todo -- replace with toString when SAMSequenceRecord has a nice toString routine
-                UserException ex = new UserException.IncompatibleSequenceDictionaries(String.format("Found contigs with the same name but different lengths:\n  contig %s = %s / %d\n  contig %s = %s / %d",
-                        name1, elt1.getSequenceName(), elt1.getSequenceLength(),
-                        name2, elt2.getSequenceName(), elt2.getSequenceLength()),
-                        name1, dict1, name2, dict2);
+                final UserException ex = new UserException.IncompatibleSequenceDictionaries(msg, name1, dict1, name2, dict2);
 
                 if ( allowNonFatalIncompabilities(validationExclusion) )
                     logger.warn(ex.getMessage());
@@ -226,7 +235,7 @@ public class SequenceDictionaryUtils {
 
         final Set<String> commonContigs = getCommonContigsByName(dict1, dict2);
 
-        if (commonContigs.size() == 0)
+        if (commonContigs.isEmpty())
             return SequenceDictionaryCompatibility.NO_COMMON_CONTIGS;
         else if ( ! commonContigsHaveSameLengths(commonContigs, dict1, dict2) )
             return SequenceDictionaryCompatibility.UNEQUAL_COMMON_CONTIGS;
@@ -250,12 +259,12 @@ public class SequenceDictionaryUtils {
      * @param dict2
      * @return true if all of the common contigs are equivalent
      */
-    private static boolean commonContigsHaveSameLengths(Set<String> commonContigs, SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
-        return findDisequalCommonContigs(commonContigs, dict1, dict2) == null;
+    private static boolean commonContigsHaveSameLengths(final Set<String> commonContigs, final SAMSequenceDictionary dict1, final SAMSequenceDictionary dict2) {
+        return findNotEqualCommonContigs(commonContigs, dict1, dict2) == null;
     }
 
     /**
-     * Returns a List(x,y) that contains two disequal sequence records among the common contigs in both dicts.  Returns
+     * Returns a List(x,y) that contains two sequence records that are not equal among the common contigs in both dicts.  Returns
      * null if all common contigs are equivalent
      *
      * @param commonContigs
@@ -263,7 +272,7 @@ public class SequenceDictionaryUtils {
      * @param dict2
      * @return
      */
-    private static List<SAMSequenceRecord> findDisequalCommonContigs(Set<String> commonContigs, SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
+    private static List<SAMSequenceRecord> findNotEqualCommonContigs(final Set<String> commonContigs, final SAMSequenceDictionary dict1, final SAMSequenceDictionary dict2) {
         for ( String name : commonContigs ) {
             SAMSequenceRecord elt1 = dict1.getSequence(name);
             SAMSequenceRecord elt2 = dict2.getSequence(name);
@@ -275,32 +284,32 @@ public class SequenceDictionaryUtils {
     }
 
     /**
-     * Helper routine that returns two sequence records are equivalent, defined as having the same name and
-     * lengths, if both are non-zero
+     * Helper routine that determines if two sequence records are equivalent, defined as having the same name,
+     * lengths (if both are non-zero) and MD5 (if present)
      *
-     * @param me
-     * @param that
-     * @return
+     * @param record1  a SAMSequenceRecord
+     * @param record2  a SAMSequenceRecord
+     * @return true if the records are equivalent, false otherwise
      */
-    private static boolean sequenceRecordsAreEquivalent(final SAMSequenceRecord me, final SAMSequenceRecord that) {
-        if (me == that) return true;
-        if (that == null) return false;
+    private static boolean sequenceRecordsAreEquivalent(final SAMSequenceRecord record1, final SAMSequenceRecord record2) {
+        if ( record1 == record2 ) return true;
+        if ( record1 == null || record2 == null ) return false;
 
-        if (me.getSequenceLength() != 0 && that.getSequenceLength() != 0 && me.getSequenceLength() != that.getSequenceLength())
+        // compare length
+        if ( record1.getSequenceLength() != 0 && record2.getSequenceLength() != 0 && record1.getSequenceLength() != record2.getSequenceLength() )
             return false;
 
-            // todo -- reenable if we want to be really strict here
-//        if (me.getExtendedAttribute(SAMSequenceRecord.MD5_TAG) != null && that.getExtendedAttribute(SAMSequenceRecord.MD5_TAG) != null) {
-//            final BigInteger thisMd5 = new BigInteger((String)me.getExtendedAttribute(SAMSequenceRecord.MD5_TAG), 16);
-//            final BigInteger thatMd5 = new BigInteger((String)that.getExtendedAttribute(SAMSequenceRecord.MD5_TAG), 16);
-//            if (!thisMd5.equals(thatMd5)) {
-//                return false;
-//            }
-//        }
-//        else {
-        if (me.getSequenceName() != that.getSequenceName())
-            return false; // Compare using == since we intern() the Strings
-//        }
+        // compare name
+        if ( !record1.getSequenceName().equals(record2.getSequenceName() ))
+            return false;
+
+         // compare MD5
+         if ( record1.getMd5() != null && record2.getMd5() != null ){
+            final BigInteger firstMd5 = new BigInteger(record1.getMd5(), 16);
+            final BigInteger secondMd5 = new BigInteger(record2.getMd5(), 16);
+            if ( !firstMd5.equals(secondMd5) )
+                return false;
+       }
 
         return true;
     }
@@ -313,13 +322,13 @@ public class SequenceDictionaryUtils {
      * @param dict
      * @return
      */
-    private static boolean nonCanonicalHumanContigOrder(SAMSequenceDictionary dict) {
+    private static boolean nonCanonicalHumanContigOrder(final SAMSequenceDictionary dict) {
         if ( ! ENABLE_LEXICOGRAPHIC_REQUIREMENT_FOR_HUMAN ) // if we don't want to enable this test, just return false
             return false;
 
         SAMSequenceRecord chr1 = null, chr2 = null, chr10 = null;
 
-        for ( SAMSequenceRecord elt : dict.getSequences() ) {
+        for ( final SAMSequenceRecord elt : dict.getSequences() ) {
             if ( isHumanSeqRecord(elt, CHR1_HG18, CHR1_HG19 ) ) chr1 = elt;
             if ( isHumanSeqRecord(elt, CHR2_HG18, CHR2_HG19 ) ) chr2 = elt;
             if ( isHumanSeqRecord(elt, CHR10_HG18, CHR10_HG19 ) ) chr10 = elt;
@@ -355,7 +364,7 @@ public class SequenceDictionaryUtils {
      * @param dict2 second SAMSequenceDictionary
      * @return true if the common contigs occur in the same relative order in both dict1 and dict2, otherwise false
      */
-    private static boolean commonContigsAreInSameRelativeOrder(Set<String> commonContigs, SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
+    private static boolean commonContigsAreInSameRelativeOrder(final Set<String> commonContigs, final SAMSequenceDictionary dict1, final SAMSequenceDictionary dict2) {
         List<SAMSequenceRecord> list1 = sortSequenceListByIndex(getSequencesOfName(commonContigs, dict1));
         List<SAMSequenceRecord> list2 = sortSequenceListByIndex(getSequencesOfName(commonContigs, dict2));
 
@@ -376,8 +385,8 @@ public class SequenceDictionaryUtils {
      * @param dict
      * @return
      */
-    private static List<SAMSequenceRecord> getSequencesOfName(Set<String> commonContigs, SAMSequenceDictionary dict) {
-        List<SAMSequenceRecord> l = new ArrayList<SAMSequenceRecord>(commonContigs.size());
+    private static List<SAMSequenceRecord> getSequencesOfName(final Set<String> commonContigs, final SAMSequenceDictionary dict) {
+        final List<SAMSequenceRecord> l = new ArrayList<SAMSequenceRecord>(commonContigs.size());
         for ( String name : commonContigs ) {
             l.add(dict.getSequence(name) );
         }
@@ -401,7 +410,7 @@ public class SequenceDictionaryUtils {
      * @param unsorted
      * @return
      */
-    private static List<SAMSequenceRecord> sortSequenceListByIndex(List<SAMSequenceRecord> unsorted) {
+    private static List<SAMSequenceRecord> sortSequenceListByIndex(final List<SAMSequenceRecord> unsorted) {
         Collections.sort(unsorted, new CompareSequenceRecordsByIndex());
         return unsorted;
     }
@@ -418,8 +427,8 @@ public class SequenceDictionaryUtils {
      */
     private static boolean commonContigsAreAtSameIndices( final Set<String> commonContigs, final SAMSequenceDictionary dict1, final SAMSequenceDictionary dict2 ) {
         for ( String commonContig : commonContigs ) {
-            SAMSequenceRecord dict1Record = dict1.getSequence(commonContig);
-            SAMSequenceRecord dict2Record = dict2.getSequence(commonContig);
+            final SAMSequenceRecord dict1Record = dict1.getSequence(commonContig);
+            final SAMSequenceRecord dict2Record = dict2.getSequence(commonContig);
 
             // Each common contig must have the same index in both dictionaries
             if ( dict1Record.getSequenceIndex() != dict2Record.getSequenceIndex() ) {
@@ -489,13 +498,13 @@ public class SequenceDictionaryUtils {
      * @return
      */
     public static Set<String> getCommonContigsByName(SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
-        Set<String> intersectingSequenceNames = getContigNames(dict1);
+        final Set<String> intersectingSequenceNames = getContigNames(dict1);
         intersectingSequenceNames.retainAll(getContigNames(dict2));
         return intersectingSequenceNames;
     }
 
     public static Set<String> getContigNames(SAMSequenceDictionary dict) {
-        Set<String> contigNames = new HashSet<String>(Utils.optimumHashSize(dict.size()));
+        final Set<String> contigNames = new HashSet<String>(Utils.optimumHashSize(dict.size()));
         for (SAMSequenceRecord dictionaryEntry : dict.getSequences())
             contigNames.add(dictionaryEntry.getSequenceName());
         return contigNames;
@@ -515,7 +524,7 @@ public class SequenceDictionaryUtils {
             throw new IllegalArgumentException("Sequence dictionary must be non-null");
         }
 
-        StringBuilder s = new StringBuilder("[ ");
+        final StringBuilder s = new StringBuilder("[ ");
 
         for ( SAMSequenceRecord dictionaryEntry : dict.getSequences() ) {
             s.append(dictionaryEntry.getSequenceName());

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,12 +25,10 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads;
 
-import htsjdk.samtools.Bin;
-import htsjdk.samtools.GATKBin;
-import htsjdk.samtools.GATKChunk;
-import htsjdk.samtools.LinearIndex;
+import htsjdk.samtools.*;
 import htsjdk.samtools.seekablestream.SeekableBufferedStream;
 import htsjdk.samtools.seekablestream.SeekableFileStream;
+import htsjdk.samtools.seekablestream.SeekableStream;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 
@@ -70,10 +68,11 @@ public class GATKBAMIndex {
      */
     public static final int MAX_BINS = 37450;   // =(8^6-1)/7+1
 
+    private final SAMSequenceDictionary sequenceDictionary;
     private final File mFile;
 
     //TODO: figure out a good value for this buffer size
-    private final int BUFFERED_STREAM_BUFFER_SIZE = 8192;
+    private static final int BUFFERED_STREAM_BUFFER_SIZE = 8192;
 
     /**
      * Number of sequences stored in this index.
@@ -86,11 +85,14 @@ public class GATKBAMIndex {
     private final long[] sequenceStartCache;
 
     private SeekableFileStream fileStream;
+    private SeekableStream baiStream;
     private SeekableBufferedStream bufferedStream;
     private long fileLength;
 
-    public GATKBAMIndex(final File file) {
+    public GATKBAMIndex(final File file, final SAMSequenceDictionary sequenceDictionary) {
         mFile = file;
+        this.sequenceDictionary = sequenceDictionary;
+
         // Open the file stream.
         openIndexFile();
 
@@ -127,12 +129,12 @@ public class GATKBAMIndex {
         skipToSequence(referenceSequence);
 
         int binCount = readInteger();
-        List<GATKBin> bins = new ArrayList<GATKBin>();
+        List<GATKBin> bins = new ArrayList<>();
         for (int binNumber = 0; binNumber < binCount; binNumber++) {
             final int indexBin = readInteger();
             final int nChunks = readInteger();
 
-            List<GATKChunk> chunks = new ArrayList<GATKChunk>(nChunks);
+            List<GATKChunk> chunks = new ArrayList<>(nChunks);
             long[] rawChunkData = readLongs(nChunks*2);
             for (int ci = 0; ci < nChunks; ci++) {
                 final long chunkBegin = rawChunkData[ci*2];
@@ -289,7 +291,8 @@ public class GATKBAMIndex {
             final int nBins = readInteger();
             // System.out.println("# nBins: " + nBins);
             for (int j = 0; j < nBins; j++) {
-                final int bin = readInteger();
+                /* final int bin = */
+                readInteger();
                 final int nChunks = readInteger();
                 // System.out.println("# bin[" + j + "] = " + bin + ", nChunks = " + nChunks);
                 skipBytes(16 * nChunks);
@@ -308,7 +311,8 @@ public class GATKBAMIndex {
     private void openIndexFile() {
         try {
             fileStream = new SeekableFileStream(mFile);
-            bufferedStream = new SeekableBufferedStream(fileStream,BUFFERED_STREAM_BUFFER_SIZE);
+            baiStream = SamIndexes.asBaiSeekableStreamOrNull(fileStream, sequenceDictionary);
+            bufferedStream = new SeekableBufferedStream(baiStream, BUFFERED_STREAM_BUFFER_SIZE);
             fileLength=bufferedStream.length();
         }
         catch (IOException exc) {
@@ -319,6 +323,7 @@ public class GATKBAMIndex {
     private void closeIndexFile() {
         try {
             bufferedStream.close();
+            baiStream.close();
             fileStream.close();
             fileLength = -1;
         }

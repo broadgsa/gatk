@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -53,7 +53,7 @@ import java.util.*;
  * Annotate variant calls with context information
  *
  * <p>
- * This tool is designed to annotate variant calls based on their context (ass opposed to functional annotation).
+ * This tool is designed to annotate variant calls based on their context (as opposed to functional annotation).
  * Various annotation modules are available; see the
  * <a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_VariantAnnotator.php#VariantAnnotations">documentation</a>
  * for a complete list.
@@ -68,7 +68,10 @@ import java.util.*;
  * An annotated VCF.
  * </p>
  *
- * <h3>Usage example</h3>
+ * <h3>Usage examples</h3>
+ * <br />
+ *
+ * <h4>Annotate a VCF with dbSNP IDs and depth of coverage for each sample</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -R reference.fasta \
@@ -79,6 +82,32 @@ import java.util.*;
  *   -V input.vcf \
  *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
+ * </pre>
+ *
+ * <h4>Annotate a VCF with allele frequency by an external resource. Annotation will only occur if there is allele concordance between the resource and the input VCF </h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
+ *   -T VariantAnnotator \
+ *   -I input.bam \
+ *   -o output.vcf \
+ *   -V input.vcf \
+ *   -L input.vcf \
+ *   --resource:foo resource.vcf
+ *   -E foo.AF
+ *   --resourceAlleleConcordance
+ * </pre>
+ *
+ * <h4>Annotate with AF and FILTER fields from an external resource </h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -R reference.fasta \
+ *   -T VariantAnnotator \
+ *   -o output.vcf \
+ *   --resource:foo resource.vcf \
+ *   --expression foo.AF \
+ *   --expression foo.FILTER \
+ *   -V input.vcf \
  * </pre>
  *
  */
@@ -95,9 +124,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     /**
      * The INFO field will be annotated with information on the most biologically significant effect
-     * listed in the SnpEff output file for each variant.
+     * listed for each variant in the SnpEff file.
      */
-    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="A SnpEff output file from which to add annotations", required=false)
+    @Input(fullName="snpEffFile", shortName = "snpEffFile", doc="SnpEff file from which to get annotations", required=false)
     public RodBinding<VariantContext> snpEffFile;
     public RodBinding<VariantContext> getSnpEffRodBinding() { return snpEffFile; }
 
@@ -114,7 +143,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
       * Records that are filtered in the comp track will be ignored. Note that 'dbSNP' has been special-cased
       * (see the --dbsnp argument).
       */
-    @Input(fullName="comp", shortName = "comp", doc="comparison VCF file", required=false)
+    @Input(fullName="comp", shortName = "comp", doc="Comparison VCF file", required=false)
     public List<RodBinding<VariantContext>> comps = Collections.emptyList();
     public List<RodBinding<VariantContext>> getCompRodBindings() { return comps; }
 
@@ -127,7 +156,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
       * '-E my_resource.AC' (-E is short for --expression, also documented on this page). In the resulting output
       * VCF, any records for which there is a record at the same position in the resource file will be annotated with
       * 'my_resource.AC=N'. Note that if there are multiple records in the resource file that overlap the given
-      * position, one is chosen randomly.
+      * position, one is chosen randomly. Check for allele concordance if using --resourceAlleleConcordance, otherwise
+      * the match is based on position only.
       */
     @Input(fullName="resource", shortName = "resource", doc="External resource VCF file", required=false)
     public List<RodBinding<VariantContext>> resources = Collections.emptyList();
@@ -164,11 +194,20 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * 'resource_file.vcf', you tag it with '-resource:my_resource resource_file.vcf' (see the -resource argument, also
      * documented on this page) and you specify '-E my_resource.AC'. In the resulting output VCF, any records for
      * which there is a record at the same position in the resource file will be annotated with 'my_resource.AC=N'.
+     * INFO field data, ID, ALT, and FILTER fields may be used as expression values.
      * Note that if there are multiple records in the resource file that overlap the given position, one is chosen
      * randomly.
      */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls", required=false)
     protected Set<String> expressionsToUse = new ObjectOpenHashSet();
+
+    /**
+     * If this argument is specified, add annotations (specified by --expression) from an external resource
+     * (specified by --resource) to the input VCF (specified by --variant) only if the alleles are
+     * concordant between input and the resource VCFs. Otherwise, always add the annotations.
+     */
+    @Argument(fullName="resourceAlleleConcordance", shortName="rac", doc="Check for allele concordances when using an external resource VCF file", required=false)
+    protected Boolean expressionAlleleConcordance = false;
 
     /**
      * You can use the -XL argument in combination with this one to exclude specific annotations.Note that some
@@ -184,20 +223,25 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean USE_ALL_ANNOTATIONS = false;
 
     /**
-     * Note that the --list argument requires a fully resolved and correct command-line to work. As an alternative, you can use ListAnnotations (see Help Utilities).
+     * Note that the --list argument requires a fully resolved and correct command-line to work. As an alternative,
+     * you can use ListAnnotations (see Help Utilities).
      */
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit", required=false)
     protected Boolean LIST = false;
 
     /**
-     * By default, the dbSNP ID is added only when the ID field in the variant VCF is empty (not already annotated).
-     * This argument allows you to override that behavior. This is used in conjuction with the -dbsnp argument.
+     * By default, a dbSNP ID is added only when the ID field in the variant record is empty (not already annotated).
+     * This argument allows you to override that behavior, and appends the new ID to the existing one. This is used
+     * in conjunction with the -dbsnp argument.
      */
-    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="Append the dbSNP ID even when the variant VCF already has the ID field populated", required=false)
+    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="Add dbSNP ID even if one is already present", required=false)
     protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
     public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 
-    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality threshold in order to annotate mendelian violation ratio")
+    /**
+     * The genotype quality (GQ) threshold above which the mendelian violation ratio should be annotated.
+     */
+    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="GQ threshold for annotating MV ratio")
     public double minGenotypeQualityP = 0.0;
 
     private VariantAnnotatorEngine engine;
@@ -221,6 +265,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         else
             engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, annotationsToExclude, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
+        engine.setExpressionAlleleConcordance(expressionAlleleConcordance);
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones

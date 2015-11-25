@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -112,6 +112,8 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
     private final static Set<String> HEADER_IDs = new HashSet<String>(Arrays.asList("marker", "I"));
 
     private static final String delimiterRegex = "\\s+";
+    // codec file extension
+    protected static final String FILE_EXT = "beagle";
 
     /**
      * The parser to use when resolving genome-wide locations.
@@ -212,6 +214,7 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
 
     private static Pattern MARKER_PATTERN = Pattern.compile("(.+):([0-9]+)");
 
+    @Override
     public BeagleFeature decode(String line) {
         String[] tokens;
 
@@ -273,4 +276,12 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
 
         return bglFeature;
     }
+
+    /**
+     * Can the file be decoded?
+     * @param path path the file to test for parsability with this codec
+     * @return true if the path has the correct file extension, false otherwise
+     */
+    @Override
+    public boolean canDecode(final String path) { return path.endsWith("." + FILE_EXT); }
 }

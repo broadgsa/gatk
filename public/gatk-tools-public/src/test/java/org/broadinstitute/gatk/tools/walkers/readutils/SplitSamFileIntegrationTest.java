@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -43,9 +43,9 @@ public class SplitSamFileIntegrationTest extends WalkerTest {
                         " --outputRoot " + prefix,
                 Collections.<String>emptyList()
         );
-        addSplitOutput(spec, prefix, "NA12878", "ffb8a1e76798fa78c9ffe46abc02e92f");
-        addSplitOutput(spec, prefix, "NA12891", "42154dc36451dfe98922a579d329bbe2");
-        addSplitOutput(spec, prefix, "NA12892", "6abb5d11e615310987da22212dd9fc84");
+        addSplitOutput(spec, prefix, "NA12878", "3e28b666fb673be138eca9bd3db9520b");
+        addSplitOutput(spec, prefix, "NA12891", "af01069bc3da4252ce8417a03d11f48b");
+        addSplitOutput(spec, prefix, "NA12892", "cfa1cb6aaca03900160bd5627f4f698b");
         executeTest("testSplitSamFile", spec);
     }
 

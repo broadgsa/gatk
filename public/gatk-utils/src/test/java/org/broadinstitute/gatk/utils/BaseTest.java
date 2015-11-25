@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -98,7 +98,7 @@ public abstract class BaseTest {
     public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
     public static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
     public static final String b37KGReferenceWithDecoy = "/humgen/gsa-hpprojects/GATK/bundle/current/b37/human_g1k_v37_decoy.fasta";
-    public static final String hg19RefereneWithChrPrefixInChromosomeNames = "/humgen/gsa-hpprojects/GATK/bundle/current/hg19/ucsc.hg19.fasta";
+    public static final String hg19ReferenceWithChrPrefixInChromosomeNames = "/humgen/gsa-hpprojects/GATK/bundle/current/hg19/ucsc.hg19.fasta";
     public static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
     public static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
     public static final String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";

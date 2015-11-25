@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -40,8 +40,8 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
  *     This filter is intended to filter out reads that are potentially from foreign organisms.
  *     From experience with sequencing of human DNA we have found cases of contamination by bacterial
  *     organisms; the symptoms of such contamination are a class of reads with only a small number
- *     of aligned bases and additionally many soft-clipped bases on both ends.  This filter is intended
- *     to remove such reads.
+ *     of aligned bases and additionally many soft-clipped bases.  This filter is intended
+ *     to remove such reads. Consecutive soft-clipped blocks are treated as a single block
  * </p>
  *
  */
@@ -50,25 +50,31 @@ public class OverclippedReadFilter extends ReadFilter {
     @Argument(fullName = "filter_is_too_short_value", shortName = "filterTooShort", doc = "Value for which reads with less than this number of aligned bases is considered too short", required = false)
     int tooShort = 30;
 
+    @Argument(fullName = "do_not_require_softclips_both_ends", shortName = "NoRequireSCBothEnds", doc = "Allow a read to be filtered out based on having only 1 soft-clipped block. By default, both ends must have a soft-clipped block, setting this flag requires only 1 soft-clipped block.", required = false)
+    Boolean doNotRequireSoftclipsOnBothEnds = false;
+
 
     public boolean filterOut(final SAMRecord read) {
-        boolean sawLeadingSoftclip = false;
-        boolean sawAlignedBase = false;
         int alignedLength = 0;
+        int softClipBlocks = 0;
+        int minSoftClipBlocks = doNotRequireSoftclipsOnBothEnds ? 1 : 2;
+        CigarOperator lastOperator = null;
 
         for ( final CigarElement element : read.getCigar().getCigarElements() ) {
             if ( element.getOperator() == CigarOperator.S ) {
-                if ( sawAlignedBase )  // if this is true then we must also have seen a leading soft-clip
-                    return (alignedLength < tooShort);
-                sawLeadingSoftclip = true;
+                //Treat consecutive S blocks as a single one
+                if(lastOperator != CigarOperator.S){
+                    softClipBlocks += 1;
+                }
+
             } else if ( element.getOperator().consumesReadBases() ) {   // M, I, X, and EQ (S was already accounted for above)
-                if ( !sawLeadingSoftclip )
-                    return false;
-                sawAlignedBase = true;
                 alignedLength += element.getLength();
             }
+            lastOperator = element.getOperator();
         }
 
-        return false;
+        return(alignedLength < tooShort && softClipBlocks >= minSoftClipBlocks);
+
     }
+
 }

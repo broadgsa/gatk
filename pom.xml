@@ -161,6 +161,7 @@
                             <configuration>
                                 <outputDirectory>${gatk.executable.directory}/lib</outputDirectory>
                                 <includeScope>runtime</includeScope>
+                                <useBaseVersion>false</useBaseVersion>
                             </configuration>
                         </execution>
                     </executions>

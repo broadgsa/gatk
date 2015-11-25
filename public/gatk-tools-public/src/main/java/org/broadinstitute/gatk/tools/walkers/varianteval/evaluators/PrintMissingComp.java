@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.tools.walkers.varianteval.evaluators;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
@@ -32,9 +33,9 @@ import org.broadinstitute.gatk.tools.walkers.varianteval.util.Analysis;
 import org.broadinstitute.gatk.tools.walkers.varianteval.util.DataPoint;
 import htsjdk.variant.variantcontext.VariantContext;
 
-@Analysis(name = "PrintMissingComp", description = "the overlap between eval and comp sites")
+@Analysis(name = "PrintMissingComp", description = "count the number of comp SNP sites that are not in eval")
 public class PrintMissingComp extends VariantEvaluator {
-    @DataPoint(description = "number of eval sites outside of comp sites", format = "%d")
+    @DataPoint(description = "number of comp SNP sites outside of eval sites", format = "%d")
     public long nMissing = 0;
 
     public String getName() {
@@ -49,9 +50,8 @@ public class PrintMissingComp extends VariantEvaluator {
         final boolean compIsGood = comp != null && comp.isNotFiltered() && comp.isSNP();
         final boolean evalIsGood = eval != null && eval.isSNP();
 
-        if ( compIsGood & ! evalIsGood ) {
+        if ( compIsGood && !evalIsGood ) {
             nMissing++;
-            super.getWalker().getLogger().info("MissingFrom" + eval.toString() + " is missing from " + comp.getSource());
         }
     }
 }

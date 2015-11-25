@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -102,7 +102,7 @@ public class IndexDictionaryUtils {
                                                        final SAMSequenceDictionary referenceDict,
                                                        final ValidationExclusion.TYPE validationExclusionType ) {
         // if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation
-        if (trackDict == null || trackDict.size() == 0)
+        if (trackDict == null || trackDict.isEmpty())
             logger.warn("Track " + trackName + " doesn't have a sequence dictionary built in, skipping dictionary validation");
         else {
             Set<String> trackSequences = new TreeSet<String>();

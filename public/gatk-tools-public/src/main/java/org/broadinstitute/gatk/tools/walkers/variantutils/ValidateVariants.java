@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -91,6 +91,16 @@ import java.util.*;
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
+ * <h4>To perform VCF format tests and all strict validations with the VCFs containing alleles <= 208 bases</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T ValidateVariants \
+ *   -R reference.fasta \
+ *   -V input.vcf \
+ *   --dbsnp dbsnp.vcf
+ *   --reference_window_stop 208
+ * </pre>
+ *
  * <h4>To perform only VCF format tests</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
@@ -113,6 +123,9 @@ import java.util.*;
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VALIDATION, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
 public class ValidateVariants extends RodWalker<Integer, Integer> {
+
+    // Log message for a reference allele that is too long
+    protected static final String REFERENCE_ALLELE_TOO_LONG_MSG = "Reference allele is too long";
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -181,6 +194,9 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
 
     private File file = null;
 
+    // Stop of the expanded window for which the reference context should be provided, relative to the locus.
+    private int referenceWindowStop;
+
     /**
      * Contains final set of validation to apply.
      */
@@ -189,6 +205,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     public void initialize() {
         file = new File(variantCollection.variants.getSource());
         validationTypes = calculateValidationTypesToApply(excludeTypes);
+        referenceWindowStop = getToolkit().getArguments().reference_window_stop;
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -220,8 +237,11 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         // get the true reference allele
         final Allele reportedRefAllele = vc.getReference();
         final int refLength = reportedRefAllele.length();
-        if ( refLength > 100 ) {
-            logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", refLength, vc.getChr(), vc.getStart()));
+
+        // reference length is greater than the reference window stop before and after expansion
+        if ( refLength > 100 && refLength > referenceWindowStop ) {
+            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --referenceWindowStop >= %d",
+                    REFERENCE_ALLELE_TOO_LONG_MSG, refLength, vc.getChr(), vc.getStart(), refLength));
             return;
         }
 
@@ -259,7 +279,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
      * @return never {@code null} but perhaps an empty set.
      */
     private Collection<ValidationType> calculateValidationTypesToApply(final List<ValidationType> excludeTypes) {
-        if (excludeTypes.size() == 0)
+        if (excludeTypes.isEmpty())
             return Collections.singleton(ValidationType.ALL);
         final Set<ValidationType> excludeTypeSet = new LinkedHashSet<>(excludeTypes);
         if (excludeTypes.size() != excludeTypeSet.size())

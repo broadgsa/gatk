@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -28,6 +28,7 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 import htsjdk.samtools.MergingSamRecordIterator;
 import htsjdk.samtools.SamFileHeaderMerger;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory;
 import htsjdk.samtools.util.CloseableIterator;
 import htsjdk.samtools.util.CloserUtil;
 import htsjdk.samtools.util.RuntimeIOException;
@@ -372,10 +373,19 @@ public class SAMDataSource {
             originalToMergedReadGroupMappings.put(id,mappingToMerged);
         }
 
+        final SAMSequenceDictionary samSequenceDictionary;
+        if (referenceFile == null) {
+            samSequenceDictionary = mergedHeader.getSequenceDictionary();
+        } else {
+            samSequenceDictionary = ReferenceSequenceFileFactory.
+                    getReferenceSequenceFile(referenceFile).
+                    getSequenceDictionary();
+        }
+
         for(SAMReaderID id: readerIDs) {
             File indexFile = findIndexFile(id.getSamFile());
             if(indexFile != null)
-                bamIndices.put(id,new GATKBAMIndex(indexFile));
+                bamIndices.put(id,new GATKBAMIndex(indexFile, samSequenceDictionary));
         }
 
         resourcePool.releaseReaders(readers);
@@ -497,19 +507,12 @@ public class SAMDataSource {
      * @return True if all readers that require an index for SAMFileSpan creation have an index.
      */
     public boolean hasIndex() {
-        for (final SAMReaderID readerID: readerIDs)
-            if (isSAMFileSpanSupported(readerID))
-                if (!hasIndex(readerID))
-                    return false;
+        for (final SAMReaderID readerID: readerIDs) {
+            if (!hasIndex(readerID)) {
+                return false;
+            }
+        }
         return true;
-    }
-    /**
-     * Returns true if the reader can use file spans.
-     * @return true if file spans are supported.
-     */
-    private boolean isSAMFileSpanSupported(final SAMReaderID readerID) {
-        // example: https://github.com/samtools/htsjdk/blob/ee4308ede60962f3ab4275473ac384724b471149/src/java/htsjdk/samtools/BAMFileReader.java#L341
-        return readerID.getSamFile().getName().toLowerCase().endsWith(SamReader.Type.BAM_TYPE.fileExtension());
     }
 
     /**
@@ -579,16 +582,7 @@ public class SAMDataSource {
         SAMReaders readers = resourcePool.getAvailableReaders();
 
         for ( SAMReaderID id: getReaderIDs() ) {
-            GATKBAMFileSpan span;
-            try {
-                span = new GATKBAMFileSpan(readers.getReader(id).indexing().getFilePointerSpanningReads());
-            } catch (RuntimeException e) {
-                if ("Not implemented.".equals(e.getMessage())) { https://github.com/samtools/htsjdk/blob/035d4319643657d715e93c53c13fe4a1f64e0188/src/java/htsjdk/samtools/CRAMFileReader.java#L197
-                    span = new GATKBAMFileSpan(new GATKChunk(0, Long.MAX_VALUE));
-                } else {
-                    throw e;
-                }
-            }
+            final GATKBAMFileSpan span = new GATKBAMFileSpan(readers.getReader(id).indexing().getFilePointerSpanningReads());
             initialPositions.put(id, span);
         }
 
@@ -636,16 +630,7 @@ public class SAMDataSource {
                 }
                 else {
                     final SamReader reader = readers.getReader(id);
-                    try {
-                        iterator = ((SamReader.Indexing)reader).iterator(shard.getFileSpans().get(id));
-                    } catch (RuntimeException re) {
-                        if ("Not implemented.".equals(re.getMessage())) { // https://github.com/samtools/htsjdk/blob/429f2a8585d9c98a3efd4cedc5188b60b1e66ac5/src/java/htsjdk/samtools/CRAMFileReader.java#L192
-                            // No way to jump into the file span. Query the whole file.
-                            iterator = readers.getReader(id).iterator();
-                        } else {
-                            throw re;
-                        }
-                    }
+                    iterator = ((SamReader.Indexing)reader).iterator(shard.getFileSpans().get(id));
                 }
             } catch ( RuntimeException e ) { // we need to catch RuntimeExceptions here because the Picard code is throwing them (among SAMFormatExceptions) sometimes
                 throw new UserException.MalformedBAM(id.getSamFile(), e.getMessage());

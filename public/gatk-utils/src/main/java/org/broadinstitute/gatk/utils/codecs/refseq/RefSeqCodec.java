@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -74,6 +74,8 @@ import java.util.ArrayList;
  */
 public class RefSeqCodec extends AsciiFeatureCodec<RefSeqFeature> implements ReferenceDependentFeatureCodec {
 
+    // codec file extension
+    protected static final String FILE_EXT = "refseq";
     /**
      * The parser to use when resolving genome-wide locations.
      */
@@ -162,6 +164,14 @@ public class RefSeqCodec extends AsciiFeatureCodec<RefSeqFeature> implements Ref
         feature.setExon_frames(exon_frames);
         return feature;
     }
+
+    /**
+     * Can the file be decoded?
+     * @param path path the file to test for parsability with this codec
+     * @return true if the path has the correct file extension, false otherwise
+     */
+    @Override
+    public boolean canDecode(final String path) { return path.endsWith("." + FILE_EXT); }
 
     @Override
     public Object readActualHeader(LineIterator lineIterator) {

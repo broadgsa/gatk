@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -48,7 +48,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_1.vcf"),
                 1,
-                Arrays.asList("5bafc5a99ea839e686e55de93f91fd5c"));
+                Arrays.asList("a1de53ac340f4ca02367c40680628251"));
         executeTest("Test symbolic alleles", spec);
     }
 
@@ -57,7 +57,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_2.vcf"),
                 1,
-                Arrays.asList("30f66a097987330d42e87da8bcd6be21"));
+                Arrays.asList("c8b294089832bb1a2c450b550318a471"));
         executeTest("Test symbolic alleles mixed in with non-symbolic alleles", spec);
     }
 }

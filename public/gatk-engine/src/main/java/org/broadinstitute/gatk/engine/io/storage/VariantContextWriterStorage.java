@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -154,6 +154,16 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         return writer;
     }
 
+    /**
+     * Check the return from PrintStream.checkError() if underlying stream is a java.io.PrintStream
+     * @return true if PrintStream.checkError() returned true, false otherwise
+     */
+    public boolean checkError(){
+        if ( stream instanceof PrintStream )
+            return ((PrintStream) stream).checkError();
+        return false;
+    }
+
     private final static class TestWriter implements VariantContextWriter {
         final List<VariantContextWriter> writers;
 
@@ -174,6 +184,14 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         @Override
         public void add(final VariantContext vc) {
             for ( final VariantContextWriter writer : writers ) writer.add(vc);
+        }
+
+        /**
+         * Check the return from PrintStream.checkError() if underlying stream for a java.io.PrintStream
+         * @return false, no error since the underlying stream is not a java.io.PrintStream
+         */
+        public boolean checkError(){
+            return false;
         }
     }
 
@@ -225,4 +243,5 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
         }
     }
+
 }

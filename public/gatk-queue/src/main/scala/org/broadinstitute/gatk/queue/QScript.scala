@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -82,8 +82,7 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    * @param newExtension New extension to append.
    * @return new File with the new extension in the current directory.
    */
-  protected def swapExt(file: File, oldExtension: String, newExtension: String) =
-    new File(file.getName.stripSuffix(oldExtension) + newExtension)
+  protected def swapExt(file: File, oldExtension: String, newExtension: String) = QScriptUtils.swapExt(file, oldExtension, newExtension)
 
   /**
    * Exchanges the extension on a file.
@@ -93,8 +92,7 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    * @param newExtension New extension to append.
    * @return new File with the new extension in dir.
    */
-  protected def swapExt(dir: File, file: File, oldExtension: String, newExtension: String) =
-    new File(dir, file.getName.stripSuffix(oldExtension) + newExtension)
+  protected def swapExt(dir: File, file: File, oldExtension: String, newExtension: String) = QScriptUtils.swapExt(dir, file, oldExtension, newExtension)
 
   /**
    * Adds one or more command line functions to be run.
@@ -181,4 +179,5 @@ object QScript {
   def resetAddOrder() {
     addOrder = 0
   }
+
 }

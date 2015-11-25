@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -57,9 +57,9 @@ import java.util.*;
  * Combine variant records from different sources
  *
  * <p>CombineVariants reads in variants records from separate ROD (Reference-Ordered Data) sources and combines them into
- * a single VCF. Any (unique) name can be used to bind your ROD and any number of sources can be input. This tool aims
- * to fulfill two main possible use cases, reflected by the two combination options (MERGE and UNION), for merging
- * records at the variant level (the first 8 fields of the VCF) or at the genotype level (the rest).</p>
+ * a single VCF. Any number of sources can be input. This tool aims to fulfill two main possible use cases, reflected
+ * by the two combination options (MERGE and UNION), for merging records at the variant level (the first 8 fields of
+ * the VCF) or at the genotype level (the rest).</p>
  *
  * <ul>
  * <li><b>MERGE:</b> combines multiple variant records present at the same site in the different input sources into a
@@ -70,6 +70,13 @@ import java.util.*;
  * <li><b>UNION:</b> assumes that each ROD source represents the same set of samples (although this is not enforced).
  * It uses the priority list (if provided) to emit a single record instance at every position represented in the input RODs.</li>
  * </ul>
+ *
+ * <p>By default, the input sets will be named variants, variants2, variants3, and so on. You can override this by
+ * providing an explicit name tag for each input, using the syntax " -V:format,name". Each input tagged in this
+ * way will be labeled as such in the output (i.e., set=name rather than set=variants2). For example, you could specify
+ * a set of control samples as " -V:vcf,control my_control_samples.vcf", and the resulting VCF records would contain
+ * the annotation "set=control" in the INFO field. It is strongly recommended to provide explicit names in this way
+ * when a rod priority list is provided.</p>
  *
  * <p>CombineVariants will emit a record for every site that was present in any of your input VCF files, and will annotate
  * (in the set attribute in the INFO field) whether the record had a PASS or FILTER status in each input ROD . In effect,
@@ -136,20 +143,8 @@ import java.util.*;
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
 public class CombineVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
-    /**
-     * The VCF files to merge together
-     *
-     * variants can take any number of arguments on the command line.  Each -V argument
-     * will be included in the final merged output VCF.  If no explicit name is provided,
-     * the -V arguments will be named using the default algorithm: variants, variants2, variants3, etc.
-     * The user can override this by providing an explicit name -V:name,vcf for each -V argument,
-     * and each named argument will be labeled as such in the output (i.e., set=name rather than
-     * set=variants2).  The order of arguments does not matter unless except for the naming, so
-     * if you provide an rod priority list and no explicit names than variants, variants2, etc
-     * are technically order dependent.  It is strongly recommended to provide explicit names when
-     * a rod priority list is provided.
-     */
-    @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
+
+    @Input(fullName="variant", shortName = "V", doc="VCF files to merge together", required=true)
     public List<RodBindingCollection<VariantContext>> variantCollections;
     final private List<RodBinding<VariantContext>> variants = new ArrayList<>();
 
@@ -167,48 +162,75 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     public GATKVariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
 
     /**
-     * Used when taking the union of variants that contain genotypes.  A complete priority list MUST be provided.
+     * Refers to the merging priority behavior described in the tool documentation regarding the choice of which record
+     * gets emitted when taking the union of variants that contain genotypes. The list must be passed as a
+     * comma-separated string listing the names of the variant input files. The list must be complete and include all
+     * variant inputs that are being provided to the tool. Use name tags for best results.
      */
-    @Argument(fullName="rod_priority_list", shortName="priority", doc="A comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted", required=false)
+    @Argument(fullName="rod_priority_list", shortName="priority", doc="Ordered list specifying priority for merging", required=false)
     public String PRIORITY_STRING = null;
 
-    @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Print out interesting sites requiring complex compatibility merging", required=false)
+    @Argument(fullName="printComplexMerges", shortName="printComplexMerges", doc="Emit interesting sites requiring complex compatibility merging to file", required=false)
     public boolean printComplexMerges = false;
 
-    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="If true, then filtered VCFs are treated as uncalled, so that filtered set annotations don't appear in the combined VCF", required=false)
+    /**
+     * If enabled, this flag causes filtered variants (i.e. variant records where the FILTER field is populated by
+     * something other than PASS or a dot) to be omitted from the output.
+     */
+    @Argument(fullName="filteredAreUncalled", shortName="filteredAreUncalled", doc="Treat filtered variants as uncalled", required=false)
     public boolean filteredAreUncalled = false;
 
     /**
-     * Used to generate a sites-only file.
+     * If this flag is enabled, the INFO, FORMAT and sample-level (genotype) fields will not be emitted to the output file.
      */
-    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype FORMAT fields", required=false)
+    @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="Emit a sites-only file", required=false)
     public boolean minimalVCF = false;
 
-    @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include loci found to be non-variant after the combining procedure", required=false)
+    /**
+     * Exclude sites that do not contain any called ALT alleles in the merged callset. The evaluation is made after the
+     * merging procedure is complete.
+     */
+    @Argument(fullName="excludeNonVariants", shortName="env", doc="Exclude sites where no variation is present after merging", required=false)
     public boolean EXCLUDE_NON_VARIANTS = false;
 
     /**
-     * Set to 'null' if you don't want the set field emitted.
+     * Key used in the INFO key=value tag emitted describing which set(s) the combined record came from
+     * (e.g. set=control). This provides the option to override the default naming, so instead of set=control you could
+     * have it be origin=control, or any other word you want that is not already an INFO field attribute. Set this to
+     * 'null' if you don't want the set attribute emitted at all.
      */
-    @Argument(fullName="setKey", shortName="setKey", doc="Key used in the INFO key=value tag emitted describing which set the combined VCF record came from", required=false)
+    @Argument(fullName="setKey", shortName="setKey", doc="Key name for the set attribute", required=false)
     public String SET_KEY = "set";
 
     /**
-     * This option allows the user to perform a simple merge (concatenation) to combine the VCFs, drastically reducing the runtime.
+     * This option allows you to perform a simple merge (concatenation) to combine the VCFs, drastically reducing
+     * runtime. Note that in many cases where you think you want to use this option, you may want to check out the
+     * CatVariants tool instead, because CatVariants provides the same functionality, but does so even more efficiently.
      */
-    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls", required=false)
+    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="Assume input VCFs have identical sample sets and disjoint calls", required=false)
     public boolean ASSUME_IDENTICAL_SAMPLES = false;
 
-    @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if the variant is present in at least N input files.", required=false)
+    /**
+     * Sites that are present in fewer than this number of inputs will be ignored. This is a convenient way to build
+     * a collection of common variants and exclude rare variants.
+     */
+    @Argument(fullName="minimumN", shortName="minN", doc="Minimum number of input files the site must be observed in to be included", required=false)
     public int minimumN = 1;
 
     /**
-     * This option allows the suppression of the command line in the VCF header. This is most often usefully when combining variants for dozens or hundreds of smaller VCFs.
+     * By default, this tool writes the command line that was used in the header of the output VCF file. This flag
+     * enables you to override that behavior . This is most often useful when combining variants for dozens or
+     * hundreds of smaller VCFs iteratively, to avoid cluttering the header with a lot of command lines.
      */
-    @Argument(fullName="suppressCommandLineHeader", shortName="suppressCommandLineHeader", doc="If true, do not output the header containing the command line used", required=false)
+    @Argument(fullName="suppressCommandLineHeader", shortName="suppressCommandLineHeader", doc="Do not output the command line to the header", required=false)
     public boolean SUPPRESS_COMMAND_LINE_HEADER = false;
 
-    @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
+    /**
+     * By default, the INFO field of the merged variant record only contains the INFO field attributes for which all
+     * original overlapping records had the same values. Discordant attributes are therefore discarded. This flag allows you to
+     * override that behavior and simply copy over the INFO field contents of whichever record had the highest AC value.
+     */
+    @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="Use the INFO content of the record with the highest AC", required=false)
     public boolean MERGE_INFO_WITH_MAX_AC = false;
 
     private List<String> priority = null;
@@ -224,7 +246,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             sitesOnlyVCF = ((VariantContextWriterStub)vcfWriter).getWriterOptions().contains(Options.DO_NOT_WRITE_GENOTYPES);
             if ( sitesOnlyVCF ) logger.info("Pre-stripping genotypes for performance");
         } else
-            logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");
+            logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites-only output option");
 
         validateAnnotateUnionArguments();
 
@@ -233,7 +255,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if (genotypeMergeOption == null && !ASSUME_IDENTICAL_SAMPLES) {
             if (!sampleNamesAreUnique)
                 throw new UserException("Duplicate sample names were discovered but no genotypemergeoption was supplied. " +
-                    "To combine samples without merging specify --genotypemergeoption UNIQUIFY. Merging duplicate samples " +
+                    "To combine samples without merging, specify --genotypemergeoption UNIQUIFY. Merging duplicate samples " +
                     "without specified priority is unsupported, but can be achieved by specifying --genotypemergeoption UNSORTED.");
             else
                 genotypeMergeOption = GATKVariantContextUtils.GenotypeMergeType.UNSORTED;

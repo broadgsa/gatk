@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -172,7 +172,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
             HomVarHet_inheritedRef += mv.getParentsVarHetInheritedRef();
             HomVarHet_inheritedVar += mv.getParentsVarHetInheritedVar();
 
-            if(mv.getFamilyCalledCount()>0){
+            if(mv.getFamilyCalledCount()>0 || mv.getFamilyLowQualsCount()>0 || mv.getFamilyCalledCount()>0){
                 nVariants++;
                 nFamCalled += mv.getFamilyCalledCount();
                 nLowQual += mv.getFamilyLowQualsCount();

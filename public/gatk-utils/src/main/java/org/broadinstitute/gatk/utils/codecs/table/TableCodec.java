@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -65,10 +65,12 @@ import java.util.Collections;
  * @since 2009
  */
 public class TableCodec extends AsciiFeatureCodec<TableFeature> implements ReferenceDependentFeatureCodec {
-    final static protected String delimiterRegex = "\\s+";
-    final static protected String headerDelimiter = "HEADER";
-    final static protected String igvHeaderDelimiter = "track";
-    final static protected String commentDelimiter = "#";
+    protected final static String delimiterRegex = "\\s+";
+    protected final static String headerDelimiter = "HEADER";
+    protected final static String igvHeaderDelimiter = "track";
+    protected final static String commentDelimiter = "#";
+    // codec file extension
+    protected final static String FILE_EXT = "tbl";
 
     protected ArrayList<String> header = new ArrayList<String>();
 
@@ -99,6 +101,14 @@ public class TableCodec extends AsciiFeatureCodec<TableFeature> implements Refer
             throw new IllegalArgumentException("TableCodec line = " + line + " doesn't appear to be a valid table format");
         return new TableFeature(genomeLocParser.parseGenomeLoc(split[0]),Arrays.asList(split), header);
     }
+
+    /**
+     * Can the file be decoded?
+     * @param path path the file to test for parsability with this codec
+     * @return true if the path has the correct file extension, false otherwise
+     */
+    @Override
+    public boolean canDecode(final String path) { return path.endsWith("." + FILE_EXT); }
 
     @Override
     public Object readActualHeader(final LineIterator reader) {

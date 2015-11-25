@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -133,7 +133,7 @@ public class AnnotationInterfaceManager {
 
         // note that technically an annotation can work on both the INFO and FORMAT fields
         for ( Class c : classes )
-            annotations.add(pluginManager.createByType(c));
+            annotations.add((T)pluginManager.createByType(c));
 
         return annotations;
     }

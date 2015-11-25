@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -40,6 +40,7 @@ import org.broadinstitute.gatk.utils.baq.BAQ;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.engine.recalibration.BQSRMode;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 
 import java.util.List;
 
@@ -85,18 +86,49 @@ public abstract class Walker<MapType, ReduceType> {
     /**
      * Gets the master sequence dictionary for this walker
      * @link GenomeAnalysisEngine.getMasterSequenceDictionary
-     * @return
+     * @return the master sequence dictionary or null if no genome analysis toolkit.
      */
     protected SAMSequenceDictionary getMasterSequenceDictionary() {
-        return getToolkit().getMasterSequenceDictionary();
+        if ( toolkit == null )
+            return null;
+        else
+            return toolkit.getMasterSequenceDictionary();
     }
 
+    /**
+     * Gets the GATK argument collection
+     * @link GenomeAnalysisEngine.getArguments
+     * @return the GATK argument collection or null if no genome analysis toolkit.
+     */
+    public GATKArgumentCollection getArguments(){
+        if ( toolkit == null )
+            return null;
+        else
+            return toolkit.getArguments();
+    }
+
+    /**
+     * Gets the GATK samples database
+     * @link GenomeAnalysisEngine.getSampleDB
+     * @return the GATK samples database or null if no genome analysis toolkit.
+     */
     public SampleDB getSampleDB() {
-        return getToolkit().getSampleDB();
+        if ( toolkit == null )
+            return null;
+        else
+            return toolkit.getSampleDB();
     }
 
+    /**
+     * Gets a sample from the GATK samples database
+     * @param id the sample ID
+     * @return the sample from the GATK samples database or null if no genome analysis toolkit or samples database.
+     */
     protected Sample getSample(final String id) {
-        return getToolkit().getSampleDB().getSample(id);
+        if ( getSampleDB() == null )
+            return null;
+        else
+            return getSampleDB().getSample(id);
     }
 
     /**

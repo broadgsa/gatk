@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -324,12 +324,12 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     @Test()
     public void testDefaultBaseQualities20() {
-        executeTest("testDefaultBaseQualities20", testDefaultBaseQualities(20, "7d254a9d0ec59c66ee3e137f56f4c78f"));
+        executeTest("testDefaultBaseQualities20", testDefaultBaseQualities(20, "90a450f74554bbd2cc3a9e0f9de68e26"));
     }
 
     @Test()
     public void testDefaultBaseQualities30() {
-        executeTest("testDefaultBaseQualities30", testDefaultBaseQualities(30, "0f50def6cbbbd8ccd4739e2b3998e503"));
+        executeTest("testDefaultBaseQualities30", testDefaultBaseQualities(30, "ec11db4173ce3b8e43997f00dab5ae26"));
     }
 
     @Test(expectedExceptions = Exception.class)
@@ -731,12 +731,12 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     @Test
     public void testSAMWriterFeatures() {
-        testBAMFeatures("-compress 0", "bb4b55b1f80423970bb9384cbf0d8793");
-        testBAMFeatures("-compress 9", "b85ee1636d62e1bb8ed65a245c307167");
-        testBAMFeatures("-simplifyBAM", "38f9c30a27dfbc085a2ff52a1617d579");
+        testBAMFeatures("-compress 0", "49228d4f5b14c4cfed4a09372eb71139");
+        testBAMFeatures("-compress 9", "bc61a1b2b53a2ec7c63b533fa2f8701b");
+        testBAMFeatures("-simplifyBAM", "a1127bab46674b165496b79bb9fa7964");
 
         //Validate MD5
-        final String expectedMD5 = "6627b9ea33293a0083983feb94948c1d";
+        final String expectedMD5 = "c58b9114fc15b53655f2c03c819c29fd";
         final File md5Target = testBAMFeatures("--generate_md5", expectedMD5);
         final File md5File = new File(md5Target.getAbsoluteFile() + ".md5");
         md5File.deleteOnExit();
@@ -758,8 +758,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @DataProvider(name = "vcfFeaturesData")
     public Object[][] getVCFFeaturesData() {
         return new Object[][]{
-                {"--sites_only", "94bf1f2c0946e933515e4322323a5716"},
-                {"--bcf", "03f2d6988f54a332da48803c78f9c4b3"}
+                {"--sites_only", "6ef742ee6d9bcbc7b23f928c0e8a1d0e"},
+                {"--bcf", "285549ca1a719a09fa95cfa129520621"}
         };
     }
 
@@ -775,8 +775,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @DataProvider(name = "vcfFormatHandlingData")
     public Object[][] getVCFFormatHandlingData() {
         return new Object[][]{
-                {true, "95b6262efbd40b6b72f44f808f3e4c45"},
-                {false, "333232e08b8cdd3303309e438c44277f"}
+                {true, "870f39e19ec89c8a09f7eca0f5c4bcb9"},
+                {false, "baf9a1755d3b4e0ed25b03233e99ca91"}
         };
     }
 

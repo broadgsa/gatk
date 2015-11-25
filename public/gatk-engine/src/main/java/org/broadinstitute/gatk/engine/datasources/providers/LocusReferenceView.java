@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.ReferenceSequence;
+import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.engine.walkers.Reference;
 import org.broadinstitute.gatk.engine.walkers.Walker;
@@ -74,7 +75,7 @@ public class LocusReferenceView extends ReferenceView {
 
 
     /**
-     * Start of the expanded window for which the reference context should be provided,
+     * Stop of the expanded window for which the reference context should be provided,
      * relative to the locus in question.
      */
     private final int windowStop;
@@ -99,10 +100,11 @@ public class LocusReferenceView extends ReferenceView {
 
     /**
      * Create a new locus reference view.
+     * @param walker input walker
      * @param provider source for locus data.
      */
     public LocusReferenceView( Walker walker, LocusShardDataProvider provider ) {
-        super( provider );
+        super(provider);
         initializeBounds(provider);
 
         // Retrieve information about the window being accessed.
@@ -113,11 +115,22 @@ public class LocusReferenceView extends ReferenceView {
             if( window.stop() < 0 ) throw new ReviewedGATKException( "Reference window ends before current locus" );
 
             windowStart = window.start();
-            windowStop = window.stop();
+
+            if ( walker.getArguments() == null ){
+                windowStop = window.stop();
+            } else {
+                // Use reference arguments if set, otherwise use the annotation
+                windowStop = walker.getArguments().reference_window_stop != GATKArgumentCollection.DEFAULT_REFERENCE_WINDOW_STOP ?
+                        walker.getArguments().reference_window_stop : window.stop();
+            }
         }
         else {
             windowStart = 0;
-            windowStop = 0;
+            if ( walker.getArguments() == null ){
+                windowStop = 0;
+            } else {
+                windowStop = walker.getArguments().reference_window_stop;
+            }
         }
 
         if(bounds != null) {

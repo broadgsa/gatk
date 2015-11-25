@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2015 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -28,11 +28,14 @@ package org.broadinstitute.gatk.engine.recalibration;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
 
 import java.io.File;
+import java.util.List;
 
 public class BQSRArgumentSet {
     // declare public, STL-style for easier and more efficient access:
     private File BQSR_RECAL_FILE;
     private int quantizationLevels;
+    private List<Integer> staticQuantizedQuals;
+    private boolean roundDown;
     private boolean disableIndelQuals;
     private boolean emitOriginalQuals;
     private int PRESERVE_QSCORES_LESS_THAN;
@@ -41,6 +44,8 @@ public class BQSRArgumentSet {
     public BQSRArgumentSet(final GATKArgumentCollection args) {
         this.BQSR_RECAL_FILE = args.BQSR_RECAL_FILE;
         this.quantizationLevels = args.quantizationLevels;
+        this.staticQuantizedQuals = args.staticQuantizationQuals;
+        this.roundDown = args.roundDown;
         this.disableIndelQuals = args.disableIndelQuals;
         this.emitOriginalQuals = args.emitOriginalQuals;
         this.PRESERVE_QSCORES_LESS_THAN = args.PRESERVE_QSCORES_LESS_THAN;
@@ -50,6 +55,10 @@ public class BQSRArgumentSet {
     public File getRecalFile() { return BQSR_RECAL_FILE; }
 
     public int getQuantizationLevels() { return quantizationLevels; }
+
+    public List<Integer> getStaticQuantizedQuals() {return staticQuantizedQuals; }
+
+    public boolean getRoundDown() {return roundDown; }
 
     public boolean shouldDisableIndelQuals() { return disableIndelQuals; }
 
@@ -65,6 +74,12 @@ public class BQSRArgumentSet {
 
     public void setQuantizationLevels(final int quantizationLevels) {
         this.quantizationLevels = quantizationLevels;
+    }
+
+    public void setStaticQuantizedQuals(final List<Integer> staticQuantizedQuals) { this.staticQuantizedQuals = staticQuantizedQuals; }
+
+    public void setRoundDown(final boolean roundDown) {
+        this.roundDown = roundDown;
     }
 
     public void setDisableIndelQuals(final boolean disableIndelQuals) {
