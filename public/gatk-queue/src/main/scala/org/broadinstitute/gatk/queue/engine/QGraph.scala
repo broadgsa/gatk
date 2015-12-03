@@ -542,7 +542,7 @@ class QGraph extends Logging {
     lastRunningCheck > 0 && nextRunningCheck(lastRunningCheck) <= 0
 
   private def nextRunningCheck(lastRunningCheck: Long) =
-    ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
+    ((this.settings.time_between_checks.toLong * 1000L) - (System.currentTimeMillis - lastRunningCheck))
 
   def formattedStatusCounts: String = {
     "%d Pend, %d Run, %d Fail, %d Done".format(
