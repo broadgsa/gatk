@@ -131,6 +131,10 @@ public class GATKSAMRecord extends SAMRecord implements Cloneable {
         return ArtificialSAMUtils.createArtificialRead(cigar);
     }
 
+    public Integer getMateMappingQuality(){
+        return (Integer) this.getAttribute(SAMTagUtil.getSingleton().MQ);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////
     // *** support for reads without meaningful strand information            ***//
     ///////////////////////////////////////////////////////////////////////////////
