@@ -309,9 +309,11 @@ import java.util.*;
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     static final int MAX_FILTERED_GENOTYPES_DEFAULT_VALUE  = Integer.MAX_VALUE;
-    static final int MIN_FILTERED_GENOTYPES_DEFAULT_VALUE  = 0;
     static final double MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE = 1.0;
+    static final int MIN_FILTERED_GENOTYPES_DEFAULT_VALUE  = 0;
     static final double MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE = 0.0;
+    private static final int MAX_NOCALL_NUMBER_DEFAULT_VALUE = Integer.MAX_VALUE;
+    private static final double MAX_NOCALL_FRACTION_DEFAULT_VALUE = 1.0;
     
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
@@ -565,6 +567,18 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private double minFractionFilteredGenotypes = MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
 
     /**
+     * If this argument is provided, select sites where at most the given number of samples have no-call genotypes.
+     */
+    @Argument(fullName="maxNOCALLnumber", required=false, doc="Maximum number of samples with no-call genotypes")
+    private int maxNOCALLnumber = MAX_NOCALL_NUMBER_DEFAULT_VALUE;
+
+    /**
+     * If this argument is provided, select sites where at most the given fraction of samples have no-call genotypes.
+    */
+    @Argument(fullName="maxNOCALLfraction", required=false, doc="Maximum fraction of samples with no-call genotypes")
+     private double maxNOCALLfraction = MAX_NOCALL_FRACTION_DEFAULT_VALUE;
+
+    /**
      * If this argument is provided, set filtered genotypes to no-call (./.).
      */
     @Argument(fullName="setFilteredGtToNocall", required=false, doc="Set filtered genotypes to no-call")
@@ -815,13 +829,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (containsIndelLargerOrSmallerThan(vc, maxIndelSize, minIndelSize))
                 continue;
 
-            if ( needNumFilteredGenotypes()) {
+            if ( considerFilteredGenotypes()) {
                 int numFilteredSamples = numFilteredGenotypes(vc);
                 double fractionFilteredGenotypes = samples.isEmpty() ? 0.0 : numFilteredSamples / samples.size();
                 if (numFilteredSamples > maxFilteredGenotypes || numFilteredSamples < minFilteredGenotypes ||
                         fractionFilteredGenotypes > maxFractionFilteredGenotypes || fractionFilteredGenotypes < minFractionFilteredGenotypes)
                     continue;
             }
+
+           if (considerNoCallGenotypes()) {
+               final int numNoCallSamples = numNoCallGenotypes(vc);
+               final double fractionNoCallGenotypes = samples.isEmpty() ? 0.0 : ((double) numNoCallSamples) / samples.size();
+               if (numNoCallSamples > maxNOCALLnumber || fractionNoCallGenotypes > maxNOCALLfraction)
+                    continue;
+           }
 
             VariantContext sub = subsetRecord(vc, preserveAlleles, removeUnusedAlternates);
 
@@ -875,6 +896,25 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         return false;
+    }
+
+    /**
+     * Find the number of no-call genotypes
+     *
+     * @param vc the variant context
+     * @return number of no-call genotypes
+     */
+    private int numNoCallGenotypes(final VariantContext vc) {
+        if (vc == null)
+            return 0;
+
+        int numFiltered = 0;
+        for ( final Genotype g : vc.getGenotypes() ) {
+            if ( g.isNoCall() )
+                numFiltered++;
+        }
+
+        return numFiltered;
     }
 
     /**
@@ -1183,14 +1223,24 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     /**
-     * Need the number of filtered genotypes samples?
+     * Should the number of filtered genotypes be considered for filtering?
      *
      * @return true if any of the filtered genotype samples arguments is used (not the default value), false otherwise
      */
-    private boolean needNumFilteredGenotypes(){
+    private boolean considerFilteredGenotypes(){
         return maxFilteredGenotypes != MAX_FILTERED_GENOTYPES_DEFAULT_VALUE ||
                 minFilteredGenotypes != MIN_FILTERED_GENOTYPES_DEFAULT_VALUE ||
                 maxFractionFilteredGenotypes != MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE ||
                 minFractionFilteredGenotypes != MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
+    }
+
+    /**
+     * Should the number of no-call genotypes be considered for filtering?
+     *
+     * @return true if any of the filtered genotype samples arguments is used (not the default value), false otherwise
+     *
+     */
+    private boolean considerNoCallGenotypes(){
+        return maxNOCALLnumber != MAX_NOCALL_NUMBER_DEFAULT_VALUE || maxNOCALLfraction != MAX_NOCALL_FRACTION_DEFAULT_VALUE;
     }
 }
