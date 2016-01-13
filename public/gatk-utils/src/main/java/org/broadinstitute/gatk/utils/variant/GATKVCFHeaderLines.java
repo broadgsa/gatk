@@ -72,6 +72,10 @@ public class GATKVCFHeaderLines {
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TUMOR_LOD_FILTER_NAME, "Tumor does not meet likelihood threshold"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short tandem repeat region"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TRIALLELIC_SITE_FILTER_NAME, "Site filtered because more than two alt alleles pass tumor LOD"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STRAND_ARTIFACT_FILTER_NAME, "Strand bias detected: evidence for alt allele comes from one read direction only"));
+        // addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.CLUSTERED_READ_POSITION_FILTER_NAME, "Variant appears in similar read positions"));
+
+
 
         addFormatLine(new VCFFormatHeaderLine(ALLELE_BALANCE_KEY, 1, VCFHeaderLineType.Float, "Allele balance for each het genotype"));
         addFormatLine(new VCFFormatHeaderLine(BASE_COUNTS_BY_SAMPLE_KEY, 4, VCFHeaderLineType.Integer, "Counts of each base by sample"));
@@ -201,6 +205,10 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.NORMAL_LOD_KEY, 1, VCFHeaderLineType.String, "Normal LOD score"));
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.PANEL_OF_NORMALS_COUNT_KEY, 1, VCFHeaderLineType.String, "Count from Panel of Normals"));
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TUMOR_LOD_KEY, 1, VCFHeaderLineType.String, "Tumor LOD score"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TLOD_FWD_KEY,1,VCFHeaderLineType.Float,"TLOD from forward reads only"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TLOD_REV_KEY,1,VCFHeaderLineType.Float,"TLOD from reverse reads only"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TUMOR_SB_POWER_FWD_KEY,1,VCFHeaderLineType.Float,"Strand bias power for forward reads"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TUMOR_SB_POWER_REV_KEY,1,VCFHeaderLineType.Float,"Stand bias power for reverse reads"));
 
     }
 }

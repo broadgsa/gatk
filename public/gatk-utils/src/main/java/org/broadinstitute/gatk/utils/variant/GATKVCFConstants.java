@@ -134,6 +134,11 @@ public final class GATKVCFConstants {
     public static final String OXOG_FRACTION_KEY =                  "FOXOG";
     public static final String AS_INSERT_SIZE_RANK_SUM_KEY =        "AS_InsertSizeRankSum";
     public static final String AS_RAW_INSERT_SIZE_RANK_SUM_KEY =    "AS_RAW_InsertSizeRankSum";
+    public static final String TLOD_FWD_KEY =                       "TLOD_FWD";
+    public static final String TLOD_REV_KEY =                       "TLOD_REV";
+    public static final String TUMOR_SB_POWER_FWD_KEY =             "TUMOR_SB_POWER_FWD";
+    public static final String TUMOR_SB_POWER_REV_KEY =             "TUMOR_SB_POWER_REV";
+
 
     //FORMAT keys
     public static final String ALLELE_BALANCE_KEY =                 "AB";
@@ -173,6 +178,7 @@ public final class GATKVCFConstants {
     public static final String STR_CONTRACTION_FILTER_NAME =                  "str_contraction"; //M2
     public static final String TUMOR_LOD_FILTER_NAME =                        "t_lod_fstar"; //M2
     public static final String TRIALLELIC_SITE_FILTER_NAME =                  "triallelic_site"; //M2
+    public static final String STRAND_ARTIFACT_FILTER_NAME =                  "strand_artifact"; // M2
 
     // Symbolic alleles
     public final static String SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG = "ALT";
