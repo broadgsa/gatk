@@ -893,7 +893,7 @@ public class GenomeAnalysisEngine {
 
             // compare the reads to the reference
             SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary,
-                                                         "reference", referenceDictionary, true, intervals);
+                                                         "reference", referenceDictionary, true, intervals, true);
         }
 
         for (ReferenceOrderedDataSource rod : rods)
