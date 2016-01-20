@@ -181,7 +181,8 @@ public class SequenceDictionaryUtilsUnitTest extends BaseTest {
                                                          "secondDictionary",
                                                          secondDictionary,
                                                          isReadsToReferenceComparison,
-                                                         intervals);
+                                                         intervals,
+                                                         true);
         }
         catch ( Exception e ) {
             exceptionThrown = e;
@@ -218,7 +219,7 @@ public class SequenceDictionaryUtilsUnitTest extends BaseTest {
                                                      SequenceDictionaryUtils.getDictionaryAsString(secondDictionary));
 
         final SequenceDictionaryUtils.SequenceDictionaryCompatibility reportedCompatibility =
-              SequenceDictionaryUtils.compareDictionaries(firstDictionary, secondDictionary);
+              SequenceDictionaryUtils.compareDictionaries(firstDictionary, secondDictionary, true);
 
         Assert.assertTrue(reportedCompatibility == dictionaryCompatibility,
                           String.format("Dictionary comparison should have returned %s but instead returned %s. %s",

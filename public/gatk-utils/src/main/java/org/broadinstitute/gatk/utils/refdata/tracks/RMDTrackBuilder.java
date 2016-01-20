@@ -182,7 +182,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                         final SAMSequenceDictionary vcfDictionary = new SAMSequenceDictionary(vcfContigRecords);
                         final SAMSequenceDictionary sequenceDictionary = new SAMSequenceDictionary(dict.getSequences());
 
-                        SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, name, vcfDictionary, "sequence", sequenceDictionary, false, null);
+                        SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, name, vcfDictionary, "sequence", sequenceDictionary, false, null, false);
                     }
                 }
             }
