@@ -29,7 +29,6 @@ import com.google.java.contract.Requires;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.SAMSequenceRecord;
-import oracle.jrockit.jfr.StringConstantPool;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.engine.samples.Trio;
