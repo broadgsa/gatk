@@ -177,7 +177,7 @@ public class SequenceDictionaryUtils {
 
             case OUT_OF_ORDER: {
                 UserException ex = new UserException.IncompatibleSequenceDictionaries(
-			"The contig order in " + name1 + " and " + name2 + "is not "
+			"The contig order in " + name1 + " and " + name2 + " is not "
 			+ "the same; to fix this please see: "
 			+ "(https://www.broadinstitute.org/gatk/guide/article?id=1328), "
 			+ " which describes reordering contigs in BAM and VCF files.",
