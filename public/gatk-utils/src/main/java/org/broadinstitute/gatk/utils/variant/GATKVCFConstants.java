@@ -35,6 +35,7 @@ import htsjdk.variant.variantcontext.Allele;
 public final class GATKVCFConstants {
 
     //INFO keys
+    public static final String ALLELE_SPECIFIC_PREFIX =             "AS_";
     public static final String RAW_RMS_MAPPING_QUALITY_KEY =        "RAW_MQ";
     public static final String AS_RMS_MAPPING_QUALITY_KEY =         "AS_MQ";
     public static final String AS_RAW_RMS_MAPPING_QUALITY_KEY =     "AS_RAW_MQ";
@@ -55,6 +56,7 @@ public final class GATKVCFConstants {
     public static final String GENOTYPE_AND_VALIDATE_STATUS_KEY =   "callStatus";
     public static final String CLIPPING_RANK_SUM_KEY =              "ClippingRankSum";
     public static final String CULPRIT_KEY =                        "culprit";
+    public static final String AS_CULPRIT_KEY =                     "AS_culprit";
     public static final String SPANNING_DELETIONS_KEY =             "Dels";
     public static final String ORIGINAL_DP_KEY =                    "DP_Orig"; //SelectVariants
     public static final String DOWNSAMPLED_KEY =                    "DS";
@@ -64,6 +66,7 @@ public final class GATKVCFConstants {
     public static final String FISHER_STRAND_KEY =                  "FS";
     public static final String AS_FISHER_STRAND_KEY =               "AS_FS";
     public static final String FRACTION_INFORMATIVE_READS_KEY =     "FractionInformativeReads";
+    public static final String AS_FILTER_STATUS_KEY =               "AS_FilterStatus";
     public static final String AS_SB_TABLE_KEY =                    "AS_SB_TABLE";
     public static final String GC_CONTENT_KEY =                     "GC";
     public static final String GQ_MEAN_KEY =                        "GQ_MEAN";
@@ -123,6 +126,7 @@ public final class GATKVCFConstants {
     public static final String TUMOR_LOD_KEY =                      "TLOD"; //M2
     public static final String VARIANT_TYPE_KEY =                   "VariantType";
     public static final String VQS_LOD_KEY =                        "VQSLOD";
+    public static final String AS_VQS_LOD_KEY =                     "AS_VQSLOD";
     public static final String OXOG_ALT_F1R2_KEY =                  "ALT_F1R2";
     public static final String OXOG_ALT_F2R1_KEY =                  "ALT_F2R1";
     public static final String OXOG_REF_F1R2_KEY =                  "REF_F1R2";
