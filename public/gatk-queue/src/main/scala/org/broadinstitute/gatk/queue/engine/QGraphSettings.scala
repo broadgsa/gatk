@@ -55,6 +55,9 @@ class QGraphSettings {
   @Argument(fullName="retry_failed", shortName="retry", doc="Retry the specified number of times after a command fails.  Defaults to no retries.", required=false)
   var retries = 0
 
+  @Argument(fullName="time_between_checks", shortName="tbc", doc="Seconds between checks of whether new jobs can be run. Default 30.", required=false)
+  var time_between_checks = 30.0
+
   @Argument(fullName="start_from_scratch", shortName="startFromScratch", doc="Runs all command line functions even if the outputs were previously output successfully.", required=false)
   var startFromScratch = false
 
