@@ -132,6 +132,8 @@ public final class GATKVCFConstants {
     public static final String OXOG_REF_F1R2_KEY =                  "REF_F1R2";
     public static final String OXOG_REF_F2R1_KEY =                  "REF_F2R1";
     public static final String OXOG_FRACTION_KEY =                  "FOXOG";
+    public static final String AS_INSERT_SIZE_RANK_SUM_KEY =        "AS_InsertSizeRankSum";
+    public static final String AS_RAW_INSERT_SIZE_RANK_SUM_KEY =    "AS_RAW_InsertSizeRankSum";
 
     //FORMAT keys
     public static final String ALLELE_BALANCE_KEY =                 "AB";

@@ -144,10 +144,11 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(AS_RAW_RMS_MAPPING_QUALITY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specfic raw data for RMS Mapping Quality"));
         addInfoLine(new VCFInfoHeaderLine(AS_RMS_MAPPING_QUALITY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific RMS Mapping Quality"));
         addInfoLine(new VCFInfoHeaderLine(RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.Float, "Raw data for Mapping Quality Rank Sum"));
-        addInfoLine(new VCFInfoHeaderLine(AS_RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "Allele-specfic raw data for Mapping Quality Rank Sum"));
+        addInfoLine(new VCFInfoHeaderLine(AS_RAW_MAP_QUAL_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "Allele-specific raw data for Mapping Quality Rank Sum"));
         addInfoLine(new VCFInfoHeaderLine(AS_MAP_QUAL_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific Mapping Quality Rank Sum"));
         addInfoLine(new VCFInfoHeaderLine(FRACTION_INFORMATIVE_READS_KEY, 1, VCFHeaderLineType.Float, "The fraction of informative reads out of the total reads"));
-
+        addInfoLine(new VCFInfoHeaderLine(AS_RAW_INSERT_SIZE_RANK_SUM_KEY, 1, VCFHeaderLineType.String, "Allele-specific raw data for Insert Size Rank Sum"));
+        addInfoLine(new VCFInfoHeaderLine(AS_INSERT_SIZE_RANK_SUM_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele-specific Insert Size Rank Sum"));
         addInfoLine(new VCFInfoHeaderLine(MENDEL_VIOLATION_LR_KEY, 1, VCFHeaderLineType.Float, "Mendelian violation likelihood ratio: L[MV] - L[No MV]"));
         addInfoLine(new VCFInfoHeaderLine(HI_CONF_DENOVO_KEY, 1, VCFHeaderLineType.String, "High confidence possible de novo mutation (GQ >= 20 for all trio members)=[comma-delimited list of child samples]"));
         addInfoLine(new VCFInfoHeaderLine(LO_CONF_DENOVO_KEY, 1, VCFHeaderLineType.String, "Low confidence possible de novo mutation (GQ >= 10 for child, GQ > 0 for parents)=[comma-delimited list of child samples]"));
