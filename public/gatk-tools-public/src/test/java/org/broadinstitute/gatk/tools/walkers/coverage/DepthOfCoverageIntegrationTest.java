@@ -164,7 +164,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         spec.addAuxFile("a148e50f9db207adfd5d5f0f29eb54d8", baseOutputFile);
         spec.addAuxFile("7ccd5193a3c035d1cc856cbc89e3daf4", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
         spec.addAuxFile("2efe59c20721ce61bc5b334a26d11720", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
-        spec.addAuxFile("9194cec953e0fe0b84a681f9bb63ffbe", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_gene_summary"));
+        spec.addAuxFile("3dd61151e758c1f3c4bd1150b6577b45", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_gene_summary"));
         spec.addAuxFile("cf62d95ec1f459fbbe35370c3f0ca481", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
         spec.addAuxFile("b4fcb739b7f9e309e38a7d5e7e4ebb9f", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
         spec.addAuxFile("6bf63f9c62071e850c6f0b6356fb63eb", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
