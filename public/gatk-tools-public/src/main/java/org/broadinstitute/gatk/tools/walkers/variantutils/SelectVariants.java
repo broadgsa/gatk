@@ -664,7 +664,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                             "Samples entered on command line (through -sf or -sn) that are not present in the VCF.",
                             "A list of these samples:",
                             Utils.join(",", commandLineUniqueSamples),
-                            "To ignore these samples, run with --allowNonOverlappingCommandLineSamples"));
+                            "To ignore these samples, run with --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES"));
                 }
             }
 

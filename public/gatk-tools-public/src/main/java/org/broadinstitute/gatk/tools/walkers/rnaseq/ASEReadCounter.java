@@ -202,7 +202,7 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
         final List<VariantContext> VCs =  tracker.getValues(sites, context.getLocation());
         if(VCs != null && VCs.size() > 1)
             throw new UserException("More then one variant context at position: "+contig+":"+position);
-        if(VCs == null || VCs.size() == 0)
+        if(VCs == null || VCs.isEmpty())
             return null;
 
         final VariantContext vc = VCs.get(0);
@@ -211,7 +211,11 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
             return null;
         }
 
+        if ( vc.getNAlleles() == 1 || vc.getAlternateAllele(0).getBases().length == 0 )
+            throw new UserException("The file of variant sites must contain heterozygous sites and cannot be a GVCF file containing <NON_REF> alleles.");
+
         final char altAllele = (char)vc.getAlternateAllele(0).getBases()[0];
+
         final String siteID = vc.getID();
         final ReadBackedPileup pileup = filterPileup(context.getBasePileup(), countType, includeReadsWithDeletionAtLoci());
 

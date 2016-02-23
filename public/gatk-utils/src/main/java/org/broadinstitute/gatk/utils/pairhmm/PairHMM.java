@@ -372,7 +372,7 @@ public abstract class PairHMM {
     {
         doProfiling = (numThreads == 1);
         if(numThreads > 1)
-            logger.info("Performance profiling for PairHMM is disabled because HaplotypeCaller is being run with multiple threads (-nct>1) option\nProfiling is enabled only when running in single thread mode\n");
+            logger.info("Performance profiling for PairHMM is disabled because the program is being run with multiple threads (-nct>1) option\nProfiling is enabled only when running in single thread mode\n");
     }
 
     /**
