@@ -373,7 +373,7 @@ public class UserException extends ReviewedGATKException {
 
     public static class LexicographicallySortedSequenceDictionary extends UserException {
         public LexicographicallySortedSequenceDictionary(String name, SAMSequenceDictionary dict) {
-            super(String.format("Lexicographically sorted human genome sequence detected in %s. Please see " + HelpConstants.forumPost("discussion/58/companion-utilities-reordersam") + "for more information. Error details: %s contigs = %s",
+            super(String.format("Lexicographically sorted human genome sequence detected in %s. Please see " + HelpConstants.articlePost("1328") + "for more information. Error details: %s contigs = %s",
                     name, name, ReadUtils.prettyPrintSequenceRecords(dict)));
         }
     }
