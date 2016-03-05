@@ -53,9 +53,13 @@ import java.util.*;
  * Filter variant calls based on INFO and FORMAT annotations
  *
  * <p>
- * This tool is designed for hard-filtering variant calls based on certain criteria.
- * Records are hard-filtered by changing the value in the FILTER field to something other than PASS. Filtered records
- * will be preserved in the output unless their removal is requested in the command line. </p>
+ * This tool is designed for hard-filtering variant calls based on certain criteria. Records are hard-filtered 
+ * by changing the value in the FILTER field to something other than PASS. Filtered records will be preserved 
+ * in the output unless their removal is requested in the command line. </p>
+ * 
+ * <p>The most common way of specifying filtering criteria is by using JEXL queries. See the 
+ * <a href='https://www.broadinstitute.org/gatk/guide/article?id=1255'> article on JEXL expressions</a> in the 
+ * documentation Guide for detailed information and examples.</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -75,10 +79,18 @@ import java.util.*;
  *   -o output.vcf \
  *   --variant input.vcf \
  *   --filterExpression "AB < 0.2 || MQ0 > 50" \
- *   --filterName "Nov09filters" \
- *   --mask mask.vcf \
- *   --maskName InDel
+ *   --filterName "SomeFilterName" 
  * </pre>
+ * 
+ * <h3>Caveat</h3>
+ * <p>when you run VariantFiltration with a command that includes multiple logical parts, each part of the command is applied 
+ * individually to the original form of the VCF record. Say you ran a VF command that includes three parts: one applies 
+ * some genotype filters, another applies setFilterGtToNoCall (which changes sample genotypes to ./. whenever a sample has a 
+ * genotype-level FT annotation), and yet another one filters sites based on whether any samples have a no-call there. You might 
+ * think that such a command would allow you to filter sites based on sample-level annotations in one go. However, that would only 
+ * work if the parts of the command were applied internally in series (like a pipeline) but that's not the case; they are applied 
+ * in parallel to the same original record. So unfortunately, to achieve the desired result, these filters should be applied as 
+ * separate commands.</p>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
