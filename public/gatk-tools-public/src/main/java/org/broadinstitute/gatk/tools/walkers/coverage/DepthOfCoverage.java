@@ -433,7 +433,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
             printGeneStats(statsByInterval);
         }
 
-        if ( statsByInterval.size() > 0 ) {
+        if ( !statsByInterval.isEmpty() ) {
             for(DoCOutputType.Partition partition: partitionTypes) {
                 if ( checkType(statsByInterval.get(0).getSecond().getCoverageByAggregationType(partition) ,partition) ) {
                     printIntervalStats(statsByInterval,
@@ -544,27 +544,30 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
         summaryHeader.append(separator);
         summaryHeader.append("average_coverage");
 
-        for ( String s : statsByTarget.get(0).second.getCoverageByAggregationType(DoCOutputType.Partition.sample).getAllSamples() ) {
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_total_cvg");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_mean_cvg");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_granular_Q1");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_granular_median");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_granular_Q3");
-            for ( int thresh : coverageThresholds ) {
+        if ( !statsByGene.isEmpty() ) {
+            // Only need to get the first item in statsByGene since all have the same samples
+            for (String s : statsByGene.get(0).second.getAllSamples()) {
                 summaryHeader.append(separator);
                 summaryHeader.append(s);
-                summaryHeader.append("_%_above_");
-                summaryHeader.append(thresh);
+                summaryHeader.append("_total_cvg");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_mean_cvg");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_granular_Q1");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_granular_median");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_granular_Q3");
+                for (int thresh : coverageThresholds) {
+                    summaryHeader.append(separator);
+                    summaryHeader.append(s);
+                    summaryHeader.append("_%_above_");
+                    summaryHeader.append(thresh);
+                }
             }
         }
 
@@ -982,7 +985,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     }
 
     public boolean checkType(DepthOfCoverageStats stats, DoCOutputType.Partition type ) {
-        if ( stats.getHistograms().size() < 1 ) {
+        if ( stats.getHistograms().isEmpty() ) {
             logger.warn("The histogram per partition type "+type.toString()+" was empty\n"+
                     "Do your read groups have this type? (Check your .bam header).");
             return false;

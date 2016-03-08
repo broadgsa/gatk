@@ -211,4 +211,28 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         File file = new File(logFileName);
         Assert.assertTrue(FileUtils.readFileToString(file).contains(DepthOfCoverage.incompatibleArgsMsg()));
     }
+
+    @Test
+    public void testSampleGeneSummaryHeaderFix(){
+        final String[] intervals = {privateTestDir+"intervals.list"};
+        final String[] bams = {privateTestDir+"U145055CM2013D16882_snippet.bam", privateTestDir+"U145055PF2013D20189_snippet.bam", privateTestDir+"ControleMan1_snippet.bam"};
+        String cmd = buildRootCmd(b37KGReference, new ArrayList<String>(Arrays.asList(bams)), new ArrayList<String>(Arrays.asList(intervals))) +
+                " -geneList "+privateTestDir+"ENSG00000186092.rod";
+
+        WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
+
+        File baseOutputFile = WalkerTest.createTempFile("depthOfCoverageSampleGeneSummaryHeaderFix", ".tmp");
+        spec.setOutputFileLocation(baseOutputFile);
+
+        spec.addAuxFile("0b698e9d6c28479c378bf64182100e11", baseOutputFile);
+        spec.addAuxFile("97a782ce07fc487d0945b60f66721048", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_counts"));
+        spec.addAuxFile("02cd919ef71d8bcfb1c1622b7a683033", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_cumulative_coverage_proportions"));
+        spec.addAuxFile("799d8ff6a12d3109f985953ce91ab17c", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_gene_summary"));
+        spec.addAuxFile("c9624eaa0a800da0b457daa752f7ed92", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_statistics"));
+        spec.addAuxFile("34ac6759bff2d34890a30a44f8887336", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_interval_summary"));
+        spec.addAuxFile("166b97db63a95c3ceb44d790d98a6fc1", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_statistics"));
+        spec.addAuxFile("77e03df80132408c6c773cdb1f835e83", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".sample_summary"));
+
+        execute("testSampleGeneSummaryHeaderFix", spec);
+    }
 }
