@@ -523,14 +523,16 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
         Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // allows indirect updating of objects in list
 
         for ( Pair<GenomeLoc, CoveragePartitioner> targetStats : statsByTarget ) {
-            String gene = getGeneName(targetStats.first,refseqIterator);
-            if ( geneNamesToStats.keySet().contains(gene) ) {
-                logger.debug("Merging "+geneNamesToStats.get(gene).toString()+" and "+targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample).toString());
-                geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
-            } else {
-                DepthOfCoverageStats merger = new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
-                geneNamesToStats.put(gene,merger);
-                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,merger));
+            List<String> genes = getGeneNames(targetStats.first,refseqIterator);
+            for (String gene : genes) {
+            	if ( geneNamesToStats.keySet().contains(gene) ) {
+            		logger.debug("Merging "+geneNamesToStats.get(gene).toString()+" and "+targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample).toString());
+            		geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
+            	} else {
+            		DepthOfCoverageStats merger = new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
+            		geneNamesToStats.put(gene,merger);
+            		statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,merger));
+            	}
             }
         }
 
@@ -574,24 +576,32 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     }
 
     //blatantly stolen from Andrew Kernytsky
-    private String getGeneName(GenomeLoc target, LocationAwareSeekableRODIterator refseqIterator) {
+    // edited by Pawel Sztromwasser to support overlap with multiple exons/genes
+    private List<String> getGeneNames(GenomeLoc target, LocationAwareSeekableRODIterator refseqIterator) {
         logger.debug("Examining "+target.toString());
-        if (refseqIterator == null) { return "UNKNOWN"; }
+        
+        List<String> unknown = Arrays.asList("UNKNOWN");
+        
+        if (refseqIterator == null) { return unknown; }
 
         RODRecordList annotationList = refseqIterator.seekForward(target);
         logger.debug("Annotation list is " + (annotationList == null ? "null" : annotationList.getName()));
-        if (annotationList == null) { return "UNKNOWN"; }
+        if (annotationList == null) { return unknown; }
 
+        List<String> geneNames = new ArrayList<String>();
         for(GATKFeature rec : annotationList) {
             if ( ((RefSeqFeature)rec.getUnderlyingObject()).overlapsExonP(target) ) {
                 logger.debug("We do overlap "+ rec.getUnderlyingObject().toString());
-                return ((RefSeqFeature)rec.getUnderlyingObject()).getGeneName();
+                geneNames.add(((RefSeqFeature)rec.getUnderlyingObject()).getGeneName());
+            } else {
+            	logger.debug("No overlap");
             }
-            logger.debug("No overlap");
         }
 
-        return "UNKNOWN";
-
+        if (geneNames.isEmpty()) { geneNames = unknown; }
+        
+        return geneNames;
+        
     }
 
     private LocationAwareSeekableRODIterator initializeRefSeq() {
