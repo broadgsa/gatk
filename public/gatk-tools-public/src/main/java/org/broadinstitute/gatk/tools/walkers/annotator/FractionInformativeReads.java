@@ -30,6 +30,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFConstants;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompatible;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.BetaTestingAnnotation;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.ReducibleAnnotation;
 import org.broadinstitute.gatk.utils.MathUtils;
@@ -61,7 +62,7 @@ import java.util.Map;
  * </ul>
  */
 
-public class FractionInformativeReads extends InfoFieldAnnotation implements ReducibleAnnotation {
+public class FractionInformativeReads extends InfoFieldAnnotation implements ReducibleAnnotation, BetaTestingAnnotation {
     @Override
     public String getRawKeyName() {
         return null;
