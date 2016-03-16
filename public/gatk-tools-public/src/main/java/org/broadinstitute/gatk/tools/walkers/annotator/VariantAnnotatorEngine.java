@@ -357,9 +357,9 @@ public class VariantAnnotatorEngine {
             final Map<String, Object> annotationsFromCurrentType = currentASannotation.finalizeRawData(vc, originalVC);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
-                //clean up raw annotation data after annotations are finalized
-                infoAnnotations.remove(currentASannotation.getRawKeyName());
             }
+            //clean up raw annotation data after annotations are finalized
+            infoAnnotations.remove(currentASannotation.getRawKeyName());
         }
 
         // generate a new annotated VC
