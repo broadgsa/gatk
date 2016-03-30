@@ -235,4 +235,24 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
         execute("testSampleGeneSummaryHeaderFix", spec);
     }
+
+    @Test(expectedExceptions = RuntimeException.class)
+    public void testMissingSAMHeaderReadGroup() {
+        final String[] intervals = {"chr1:200-300"};
+        final String[] bams = {privateTestDir + "exampleBAMNoRG.bam"};
+
+        final String cmd = buildRootCmd(exampleFASTA,new ArrayList<>(Arrays.asList(bams)),new ArrayList<>(Arrays.asList(intervals)));
+        final WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
+        execute("testMissingSAMHeaderReadGroup", spec);
+    }
+
+    @Test(expectedExceptions = RuntimeException.class)
+    public void testMissingSAMHeaderReadGroupSample() {
+        final String[] intervals = {"chr1:200-300"};
+        final String[] bams = {privateTestDir + "exampleBAMNoSM.bam"};
+
+        final String cmd = buildRootCmd(exampleFASTA,new ArrayList<>(Arrays.asList(bams)),new ArrayList<>(Arrays.asList(intervals)));
+        final WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
+        execute("testMissingSAMHeaderReadGroupSample", spec);
+    }
 }
