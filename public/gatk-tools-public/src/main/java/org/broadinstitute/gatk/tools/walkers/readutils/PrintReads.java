@@ -195,7 +195,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
 
             //Add the program record (if appropriate) and set up the writer
             final boolean preSorted = true;
-            if (toolkit.getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
+            if (!NO_PG_TAG ) {
                 NWaySAMFileWriter.setupWriter(out, toolkit, outputHeader, preSorted, this, PROGRAM_RECORD_NAME);
             } else {
                 out.writeHeader(outputHeader);
