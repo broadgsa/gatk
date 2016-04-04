@@ -1,3 +1,5 @@
+.idea/
+.queue/
 /*.bam
 /*.bai
 /*.bed
@@ -5,7 +7,6 @@
 /*.vcf
 /*.txt
 /*.csh
-/.*
 /*.pdf
 /*.eval
 *.ipr
@@ -13,11 +14,9 @@
 *.iml
 *.pyc
 .DS_Store
-queueScatterGather
 /foo*
 /bar*
 integrationtests/
-public/testdata/onTheFlyOutputTest.vcf
 build/
 dist/
 dump/
