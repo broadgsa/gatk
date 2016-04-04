@@ -163,7 +163,7 @@ public class VariantAnnotatorEngine {
         final Map<RodBinding<VariantContext>, String> overlapBindings = new LinkedHashMap<>();
         for ( final RodBinding<VariantContext> b : walker.getCompRodBindings())
             if ( b.isBound() ) overlapBindings.put(b, b.getName());
-        if ( dbSNPBinding != null && ! overlapBindings.keySet().contains(VCFConstants.DBSNP_KEY) )
+        if ( dbSNPBinding != null && ! overlapBindings.values().contains(VCFConstants.DBSNP_KEY) )
             overlapBindings.put(dbSNPBinding, VCFConstants.DBSNP_KEY); // add overlap detection with DBSNP by default
 
         variantOverlapAnnotator = new VariantOverlapAnnotator(dbSNPBinding, overlapBindings, engine.getGenomeLocParser());
