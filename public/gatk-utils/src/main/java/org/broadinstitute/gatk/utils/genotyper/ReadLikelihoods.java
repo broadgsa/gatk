@@ -1232,7 +1232,7 @@ public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList
         checkSampleIndex(sampleIndex);
         final int alleleCount = alleles.alleleCount();
         final int sampleReadCount = readsBySampleIndex[sampleIndex].length;
-        final Map<A,List<GATKSAMRecord>> result = new HashMap<>(alleleCount);
+        final Map<A,List<GATKSAMRecord>> result = new LinkedHashMap<>(alleleCount);
         for (int a = 0; a < alleleCount; a++)
             result.put(alleles.alleleAt(a),new ArrayList<GATKSAMRecord>(sampleReadCount));
         readsByBestAlleleMap(sampleIndex,result);
