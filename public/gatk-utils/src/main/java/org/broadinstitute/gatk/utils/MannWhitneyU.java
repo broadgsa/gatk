@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.util.Histogram;
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.log4j.Logger;
 
 
 import java.util.*;
@@ -38,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Tim Fennell
  */
 public class MannWhitneyU {
+
+    protected static Logger logger = Logger.getLogger(MannWhitneyU.class);
 
     private static final class Rank implements Comparable<Rank> {
         final double value;
@@ -188,10 +191,9 @@ public class MannWhitneyU {
         }
     }
 
-    // Constructs a normal distribution; actual values of mean and SD don't matter since it's
-    // just used to convert a z-score into a cumulative probability
-    private static final double NORMAL_MEAN = 100;
-    private static final double NORMAL_SD = 15;
+    // Constructs a normal distribution; this needs to be a standard normal in order to get a Z-score in the exact case
+    private static final double NORMAL_MEAN = 0;
+    private static final double NORMAL_SD = 1;
     private static final NormalDistribution NORMAL = new NormalDistribution(NORMAL_MEAN, NORMAL_SD);
 
     /**
@@ -205,11 +207,6 @@ public class MannWhitneyU {
      * will be used.
      */
     private int minimumNormalN = 10;
-
-    /**
-     * If the exact p-value is 1 then the z-score is infinite, so we need a max cutoff instead.
-     */
-    private double maxZScore = 9.0;
 
     /**
      * Sets the minimum number of values in each data series to use the normal distribution approximation.
@@ -289,7 +286,8 @@ public class MannWhitneyU {
         for (int count : numOfTies) {
             //If every single datapoint is tied then we want to return a p-value of .5 and
             //the formula for sigma that includes the number of ties breaks down. Setting
-            //the number of ties to 0 in this case gets the desired result.
+            //the number of ties to 0 in this case gets the desired result in the normal
+            //approximation case.
             if (count != ranks.length) {
                 transformedTies.add((count * count * count) - count);
             }
@@ -424,15 +422,11 @@ public class MannWhitneyU {
             }
         } else {
             // TODO -- This exact test is only implemented for the one sided test, but we currently don't call the two sided version
-            Histogram<Double> distribution = permutationTest(series1, series2);
-            p = distribution.getCumulativeProbability(u);
-            if (p == 1) {
-                z = maxZScore;
-            } else if (p == 0) {
-                z = -1.0 * maxZScore;
-            } else {
-                z = NORMAL.inverseCumulativeProbability(p);
+            if (whichSide != TestType.FIRST_DOMINATES) {
+                logger.warn("An exact two-sided MannWhitneyU test was called. Only the one-sided exact test is implemented, use the approximation instead by setting minimumNormalN to 0.");
             }
+            p = permutationTest(series1, series2, u);
+            z = NORMAL.inverseCumulativeProbability(p);
         }
 
         return new Result(u, z, p, Math.abs(median(series1) - median(series2)));
@@ -505,9 +499,10 @@ public class MannWhitneyU {
      *
      * @param series1 Data from group 1
      * @param series2 Data from group 2
-     * @return Histogram with u calculated for every possible permutation of group tag.
+     * @param testStatU Test statistic U from observed data
+     * @return P-value based on histogram with u calculated for every possible permutation of group tag.
      */
-    public Histogram permutationTest(final double[] series1, final double[] series2) {
+    public double permutationTest(final double[] series1, final double[] series2, final double testStatU) {
         final Histogram<Double> histo = new Histogram<Double>();
         final int n1 = series1.length;
         final int n2 = series2.length;
@@ -552,7 +547,19 @@ public class MannWhitneyU {
             histo.increment(newU);
         }
 
-        return histo;
+        /**
+         * In order to deal with edge cases where the observed value is also the most extreme value, we are taking half
+         * of the count in the observed bin plus everything more extreme (in the FIRST_DOMINATES case the smaller bins)
+         * and dividing by the total count of everything in the histogram. Just using getCumulativeDistribution() gives
+         * a p-value of 1 in the most extreme case which doesn't result in a usable z-score.
+         */
+        double sumOfAllSmallerBins = histo.get(testStatU).getValue() / 2.0;
+
+        for (final Histogram<Double>.Bin bin : histo.values()) {
+            if (bin.getId() < testStatU) sumOfAllSmallerBins += bin.getValue();
+        }
+
+        return sumOfAllSmallerBins / histo.getCount();
     }
 
 }

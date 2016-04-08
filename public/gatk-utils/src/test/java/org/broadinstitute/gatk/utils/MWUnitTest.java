@@ -47,30 +47,6 @@ public class MWUnitTest extends BaseTest {
 
     private static final MannWhitneyU rst = new MannWhitneyU();
 
-    @Test(dataProvider = "rankSumTestData")
-    public void testSimpleU(String name, double[] series1, double[] series2, double U) {
-        MannWhitneyU.Result test = rst.test(series1, series2, MannWhitneyU.TestType.TWO_SIDED);
-        System.out.println("==========================================================");
-        System.out.println("Series 1: " + Arrays.toString(series1));
-        System.out.println("Series 2: " + Arrays.toString(series2));
-        System.out.println("       U: " + test.getU());
-        System.out.println("       Z: " + test.getZ());
-        System.out.println("2-side p: " + test.getP());
-        Assert.assertEquals(test.getU(), U, name);
-    }
-
-    @Test(dataProvider = "oneSidedPTestData")
-    public void testOnesidedP(String name, double[] series1, double[] series2, double P) {
-        MannWhitneyU.Result test = rst.test(series1, series2, MannWhitneyU.TestType.FIRST_DOMINATES);
-        System.out.println("==========================================================");
-        System.out.println("Series 1: " + Arrays.toString(series1));
-        System.out.println("Series 2: " + Arrays.toString(series2));
-        System.out.println("       U: " + test.getU());
-        System.out.println("       Z: " + test.getZ());
-        System.out.println("1-side p: " + test.getP());
-        Assert.assertEquals(test.getP(), P, DELTA_PRECISION, name);
-    }
-
     @DataProvider(name="rankSumTestData")
     public Object[][] dataProvider() {
         return new Object[][] {
@@ -94,21 +70,73 @@ public class MWUnitTest extends BaseTest {
         };
     }
 
+    @Test(dataProvider = "rankSumTestData")
+    public void testSimpleU(String name, double[] series1, double[] series2, double U) {
+        MannWhitneyU.Result test = rst.test(series1, series2, MannWhitneyU.TestType.TWO_SIDED);
+        System.out.println("==========================================================");
+        System.out.println("Series 1: " + Arrays.toString(series1));
+        System.out.println("Series 2: " + Arrays.toString(series2));
+        System.out.println("       U: " + test.getU());
+        System.out.println("       Z: " + test.getZ());
+        System.out.println("2-side p: " + test.getP());
+        Assert.assertEquals(test.getU(), U, name);
+    }
+
     @DataProvider(name="oneSidedPTestData")
     public Object[][] oneSidedDataProvider() {
         return new Object[][] {
-                new Object[] {"test0", new double[] {0,0}, new double[] {1,1}, .16666666},
-                new Object[] {"test1", new double[] {20,20,20,20,20}, new double[] {20,20,20,20,21}, .5},
-                new Object[] {"test2", new double[] {20,20,20,20,21}, new double[] {20,20,20,20,21}, .77778},
-                new Object[] {"test3", new double[] {13,14,15,15,16}, new double[] {16,20,20,21,21}, 0.0079365},
+                new Object[] {"test0", new double[] {0,0}, new double[] {1,1}, 0.083333333},
+                new Object[] {"test1", new double[] {20,20,20,20,20}, new double[] {20,20,20,20,21}, .25},
+                new Object[] {"test2", new double[] {20,20,20,20,21}, new double[] {20,20,20,20,21}, .5},
+                new Object[] {"test3", new double[] {13,14,15,15,16}, new double[] {16,20,20,21,21}, 0.00396825},
                 new Object[] {"test4", new double[] {13,14,15,15,16}, new double[] {16,20,20,21,21,21,21,22,23,27}, 0.001469192},
                 new Object[] {"test5", new double[] {20,20,20,20,20}, new double[] {20,20,20,20,20,20,20,20,20,20}, .5},
-                new Object[] {"test6", new double[] {1,2,3,4,5}, new double[] {6,7,8,9,10}, .00396},
-                new Object[] {"test7", new double[] {6,7,8,9,10}, new double[] {1,2,3,4,5}, 1},
+                new Object[] {"test6", new double[] {1,2,3,4,5}, new double[] {6,7,8,9,10}, 0.001984},
+                new Object[] {"test7", new double[] {6,7,8,9,10}, new double[] {1,2,3,4,5}, 0.99801587},
                 new Object[] {"test8", new double[] {16,20,20,21,21,21,21,22,23,27,16,20,20,21,21,21,21,22,23,27},
-                    new double[] {22,23,27,16,20,20,21,21,21,21,22,23,27,60,60}, .08303102},
-                new Object[] {"test8", new double[] {16,20,20,21,21,21,21,21,20},
-                        new double[] {22,23,27,16,20,20,20,20,21}, .395763},
+                        new double[] {22,23,27,16,20,20,21,21,21,21,22,23,27,60,60}, .08303102},
+                new Object[] {"test9", new double[] {16,20,20,21,21,21,21,21,20},
+                        new double[] {22,23,27,16,20,20,20,20,21}, 0.388204},
         };
+    }
+
+    @Test(dataProvider = "oneSidedPTestData")
+    public void testOnesidedP(String name, double[] series1, double[] series2, double P) {
+        MannWhitneyU.Result test = rst.test(series1, series2, MannWhitneyU.TestType.FIRST_DOMINATES);
+        System.out.println("==========================================================");
+        System.out.println("Series 1: " + Arrays.toString(series1));
+        System.out.println("Series 2: " + Arrays.toString(series2));
+        System.out.println("       U: " + test.getU());
+        System.out.println("       Z: " + test.getZ());
+        System.out.println("1-side p: " + test.getP());
+        Assert.assertEquals(test.getP(), P, DELTA_PRECISION, name);
+    }
+
+    @DataProvider(name="oneSidedZTestData")
+    public Object[][] oneSidedZDataProvider() {
+        return new Object[][] {
+                new Object[] {"test1", new double[] {20}, new double[] {20,20,20}, 0},
+                new Object[] {"test2", new double[] {1}, new double[] {1,2,3}, -0.67448975},
+                new Object[] {"test3", new double[] {1,2,3}, new double[] {3}, -0.67448975},
+                new Object[] {"test4", new double[] {1,2,3}, new double[] {1}, 0.67448975},
+                new Object[] {"test5", new double[] {3,3}, new double[] {1,2,3}, 1.036433},
+                new Object[] {"test6", new double[] {20,20,20}, new double[] {20,20,20}, 0},
+                new Object[] {"test7", new double[] {20,20,20,20,20}, new double[] {20,20,20,20,20,20,20,20,20,20,20,20,20}, 0},
+                new Object[] {"test8", new double[] {1}, new double[] {2}, -0.67448975},
+                new Object[] {"test9", new double[] {1}, new double[] {1}, 0},
+                new Object[] {"test10", new double[] {60,70,70,60,60,60,60,60}, new double[] {60,60,60,60,60}, .91732119}
+        };
+    }
+
+    @Test(dataProvider = "oneSidedZTestData")
+    public void testOnesidedZ(String name, double[] series1, double[] series2, double Z) {
+        MannWhitneyU.Result test = rst.test(series1, series2, MannWhitneyU.TestType.FIRST_DOMINATES);
+        System.out.println("==========================================================");
+        System.out.println("Series 1: " + Arrays.toString(series1));
+        System.out.println("Series 2: " + Arrays.toString(series2));
+        System.out.println("       U: " + test.getU());
+        System.out.println("       Z: " + test.getZ());
+        System.out.println("1-side p: " + test.getP());
+        Assert.assertEquals(test.getZ(), Z, DELTA_PRECISION, name);
     }
 }
