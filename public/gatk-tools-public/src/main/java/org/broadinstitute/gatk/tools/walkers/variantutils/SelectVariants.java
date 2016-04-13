@@ -708,6 +708,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
+        // need AC, AN and AF since output if set filtered genotypes to no-call
+        if (setFilteredGenotypesToNocall) {
+            headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_COUNT_KEY));
+            headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_NUMBER_KEY));
+            headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_FREQUENCY_KEY));
+        }
+
         if (keepOriginalChrCounts) {
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AC_KEY));
             headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AF_KEY));
@@ -1117,14 +1124,35 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         final VariantContextBuilder builder = new VariantContextBuilder(vc);
         final GenotypesContext genotypes = GenotypesContext.create(vc.getGenotypes().size());
 
+        //
+        // recompute AC, AN and AF if filtered genotypes are set to no-call
+        //
+        // occurrences of alternate alleles over all genotypes
+        final Map<Allele, Integer> calledAltAlleles = new LinkedHashMap<Allele, Integer>(vc.getNAlleles()-1);
+        for ( final Allele altAllele : vc.getAlternateAlleles() ) {
+            calledAltAlleles.put(altAllele, 0);
+        }
+        int calledAlleles = 0;
+        boolean haveFilteredNoCallAlleles = false;
         for ( final Genotype g : vc.getGenotypes() ) {
-            if ( g.isCalled() && g.isFiltered() )
+            if ( g.isCalled() && g.isFiltered() ) {
+                haveFilteredNoCallAlleles = true;
                 genotypes.add(new GenotypeBuilder(g).alleles(diploidNoCallAlleles).make());
-            else
+            }
+            else {
+                // increment the number called alleles and called alternate alleles
+                calledAlleles = GATKVariantContextUtils.incrementChromosomeCountsInfo(calledAltAlleles, calledAlleles, g);
                 genotypes.add(g);
+            }
         }
 
-        return builder.genotypes(genotypes).make();
+        builder.genotypes(genotypes);
+
+        // if filtered genotypes are set to no-call, output recomputed AC, AN, AF
+        if ( haveFilteredNoCallAlleles )
+            GATKVariantContextUtils.updateChromosomeCountsInfo(calledAltAlleles, calledAlleles, builder);
+
+        return builder.make();
     }
     /*
      * Add annotations to the new VC
