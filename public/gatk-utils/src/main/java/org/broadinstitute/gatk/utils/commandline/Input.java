@@ -76,6 +76,13 @@ public @interface Input {
     String exclusiveOf() default "";
 
     /**
+     * Does this command-line argument require another argument.
+     * This will be the other argument required (presently only supports one).
+     * @return A string with the other required argument.
+     */
+    String otherArgumentRequired() default "";
+
+    /**
      * Provide a regexp-based validation string.
      * @return Non-empty regexp for validation, blank otherwise.
      */

@@ -82,6 +82,15 @@ public @interface Argument {
     String exclusiveOf() default "";
 
     /**
+     * Does this command-line argument require other arguments to go with it?
+     * Should be a string containing the name of the required argument.
+     * This option only supports a single required argument.
+     * @return A string with the other argument that this
+     *        argument should require in order to work.
+     */
+    String otherArgumentRequired() default "";
+
+    /**
      * Provide a regexp-based validation string.
      * @return Non-empty regexp for validation, blank otherwise. 
      */

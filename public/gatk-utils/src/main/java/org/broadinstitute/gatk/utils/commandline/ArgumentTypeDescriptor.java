@@ -166,6 +166,7 @@ public abstract class ArgumentTypeDescriptor {
                 source.isHidden(),
                 makeRawTypeIfNecessary(getCollectionComponentType(source.field)),
                 ArgumentDefinition.getExclusiveOf(argumentAnnotation),
+                ArgumentDefinition.getOtherArgumentRequired(argumentAnnotation),
                 ArgumentDefinition.getValidationRegex(argumentAnnotation),
                 getValidOptions(source) );
     }
