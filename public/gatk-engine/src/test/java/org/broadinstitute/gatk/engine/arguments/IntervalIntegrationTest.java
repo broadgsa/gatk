@@ -86,12 +86,12 @@ public class IntervalIntegrationTest extends WalkerTest {
                 Collections.<String>emptyList());
 
         // our base file
-        File baseOutputFile = createTempFile("testUnmappedReadInclusion", ".cram");
+        File baseOutputFile = createTempFile("testMultipleIntervalInclusionOnCRAM", ".cram");
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("0f11cc035455cd68fb388e33aaf5feff", createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("", createTempFileFromBase(baseOutputFile.getAbsolutePath()));  // Bypass MD5 check since the CRAM header stores the file name
         spec.addAuxFile("ebbe6e311b6bb240554ec96ed9809216", createTempFileFromBase(baseOutputFile.getAbsolutePath() + ".bai"));
 
-        executeTest("testUnmappedReadInclusionCRAM", spec);
+        executeTest("testMultipleIntervalInclusionOnCRAM", spec);
     }
 
     @Test
@@ -107,12 +107,12 @@ public class IntervalIntegrationTest extends WalkerTest {
                         Collections.<String>emptyList());
 
         // our base file
-        File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
+        File baseOutputFile = createTempFile("testMixedMappedAndUnmapped",".bam");
         spec.setOutputFileLocation(baseOutputFile);
         spec.addAuxFile("c64cff3ed376bc8f2977078dbdac4518",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("fa90ff91ac0cc689c71a3460a3530b8b", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
-        executeTest("testUnmappedReadInclusion",spec);
+        executeTest("testMixedMappedAndUnmapped",spec);
     }
 
 

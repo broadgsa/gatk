@@ -179,7 +179,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
         new MergeAllelesTest(Arrays.asList(ATref, ATC, Anoref, G),
                 Arrays.asList(Aref, ATCATC, G),
-                Arrays.asList(ATref, ATC, Anoref, G, ATCATCT, GT));
+                Arrays.asList(ATref, ATC, Anoref, G, GT, ATCATCT));
 
         return MergeAllelesTest.getTests(MergeAllelesTest.class);
     }
