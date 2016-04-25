@@ -32,6 +32,7 @@ import htsjdk.variant.variantcontext.GenotypeBuilder;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
 import htsjdk.variant.vcf.VCFHeaderLineType;
+import org.apache.commons.lang.mutable.MutableInt;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
@@ -84,36 +85,23 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
                          final Genotype g,
                          final GenotypeBuilder gb,
                          final PerReadAlleleLikelihoodMap alleleLikelihoodMap){
-
-
-        // We need a heterozygous genotype and either a context or alleleLikelihoodMap
-        if ( g == null || !g.isCalled() || !g.isHet() || ( stratifiedContext == null && alleleLikelihoodMap == null) )
+        // We need a heterozygous genotype and either a context or non-empty alleleLikelihoodMap
+        if ( g == null || !g.isCalled() || !g.isHet() ||
+                ( stratifiedContext == null && (alleleLikelihoodMap == null || alleleLikelihoodMap.isEmpty())) )
             return;
 
-        // Test for existence of <NON_REF> allele, and manually check isSNP() 
-        // and isBiallelic() while ignoring the <NON_REF> allele
-        boolean biallelicSNP = vc.isSNP() && vc.isBiallelic();
 
-        if(vc.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE)){
-            // If we have the GVCF <NON_REF> allele, then the SNP is biallelic
-            // iff there are 3 alleles and both the reference and first alt
-            // allele are length 1.
-            biallelicSNP = vc.getAlleles().size() == 3 &&
-                    vc.getReference().length() == 1 &&
-                    vc.getAlternateAllele(0).length() == 1;
-        }
+        // If we have a <NON_REF> allele the SNP is biallelic if there are 3 alleles and both the reference and first alt allele are length 1.
+        final boolean biallelicSNP = vc.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE) ?
+                vc.getAlleles().size() == 3 && vc.getReference().length() == 1 && vc.getAlternateAllele(0).length() == 1 :
+                vc.isSNP() && vc.isBiallelic();
 
         if ( !biallelicSNP )
             return;
 
-        Double ratio;
-        if (alleleLikelihoodMap != null && !alleleLikelihoodMap.isEmpty())
-            ratio = annotateWithLikelihoods(alleleLikelihoodMap, vc);
-        else if ( stratifiedContext != null )
-            ratio = annotateWithPileup(stratifiedContext, vc);
-        else
-            return;
-
+        final Double ratio = (alleleLikelihoodMap != null && !alleleLikelihoodMap.isEmpty()) ?
+                annotateWithLikelihoods(alleleLikelihoodMap, vc) :
+                annotateWithPileup(stratifiedContext, vc);
         if (ratio == null)
             return;
 
@@ -121,58 +109,42 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
     }
 
     private Double annotateWithPileup(final AlignmentContext stratifiedContext, final VariantContext vc) {
-
-        final HashMap<Byte, Integer> alleleCounts = new HashMap<>();
+        final HashMap<Byte, MutableInt> alleleCounts = new HashMap<>();
         for ( final Allele allele : vc.getAlleles() )
-            alleleCounts.put(allele.getBases()[0], 0);
+            alleleCounts.put(allele.getBases()[0], new MutableInt(0));
 
-        final ReadBackedPileup pileup = stratifiedContext.getBasePileup();
-        for ( final PileupElement p : pileup ) {
-            if ( alleleCounts.containsKey(p.getBase()) )
-                alleleCounts.put(p.getBase(), alleleCounts.get(p.getBase())+1);
+        for ( final byte base : stratifiedContext.getBasePileup().getBases() ) {
+            if ( alleleCounts.containsKey(base) )
+                alleleCounts.get(base).increment();
         }
 
-        // we need to add counts in the correct order
-        final int[] counts = new int[alleleCounts.size()];
-        counts[0] = alleleCounts.get(vc.getReference().getBases()[0]);
-        for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
-            counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
-
-        // sanity check
-        if(counts[0] + counts[1] == 0)
-            return null;
-
-        return ((double) counts[0] / (double)(counts[0] + counts[1]));
+        final int refCount = alleleCounts.get(vc.getReference().getBases()[0]).intValue();
+        final int altCount = alleleCounts.get(vc.getAlternateAllele(0).getBases()[0]).intValue();
+        return (refCount + altCount == 0) ? null : ((double) refCount) / (refCount + altCount);
     }
 
     private Double annotateWithLikelihoods(final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap, final VariantContext vc) {
         final Set<Allele> alleles = new HashSet<>(vc.getAlleles());
 
         // make sure that there's a meaningful relationship between the alleles in the perReadAlleleLikelihoodMap and our VariantContext
-        if ( ! perReadAlleleLikelihoodMap.getAllelesSet().containsAll(alleles) )
+        if (!perReadAlleleLikelihoodMap.getAllelesSet().containsAll(alleles))
             throw new IllegalStateException("VC alleles " + alleles + " not a strict subset of per read allele map alleles " + perReadAlleleLikelihoodMap.getAllelesSet());
 
-        final HashMap<Allele, Integer> alleleCounts = new HashMap<>();
-        for ( final Allele allele : vc.getAlleles() ) { alleleCounts.put(allele, 0); }
-
-        for ( final Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : perReadAlleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
-            final MostLikelyAllele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue(), alleles);
-            if (! a.isInformative() ) continue; // read is non-informative
-            final int prevCount = alleleCounts.get(a.getMostLikelyAllele());
-            alleleCounts.put(a.getMostLikelyAllele(), prevCount + 1);
+        final HashMap<Allele, MutableInt> alleleCounts = new HashMap<>();
+        for (final Allele allele : vc.getAlleles()) {
+            alleleCounts.put(allele, new MutableInt(0));
         }
 
-        final int[] counts = new int[alleleCounts.size()];
-        counts[0] = alleleCounts.get(vc.getReference());
-        for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
-            counts[i+1] = alleleCounts.get( vc.getAlternateAllele(i) );
+        for (final Map.Entry<GATKSAMRecord, Map<Allele, Double>> el : perReadAlleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+            final MostLikelyAllele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue(), alleles);
+            if (a.isInformative()) {
+                alleleCounts.get(a.getMostLikelyAllele()).increment();
+            }
+        }
 
-        // sanity check
-        if(counts[0] + counts[1] == 0)
-            return null;
-
-        return ((double) counts[0] / (double)(counts[0] + counts[1]));
-
+        final int refCount = alleleCounts.get(vc.getReference()).intValue();
+        final int altCount = alleleCounts.get(vc.getAlternateAllele(0)).intValue();
+        return (refCount + altCount == 0) ? null : ((double) refCount) / (refCount + altCount);
     }
 
     public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.ALLELE_BALANCE_KEY); }
