@@ -24,8 +24,8 @@
         <sourceEncoding>UTF-8</sourceEncoding>
         <project.build.sourceEncoding>${sourceEncoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${sourceEncoding}</project.reporting.outputEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <maven.build.timestamp.format>yyyy/MM/dd HH:mm:ss</maven.build.timestamp.format>
         <gatk.basedir>${project.basedir}/../..</gatk.basedir>
         <gatk.committests.skipped>true</gatk.committests.skipped>
@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>2.0.0</htsjdk.version>
-        <picard.version>2.0.0</picard.version>
+        <htsjdk.version>2.3.0</htsjdk.version>
+        <picard.version>2.3.0</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -373,7 +373,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.1</version>
+                    <version>2.4.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

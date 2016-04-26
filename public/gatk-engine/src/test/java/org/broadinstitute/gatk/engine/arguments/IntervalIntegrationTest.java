@@ -89,7 +89,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         File baseOutputFile = createTempFile("testMultipleIntervalInclusionOnCRAM", ".cram");
         spec.setOutputFileLocation(baseOutputFile);
         spec.addAuxFile("", createTempFileFromBase(baseOutputFile.getAbsolutePath()));  // Bypass MD5 check since the CRAM header stores the file name
-        spec.addAuxFile("ebbe6e311b6bb240554ec96ed9809216", createTempFileFromBase(baseOutputFile.getAbsolutePath() + ".bai"));
+        spec.addAuxFile("4bd9185ce1c7d2e97e8c131b77f76aef", createTempFileFromBase(baseOutputFile.getAbsolutePath() + ".bai"));
 
         executeTest("testMultipleIntervalInclusionOnCRAM", spec);
     }

@@ -758,8 +758,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @DataProvider(name = "vcfFeaturesData")
     public Object[][] getVCFFeaturesData() {
         return new Object[][]{
-                {"--sites_only", "6ef742ee6d9bcbc7b23f928c0e8a1d0e"},
-                {"--bcf", "cdea454ac0af9e9228147f9c2ed1e0a6"}
+                {"--sites_only", "99c07e55fc44694087af6a7d4795e1be"},
+                {"--bcf", "b300dd7a1300c55640d9f2e42520d086"}
         };
     }
 
@@ -775,8 +775,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @DataProvider(name = "vcfFormatHandlingData")
     public Object[][] getVCFFormatHandlingData() {
         return new Object[][]{
-                {true, "870f39e19ec89c8a09f7eca0f5c4bcb9"},
-                {false, "baf9a1755d3b4e0ed25b03233e99ca91"}
+                {true, "7517264dd6eb0c1ac5ca8dfd103c94fb"},
+                {false, "4c69e6ae1d506ba3c029de3229de407b"}
         };
     }
 
