@@ -759,7 +759,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     public Object[][] getVCFFeaturesData() {
         return new Object[][]{
                 {"--sites_only", "6ef742ee6d9bcbc7b23f928c0e8a1d0e"},
-                {"--bcf", "285549ca1a719a09fa95cfa129520621"}
+                {"--bcf", "cdea454ac0af9e9228147f9c2ed1e0a6"}
         };
     }
 
