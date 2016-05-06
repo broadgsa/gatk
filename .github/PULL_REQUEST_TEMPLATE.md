@@ -23,4 +23,8 @@ Never delete this, it is our record that procedure was followed. If you find tha
 - [ ] Suggest a reviewer or ask your team lead to suggest one
 - [ ] Final (thumbsup) from the reviewer(s)
 
+#### GATK4 Implications
+- [ ] If your fix/change is applicable to GATK4 as well, and is reasonably small and self-contained (< ~50 lines or so), port the change to GATK4 and open a PR against https://github.com/broadinstitute/gatk or https://github.com/broadinstitute/gatk-protected as appropriate, or at least make a "best effort" attempt to do so.
+- [ ] If your fix/change cannot yet be ported to GATK4 because the tool in question hasn't been ported yet, or has only been partially ported, or it would be difficult/burdensome to port the change, or you tried to port the change and failed, then add the ticket to our list of [GATK3 PRs to be eventually ported to GATK4](https://docs.google.com/document/d/1DjEHw57k5h0i8MZRGYPlQA3InvURKwQ7pCoi_Eigc4M/edit)
+
 Once everything is checked off, you can go ahead and merge the PR. Don't forget to also delete the branch.
