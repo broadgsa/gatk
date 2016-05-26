@@ -540,7 +540,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *
      * @return a newly allocated GenomeLoc as loc but with start == start
      */
-    public GenomeLoc setStart(GenomeLoc loc, int start) {
+    public static GenomeLoc setStart(GenomeLoc loc, int start) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop());
     }
 
@@ -554,7 +554,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *
      * @return a newly allocated GenomeLoc as loc but with stop == stop
      */
-    public GenomeLoc setStop(GenomeLoc loc, int stop) {
+    public static GenomeLoc setStop(GenomeLoc loc, int stop) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop);
     }
 
