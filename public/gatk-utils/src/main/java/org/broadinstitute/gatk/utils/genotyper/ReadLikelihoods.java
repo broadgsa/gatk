@@ -30,6 +30,8 @@ import htsjdk.variant.variantcontext.Allele;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import org.apache.commons.math.util.DoubleArray;
+import org.apache.commons.math3.stat.descriptive.rank.Median;
 import org.broadinstitute.gatk.utils.downsampling.AlleleBiasedDownsamplingUtils;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.Utils;
@@ -504,23 +506,26 @@ public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList
      * likelihood value.
      * @param candidateAlleles the potentially missing alleles.
      * @param defaultLikelihood the default read likelihood value for that allele.
+     * @return {@code true} iff the the read-likelihood collection was modified by the addition of the input alleles.
+     *  So if all the alleles in the input collection were already present in the read-likelihood collection this method
+     *  will return {@code false}.
      *
      * @throws IllegalArgumentException if {@code candidateAlleles} is {@code null} or there is more than
      * one missing allele that is a reference or there is one but the collection already has
      * a reference allele.
      */
-    public void addMissingAlleles(final Collection<A> candidateAlleles, final double defaultLikelihood) {
+    public boolean addMissingAlleles(final Collection<A> candidateAlleles, final double defaultLikelihood) {
         if (candidateAlleles == null)
             throw new IllegalArgumentException("the candidateAlleles list cannot be null");
         if (candidateAlleles.isEmpty())
-            return;
+            return false;
         final List<A> allelesToAdd = new ArrayList<>(candidateAlleles.size());
         for (final A allele : candidateAlleles)
             if (alleles.alleleIndex(allele) == -1)
                 allelesToAdd.add(allele);
 
         if (allelesToAdd.isEmpty())
-            return;
+            return false;
 
         final int oldAlleleCount = alleles.alleleCount();
         final int newAlleleCount = alleles.alleleCount() + allelesToAdd.size();
@@ -566,6 +571,7 @@ public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList
             nonRefAlleleIndex = nonRefIndex;
             updateNonRefAlleleLikelihoods();
         }
+        return true;
     }
 
     /**
@@ -1171,24 +1177,57 @@ public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList
             throw new IllegalArgumentException("non-ref allele cannot be null");
         if (!nonRefAllele.equals(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE))
             throw new IllegalArgumentException("the non-ref allele is not valid");
-        addMissingAlleles(Collections.singleton(nonRefAllele), Double.NEGATIVE_INFINITY);
-        updateNonRefAlleleLikelihoods();
+        if (addMissingAlleles(Collections.singleton(nonRefAllele), Double.NEGATIVE_INFINITY)) {
+            updateNonRefAlleleLikelihoods();
+        }
     }
 
+    /**
+     * Updates the likelihoods of the non-ref allele, if present, considering all concrete alleles avaialble.
+     */
     public void updateNonRefAlleleLikelihoods() {
         updateNonRefAlleleLikelihoods(alleles);
     }
 
+    /**
+     * Updates the likelihood of the NonRef allele (if present) based on the likehoods of a set of concrete
+     * alleles.
+     * <p>
+     *     This method does
+     * </p>
+     *
+     *
+     * @param allelesToConsider
+     */
     public void updateNonRefAlleleLikelihoods(final AlleleList<A> allelesToConsider) {
         if (nonRefAlleleIndex < 0)
             return;
+        final int alleleCount = alleles.alleleCount();
+        final int nonRefAlleleIndex = alleleIndex((A) GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE);
+        final int concreteAlleleCount = nonRefAlleleIndex < 0 ? alleleCount : alleleCount - 1;
+        // likelihood buffer reused across reads:
+        final double[] qualifiedAlleleLikelihoods = new double[concreteAlleleCount];
+        final Median medianCalculator = new Median();
         for (int s = 0; s < samples.sampleCount(); s++) {
             final double[][] sampleValues = valuesBySampleIndex[s];
-            for (int r = 0; r < sampleValues[0].length; r++) {
-                final BestAllele bestAllele = searchBestAllele(s, r, true, allelesToConsider);
-                final double secondBestLikelihood = Double.isInfinite(bestAllele.confidence) ? bestAllele.likelihood
-                        : bestAllele.likelihood - bestAllele.confidence;
-                sampleValues[nonRefAlleleIndex][r] = secondBestLikelihood;
+            final int readCount = sampleValues[0].length;
+            for (int r = 0; r < readCount; r++) {
+                final BestAllele bestAllele = searchBestAllele(s, r, true);
+                int numberOfQualifiedAlleleLikelihoods = 0;
+                for (int i = 0; i < alleleCount; i++) {
+                    final double alleleLikelihood = sampleValues[i][r];
+                    if (i != nonRefAlleleIndex && alleleLikelihood < bestAllele.likelihood
+                            && !Double.isNaN(alleleLikelihood) && allelesToConsider.alleleIndex(alleles.alleleAt(i)) != -1) {
+                        qualifiedAlleleLikelihoods[numberOfQualifiedAlleleLikelihoods++] = alleleLikelihood;
+                    }
+                }
+                final double nonRefLikelihood = medianCalculator.evaluate(qualifiedAlleleLikelihoods, 0, numberOfQualifiedAlleleLikelihoods);
+                // when the median is NaN that means that all applicable likekihoods are the same as the best
+                // so the read is not informative at all given the existing alleles. Unless there is only one (or zero) concrete
+                // alleles with give the same (the best) likelihood to the NON-REF. When there is only one (or zero) concrete
+                // alleles we set the NON-REF likelihood to NaN.
+                sampleValues[nonRefAlleleIndex][r] = !Double.isNaN(nonRefLikelihood) ? nonRefLikelihood
+                        : concreteAlleleCount <= 1 ? Double.NaN : bestAllele.likelihood;
             }
         }
     }
@@ -1383,6 +1422,11 @@ public class ReadLikelihoods<A extends Allele> implements SampleList, AlleleList
      * Contains information about the best allele for a read search result.
      */
     public class BestAllele {
+
+        /**
+         * Minimum difference between best and second best likelihood to consider a read informative as to
+         * what is the most probably allele the read came from.
+         */
         public static final double INFORMATIVE_THRESHOLD = 0.2;
 
         /**
