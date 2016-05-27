@@ -29,7 +29,7 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Set the mapping quality of reads with a given value to another given value.
+ * Set the mapping quality of reads with a given value to another given value
  *
  *  <p>
  *     This read transformer will change a certain read mapping quality to a different value without affecting reads that

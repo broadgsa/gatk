@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 import static org.broadinstitute.gatk.utils.codecs.sampileup.SAMPileupFeature.VariantType;
 
 /**
- * Decoder for SAM pileup data.
+ * Decoder for SAM pileup data
  *
  * <p>
  *     From the <a href="http://samtools.sourceforge.net/">SAMTools project documentation</a>:

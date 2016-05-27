@@ -45,6 +45,4 @@ public @interface DocumentedGATKFeature {
     public String summary() default "";
     /** Are there links to other docs that we should include?  CommandLineGATK.class for walkers, for example? */
     public Class[] extraDocs() default {};
-    /** Who is the go-to developer for operation/documentation issues? */
-    public String gotoDev() default "NA";
 }

@@ -110,30 +110,27 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
 
     /**
      * If this argument is enabled, loci with total depth lower than this threshold after all filters have been applied
-     * will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * will be skipped. This can be set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minDepthOfNonFilteredBase", shortName = "minDepth", doc = "Minimum number of bases that pass filters", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
+    @Argument(fullName = "minDepthOfNonFilteredBase", shortName = "minDepth", doc = "Minimum number of bases that pass filters", required = false, minValue = -1, maxValue = Integer.MAX_VALUE)
     public int minDepthOfNonFilteredBases = -1;
 
     /**
      * If this argument is enabled, reads with mapping quality values lower than this threshold will not be counted.
-     * This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * This can be set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum read mapping quality", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
+    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum read mapping quality", required = false, minValue = -1, maxValue = Integer.MAX_VALUE)
     public int minMappingQuality = 0;
 
     /**
      * If this argument is enabled, bases with quality scores lower than this threshold will not be counted.
-     * This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * This can be set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum base quality", required = false, minValue = 0, maxValue = Byte.MAX_VALUE)
+    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum base quality", required = false, minValue = -1, maxValue = Byte.MAX_VALUE)
     public byte minBaseQuality = 0;
 
     /**
-     * These options modify how the tool deals with overlapping read pairs.
-     * COUNT_READS -  Count all reads independently, even if they are from the same fragment.
-     * COUNT_FRAGMENTS - Count all fragments, even if the reads that compose the fragment are not consistent at that base.
-     * COUNT_FRAGMENTS_REQUIRE_SAME_BASE - Count all fragments, but only if the reads that compose the fragment are consistent at that base (default).
+     * These options modify how the tool deals with overlapping read pairs. The default value is COUNT_FRAGMENTS_REQUIRE_SAME_BASE.
      */
     @Argument(fullName = "countOverlapReadsType", shortName = "overlap", doc = "Handling of overlapping reads from the same fragment", required = false)
     public CoverageUtils.CountPileupType countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS_REQUIRE_SAME_BASE;

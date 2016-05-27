@@ -43,7 +43,7 @@ import java.net.InetAddress;
 import java.util.*;
 
 /**
- * All command line parameters accepted by all tools in the GATK.
+ * Command line parameters accepted by most if not all tools in the GATK
  *
  * <h3>Info for end users</h3>
  *

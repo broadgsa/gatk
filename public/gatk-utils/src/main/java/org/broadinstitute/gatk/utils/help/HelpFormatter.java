@@ -204,6 +204,7 @@ public class HelpFormatter {
             builder.append(Utils.join("|",argumentDefinition.validOptions));
             builder.append(")");
         }
+
         return builder.toString();
     }
 

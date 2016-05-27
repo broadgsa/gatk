@@ -34,7 +34,7 @@ import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.util.ParsingUtils;
 
 /**
- * Decodes a simple SAM text string.
+ * Decodes a simple SAM text string
  *
  * <p>
  * Reads in the SAM text version of a BAM file as a ROD.  For testing only

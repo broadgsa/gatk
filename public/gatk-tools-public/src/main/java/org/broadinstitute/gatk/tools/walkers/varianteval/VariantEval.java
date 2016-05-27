@@ -138,7 +138,7 @@ import java.util.*;
  * command line, to rapidly ascertain whether it will work or not.</p>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VAREVAL, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50, stop=50))
 @PartitionBy(PartitionType.NONE)
 public class VariantEval extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {

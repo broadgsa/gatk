@@ -29,7 +29,7 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Set the mapping quality of all reads to a given value.
+ * Set the mapping quality of all reads to a given value
  *
  *  <p>
  *     If a BAM file contains erroneous or missing mapping qualities (MAPQ), this read transformer will set all your
