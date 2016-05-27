@@ -62,8 +62,8 @@ public class HelpConstants {
     	return GATK_FORUM_URL + post;
     }
 
-    public static String articlePost(String id) {
-        return GATK_ARTICLE_URL + "?id=" + id;
+    public static String articlePost(Integer id) {
+        return GATK_ARTICLE_URL + "?id=" + id.toString();
     }
 
     /**

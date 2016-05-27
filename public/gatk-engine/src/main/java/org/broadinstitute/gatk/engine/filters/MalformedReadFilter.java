@@ -219,7 +219,7 @@ public class MalformedReadFilter extends ReadFilter {
             if (! filterReadsWithNCigar && !allowNCigars) {
                 throw new UserException.UnsupportedCigarOperatorException(
                         CigarOperator.N,read,
-                        "If you are working with RNA-Seq data, see " + HelpConstants.articlePost("3891") + " for guidance. "
+                        "If you are working with RNA-Seq data, see " + HelpConstants.articlePost(3891) + " for guidance. "
                         + "If you choose to disregard those instructions, or for other uses, you have the option of either "
                         + "filtering out all reads with operator " + CigarOperator.N + " in their CIGAR string" + " (add --"
                         +  FILTER_READS_WITH_N_CIGAR_ARGUMENT_FULL_NAME + " to your command line) or overriding this check (add -U " 
