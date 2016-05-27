@@ -249,7 +249,7 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
 
         // ignore if the reference length is greater than the reference window stop before and after expansion
         if ( refLength > MAX_INDEL_LENGTH && refLength > referenceWindowStop ) {
-            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --referenceWindowStop >= %d",
+            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --reference_window_stop >= %d",
                         REFERENCE_ALLELE_TOO_LONG_MSG, refLength, vc.getChr(), vc.getStart(), refLength));
             return 0;
         }
