@@ -31,7 +31,6 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
 import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
-import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import org.broadinstitute.gatk.engine.samples.PedigreeValidationType;
 import org.broadinstitute.gatk.utils.QualityUtils;
 import org.broadinstitute.gatk.utils.baq.BAQ;
@@ -73,42 +72,6 @@ public class GATKArgumentCollection {
     @Advanced
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false, minValue = 0)
     public Integer readBufferSize = null;
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // GATKRunReport options
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    /**
-     * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains basic
-     * statistics about the run (which tool was used, whether the run was successful etc.) that help us for debugging
-     * and development. Up to version 3.3-0 the run report contains a record of the username and hostname associated
-     * with the run, but it does **NOT** contain any information that could be used to identify patient data.
-     * Nevertheless, if your data is subject to stringent confidentiality clauses (no outside communication) or if your
-     * run environment is not connected to the internet, you can disable the reporting system by seeting this option to
-     * "NO_ET". You will also need to request a key using the online request form on our website (see FAQs).
-     */
-    @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
-    public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
-    /**
-     * Please see the "phone_home" argument below and the online documentation FAQs for more details on the key system
-     * and how to request a key.
-     */
-    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK key file required to run with -et NO_ET", required = false)
-    public File gatkKeyFile = null;
-
-    /**
-     * The GATKRunReport supports tagging GATK runs with an arbitrary tag that can be
-     * used to group together runs during later analysis (as of GATK 2.2) .  One use of this capability is to tag
-     * runs as GATK performance tests, so that the performance of the GATK over time can be assessed from the logs
-     * directly.
-     *
-     * Note that the tags do not conform to any ontology, so you are free to use any tags that you might find
-     * meaningful.
-     */
-    @Argument(fullName = "tag", shortName = "tag", doc="Tag to identify this GATK run as part of a group of runs", required = false)
-    public String tag = "NA";
 
     // --------------------------------------------------------------------------------------------------------------
     //
