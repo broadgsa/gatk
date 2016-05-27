@@ -66,7 +66,7 @@ public class ReadUtils {
     public static Set<String> getSAMFileSamples(final SAMFileHeader header) {
         if ( header == null ) {
             throw new IllegalArgumentException("Missing SAM file header. " +
-                    "For more information on read groups, see " + HelpConstants.articlePost("6472"));
+                    "For more information on read groups, see " + HelpConstants.articlePost(6472));
         }
 
         // get all of the unique sample names
@@ -74,13 +74,13 @@ public class ReadUtils {
         final List<SAMReadGroupRecord> readGroups = header.getReadGroups();
         if ( readGroups == null ) {
             throw new UserException("SAM file header is missing the Read Group (@RG). " +
-                    "For more information on read groups, see " + HelpConstants.articlePost("6472"));
+                    "For more information on read groups, see " + HelpConstants.articlePost(6472));
         }
         for ( final SAMReadGroupRecord readGroup : readGroups ) {
             final String sample = readGroup.getSample();
             if ( sample == null ) {
                 throw new UserException("SAM file header is missing the sample field (SM) in the Read Group (@RG). " +
-                        "For more information on read groups, see " + HelpConstants.articlePost("6472"));
+                        "For more information on read groups, see " + HelpConstants.articlePost(6472));
             }
             samples.add(readGroup.getSample());
         }

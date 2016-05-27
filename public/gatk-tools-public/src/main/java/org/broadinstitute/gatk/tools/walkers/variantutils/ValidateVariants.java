@@ -283,7 +283,7 @@ public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
 
         // reference length is greater than the reference window stop before and after expansion
         if ( refLength > 100 && refLength > referenceWindowStop ) {
-            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --referenceWindowStop >= %d",
+            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --reference_window_stop >= %d",
                     REFERENCE_ALLELE_TOO_LONG_MSG, refLength, vc.getContig(), vc.getStart(), refLength));
             return;
         }

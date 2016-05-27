@@ -90,7 +90,7 @@ import java.util.List;
  * </ul>
  * <h3>Caveat</h3>
  * <ul>
- *     <li>This tool will only process biallelic sites. If your callset contains multiallelic sites, they will be ignored.
+ *     <li>This tool will only process biallelic SNP sites. If your callset contains multiallelic sites, they will be ignored.
  *     Optionally, you can subset your callset to just biallelic variants using e.g.
  *     <a href="org_broadinstitute_gatk_tools_walkers_variantutils_SelectVariants.php">SelectVariants</a>
  *     with the option "-restrictAllelesTo BIALLELIC".</li>
@@ -139,19 +139,20 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
     public CoverageUtils.CountPileupType countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS_REQUIRE_SAME_BASE;
 
     /**
-     * Available options are csv, table, rtable. By default, the format is an r-readable table.
+     * Available options are csv, table, rtable. By default, the format is rtable (an r-readable table).
      */
     @Argument(fullName = "outputFormat", doc = "Format of the output file, can be CSV, TABLE, RTABLE", required = false)
     public OUTPUT_FORMAT outputFormat = OUTPUT_FORMAT.RTABLE;
 
+    // Hiding these argument pending reevaluation (currently don't seem to work and aren't tested)
     /**
      * Consider a spanning deletion as contributing to coverage. Also enables deletion counts in per-base output.
      */
-    @Advanced
+    @Hidden
     @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
     public boolean includeDeletions = false;
 
-    @Advanced
+    @Hidden
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
     public boolean ignoreDeletionSites = false;
 
