@@ -315,11 +315,11 @@ public class MathUtils {
         return maxValue + (sum != 1.0 ? Math.log10(sum) : 0.0);
     }
 
-    public static double sumLog10(final double[] log10values) {
+    public static double sumLog10(final double ... log10values) {
         return Math.pow(10.0, log10sumLog10(log10values));
     }
 
-    public static double log10sumLog10(final double[] log10values) {
+    public static double log10sumLog10(final double ... log10values) {
         return log10sumLog10(log10values, 0);
     }
 
