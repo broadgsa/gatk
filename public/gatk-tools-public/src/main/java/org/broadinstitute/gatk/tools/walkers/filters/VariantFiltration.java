@@ -94,7 +94,7 @@ import java.util.*;
  * separate commands.</p>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VAREVAL, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltration extends RodWalker<Integer, Integer> {
 

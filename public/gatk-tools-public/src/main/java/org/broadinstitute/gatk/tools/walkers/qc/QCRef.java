@@ -63,7 +63,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_REFUTILS, extraDocs = {CommandLineGATK.class} )
 public class QCRef extends RefWalker<Integer, Integer> {
     @Output
     public PrintStream out;

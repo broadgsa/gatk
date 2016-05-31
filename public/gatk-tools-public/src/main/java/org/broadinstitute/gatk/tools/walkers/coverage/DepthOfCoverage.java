@@ -106,7 +106,7 @@ import java.util.*;
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class}, gotoDev = HelpConstants.MC)
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class})
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)

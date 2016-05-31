@@ -120,7 +120,7 @@ import java.util.*;
  *
  * @author ebanks
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class})
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = ReadTransformer.ApplicationTime.ON_OUTPUT)
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
