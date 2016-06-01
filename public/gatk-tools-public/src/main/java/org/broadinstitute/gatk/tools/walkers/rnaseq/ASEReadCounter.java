@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -90,7 +90,7 @@ import java.util.List;
  * </ul>
  * <h3>Caveat</h3>
  * <ul>
- *     <li>This tool will only process biallelic sites. If your callset contains multiallelic sites, they will be ignored.
+ *     <li>This tool will only process biallelic SNP sites. If your callset contains multiallelic sites, they will be ignored.
  *     Optionally, you can subset your callset to just biallelic variants using e.g.
  *     <a href="org_broadinstitute_gatk_tools_walkers_variantutils_SelectVariants.php">SelectVariants</a>
  *     with the option "-restrictAllelesTo BIALLELIC".</li>
@@ -110,48 +110,46 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
 
     /**
      * If this argument is enabled, loci with total depth lower than this threshold after all filters have been applied
-     * will be skipped. This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * will be skipped. This can be set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minDepthOfNonFilteredBase", shortName = "minDepth", doc = "Minimum number of bases that pass filters", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
+    @Argument(fullName = "minDepthOfNonFilteredBase", shortName = "minDepth", doc = "Minimum number of bases that pass filters", required = false, minValue = -1, maxValue = Integer.MAX_VALUE)
     public int minDepthOfNonFilteredBases = -1;
 
     /**
      * If this argument is enabled, reads with mapping quality values lower than this threshold will not be counted.
-     * This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * This can be set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum read mapping quality", required = false, minValue = 0, maxValue = Integer.MAX_VALUE)
+    @Argument(fullName = "minMappingQuality", shortName = "mmq", doc = "Minimum read mapping quality", required = false, minValue = -1, maxValue = Integer.MAX_VALUE)
     public int minMappingQuality = 0;
 
     /**
      * If this argument is enabled, bases with quality scores lower than this threshold will not be counted.
-     * This is set to -1 by default to disable the evaluation and ignore this threshold.
+     * This can be set to -1 by default to disable the evaluation and ignore this threshold.
      */
-    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum base quality", required = false, minValue = 0, maxValue = Byte.MAX_VALUE)
+    @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum base quality", required = false, minValue = -1, maxValue = Byte.MAX_VALUE)
     public byte minBaseQuality = 0;
 
     /**
-     * These options modify how the tool deals with overlapping read pairs.
-     * COUNT_READS -  Count all reads independently, even if they are from the same fragment.
-     * COUNT_FRAGMENTS - Count all fragments, even if the reads that compose the fragment are not consistent at that base.
-     * COUNT_FRAGMENTS_REQUIRE_SAME_BASE - Count all fragments, but only if the reads that compose the fragment are consistent at that base (default).
+     * These options modify how the tool deals with overlapping read pairs. The default value is COUNT_FRAGMENTS_REQUIRE_SAME_BASE.
      */
     @Argument(fullName = "countOverlapReadsType", shortName = "overlap", doc = "Handling of overlapping reads from the same fragment", required = false)
     public CoverageUtils.CountPileupType countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS_REQUIRE_SAME_BASE;
 
     /**
-     * Available options are csv, table, rtable. By default, the format is an r-readable table.
+     * Available options are csv, table, rtable. By default, the format is rtable (an r-readable table).
      */
     @Argument(fullName = "outputFormat", doc = "Format of the output file, can be CSV, TABLE, RTABLE", required = false)
     public OUTPUT_FORMAT outputFormat = OUTPUT_FORMAT.RTABLE;
 
+    // Hiding these argument pending reevaluation (currently don't seem to work and aren't tested)
     /**
      * Consider a spanning deletion as contributing to coverage. Also enables deletion counts in per-base output.
      */
-    @Advanced
+    @Hidden
     @Argument(fullName = "includeDeletions", shortName = "dels", doc = "Include information on deletions", required = false)
     public boolean includeDeletions = false;
 
-    @Advanced
+    @Hidden
     @Argument(fullName = "ignoreDeletionSites", doc = "Ignore sites consisting only of deletions", required = false)
     public boolean ignoreDeletionSites = false;
 
@@ -202,7 +200,7 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
         final List<VariantContext> VCs =  tracker.getValues(sites, context.getLocation());
         if(VCs != null && VCs.size() > 1)
             throw new UserException("More then one variant context at position: "+contig+":"+position);
-        if(VCs == null || VCs.size() == 0)
+        if(VCs == null || VCs.isEmpty())
             return null;
 
         final VariantContext vc = VCs.get(0);
@@ -211,7 +209,11 @@ public class ASEReadCounter extends LocusWalker<String, Integer> {
             return null;
         }
 
+        if ( vc.getNAlleles() == 1 || vc.getAlternateAllele(0).getBases().length == 0 )
+            throw new UserException("The file of variant sites must contain heterozygous sites and cannot be a GVCF file containing <NON_REF> alleles.");
+
         final char altAllele = (char)vc.getAlternateAllele(0).getBases()[0];
+
         final String siteID = vc.getID();
         final ReadBackedPileup pileup = filterPileup(context.getBasePileup(), countType, includeReadsWithDeletionAtLoci());
 

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -63,7 +63,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_REFUTILS, extraDocs = {CommandLineGATK.class} )
 public class QCRef extends RefWalker<Integer, Integer> {
     @Output
     public PrintStream out;

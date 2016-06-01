@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -270,7 +270,8 @@ public class ParsingEngine {
                                  InvalidArgumentValue,
                                  ValueMissingArgument,
                                  TooManyValuesForArgument,
-                                 MutuallyExclusive }
+                                 MutuallyExclusive,
+                                 OtherArgumentRequired}
 
     /**
      * Validates the list of command-line argument matches.
@@ -371,6 +372,26 @@ public class ParsingEngine {
 
             if( !invalidPairs.isEmpty() )
                 throw new ArgumentsAreMutuallyExclusiveException( invalidPairs );
+        }
+
+        // Find sets of options that have other required arguments
+        if( !skipValidationOf.contains(ValidationType.OtherArgumentRequired)) {
+            Collection<ArgumentMatch> missingRequiredPairs = new ArrayList<ArgumentMatch>();
+            for( ArgumentMatch argumentMatch: argumentMatches.findSuccessfulMatches()) {
+                if(argumentMatch.definition.otherArgumentRequired != null) {
+                    boolean otherRequiredArgumentSeen = false;
+
+                    for(ArgumentMatch otherRequiredMatch: argumentMatches.findSuccessfulMatches()) {
+                        if(argumentMatch.definition.otherArgumentRequired.equals(otherRequiredMatch.label)) {
+                           otherRequiredArgumentSeen = true;
+                        }
+                    }
+                    if(!otherRequiredArgumentSeen) {
+                        missingRequiredPairs.add(argumentMatch);
+                        throw new OtherRequiredArgumentMissingException(missingRequiredPairs);
+                    }
+                }
+            }
         }
     }
 
@@ -812,6 +833,19 @@ class ArgumentsAreMutuallyExclusiveException extends ArgumentException {
         return sb.toString();
     }
 
+}
+
+class OtherRequiredArgumentMissingException extends ArgumentException {
+    public OtherRequiredArgumentMissingException( Collection<ArgumentMatch> arguments ) {
+        super( formatArguments(arguments) );
+    }
+
+    private static String formatArguments( Collection<ArgumentMatch> arguments ) {
+        StringBuilder sb = new StringBuilder();
+        for( ArgumentMatch argument: arguments )
+            sb.append( String.format("%nArguments '%s' and '%s' are required to go together.", argument.definition.fullName, argument.definition.otherArgumentRequired ) );
+        return sb.toString();
+    }
 }
 
 

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -542,7 +542,7 @@ class QGraph extends Logging {
     lastRunningCheck > 0 && nextRunningCheck(lastRunningCheck) <= 0
 
   private def nextRunningCheck(lastRunningCheck: Long) =
-    ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
+    ((this.settings.time_between_checks.toLong * 1000L) - (System.currentTimeMillis - lastRunningCheck))
 
   def formattedStatusCounts: String = {
     "%d Pend, %d Run, %d Fail, %d Done".format(

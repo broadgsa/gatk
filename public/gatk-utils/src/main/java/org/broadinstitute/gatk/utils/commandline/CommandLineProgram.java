@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.util.*;
 
 public abstract class CommandLineProgram {
+
+    private static final int NUM_WARN_MESSAGES = 10;
 
     /** The command-line program and the arguments it returned. */
     public ParsingEngine parser = null;
@@ -169,15 +171,21 @@ public abstract class CommandLineProgram {
 
         try {
             // setup our log layout
-            PatternLayout layout = new PatternLayout();
+            PatternLayout layout = new PatternLayout(patternString);
 
             Logger logger = CommandLineUtils.getStingLogger();
+
+            // Appender for saving logging messages to a list
+            final ListAppender listAppender = new ListAppender(layout, NUM_WARN_MESSAGES, Level.WARN);
+
+            // add appender for saving logging messages to a list
+            logger.addAppender(listAppender);
 
             // now set the layout of all the loggers to our layout
             CommandLineUtils.setLayout(logger, layout);
 
             // Initialize the logger using the defaults.
-            clp.setupLoggerLevel(layout);
+            clp.setupLoggerLevel();
 
             // setup the parser
             ParsingEngine parser = clp.parser = new ParsingEngine(clp);
@@ -200,7 +208,7 @@ public abstract class CommandLineProgram {
                 parser.loadArgumentsIntoObject(clp);
 
                 // Initialize the logger using the loaded command line.
-                clp.setupLoggerLevel(layout);
+                clp.setupLoggerLevel();
 
                 Class[] argumentSources = clp.getArgumentSources();
                     for (Class argumentSource : argumentSources)
@@ -226,15 +234,14 @@ public abstract class CommandLineProgram {
                 parser.loadArgumentsIntoObject(clp);
 
                 // Initialize the logger using the loaded command line.
-                clp.setupLoggerLevel(layout);
+                clp.setupLoggerLevel();
             }
 
             if ( ! dryRun ) {
                 // if they specify a log location, output our data there
                 if (clp.toFile != null) {
-                    FileAppender appender;
                     try {
-                        appender = new FileAppender(layout, clp.toFile, false);
+                        final FileAppender appender = new FileAppender(layout, clp.toFile, false);
                         logger.addAppender(appender);
                     } catch (IOException e) {
                         throw new RuntimeException("Unable to re-route log output to " + clp.toFile + " make sure the destination exists");
@@ -246,6 +253,12 @@ public abstract class CommandLineProgram {
 
                 // call the execute
                 CommandLineProgram.result = clp.execute();
+
+                // write logging events
+                printDoneAndLogMessages(listAppender);
+
+                // clear saved logging events
+                listAppender.close();
             }
         }
         catch (ArgumentException e) {
@@ -266,13 +279,10 @@ public abstract class CommandLineProgram {
     }
 
     /**
-     * this function checks the logger level passed in on the command line, taking the lowest
-     * level that was provided.
-     * @param layout Pattern layout to format based on the logger level.
+     * this function takes the logger level passed in on the command line and uses it to set the level of the logger
+     * @throws ArgumentException if the logging level is not valid (DEBUG, INFO, WARN, ERROR, FATAL, OFF)
      */
-    private void setupLoggerLevel(PatternLayout layout) {
-        layout.setConversionPattern(patternString);
-
+    private void setupLoggerLevel() {
         // set the default logger level
         Level par;
         if (logging_level.toUpperCase().equals("DEBUG")) {
@@ -348,6 +358,18 @@ public abstract class CommandLineProgram {
     }
 
     /**
+     * Print done and log messages saved in a list.
+     *
+     * @param listAppender  Appender for saving logging messages to a list
+     */
+    private static void printDoneAndLogMessages(final ListAppender listAppender) {
+        System.out.println("------------------------------------------------------------------------------------------");
+        System.out.print("Done. ");
+        listAppender.write();
+        System.out.println("------------------------------------------------------------------------------------------");
+    }
+
+    /**
      * Print help and exit.
      */
     private static void printVersionAndExit() {
@@ -376,7 +398,7 @@ public abstract class CommandLineProgram {
      * @param t   the error
      */
     public static void exitSystemWithError(String msg, final Throwable t) {
-        errorPrintf("------------------------------------------------------------------------------------------%n");
+        errorPrintf("--%n");
         errorPrintf("stack trace %n");
         t.printStackTrace();
 

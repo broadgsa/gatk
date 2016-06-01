@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -29,7 +29,7 @@ import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 
 /**
- * Set the mapping quality of all reads to a given value.
+ * Set the mapping quality of all reads to a given value
  *
  *  <p>
  *     If a BAM file contains erroneous or missing mapping qualities (MAPQ), this read transformer will set all your

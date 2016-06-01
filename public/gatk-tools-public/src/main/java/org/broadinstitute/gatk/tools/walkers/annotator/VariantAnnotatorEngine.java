@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -163,7 +163,7 @@ public class VariantAnnotatorEngine {
         final Map<RodBinding<VariantContext>, String> overlapBindings = new LinkedHashMap<>();
         for ( final RodBinding<VariantContext> b : walker.getCompRodBindings())
             if ( b.isBound() ) overlapBindings.put(b, b.getName());
-        if ( dbSNPBinding != null && ! overlapBindings.keySet().contains(VCFConstants.DBSNP_KEY) )
+        if ( dbSNPBinding != null && ! overlapBindings.values().contains(VCFConstants.DBSNP_KEY) )
             overlapBindings.put(dbSNPBinding, VCFConstants.DBSNP_KEY); // add overlap detection with DBSNP by default
 
         variantOverlapAnnotator = new VariantOverlapAnnotator(dbSNPBinding, overlapBindings, engine.getGenomeLocParser());
@@ -357,9 +357,9 @@ public class VariantAnnotatorEngine {
             final Map<String, Object> annotationsFromCurrentType = currentASannotation.finalizeRawData(vc, originalVC);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
-                //clean up raw annotation data after annotations are finalized
-                infoAnnotations.remove(currentASannotation.getRawKeyName());
             }
+            //clean up raw annotation data after annotations are finalized
+            infoAnnotations.remove(currentASannotation.getRawKeyName());
         }
 
         // generate a new annotated VC

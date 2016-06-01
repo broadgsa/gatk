@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -30,14 +30,6 @@ public class GATKDocUtils {
      * The URL root for RELEASED GATKDOC units
      */
     public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = HelpConstants.GATK_DOCS_URL;
-    /**
-     * The URL root for STABLE GATKDOC units             //TODO: do sthing with this or remove -- URL goes nowhere
-     */
-    public final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
-    /**
-     * The URL root for UNSTABLE GATKDOC units           //TODO: do sthing with this or remove -- URL goes nowhere
-     */
-    public final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
 
     /**
      * Return the filename of the GATKDoc PHP that would be generated for Class.  This
@@ -59,7 +51,7 @@ public class GATKDocUtils {
 
     /**
      * Returns a full URL http://etc/ linking to the documentation for class (assuming it
-     * exists).  Currently points to the RELEASE doc path only.     //TODO: do sthing with other paths or remove ?
+     * exists).  Currently points to the RELEASE doc path only.
      *
      * @param c
      * @return
@@ -68,8 +60,6 @@ public class GATKDocUtils {
         String classPath = phpFilenameForClass(c);
         StringBuilder b = new StringBuilder();
         b.append(URL_ROOT_FOR_RELEASE_GATKDOCS).append(classPath);
-        //b.append("stable   version: ").append(URL_ROOT_FOR_STABLE_GATKDOCS).append(classPath).append("\n");
-        //b.append("unstable version: ").append(URL_ROOT_FOR_UNSTABLE_GATKDOCS).append(classPath).append("\n");
         return b.toString();
     }
 }

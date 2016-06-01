@@ -9,7 +9,7 @@
     <name>External Example</name>
 
     <properties>
-        <gatk.version>3.5</gatk.version>
+        <gatk.version>3.6-SNAPSHOT</gatk.version>
         <!--
         gatk.basedir property must point to your checkout of GATK/GATK until we can get all the
         dependencies out of the committed gatk repo and into central.
@@ -136,7 +136,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.1</version>
+                <version>2.4.3</version>
                 <executions>
                     <execution>
                         <phase>${gatk.shade.phase}</phase>

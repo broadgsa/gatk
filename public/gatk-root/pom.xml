@@ -12,7 +12,7 @@
 
     <groupId>org.broadinstitute.gatk</groupId>
     <artifactId>gatk-root</artifactId>
-    <version>3.5</version>
+    <version>3.6-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>GATK Root</name>
 
@@ -24,8 +24,8 @@
         <sourceEncoding>UTF-8</sourceEncoding>
         <project.build.sourceEncoding>${sourceEncoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${sourceEncoding}</project.reporting.outputEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <maven.build.timestamp.format>yyyy/MM/dd HH:mm:ss</maven.build.timestamp.format>
         <gatk.basedir>${project.basedir}/../..</gatk.basedir>
         <gatk.committests.skipped>true</gatk.committests.skipped>
@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>1.141</htsjdk.version>
-        <picard.version>1.141</picard.version>
+        <htsjdk.version>2.4.1</htsjdk.version>
+        <picard.version>2.4.1</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -195,6 +195,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math</artifactId>
                 <version>2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-math3</artifactId>
+                <version>3.5</version>
             </dependency>
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
@@ -368,7 +373,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.1</version>
+                    <version>2.4.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -45,6 +45,7 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 
 import java.util.*;
 
@@ -53,9 +54,13 @@ import java.util.*;
  * Filter variant calls based on INFO and FORMAT annotations
  *
  * <p>
- * This tool is designed for hard-filtering variant calls based on certain criteria.
- * Records are hard-filtered by changing the value in the FILTER field to something other than PASS. Filtered records
- * will be preserved in the output unless their removal is requested in the command line. </p>
+ * This tool is designed for hard-filtering variant calls based on certain criteria. Records are hard-filtered 
+ * by changing the value in the FILTER field to something other than PASS. Filtered records will be preserved 
+ * in the output unless their removal is requested in the command line. </p>
+ * 
+ * <p>The most common way of specifying filtering criteria is by using JEXL queries. See the 
+ * <a href='https://www.broadinstitute.org/gatk/guide/article?id=1255'> article on JEXL expressions</a> in the 
+ * documentation Guide for detailed information and examples.</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -75,13 +80,21 @@ import java.util.*;
  *   -o output.vcf \
  *   --variant input.vcf \
  *   --filterExpression "AB < 0.2 || MQ0 > 50" \
- *   --filterName "Nov09filters" \
- *   --mask mask.vcf \
- *   --maskName InDel
+ *   --filterName "SomeFilterName" 
  * </pre>
+ * 
+ * <h3>Caveat</h3>
+ * <p>when you run VariantFiltration with a command that includes multiple logical parts, each part of the command is applied 
+ * individually to the original form of the VCF record. Say you ran a VF command that includes three parts: one applies 
+ * some genotype filters, another applies setFilterGtToNoCall (which changes sample genotypes to ./. whenever a sample has a 
+ * genotype-level FT annotation), and yet another one filters sites based on whether any samples have a no-call there. You might 
+ * think that such a command would allow you to filter sites based on sample-level annotations in one go. However, that would only 
+ * work if the parts of the command were applied internally in series (like a pipeline) but that's not the case; they are applied 
+ * in parallel to the same original record. So unfortunately, to achieve the desired result, these filters should be applied as 
+ * separate commands.</p>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VAREVAL, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltration extends RodWalker<Integer, Integer> {
 
@@ -228,6 +241,13 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit(), inputNames));
+
+        // need AC, AN and AF since output if set filtered genotypes to no-call
+        if ( setFilteredGenotypesToNocall ) {
+            hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_COUNT_KEY));
+            hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_NUMBER_KEY));
+            hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_FREQUENCY_KEY));
+        }
 
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
@@ -390,6 +410,18 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         if ( !genotypeFilterExps.isEmpty() || setFilteredGenotypesToNocall ) {
             GenotypesContext genotypes = GenotypesContext.create(vc.getGenotypes().size());
 
+            //
+            // recompute AC, AN and AF if filtered genotypes are set to no-call
+            //
+            // occurrences of alternate alleles over all genotypes
+            final Map<Allele, Integer> calledAltAlleles = new LinkedHashMap<Allele, Integer>(vc.getNAlleles()-1);
+            for ( final Allele altAllele : vc.getAlternateAlleles() ) {
+                calledAltAlleles.put(altAllele, 0);
+            }
+
+            int calledAlleles = 0;
+            boolean haveFilteredNoCallAlleles = false;
+
             // for each genotype, check filters then create a new object
             for ( final Genotype g : vc.getGenotypes() ) {
                 if ( g.isCalled() ) {
@@ -403,16 +435,23 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
                     }
 
                     // if sample is filtered and --setFilteredGtToNocall, set genotype to non-call
-                    if ( !filters.isEmpty() && setFilteredGenotypesToNocall )
+                    if ( !filters.isEmpty() && setFilteredGenotypesToNocall ) {
+                        haveFilteredNoCallAlleles = true;
                         genotypes.add(new GenotypeBuilder(g).filters(filters).alleles(diploidNoCallAlleles).make());
-                    else
+                    }
+                    else {
                         genotypes.add(new GenotypeBuilder(g).filters(filters).make());
+                        calledAlleles = GATKVariantContextUtils.incrementChromosomeCountsInfo(calledAltAlleles, calledAlleles, g);
+                    }
                 } else {
                     genotypes.add(g);
                 }
             }
 
             builder.genotypes(genotypes);
+            // if filtered genotypes are set to no-call, output recomputed AC, AN, AF
+            if ( haveFilteredNoCallAlleles )
+                GATKVariantContextUtils.updateChromosomeCountsInfo(calledAltAlleles, calledAlleles, builder);
         }
 
         // make a new variant context based on filters

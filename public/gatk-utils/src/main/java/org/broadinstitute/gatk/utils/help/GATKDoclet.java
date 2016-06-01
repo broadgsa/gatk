@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -79,9 +79,9 @@ public abstract class GATKDoclet {
 
     final private static String FORUM_KEY_PATH = "/local/gsa-engineering/gatkdocs_publisher/forum.key";
 
-    final private static String OUTPUT_FILE_EXTENSION = "php";
+    final private static String OUTPUT_FILE_EXTENSION = "html";
 
-    /** Controls the extension of the non-json output files, and also the HREFs to these files.  Default: php */
+    /** Controls the extension of the non-json output files, and also the HREFs to these files.  Default: html */
     final private static String OUTPUT_FILE_EXTENSION_OPTION = "-output-file-extension";
     // ----------------------------------------------------------------------
     //
@@ -120,8 +120,7 @@ public abstract class GATKDoclet {
     static {
         STATIC_DOCS.add(new DocumentedGATKFeatureObject(FeatureCodec.class,
                 HelpConstants.DOCS_CAT_RODCODECS,
-                "Tribble codecs for reading reference ordered data (ROD) files such as VCF or BED",
-                "NA"));
+                "Codecs for reading resource files in reference ordered data (ROD) files such as BED"));
     }
 
     /**
@@ -264,7 +263,7 @@ public abstract class GATKDoclet {
         List<String> old = ForumAPIUtils.getPostedTools(forumKey);
 
         for (String s : old)
-            System.out.println(s);
+            //System.out.println(s);
 
         System.out.printf("Forum has %d items%n", old.size());
         System.out.printf("Docs have %d items%n", docWorkUnits.size());
@@ -354,11 +353,11 @@ public abstract class GATKDoclet {
 
         if (docClass.isAnnotationPresent(DocumentedGATKFeature.class)) {
             DocumentedGATKFeature f = docClass.getAnnotation(DocumentedGATKFeature.class);
-            return new DocumentedGATKFeatureObject(docClass, f.enable(), f.groupName(), f.summary(), f.extraDocs(), f.gotoDev());
+            return new DocumentedGATKFeatureObject(docClass, f.enable(), f.groupName(), f.summary(), f.extraDocs());
         } else {
             for (DocumentedGATKFeatureObject staticDocs : STATIC_DOCS) {
                 if (staticDocs.getClassToDoc().isAssignableFrom(docClass)) {
-                    return new DocumentedGATKFeatureObject(docClass, staticDocs.enable(), staticDocs.groupName(), staticDocs.summary(), staticDocs.extraDocs(), staticDocs.gotoDev());
+                    return new DocumentedGATKFeatureObject(docClass, staticDocs.enable(), staticDocs.groupName(), staticDocs.summary(), staticDocs.extraDocs());
                 }
             }
             return null;
@@ -469,11 +468,12 @@ public abstract class GATKDoclet {
         if (annotation.groupName().endsWith(" Tools")) supercatValue = "tools";
         else if (annotation.groupName().endsWith(" Utilities")) supercatValue = "utilities";
         else if (annotation.groupName().startsWith("Engine ")) supercatValue = "engine";
-        else if (annotation.groupName().endsWith(" (DevZone)")) supercatValue = "dev";
+        else if (annotation.groupName().endsWith(" (Exclude)")) supercatValue = "exclude";
         else supercatValue = "other";
 
-        root.put("supercat", supercatValue);
-
+        //if (!supercatValue.contentEquals("exclude")) {
+            root.put("supercat", supercatValue);
+        //}
         return root;
     }
 

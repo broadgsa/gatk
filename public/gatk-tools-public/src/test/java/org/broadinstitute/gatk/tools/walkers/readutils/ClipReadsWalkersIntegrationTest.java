@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -56,9 +56,9 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     @Test public void testClipRange2() { testClipper("clipRange2", "-CT 1-5,11-15", "be4fcad5b666a5540028b774169cbad7", "ec4cf54ed50a6baf69dbf98782c19aeb"); }
 
     @Test public void testClipSeq() { testClipper("clipSeqX", "-X CCCCC", "db199bd06561c9f2122f6ffb07941fbc", "a9cf540e4ed2514061248a878e09a09c"); }
-    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + privateTestDir + "seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "906871df304dd966682e5798d59fc86b"); }
+    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + privateTestDir + "seqsToClip.fasta", "22cd33dbd06cc425ce3626360367bfca", "906871df304dd966682e5798d59fc86b"); }
 
-    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + privateTestDir + "seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "b41995fea04034ca0427c4a71504ef83"); }
+    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + privateTestDir + "seqsToClip.fasta -X CCCCC", "e4a88276a6f76ccc2b05a06c76305a1c", "b41995fea04034ca0427c4a71504ef83"); }
 
     @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "27847d330b962e60650df23b6efc8c3c"); }
     @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "195b8bdfc0186fdca742764aa9b06363"); }

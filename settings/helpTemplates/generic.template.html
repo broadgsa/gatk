@@ -1,32 +1,9 @@
-<!--
-  ~ Copyright (c) 2012, The Broad Institute
-  ~
-  ~ Permission is hereby granted, free of charge, to any person
-  ~ obtaining a copy of this software and associated documentation
-  ~ files (the "Software"), to deal in the Software without
-  ~ restriction, including without limitation the rights to use,
-  ~ copy, modify, merge, publish, distribute, sublicense, and/or sell
-  ~ copies of the Software, and to permit persons to whom the
-  ~ Software is furnished to do so, subject to the following
-  ~ conditions:
-  ~
-  ~ The above copyright notice and this permission notice shall be
-  ~ included in all copies or substantial portions of the Software.
-  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-  ~ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-  ~ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-  ~ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-  ~ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-  ~ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-  ~ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-  ~ OTHER DEALINGS IN THE SOFTWARE.
-  -->
-
 <?php
 
     include '../../../common/include/common.php';
+    include_once '../../config.php';
     $module = modules::GATK;
-    printHeader($module, "GATK | Tool Documentation Index", "Guides");
+    printHeader($module, "GATK | Tool Documentation Index", "Guide");
 ?>
 
 <div class='row-fluid' id="top">
@@ -64,12 +41,14 @@
 		<b>${arg.summary}</b><br />
 		${arg.fulltext}
 	</p>
-	<!-- Not sure what this can contain apart from "required" and "deprecated" (which args are @hidden) so removing it provisionally -->
-	<!--<#if arg.attributes??>
-		<p>${arg.attributes}</p> 
-	</#if>-->
 	<#if arg.rodTypes != "NA">
-		<p>${arg.name} binds reference ordered data. This argument supports ROD files of the following types: ${arg.rodTypes}</p>
+		<p>This argument supports reference-ordered data (ROD) files in the following formats: ${arg.rodTypes}</p>
+	</#if>
+	<#if arg.otherArgumentRequired != "NA">
+		<p><b>Dependency:</b> This argument requires that you also specify <code>${arg.otherArgumentRequired}</code>.</p>
+	</#if>
+	<#if arg.exclusiveOf != "NA">
+		<p><b>Exclusion:</b> This argument cannot be used at the same time as <code>${arg.exclusiveOf}</code>.</p>
 	</#if>
 	<#if arg.options?has_content>
 		<p>
@@ -88,7 +67,7 @@
 			</#if>
 		</#if>
 		<span class="label label-info ">${arg.type}</span> 
-		<#if arg.defaultValue?is_number>
+		<#if arg.defaultValue?has_content>
 			&nbsp;<span class="label">${arg.defaultValue}</span>
 		</#if>
 		<#if arg.minValue?is_number>
@@ -140,12 +119,7 @@
     <h1>${name}</h1>
 
     <p class="lead">${summary}</p>
-    <#-- using goto dev annotation instead, see above footer
-    <#if author??>
-        <h3>Author
-            <small> ${author}</small>
-        </h3>
-    </#if> -->
+
     <#if group?? >
         <h3>Category
             <small> ${group}</small>
@@ -282,7 +256,6 @@
 					<thead>
 					<tr>
 						<th>Argument name(s)</th>
-						<!--<th>Short name</th> -->
 						<th>Default value</th>
 						<th>Summary</th>
 					</tr>
@@ -306,7 +279,7 @@
 				</table>
 			</#if>
 	
-		<#-- List all of the -->
+		<#-- List all of the things -->
 				<#if arguments.all?size != 0>
 					<#-- Create the argument details -->
 						<h3>Argument details</h3>
@@ -317,10 +290,6 @@
 				</#if>
 		
 			<@footerInfo />
-		<#-- Specify go-to developer (for internal use) -->
-			<#if gotoDev??>
-				<small>GTD: ${gotoDev}</small>
-			</#if>
 			<@footerClose />
 
 </div>

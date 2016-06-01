@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -92,14 +92,14 @@ public class CatVariantsIntegrationTest {
         final File catVariantsTempList2 = BaseTest.createTempListFile("CatVariantsTest2", CatVariantsVcf2.getAbsolutePath());
 
         new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
-        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "2a82e959b3b07b461d64bd5ed7298aa3");
+        new CatVariantsTestProvider(CatVariantsBcf1, CatVariantsBcf2, BaseTest.createTempFile("CatVariantsTest", ".bcf"), "b7085b466ee49ba0857c6ff6ffe32bf3");
 
         for (String extension1 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
             for (String extension2 : AbstractFeatureReader.BLOCK_COMPRESSED_EXTENSIONS) {
                 final File file1 = new File(CatVariantsDir, "CatVariantsTest1.vcf" + extension1);
                 final File file2 = new File(CatVariantsDir, "CatVariantsTest2.vcf" + extension2);
                 new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf"), "c055705e0606f4fe89d339d416c182e1");
-                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "2a82e959b3b07b461d64bd5ed7298aa3");
+                new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".bcf"), "820124f0ef22324e070ee21c91a633a4");
                 new CatVariantsTestProvider(file1, file2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "3beb2c58fb795fcdc485de9868eda576");
             }
             new CatVariantsTestProvider(CatVariantsVcf1, CatVariantsVcf2, BaseTest.createTempFile("CatVariantsTest.", ".vcf" + extension1), "3beb2c58fb795fcdc485de9868eda576");

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,10 +26,10 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
-import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
 import org.broadinstitute.gatk.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
@@ -108,12 +108,38 @@ public class ArtificialSAMUtils {
         // make up some sequence records
         for (int x = startingChromosome; x < startingChromosome + numberOfChromosomes; x++) {
             SAMSequenceRecord rec = new SAMSequenceRecord("chr" + (x), chromosomeSize /* size */);
-            rec.setSequenceLength(chromosomeSize);
             dict.addSequence(rec);
         }
         header.setSequenceDictionary(dict);
         return header;
     }
+
+
+    /**
+     * Creates an artificial sam header, matching the parameters,
+     *
+     * @param contigNames List of names for contigs
+     * @param contigLengths List of lengths for contigs. the two lists must be of the same size.
+     * @return a SAMFileHeader with the references with the inputed names and lengths.
+     **/
+    public static SAMFileHeader createArtificialSamHeader(List<String> contigNames, List<Integer> contigLengths) {
+        SAMFileHeader header = new SAMFileHeader();
+        header.setSortOrder(htsjdk.samtools.SAMFileHeader.SortOrder.coordinate);
+        SAMSequenceDictionary dict = new SAMSequenceDictionary();
+
+        // make up some sequence records
+        if (contigLengths.size() != contigNames.size()) {
+            throw new ReviewedGATKException("Passed in contigLengths is different from contigNames");
+        }
+
+        for (int i = 0; i < contigLengths.size(); i++) {
+            SAMSequenceRecord rec = new SAMSequenceRecord(contigNames.get(i), contigLengths.get(i));
+            dict.addSequence(rec);
+        }
+        header.setSequenceDictionary(dict);
+        return header;
+    }
+
 
     /**
      * Creates an artificial sam header based on the sequence dictionary dict

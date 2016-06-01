@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -181,7 +181,8 @@ public class SequenceDictionaryUtilsUnitTest extends BaseTest {
                                                          "secondDictionary",
                                                          secondDictionary,
                                                          isReadsToReferenceComparison,
-                                                         intervals);
+                                                         intervals,
+                                                         true);
         }
         catch ( Exception e ) {
             exceptionThrown = e;
@@ -218,7 +219,7 @@ public class SequenceDictionaryUtilsUnitTest extends BaseTest {
                                                      SequenceDictionaryUtils.getDictionaryAsString(secondDictionary));
 
         final SequenceDictionaryUtils.SequenceDictionaryCompatibility reportedCompatibility =
-              SequenceDictionaryUtils.compareDictionaries(firstDictionary, secondDictionary);
+              SequenceDictionaryUtils.compareDictionaries(firstDictionary, secondDictionary, true);
 
         Assert.assertTrue(reportedCompatibility == dictionaryCompatibility,
                           String.format("Dictionary comparison should have returned %s but instead returned %s. %s",

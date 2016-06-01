@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -86,7 +86,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         MultiCharShortNameArgProvider argProvider = new MultiCharShortNameArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals(argProvider.outputFile,"out.txt","Argument is not correctly initialized");
+        Assert.assertEquals(argProvider.outputFile, "out.txt", "Argument is not correctly initialized");
     }
 
 
@@ -114,11 +114,11 @@ public class ParsingEngineUnitTest extends BaseTest {
         final String[] commandLine = new String[] {"  --input_file ", "na12878.bam"};
 
         parsingEngine.addArgumentSource( InputFileArgProvider.class );
-        parsingEngine.parse( commandLine );
+        parsingEngine.parse(commandLine);
         parsingEngine.validate();
 
         InputFileArgProvider argProvider = new InputFileArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
+        parsingEngine.loadArgumentsIntoObject(argProvider);
 
         Assert.assertEquals(argProvider.inputFile,"na12878.bam","Argument is not correctly initialized");
     }
@@ -167,7 +167,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         AllLociArgProvider argProvider = new AllLociArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertTrue(argProvider.allLoci,"Argument is not correctly initialized");
+        Assert.assertTrue(argProvider.allLoci, "Argument is not correctly initialized");
     }
 
     private class AllLociArgProvider {
@@ -214,12 +214,12 @@ public class ParsingEngineUnitTest extends BaseTest {
     public void enumMixedCaseTest() {
         final String[] commandLine = new String[] {  "--test_enum", "oNe" };
 
-        parsingEngine.addArgumentSource( EnumArgProvider.class );
-        parsingEngine.parse( commandLine );
+        parsingEngine.addArgumentSource(EnumArgProvider.class);
+        parsingEngine.parse(commandLine);
         parsingEngine.validate();
 
         EnumArgProvider argProvider = new EnumArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
+        parsingEngine.loadArgumentsIntoObject(argProvider);
 
         Assert.assertEquals(argProvider.testEnum, TestEnum.ONE, "Enum value is not correct");
     }
@@ -228,12 +228,12 @@ public class ParsingEngineUnitTest extends BaseTest {
     public void enumDefaultTest() {
         final String[] commandLine = new String[] {};
 
-        parsingEngine.addArgumentSource( EnumArgProvider.class );
-        parsingEngine.parse( commandLine );
+        parsingEngine.addArgumentSource(EnumArgProvider.class);
+        parsingEngine.parse(commandLine);
         parsingEngine.validate();
 
         EnumArgProvider argProvider = new EnumArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
+        parsingEngine.loadArgumentsIntoObject(argProvider);
 
         Assert.assertEquals(argProvider.testEnum, TestEnum.THREE, "Enum value is not correct");
     }
@@ -300,7 +300,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         final String[] commandLine = new String[0];
 
         parsingEngine.addArgumentSource( RequiredArgProvider.class );
-        parsingEngine.parse( commandLine );
+        parsingEngine.parse(commandLine);
         parsingEngine.validate();
     }
 
@@ -345,10 +345,10 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         parsingEngine.addArgumentSource( RequiredArgProvider.class );
         parsingEngine.parse( commandLine );
-        parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+        parsingEngine.validate(EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument));
 
         RequiredArgProvider argProvider = new RequiredArgProvider();
-        parsingEngine.loadArgumentsIntoObject(argProvider );
+        parsingEngine.loadArgumentsIntoObject(argProvider);
 
         Assert.assertNull(argProvider.value, "Value should have remain unset");
     }
@@ -396,7 +396,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test(expectedExceptions= ReviewedGATKException.class)
     public void duplicateShortNameTest() {
-        parsingEngine.addArgumentSource( DuplicateShortNameProvider.class );
+        parsingEngine.addArgumentSource(DuplicateShortNameProvider.class);
     }
 
 
@@ -444,7 +444,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         final String[] commandLine = new String[] {"--value","1","--value","2","--value","3"};
 
         parsingEngine.addArgumentSource( RequiredArgProvider.class );
-        parsingEngine.parse( commandLine );
+        parsingEngine.parse(commandLine);
         parsingEngine.validate();
     }
 
@@ -491,7 +491,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     @Test
     public void correctDefaultArgNameTest() {
-        parsingEngine.addArgumentSource( CamelCaseArgProvider.class );
+        parsingEngine.addArgumentSource(CamelCaseArgProvider.class);
 
         DefinitionMatcher matcher = ArgumentDefinitions.FullNameDefinitionMatcher;
         ArgumentDefinition definition = parsingEngine.argumentDefinitions.findArgumentDefinition("myarg", matcher);
@@ -510,7 +510,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         final String[] commandLine = new String[] {"--mybool", "true"};
 
         parsingEngine.addArgumentSource( BooleanArgProvider.class );
-        parsingEngine.parse( commandLine );
+        parsingEngine.parse(commandLine);
         parsingEngine.validate();
     }
 
@@ -524,14 +524,14 @@ public class ParsingEngineUnitTest extends BaseTest {
     public void validParseForAnalysisTypeTest() {
         final String[] commandLine = new String[] {"--analysis_type", "Pileup" };
 
-        parsingEngine.addArgumentSource( AnalysisTypeArgProvider.class );
-        parsingEngine.parse( commandLine );
-        parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
+        parsingEngine.addArgumentSource(AnalysisTypeArgProvider.class);
+        parsingEngine.parse(commandLine);
+        parsingEngine.validate(EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument));
 
         AnalysisTypeArgProvider argProvider = new AnalysisTypeArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
+        parsingEngine.loadArgumentsIntoObject(argProvider);
 
-        Assert.assertEquals(argProvider.Analysis_Name,"Pileup","Argument is not correctly initialized");
+        Assert.assertEquals(argProvider.Analysis_Name, "Pileup", "Argument is not correctly initialized");
     }
 
     private class AnalysisTypeArgProvider {
@@ -576,6 +576,36 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         @Argument(doc="bar",required=false)
         Integer bar;
+    }
+
+    @Test(expectedExceptions=OtherRequiredArgumentMissingException.class)
+    public void otherArgumentRequiredTestWithoutRequiredArguments() {
+        String[] commandLine = new String[] {"--foo","5"};
+
+        parsingEngine.addArgumentSource( OtherArgumentRequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+    }
+
+    @Test
+    public void otherArgumentRequiredTestWithRequiredArguments() {
+        String[] commandLine = new String[] {"--foo","5", "--bar", "6"};
+
+        parsingEngine.addArgumentSource( OtherArgumentRequiredArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+    }
+
+    @SuppressWarnings("unused")
+    private class OtherArgumentRequiredArgProvider {
+        @Argument(doc="foo", otherArgumentRequired="bar")
+        Integer foo;
+
+        @Argument(doc="bar",required=false)
+        Integer bar;
+
+        @Argument(doc="OtherIrrelevantArgument", required = false)
+        Integer OtherIrrelevantArgument;
     }
 
     @Test(expectedExceptions=InvalidArgumentValueException.class)

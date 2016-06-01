@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -97,6 +97,11 @@ public class ArgumentDefinition {
     public final String exclusiveOf;
 
     /**
+     * Does this argument require another argument?
+     */
+    public final String otherArgumentRequired;
+
+    /**
      * Can we validate this regular expression?
      */
     public final String validation;
@@ -119,6 +124,7 @@ public class ArgumentDefinition {
      * @param isHidden Whether or not this argument should be hidden from the command-line argument system.
      * @param componentType For multivalued arguments the type of the components.
      * @param exclusiveOf Whether this command line argument is mutually exclusive of other arguments.
+     * @param otherArgumentRequired Other argument the current argument requires in order to work.
      * @param validation A regular expression for command-line argument validation.
      * @param validOptions is there a particular list of options that's valid for this argument definition?  List them if so, otherwise set this to null. 
      */
@@ -133,6 +139,7 @@ public class ArgumentDefinition {
                                boolean isHidden,
                                Class componentType,
                                String exclusiveOf,
+                               String otherArgumentRequired,
                                String validation,
                                List<String> validOptions) {
         this.ioType = ioType;
@@ -146,6 +153,7 @@ public class ArgumentDefinition {
         this.isHidden = isHidden;
         this.componentType = componentType;
         this.exclusiveOf = exclusiveOf;
+        this.otherArgumentRequired = otherArgumentRequired;
         this.validation = validation;
         this.validOptions = validOptions;
 
@@ -177,6 +185,7 @@ public class ArgumentDefinition {
                                boolean isHidden,
                                Class componentType,
                                String exclusiveOf,
+                               String otherArgumentRequired,
                                String validation,
                                List<String> validOptions) {
 
@@ -210,6 +219,7 @@ public class ArgumentDefinition {
         this.isHidden = isHidden;
         this.componentType = componentType;
         this.exclusiveOf = exclusiveOf;
+        this.otherArgumentRequired = otherArgumentRequired;
         this.validation = validation;
         this.validOptions = validOptions;
     }
@@ -273,6 +283,16 @@ public class ArgumentDefinition {
     public static String getExclusiveOf( Annotation annotation ) {
         String exclusiveOf = (String)CommandLineUtils.getValue(annotation, "exclusiveOf");
         return exclusiveOf.trim().length() > 0 ? exclusiveOf.trim() : null;
+    }
+
+    /**
+     * Specifies other argument that is required to be used in conjunction with this argument.
+     * @param annotation Original field annotation.
+     * @return A required argument, or null if none are present.
+     */
+    public static String getOtherArgumentRequired( Annotation annotation ) {
+        String otherArgumentRequired = ((String) CommandLineUtils.getValue(annotation, "otherArgumentRequired")).trim();
+        return otherArgumentRequired.length() > 0 ? otherArgumentRequired : null;
     }
 
     /**

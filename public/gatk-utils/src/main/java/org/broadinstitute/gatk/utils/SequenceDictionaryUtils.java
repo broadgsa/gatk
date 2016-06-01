@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -111,6 +111,7 @@ public class SequenceDictionaryUtils {
      * @param dict2 the sequence dictionary dict2
      * @param isReadsToReferenceComparison true if one of the dictionaries comes from a reads data source (eg., a BAM),
      *                                     and the other from a reference data source
+     * @param enableContigOrderCheck  enable checking the dictionary contig order
      * @param intervals the user-specified genomic intervals: only required when isReadsToReferenceComparison is true,
      *                  otherwise can be null
      */
@@ -121,9 +122,10 @@ public class SequenceDictionaryUtils {
                                              final String name2,
                                              final SAMSequenceDictionary dict2,
                                              final boolean isReadsToReferenceComparison,
-                                             final GenomeLocSortedSet intervals ) {
+                                             final GenomeLocSortedSet intervals,
+                                             final boolean enableContigOrderCheck ) {
 
-        final SequenceDictionaryCompatibility type = compareDictionaries(dict1, dict2);
+        final SequenceDictionaryCompatibility type = compareDictionaries(dict1, dict2, enableContigOrderCheck);
 
         switch ( type ) {
             case IDENTICAL:
@@ -175,7 +177,7 @@ public class SequenceDictionaryUtils {
 
             case OUT_OF_ORDER: {
                 UserException ex = new UserException.IncompatibleSequenceDictionaries(
-			"The contig order in " + name1 + " and " + name2 + "is not "
+			"The contig order in " + name1 + " and " + name2 + " is not "
 			+ "the same; to fix this please see: "
 			+ "(https://www.broadinstitute.org/gatk/guide/article?id=1328), "
 			+ " which describes reordering contigs in BAM and VCF files.",
@@ -227,10 +229,12 @@ public class SequenceDictionaryUtils {
      *
      * @param dict1 first sequence dictionary
      * @param dict2 second sequence dictionary
+     * @param enableContigOrderCheck  enable checking the dictionary contig order
      * @return A SequenceDictionaryCompatibility enum value describing the compatibility of the two dictionaries
      */
-    public static SequenceDictionaryCompatibility compareDictionaries( final SAMSequenceDictionary dict1, final SAMSequenceDictionary dict2) {
-        if ( nonCanonicalHumanContigOrder(dict1) || nonCanonicalHumanContigOrder(dict2) )
+    public static SequenceDictionaryCompatibility compareDictionaries( final SAMSequenceDictionary dict1, final SAMSequenceDictionary dict2, final boolean enableContigOrderCheck) {
+
+        if ( enableContigOrderCheck && (nonCanonicalHumanContigOrder(dict1) || nonCanonicalHumanContigOrder(dict2)) )
             return SequenceDictionaryCompatibility.NON_CANONICAL_HUMAN_ORDER;
 
         final Set<String> commonContigs = getCommonContigsByName(dict1, dict2);
@@ -239,7 +243,7 @@ public class SequenceDictionaryUtils {
             return SequenceDictionaryCompatibility.NO_COMMON_CONTIGS;
         else if ( ! commonContigsHaveSameLengths(commonContigs, dict1, dict2) )
             return SequenceDictionaryCompatibility.UNEQUAL_COMMON_CONTIGS;
-        else if ( ! commonContigsAreInSameRelativeOrder(commonContigs, dict1, dict2) )
+        else if ( enableContigOrderCheck && ! commonContigsAreInSameRelativeOrder(commonContigs, dict1, dict2) )
             return SequenceDictionaryCompatibility.OUT_OF_ORDER;
         else if ( commonContigs.size() == dict1.size() && commonContigs.size() == dict2.size() )
             return SequenceDictionaryCompatibility.IDENTICAL;

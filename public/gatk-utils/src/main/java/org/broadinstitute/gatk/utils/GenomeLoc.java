@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -540,7 +540,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *
      * @return a newly allocated GenomeLoc as loc but with start == start
      */
-    public GenomeLoc setStart(GenomeLoc loc, int start) {
+    public static GenomeLoc setStart(GenomeLoc loc, int start) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop());
     }
 
@@ -554,7 +554,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *
      * @return a newly allocated GenomeLoc as loc but with stop == stop
      */
-    public GenomeLoc setStop(GenomeLoc loc, int stop) {
+    public static GenomeLoc setStop(GenomeLoc loc, int stop) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop);
     }
 

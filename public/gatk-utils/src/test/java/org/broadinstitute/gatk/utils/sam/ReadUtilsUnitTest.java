@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,11 +25,13 @@
 
 package org.broadinstitute.gatk.utils.sam;
 
+import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -335,5 +337,19 @@ public class ReadUtilsUnitTest extends BaseTest {
     @Test(dataProvider = "HasWellDefinedFragmentSizeData")
     private void testHasWellDefinedFragmentSize(final String name, final GATKSAMRecord read, final boolean expected) {
         Assert.assertEquals(ReadUtils.hasWellDefinedFragmentSize(read), expected);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testGetSAMFileMissingHeader() {
+        ReadUtils.getSAMFileSamples(null);
+    }
+
+    @Test(expectedExceptions = UserException.class)
+    public void testGetSAMFileMissingReadGroupsSamples() {
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader();
+        final SAMReadGroupRecord samGroup = new SAMReadGroupRecord("id");
+        final List<SAMReadGroupRecord> list = new ArrayList<>(Arrays.asList(samGroup));
+        header.setReadGroups(list);
+        ReadUtils.getSAMFileSamples(header);
     }
 }

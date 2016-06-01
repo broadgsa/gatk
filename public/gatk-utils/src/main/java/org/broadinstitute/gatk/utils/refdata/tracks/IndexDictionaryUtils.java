@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -108,7 +108,7 @@ public class IndexDictionaryUtils {
             Set<String> trackSequences = new TreeSet<String>();
             for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
                 trackSequences.add(dictionaryEntry.getSequenceName());
-            SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, trackName, trackDict, "reference", referenceDict, false, null);
+            SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, trackName, trackDict, "reference", referenceDict, false, null, true);
         }
     }
 }

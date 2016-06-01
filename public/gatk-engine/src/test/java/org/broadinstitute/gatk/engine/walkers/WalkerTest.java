@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -34,7 +34,6 @@ import org.apache.commons.lang.StringUtils;
 import org.broadinstitute.gatk.engine.CommandLineExecutable;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.crypt.CryptUtils;
-import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.MD5DB;
 import org.broadinstitute.gatk.utils.MD5Mismatch;
@@ -225,9 +224,6 @@ public class WalkerTest extends BaseTest {
         public String getArgsWithImplicitArgs() {
             String args = this.args;
             if ( includeImplicitArgs ) {
-                args = args + (ENABLE_PHONE_HOME_FOR_TESTS ?
-                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.AWS) :
-                        String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
                 if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
                 if ( ! ENABLE_AUTO_INDEX_CREATION_AND_LOCKING_FOR_TESTS )

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -182,7 +182,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                         final SAMSequenceDictionary vcfDictionary = new SAMSequenceDictionary(vcfContigRecords);
                         final SAMSequenceDictionary sequenceDictionary = new SAMSequenceDictionary(dict.getSequences());
 
-                        SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, name, vcfDictionary, "sequence", sequenceDictionary, false, null);
+                        SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, name, vcfDictionary, "sequence", sequenceDictionary, false, null, false);
                     }
                 }
             }

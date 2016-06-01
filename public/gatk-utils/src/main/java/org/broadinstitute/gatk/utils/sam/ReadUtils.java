@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -32,8 +32,9 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.*;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 
-import java.io.File;
 import java.util.*;
 
 /**
@@ -63,11 +64,26 @@ public class ReadUtils {
      * @return list of strings representing the sample names
      */
     public static Set<String> getSAMFileSamples(final SAMFileHeader header) {
+        if ( header == null ) {
+            throw new IllegalArgumentException("Missing SAM file header. " +
+                    "For more information on read groups, see " + HelpConstants.articlePost(6472));
+        }
+
         // get all of the unique sample names
         final Set<String> samples = new TreeSet<String>();
-        List<SAMReadGroupRecord> readGroups = header.getReadGroups();
-        for ( SAMReadGroupRecord readGroup : readGroups )
+        final List<SAMReadGroupRecord> readGroups = header.getReadGroups();
+        if ( readGroups == null ) {
+            throw new UserException("SAM file header is missing the Read Group (@RG). " +
+                    "For more information on read groups, see " + HelpConstants.articlePost(6472));
+        }
+        for ( final SAMReadGroupRecord readGroup : readGroups ) {
+            final String sample = readGroup.getSample();
+            if ( sample == null ) {
+                throw new UserException("SAM file header is missing the sample field (SM) in the Read Group (@RG). " +
+                        "For more information on read groups, see " + HelpConstants.articlePost(6472));
+            }
             samples.add(readGroup.getSample());
+        }
         return samples;
     }
 

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -56,7 +56,8 @@ public abstract class ArgumentField {
     public final String getArgumentAddition() {
         return String.format("%n" +
                 "/** %s */%n" +
-                "@%s(fullName=\"%s\", shortName=\"%s\", doc=\"%s\", required=%s, exclusiveOf=\"%s\", validation=\"%s\")%n" +
+                "@%s(fullName=\"%s\", shortName=\"%s\", doc=\"%s\", required=%s, exclusiveOf=\"%s\", " +
+                        "otherArgumentRequired=\"%s\", validation=\"%s\")%n" +
                 "%s%svar %s: %s = %s%n" +
                 "%s",
                 getDoc(),
@@ -66,6 +67,7 @@ public abstract class ArgumentField {
                 getDoc(),
                 isRequired(),
                 getExclusiveOf(),
+                getOtherArgumentRequired(),
                 getValidation(),
                 getGatherAnnotation(), getPrivacy(), getFieldName(), getFieldType(), getDefaultValue(),
                 getDefineAddition());
@@ -96,6 +98,9 @@ public abstract class ArgumentField {
 
     /** @return A comma separated list of arguments that may be substituted for this field. */
     protected String getExclusiveOf() { return ""; }
+
+    /** @return A string containing an argument that is necessary for the current argument to work. */
+    protected String getOtherArgumentRequired() { return ""; }
 
     /** @return A validation string for the argument. */
     protected String getValidation() { return ""; }

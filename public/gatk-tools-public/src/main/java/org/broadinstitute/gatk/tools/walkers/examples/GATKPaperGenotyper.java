@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -44,12 +44,14 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 /**
- * A simple Bayesian genotyper, that outputs a text based call format. Intended to be used only as an
- * example in the GATK publication.
+ * Simple Bayesian genotyper used in the original GATK paper
+ *
+ * <p>This is a very simple implementation of a Bayesian genotyper that outputs a text based call format. It was developed
+ * solely to serve as a toy example in the original GATK publication, and should NOT be used in actual analysis work.</p>
  *
  * @author aaron
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_TOY, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARDISC, extraDocs = {CommandLineGATK.class} )
 public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
 
     public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;

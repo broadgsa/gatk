@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -72,9 +72,9 @@ import java.util.*;
  * </ul>
  *
  * <p>By default, the input sets will be named variants, variants2, variants3, and so on. You can override this by
- * providing an explicit name tag for each input, using the syntax " -V:format,name". Each input tagged in this
+ * providing an explicit name tag for each input, using the syntax " -V:name,format". Each input tagged in this
  * way will be labeled as such in the output (i.e., set=name rather than set=variants2). For example, you could specify
- * a set of control samples as " -V:vcf,control my_control_samples.vcf", and the resulting VCF records would contain
+ * a set of control samples as " -V:control,vcf my_control_samples.vcf", and the resulting VCF records would contain
  * the annotation "set=control" in the INFO field. It is strongly recommended to provide explicit names in this way
  * when a rod priority list is provided.</p>
  *
@@ -123,8 +123,8 @@ import java.util.*;
  *
  * <h3>Caveats</h3>
  * <ul>
- * <li>This tool is not intended to manipulate GVCFS! To combine GVCF files output by HaplotypeCaller, use CombineGVCFs.</li>
- * <li>To join intermediate VCFs produced by running jobs in parallel by interval (e.g. by chromosome), use CatVariants.</li>
+ * <li>This tool is not intended to manipulate GVCFS! To combine GVCF files output for different samples by HaplotypeCaller, use CombineGVCFs.</li>
+ * <li>To join intermediate VCFs produced by running jobs in parallel by interval (e.g. by chromosome) from the same sample, use CatVariants.</li>
  * </ul>
  *
  * <h3>Additional notes</h3>

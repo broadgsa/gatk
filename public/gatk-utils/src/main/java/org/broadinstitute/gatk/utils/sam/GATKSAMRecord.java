@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -129,6 +129,10 @@ public class GATKSAMRecord extends SAMRecord implements Cloneable {
         cigarElements.add(new CigarElement(length, CigarOperator.M));
         Cigar cigar = new Cigar(cigarElements);
         return ArtificialSAMUtils.createArtificialRead(cigar);
+    }
+
+    public Integer getMateMappingQuality(){
+        return (Integer) this.getAttribute(SAMTagUtil.getSingleton().MQ);
     }
 
     ///////////////////////////////////////////////////////////////////////////////

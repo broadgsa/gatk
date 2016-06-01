@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -31,7 +31,6 @@ import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.downsampling.DownsampleType;
 import org.broadinstitute.gatk.utils.downsampling.DownsamplingMethod;
-import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import org.broadinstitute.gatk.engine.samples.PedigreeValidationType;
 import org.broadinstitute.gatk.utils.QualityUtils;
 import org.broadinstitute.gatk.utils.baq.BAQ;
@@ -66,49 +65,17 @@ public class GATKArgumentCollection {
     @Input(fullName = "input_file", shortName = "I", doc = "Input file containing sequence data (BAM or CRAM)", required = false)
     public List<String> samFiles = new ArrayList<>();
 
+    /**
+     * This emits a log entry (level INFO) containing the full list of sequence data files to be included in the analysis
+     * (including files inside .bam.list or .cram.list files).
+     */
     @Advanced
-    @Argument(fullName = "showFullBamList",doc="Emit a log entry (level INFO) containing the full list of sequence data files to be included in the analysis (including files inside .bam.list or .cram.list files).")
+    @Argument(fullName = "showFullBamList",doc="Emit list of input BAM/CRAM files to log")
     public Boolean showFullBamList = false;
 
     @Advanced
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false, minValue = 0)
     public Integer readBufferSize = null;
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // GATKRunReport options
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    /**
-     * By default, GATK generates a run report that is uploaded to a cloud-based service. This report contains basic
-     * statistics about the run (which tool was used, whether the run was successful etc.) that help us for debugging
-     * and development. Up to version 3.3-0 the run report contains a record of the username and hostname associated
-     * with the run, but it does **NOT** contain any information that could be used to identify patient data.
-     * Nevertheless, if your data is subject to stringent confidentiality clauses (no outside communication) or if your
-     * run environment is not connected to the internet, you can disable the reporting system by seeting this option to
-     * "NO_ET". You will also need to request a key using the online request form on our website (see FAQs).
-     */
-    @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
-    public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
-    /**
-     * Please see the "phone_home" argument below and the online documentation FAQs for more details on the key system
-     * and how to request a key.
-     */
-    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK key file required to run with -et NO_ET", required = false)
-    public File gatkKeyFile = null;
-
-    /**
-     * The GATKRunReport supports tagging GATK runs with an arbitrary tag that can be
-     * used to group together runs during later analysis (as of GATK 2.2) .  One use of this capability is to tag
-     * runs as GATK performance tests, so that the performance of the GATK over time can be assessed from the logs
-     * directly.
-     *
-     * Note that the tags do not conform to any ontology, so you are free to use any tags that you might find
-     * meaningful.
-     */
-    @Argument(fullName = "tag", shortName = "tag", doc="Tag to identify this GATK run as part of a group of runs", required = false)
-    public String tag = "NA";
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -441,12 +408,18 @@ public class GATKArgumentCollection {
               required = false)
     public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
 
+    /**
+     * FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.
+     */
     @Hidden
-    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.",
+    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't include the command line in the VCF header",
               required = false)
     public boolean disableCommandLineInVCF = false;
 
-    @Argument(fullName = "sites_only", shortName = "sites_only", doc = "Just output sites without genotypes (i.e. only the first 8 columns of the VCF)",
+    /**
+     * This produces a VCF with only the first 8 columns of site-level information and without any sample-level info (genotypes etc).
+     */
+    @Argument(fullName = "sites_only", shortName = "sites_only", doc = "Output sites-only VCF",
               required = false)
     public boolean sitesOnlyVCF = false;
 
@@ -454,9 +427,9 @@ public class GATKArgumentCollection {
      * <p>The VCF specification permits missing records to be dropped from the end of FORMAT fields, so long as GT is always output.
      * This option prevents GATK from performing that trimming.</p>
      *
-     * <p>For example, given a FORMAT of <pre>GT:AD:DP:PL</pre>, GATK will by default emit <pre>./.</pre> for a variant with
+     * <p>For example, given a FORMAT of <code>GT:AD:DP:PL</code>, GATK will by default emit <code>./.</code> for a variant with
      * no reads present (ie, the AD, DP, and PL fields are trimmed).  If you specify -writeFullFormat, this record
-     * would be emitted as <pre>./.:.:.:.</pre></p>
+     * would be emitted as <code>./.:.:.:.</code></p>
      */
     @Argument(fullName = "never_trim_vcf_format_field", shortName = "writeFullFormat", doc = "Always output all the records in VCF FORMAT fields, even if some are missing",
               required = false)
@@ -472,14 +445,19 @@ public class GATKArgumentCollection {
               minValue = 0, maxValue = 9, required = false)
     public Integer bamCompression = null;
 
+    /**
+     * If provided, output BAM/CRAM files will be simplified to include only key reads for downstream variation
+     * discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the
+     * kept reads except the read group identifier
+     */
     @Advanced
     @Argument(fullName = "simplifyBAM", shortName = "simplifyBAM",
-              doc = "If provided, output BAM/CRAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
+              doc = "Strip down read content and tags",
               required = false)
     public boolean simplifyBAM = false;
 
     @Advanced
-    @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM/CRAM files.",
+    @Argument(fullName = "disable_bam_indexing", doc = "Turn off on-the-fly creation of indices for output BAM/CRAM files",
             required = false)
     public boolean disableBAMIndexing = false;
 
@@ -537,69 +515,16 @@ public class GATKArgumentCollection {
     // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * <p>Reads PED file-formatted tabular text files describing meta-data about the samples being
-     * processed in the GATK.</p>
-     *
-     * <ul>
-     *  <li>see <a href="http://www.broadinstitute.org/mpg/tagger/faq.html">http://www.broadinstitute.org/mpg/tagger/faq.html</a></li>
-     *  <li>see <a href="http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped">http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped</a></li>
-     * </ul>
-     *
-     * <p>The PED file is a white-space (space or tab) delimited file: the first six columns are mandatory:</p>
-     *
-     * <ul>
-     *  <li>Family ID</li>
-     *  <li>Individual ID</li>
-     *  <li>Paternal ID</li>
-     *  <li>Maternal ID</li>
-     *  <li>Sex (1=male; 2=female; other=unknown)</li>
-     *  <li>Phenotype</li>
-     * </ul>
-     *
-     *  <p>The IDs are alphanumeric: the combination of family and individual ID should uniquely identify a person.
-     *  A PED file must have 1 and only 1 phenotype in the sixth column. The phenotype can be either a
-     *  quantitative trait or an affection status column: GATK will automatically detect which type
-     *  (i.e. based on whether a value other than 0, 1, 2 or the missing genotype code is observed).</p>
-     *
-     *  <p>If an individual's sex is unknown, then any character other than 1 or 2 can be used.</p>
-     *
-     *  <p>You can add a comment to a PED or MAP file by starting the line with a # character. The rest of that
-     *  line will be ignored. Do not start any family IDs with this character therefore.</p>
-     *
-     *  <p>Affection status should be coded:</p>
-     *
-     * <ul>
-     *  <li>-9 missing</li>
-     *   <li>0 missing</li>
-     *   <li>1 unaffected</li>
-     *   <li>2 affected</li>
-     * </ul>
-     *
-     * <p>If any value outside of -9,0,1,2 is detected than the samples are assumed
-     * to phenotype values are interpreted as string phenotype values.  In this case -9 uniquely
-     * represents the missing value.</p>
-     *
-     * <p>Genotypes (column 7 onwards) cannot be specified to the GATK.</p>
-     *
-     * <p>For example, here are two individuals (one row = one person):</p>
-     *
-     * <pre>
-     *   FAM001  1  0 0  1  2
-     *   FAM001  2  0 0  1  2
-     * </pre>
-     *
-     * <p>Each -ped argument can be tagged with NO_FAMILY_ID, NO_PARENTS, NO_SEX, NO_PHENOTYPE to
-     * tell the GATK PED parser that the corresponding fields are missing from the ped file.</p>
-     *
-     * <p>Note that most GATK walkers do not use pedigree information.  Walkers that require pedigree
-     * data should clearly indicate so in their arguments and will throw errors if required pedigree
-     * information is missing.</p>
+     * Reads PED file-formatted tabular text files describing meta-data about the samples being
+     * processed in the GATK. See https://www.broadinstitute.org/gatk/guide/article?id=7696 for more information
+     * on format requirements. Note that most GATK tools do not use pedigree information; for those that do it
+     * is indicated in their documentation.
      */
     @Argument(fullName="pedigree", shortName = "ped", doc="Pedigree files for samples",required=false)
     public List<File> pedigreeFiles = Collections.emptyList();
 
     /**
-     * Inline PED records (see -ped argument).  Each -pedString STRING can contain one or more
+     * Inline PED records.  Each -pedString STRING can contain one or more
      * valid PED records (see -ped) separated by semi-colons.  Supports all tags for each pedString
      * as -ped supports
      */
@@ -609,7 +534,7 @@ public class GATKArgumentCollection {
     /**
      * How strict should we be in parsing the PED files?
      */
-    @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="Validation strictness for pedigree information",required=false)
+    @Argument(fullName="pedigreeValidationType", shortName = "pedValidationType", doc="Validation strictness for pedigree",required=false)
     public PedigreeValidationType pedigreeValidationType = PedigreeValidationType.STRICT;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -651,17 +576,18 @@ public class GATKArgumentCollection {
      * DYNAMIC_SEEK attempts to optimize for minimal seek time by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
      * DYNAMIC_SIZE attempts to optimize for minimal index size by choosing an appropriate strategy and parameter (user-supplied parameter is ignored)
      *
-     * This argument is deprecated, using the output file ".g.vcf" extension will automatically set the appropriate value
+     * This argument is no longer necessary when producing GVCF files. Using the output file ".g.vcf" extension will automatically set the appropriate value
      */
     @Argument(fullName="variant_index_type",shortName = "variant_index_type",doc="Type of IndexCreator to use for VCF/BCF indices",required=false)
     @Advanced
     public GATKVCFIndexType variant_index_type = GATKVCFUtils.DEFAULT_INDEX_TYPE;
     /**
-     * This is either the bin width or the number of features per bin, depending on the indexing strategy
+     * This is either the bin width or the number of features per bin, depending on the indexing strategy.
      *
-     * This argument is deprecated, using the output file ".g.vcf" extension will automatically set the appropriate value
+     * This argument is no longer necessary when producing GVCF files. Using the output file ".g.vcf" extension will
+     * automatically set the appropriate value
      */
-    @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="Parameter to pass to the VCF/BCF IndexCreator",required=false)
+    @Argument(fullName="variant_index_parameter",shortName = "variant_index_parameter",doc="Parameter to pass to the VCF/BCF IndexCreator", required=false)
     @Advanced
     public int variant_index_parameter = GATKVCFUtils.DEFAULT_INDEX_PARAMETER;
 
@@ -676,5 +602,28 @@ public class GATKArgumentCollection {
     @Argument(fullName = "reference_window_stop", shortName = "ref_win_stop", doc = "Reference window stop", minValue = 0, required = false)
     @Advanced
     public int reference_window_stop = DEFAULT_REFERENCE_WINDOW_STOP;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Deprecated Arguments
+    // Keeping them here is meant to provide users with error messages that are more informative than "arg not defined"
+    // when they use an argument that has been put out of service
+    //
+    // -------------------------------------------------------------------------------------------------------------
+
+    @Hidden
+    @Deprecated // argument definition changed to string since the original enum has been removed
+    @Argument(fullName = "phone_home", shortName = "et", doc="Run reporting mode", required = false)
+    public String phoneHomeType = "";
+
+    @Hidden
+    @Deprecated
+    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK key file required to run with -et NO_ET", required = false)
+    public File gatkKeyFile = null;
+
+    @Hidden
+    @Deprecated
+    @Argument(fullName = "tag", shortName = "tag", doc="Tag to identify this GATK run as part of a group of runs", required = false)
+    public String tag = "NA";
 }
 

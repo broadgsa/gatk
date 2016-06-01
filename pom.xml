@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-root</artifactId>
-        <version>3.5</version>
+        <version>3.6-SNAPSHOT</version>
         <relativePath>public/gatk-root</relativePath>
     </parent>
 
@@ -32,6 +32,7 @@
         <resource.bundle.skip>false</resource.bundle.skip>
         <!-- TODO: Need a better a way to say "don't include hidden" by default -->
         <gatkdocs.include.hidden>-build-timestamp "${maven.build.timestamp}"</gatkdocs.include.hidden>
+        <gatkdocs.extension>html</gatkdocs.extension>
         <gatk.shell.directory>${gatk.basedir}/public/src/main/scripts/shell</gatk.shell.directory>
         <gatk.assembly.directory>${gatk.basedir}/public/src/main/assembly</gatk.assembly.directory>
 
@@ -768,7 +769,7 @@
                             <useStandardDocletOptions>false</useStandardDocletOptions>
                             <quiet>true</quiet>
                             <show>private</show>
-                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} ${gatkdocs.include.hidden} -settings-dir ${gatk.basedir}/settings/helpTemplates -destination-dir ${project.build.directory}/gatkdocs</additionalparam>
+                            <additionalparam>-build-timestamp "${maven.build.timestamp}" -absolute-version ${build.version} ${gatkdocs.include.hidden} -settings-dir ${gatk.basedir}/settings/helpTemplates -destination-dir ${project.build.directory}/gatkdocs -output-file-extension ${gatkdocs.extension}</additionalparam>
                         </configuration>
                     </reportSet>
                 </reportSets>

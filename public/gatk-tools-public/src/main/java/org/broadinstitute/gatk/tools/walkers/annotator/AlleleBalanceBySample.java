@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -59,13 +59,13 @@ import java.util.Set;
  *
  * <p> This is an experimental annotation that attempts to estimate whether the data supporting a heterozygous genotype call fits allelic ratio expectations, or whether there might be some bias in the data.</p>
  * <h3>Calculation</h3>
- * <p> $$ AB = \frac{# ALT alleles}{total # alleles} $$ </p>
- * <p> Ideally, the value of AB should be close to 0.5, so half of the alleles support the ref allele and half of the alleles support the alt allele. Divergence from the expected ratio may indicate that there is some bias in favor of one allele. Note the caveats below regarding cancer and RNAseq analysis. </p>
+ * <p> $$ AB = \frac{# REF reads from heterozygous samples}{# REF + ALT reads from heterozygous samples} $$ </p>
+ * <p> Ideally, the value of AB should be close to 0.5, so half of the reads support the REF allele and half of the reads support the ALT allele. Divergence from the expected ratio may indicate that there is some bias in favor of one allele. Note the caveats below regarding cancer and RNAseq analysis. </p>
  * <h3>Caveats</h3>
  * <ul>
- *     <li>This annotation will only work properly for biallelic heterozygous calls.</li>
+ *     <li>This annotation will only work properly for biallelic heterozygous calls in diploid organisms.</li>
  *     <li>This annotation cannot currently be calculated for indels.</li>
- *     <li>The reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
+ *     <li>The reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity and normal contamination. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
  *     <li>As stated above, this annotation is experimental and should be interpreted with caution as we cannot guarantee that it is appropriate. Basically, use it at your own risk.</li>
  * </ul>
  * <h3>Related annotations</h3>

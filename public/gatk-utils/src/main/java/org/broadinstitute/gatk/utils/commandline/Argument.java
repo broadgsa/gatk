@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -80,6 +80,15 @@ public @interface Argument {
      *         argument should be independent.
      */
     String exclusiveOf() default "";
+
+    /**
+     * Does this command-line argument require other arguments to go with it?
+     * Should be a string containing the name of the required argument.
+     * This option only supports a single required argument.
+     * @return A string with the other argument that this
+     *        argument should require in order to work.
+     */
+    String otherArgumentRequired() default "";
 
     /**
      * Provide a regexp-based validation string.

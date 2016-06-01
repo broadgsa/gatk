@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine;
 
 import htsjdk.samtools.SAMException;
+import htsjdk.samtools.util.zip.DeflaterFactory;
 import htsjdk.tribble.TribbleException;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
@@ -38,10 +39,11 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.*;
 import org.broadinstitute.gatk.utils.text.TextFormattingUtils;
 
+import java.net.InetAddress;
 import java.util.*;
 
 /**
- * All command line parameters accepted by all tools in the GATK.
+ * Command line parameters accepted by most if not all tools in the GATK
  *
  * <h3>Info for end users</h3>
  *
@@ -169,8 +171,18 @@ public class CommandLineGATK extends CommandLineExecutable {
     public static List<String> createApplicationHeader() {
         List<String> header = new ArrayList<String>();
         header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",getVersionNumber(), getBuildTime()));
-        header.add("Copyright (c) 2010 The Broad Institute");
+        header.add("Copyright (c) 2010-2016 The Broad Institute");
         header.add("For support and documentation go to " + HelpConstants.BASE_GATK_URL);
+        try {
+            header.add("[" + new Date() + "] Executing on " +
+                    System.getProperty("os.name") + " " + System.getProperty("os.version") +
+                    " " + System.getProperty("os.arch"));
+            header.add( System.getProperty("java.vm.name") +
+                    " " + System.getProperty("java.runtime.version") +
+                    " " + (DeflaterFactory.usingIntelDeflater()? "IntelDeflater": "JdkDeflater"));
+        }
+        catch (Exception e) { /* Unpossible! */ }
+
         return header;
     }
 

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -34,15 +34,10 @@ import org.broadinstitute.gatk.engine.filters.ReadFilter;
 import org.broadinstitute.gatk.engine.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor;
-import org.broadinstitute.gatk.engine.phonehome.GATKRunReport;
 import org.broadinstitute.gatk.utils.refdata.utils.RMDTriplet;
 import org.broadinstitute.gatk.engine.walkers.Walker;
-import org.broadinstitute.gatk.engine.crypt.CryptUtils;
-import org.broadinstitute.gatk.engine.crypt.GATKKey;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.text.ListFileUtils;
 
-import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -85,9 +80,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         Walker<?,?> walker = engine.getWalkerByName(getAnalysisName());
 
         try {
-            // Make sure a valid GATK user key is present, if required.
-            authorizeGATKRun();
-
             engine.setArguments(getArgumentCollection());
 
             // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
@@ -119,61 +111,12 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             }
 
             engine.execute();
-            generateGATKRunReport(walker);
         } catch ( Exception e ) {
-            generateGATKRunReport(walker, e);
             throw e;
         }
 
         // always return 0
         return 0;
-    }
-
-    /**
-     * Authorizes this run of the GATK by checking for a valid GATK user key, if required.
-     * Currently, a key is required only if running with the -et NO_ET or -et STDOUT options.
-     */
-    private void authorizeGATKRun() {
-        if ( getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.NO_ET ||
-             getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.STDOUT ) {
-            if ( getArgumentCollection().gatkKeyFile == null ) {
-                throw new UserException("Running with the -et NO_ET or -et STDOUT option requires a GATK Key file. " +
-                                        "Please see " + UserException.PHONE_HOME_DOCS_URL +
-                                        " for more information and instructions on how to obtain a key.");
-            }
-            else {
-                PublicKey gatkPublicKey = CryptUtils.loadGATKDistributedPublicKey();
-                GATKKey gatkUserKey = new GATKKey(gatkPublicKey, getArgumentCollection().gatkKeyFile);
-
-                if ( ! gatkUserKey.isValid() ) {
-                    throw new UserException.KeySignatureVerificationException(getArgumentCollection().gatkKeyFile);
-                }
-            }
-        }
-    }
-
-    /**
-     * Generate the GATK run report for this walker using the current GATKEngine, if -et is enabled.
-     * This report will be written to either STDOUT or to the run repository, depending on the options
-     * for -et.
-     *
-     * @param e the exception, can be null if no exception occurred
-     */
-    private void generateGATKRunReport(Walker<?,?> walker, Exception e) {
-        if ( getArgumentCollection().phoneHomeType != GATKRunReport.PhoneHomeOption.NO_ET ) {
-            GATKRunReport report = new GATKRunReport(walker, e, engine, getArgumentCollection().phoneHomeType );
-            report.postReport(getArgumentCollection().phoneHomeType);
-        }
-    }
-
-    /**
-     * Convenience method for fully parameterized generateGATKRunReport when an exception has
-     * not occurred
-     *
-     * @param walker
-     */
-    private void generateGATKRunReport(Walker<?,?> walker) {
-        generateGATKRunReport(walker, null);
     }
 
     /**

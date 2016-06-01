@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -42,7 +42,8 @@ class QueueFeaturesQueueTest {
       " -S " + QueueTest.publicQScriptsPackageDir + "examples/ExamplePrintReads.scala",
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM_with_unmapped.bam",
-      " -out " + testOut).mkString
+      " -out " + testOut,
+      " -npt ").mkString
     spec.fileMD5s += testOut -> "3134a6c732d7f235373095586bc7d470"
     QueueTest.executeTest(spec)
 
@@ -55,7 +56,8 @@ class QueueFeaturesQueueTest {
       " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
       " -I " + BaseTest.publicTestDir + "exampleBAM_with_unmapped.bam",
       " -L chr1",
-      " -out " + testOut2).mkString
+      " -out " + testOut2,
+      " -npt ").mkString
     spec2.fileMD5s += testOut2 -> "aa33e589879c4baf6a470d22da76d885"
     QueueTest.executeTest(spec2)
   }

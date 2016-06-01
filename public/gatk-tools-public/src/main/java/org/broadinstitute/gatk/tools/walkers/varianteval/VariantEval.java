@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -29,7 +29,6 @@ import com.google.java.contract.Requires;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.SAMSequenceRecord;
-import oracle.jrockit.jfr.StringConstantPool;
 import org.apache.log4j.Logger;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.engine.samples.Trio;
@@ -139,7 +138,7 @@ import java.util.*;
  * command line, to rapidly ascertain whether it will work or not.</p>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VAREVAL, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50, stop=50))
 @PartitionBy(PartitionType.NONE)
 public class VariantEval extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {

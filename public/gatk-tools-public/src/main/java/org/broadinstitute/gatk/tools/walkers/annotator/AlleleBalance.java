@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -49,18 +49,18 @@ import java.util.Map;
 /**
  * Allele balance across all samples
  *
- * <p> This is an experimental annotation that attempts to estimate whether the data supporting a variant call fits allelic ratio expectations, or whether there might be some bias in the data. Each sample will contribute its allelic read depth (from the AD annotation) to either ABHom or ABHet depending on its genotype call: ABHom if the call is homozygous (REF/REF or ALT/ALT), and ABHet if the call is heterozygous (REF/ALT). Additionally, reads that support something other than the genotyped alleles (called "non-alleles") will be counted in the OND tag, which represents the overall fraction of data that diverges from the diploid hypothesis.</p>
+ * <p> This is a set of experimental annotations that attempt to estimate whether the data supporting a variant call fits allelic ratio expectations, or whether there might be some bias in the data. ABHom is the proportion of reads from homozygous samples that support the call (REF or ALT depending on whether the call is hom-ref or hom-var). ABHet is the proportion of REF reads from heterozygous samples. OND represents the overall fraction of data that diverges from the diploid hypothesis, based on the number of reads that support something other than the genotyped alleles (called "non-alleles"). Note that each sample's contribution is weighted by its genotype quality so that individual mis-calls don't affect the overall ratio too much.</p>
  * <h3>Calculations</h3>
- * <p> $$ ABHom = \frac{# ALT alleles}{total # alleles} $$ <br />
- *     $$ ABHet = \frac{# REF alleles}{# total alleles} $$ <br />
- *     $$ OND = \frac{# genotyped alleles}{# alleles + # non-alleles} $$
+ * <p> $$ ABHom = \frac{# REF or ALT reads from homozygous samples}{# REF + ALT reads from homozygous samples} $$ <br />
+ *     $$ ABHet = \frac{# REF reads from heterozygous samples}{# REF + ALT reads from heterozygous samples} $$ <br />
+ *     $$ OND = \frac{# reads from non-alleles}{# all reads} $$
  * </p>
- * <p> For ABHom, the value should be close to 1.00 because ideally, all the reads should support a single allele. For ABHet, the value should be close to 0.5, so half of the alleles support the ref allele and half of the alleles support the alt allele. Divergence from these expected ratios may indicate that there is some bias in favor of one allele. Note the caveats below regarding cancer and RNAseq analysis. </p>
+ * <p> For ABHom, the value should be close to 1.00 because ideally, all the reads should support a single allele. For ABHet, the value should be close to 0.5, so half of the reads support the ref allele and half of the reads support the alt allele. Divergence from these expected ratios may indicate that there is some bias in favor of one allele. Note the caveats below regarding cancer and RNAseq analysis. </p>
  * <h3>Caveats</h3>
  * <ul>
- *     <li>This annotation will only work properly for biallelic variants where all samples are called heterozygous or homozygous.</li>
+ *     <li>This annotation will only work properly for biallelic SNPs in diploid organisms where all samples are either called heterozygous or homozygous.</li>
  *     <li>This annotation cannot currently be calculated for indels.</li>
- *     <li>tThe reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
+ *     <li>The reasoning underlying this annotation only applies to germline variants in DNA sequencing data. In somatic/cancer analysis, divergent ratios are expected due to tumor heterogeneity and normal contamination. In RNAseq analysis, divergent ratios may indicate differential allele expression.</li>
  *     <li>As stated above, this annotation is experimental and should be interpreted with caution as we cannot guarantee that it is appropriate. Basically, use it at your own risk.</li>
  * </ul>
  * <h3>Related annotations</h3>

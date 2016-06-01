@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -58,6 +58,7 @@ public class DeprecatedToolChecks {
         deprecatedGATKWalkers.put("LiftOverVariants","3.5 (use Picard LiftoverVCF instead; see documentation for usage)");
         deprecatedGATKWalkers.put("FilterLiftedVariants","3.5 (use Picard LiftoverVCF instead; see documentation for usage)");
         deprecatedGATKWalkers.put("ListAnnotations","3.5 (this tool was impractical; see the online documentation instead)");
+        deprecatedGATKWalkers.put("GenotypeAndValidate","3.6 (this tool was old and untested -- no direct replacement)");
 
     }
 

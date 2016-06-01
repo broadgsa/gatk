@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -34,6 +34,7 @@ public class BAQIntegrationTest extends WalkerTest {
     private final static String baseCommand = "-T PrintReads -R " + b36KGReference +
             " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
             " -o %s" +
+            " --no_pg_tag " +
             " -L 1:10,000,000-10,100,000";
 
     // --------------------------------------------------------------------------------------------------------------

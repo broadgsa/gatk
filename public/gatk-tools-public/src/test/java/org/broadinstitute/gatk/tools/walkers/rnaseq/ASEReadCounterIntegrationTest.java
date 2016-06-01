@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.tools.walkers.rnaseq;
 
 import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -98,6 +99,14 @@ public class ASEReadCounterIntegrationTest extends WalkerTest {
                 "-T ASEReadCounter -R " + b37KGReference + " -I " + privateTestDir + "NA12878.RNAseq.bam -sites "+privateTestDir +"NA12878.chr20_2444518_2637800.RNAseq.SYNONYMOUS_CODING.vcf -mmq 60 -mbq 10 -o %s -U ALLOW_N_CIGAR_READS --outputFormat csv", 1,
                 Arrays.asList("2c7c531018ab353e6874ee2da7980986"));
         executeTest("test high mq with no read passing", spec);
+    }
+
+    @Test
+    public void testASEReadCounterNonRef() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T ASEReadCounter -R " + b37KGReference + " -I " + privateTestDir + "NA12878.RNAseq.bam -sites "+privateTestDir +"NA12878.chr20_2444518_2637800.RNAseq.NonRef.vcf -U ALLOW_N_CIGAR_READS", 0,
+                UserException.class);
+        executeTest("test <NON_REF> sites VCF file", spec);
     }
 
 

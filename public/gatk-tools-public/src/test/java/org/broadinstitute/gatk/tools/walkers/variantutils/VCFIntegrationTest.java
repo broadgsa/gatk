@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -55,7 +55,7 @@ public class VCFIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testReadingAndWritingWitHNoChanges() {
 
-        String md5ofInputVCF = "3dc9ac85f2c0541df9bc57b4d81f480b";
+        String md5ofInputVCF = "a492a97a8d18ace8eeef02a6fe5f179b";
         String testVCF = privateTestDir + "vcf4.1.example.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";

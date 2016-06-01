@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -295,6 +295,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
             if ( splitMultiAllelic && field.equals("ALT") ) { // we need to special case the ALT field when splitting out multi-allelic records
                 addFieldValue(splitAltAlleles(vc), records);
+            } else if (splitMultiAllelic && field.equals("TYPE")) {
+                addFieldValue(splitAlleleTypes(vc), records);
             } else if ( getters.containsKey(field) ) {
                 addFieldValue(getters.get(field).get(vc), records);
             } else if ( vc.hasAttribute(field) ) {
@@ -460,5 +462,24 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             return vc.getAlternateAllele(0);
 
         return vc.getAlternateAlleles();
+    }
+
+    private static Object splitAlleleTypes(VariantContext vc) {
+        final int numAltAlleles = vc.getAlternateAlleles().size();
+        if (numAltAlleles == 1)
+            return vc.getType().toString();
+        List<Allele> altAlleles = vc.getAlternateAlleles();
+        List<String> alleleTypes = new ArrayList<>(numAltAlleles);
+        for (Allele allele : altAlleles) {
+            if (allele.length() == vc.getReference().length()) {
+                if ( allele.length() == 1 )
+                    alleleTypes.add("SNP");
+                else
+                    alleleTypes.add("MNP");
+            }
+            else
+                alleleTypes.add("INDEL");
+        }
+        return alleleTypes;
     }
 }

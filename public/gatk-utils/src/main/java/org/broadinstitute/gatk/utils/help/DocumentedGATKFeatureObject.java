@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -36,20 +36,19 @@ class DocumentedGATKFeatureObject {
     private final Class classToDoc;
     /** Are we enabled? */
     private final boolean enable;
-    private final String groupName, summary, gotoDev;
+    private final String groupName, summary;
     private final Class[] extraDocs;
 
-    public DocumentedGATKFeatureObject(Class classToDoc, final boolean enable, final String groupName, final String summary, final Class[] extraDocs, final String gotoDev) {
+    public DocumentedGATKFeatureObject(Class classToDoc, final boolean enable, final String groupName, final String summary, final Class[] extraDocs) {
         this.classToDoc = classToDoc;
         this.enable = enable;
         this.groupName = groupName;
         this.summary = summary;
         this.extraDocs = extraDocs;
-        this.gotoDev = gotoDev;
     }
 
-    public DocumentedGATKFeatureObject(Class classToDoc, final String groupName, final String summary, final String gotoDev) {
-        this(classToDoc, true, groupName, summary, new Class[]{}, gotoDev);
+    public DocumentedGATKFeatureObject(Class classToDoc, final String groupName, final String summary) {
+        this(classToDoc, true, groupName, summary, new Class[]{});
     }
 
     public Class getClassToDoc() { return classToDoc; }
@@ -57,5 +56,4 @@ class DocumentedGATKFeatureObject {
     public String groupName() { return groupName; }
     public String summary() { return summary; }
     public Class[] extraDocs() { return extraDocs; }
-    public String gotoDev() { return gotoDev; }
 }

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -44,6 +44,9 @@ import org.broadinstitute.gatk.engine.walkers.Window;
 import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.variant.ChromosomeCountConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
+import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
@@ -118,7 +121,7 @@ import java.util.*;
  *   --splitMultiallelics
  * </pre>
  *
- * <h4>Split multiallelics into biallics, left align but don't trim alleles</h4>
+ * <h4>Split multiallelics into biallics, left align but don't trim alleles, and store the original AC, AF, and AN values</h4>
  * <pre>
  * java -jar GenomeAnalysisTK.jar \
  *   -T LeftAlignAndTrimVariants \
@@ -127,6 +130,7 @@ import java.util.*;
  *   -o output.vcf \
  *   --splitMultiallelics \
  *   --dontTrimAlleles
+ *   --keepOriginalAC
  * </pre>
  *
  */
@@ -153,6 +157,14 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="splitMultiallelics", shortName="split", doc="Split multiallelic records and left-align individual alleles", required=false)
     protected boolean splitMultiallelics = false;
 
+    /**
+     * When subsetting a callset, this tool recalculates the AC, AF, and AN values corresponding to the contents of the
+     * subset. If this flag is enabled, the original values of those annotations will be stored in new annotations called
+     * AC_Orig, AF_Orig, and AN_Orig.
+     */
+    @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Store the original AC, AF, and AN values after subsetting", required=false)
+    private boolean keepOriginalChrCounts = false;
+
 
     @Output(doc="File to which variants should be written")
     protected VariantContextWriter baseWriter = null;
@@ -165,11 +177,21 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
     private int referenceWindowStop;
 
     public void initialize() {
-        String trackName = variantCollection.variants.getName();
-        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
-        Map<String, VCFHeader> vcfHeaders = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
+        final String trackName = variantCollection.variants.getName();
+        final Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
+        final Map<String, VCFHeader> vcfHeaders = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaDataInSortedOrder();
+        final Set<VCFHeaderLine> headerLines = new HashSet<>();
+        headerLines.addAll(vcfHeaders.get(trackName).getMetaDataInSortedOrder()) ;
+        if ( splitMultiallelics )
+            headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
+
+        if (keepOriginalChrCounts) {
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AC_KEY));
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AF_KEY));
+            headerLines.add(GATKVCFHeaderLines.getInfoLine(GATKVCFConstants.ORIGINAL_AN_KEY));
+        }
+
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
         writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, MAX_INDEL_LENGTH);
@@ -187,7 +209,8 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
         for ( final VariantContext vc : VCs ) {
             // split first into biallelics, and optionally don't trim alleles to minimal representation
             if (splitMultiallelics) {
-                final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics(vc);
+                final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics(vc, false,
+                        GATKVariantContextUtils.GenotypeAssignmentMethod.BEST_MATCH_TO_ORIGINAL, keepOriginalChrCounts);
                 for (final VariantContext biallelicVC: vcList) {
                     changedSites += trimAlignWrite(biallelicVC, ref, vcList.size());
                 }
@@ -226,7 +249,7 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
 
         // ignore if the reference length is greater than the reference window stop before and after expansion
         if ( refLength > MAX_INDEL_LENGTH && refLength > referenceWindowStop ) {
-            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --referenceWindowStop >= %d",
+            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --reference_window_stop >= %d",
                         REFERENCE_ALLELE_TOO_LONG_MSG, refLength, vc.getChr(), vc.getStart(), refLength));
             return 0;
         }
@@ -236,10 +259,6 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
 
         // align the VC
         final Pair<VariantContext,Integer> result = alignAndWrite(v, ref);
-
-        // strip out PLs and AD if we've subsetted the alleles
-        if ( numBiallelics > 1 )
-            result.first = new VariantContextBuilder(result.first).genotypes(GATKVariantContextUtils.stripPLsAndAD(result.first.getGenotypes())).make();
 
         // write out new VC
         writer.add(result.first);
@@ -301,7 +320,6 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
         if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {
             int difference = originalIndex - newCigar.getCigarElement(0).getLength();
             VariantContext newVC = new VariantContextBuilder(vc).start(vc.getStart()-difference).stop(vc.getEnd()-difference).make();
-            //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + vc.getChr()+":"+(vc.getStart()-difference));
 
             final int indelIndex = originalIndex-difference;
             final byte[] newBases = new byte[indelLength + 1];
@@ -323,7 +341,7 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
      * @param ref                               Ref bases
      * @param indexOfRef                        Index in ref where to create indel
      * @param indelLength                       Indel length
-     * @return
+     * @return                                  Haplotype, containing the reference and the indel
      */
     @Requires({"vc != null","ref != null", "indexOfRef +indelLength < ref.length", "vc.getNAlleles() == 2"})
     @Ensures("result != null")

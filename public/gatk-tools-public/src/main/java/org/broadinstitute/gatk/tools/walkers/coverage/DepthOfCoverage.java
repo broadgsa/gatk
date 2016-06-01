@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -106,7 +106,7 @@ import java.util.*;
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class}, gotoDev = HelpConstants.MC)
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class})
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)
@@ -433,7 +433,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
             printGeneStats(statsByInterval);
         }
 
-        if ( statsByInterval.size() > 0 ) {
+        if ( !statsByInterval.isEmpty() ) {
             for(DoCOutputType.Partition partition: partitionTypes) {
                 if ( checkType(statsByInterval.get(0).getSecond().getCoverageByAggregationType(partition) ,partition) ) {
                     printIntervalStats(statsByInterval,
@@ -523,14 +523,16 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
         Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // allows indirect updating of objects in list
 
         for ( Pair<GenomeLoc, CoveragePartitioner> targetStats : statsByTarget ) {
-            String gene = getGeneName(targetStats.first,refseqIterator);
-            if ( geneNamesToStats.keySet().contains(gene) ) {
-                logger.debug("Merging "+geneNamesToStats.get(gene).toString()+" and "+targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample).toString());
-                geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
-            } else {
-                DepthOfCoverageStats merger = new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
-                geneNamesToStats.put(gene,merger);
-                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,merger));
+            List<String> genes = getGeneNames(targetStats.first,refseqIterator);
+            for (String gene : genes) {
+            	if ( geneNamesToStats.keySet().contains(gene) ) {
+            		logger.debug("Merging "+geneNamesToStats.get(gene).toString()+" and "+targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample).toString());
+            		geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
+            	} else {
+            		DepthOfCoverageStats merger = new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
+            		geneNamesToStats.put(gene,merger);
+            		statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,merger));
+            	}
             }
         }
 
@@ -542,27 +544,30 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
         summaryHeader.append(separator);
         summaryHeader.append("average_coverage");
 
-        for ( String s : statsByTarget.get(0).second.getCoverageByAggregationType(DoCOutputType.Partition.sample).getAllSamples() ) {
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_total_cvg");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_mean_cvg");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_granular_Q1");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_granular_median");
-            summaryHeader.append(separator);
-            summaryHeader.append(s);
-            summaryHeader.append("_granular_Q3");
-            for ( int thresh : coverageThresholds ) {
+        if ( !statsByGene.isEmpty() ) {
+            // Only need to get the first item in statsByGene since all have the same samples
+            for (String s : statsByGene.get(0).second.getAllSamples()) {
                 summaryHeader.append(separator);
                 summaryHeader.append(s);
-                summaryHeader.append("_%_above_");
-                summaryHeader.append(thresh);
+                summaryHeader.append("_total_cvg");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_mean_cvg");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_granular_Q1");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_granular_median");
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_granular_Q3");
+                for (int thresh : coverageThresholds) {
+                    summaryHeader.append(separator);
+                    summaryHeader.append(s);
+                    summaryHeader.append("_%_above_");
+                    summaryHeader.append(thresh);
+                }
             }
         }
 
@@ -574,24 +579,32 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     }
 
     //blatantly stolen from Andrew Kernytsky
-    private String getGeneName(GenomeLoc target, LocationAwareSeekableRODIterator refseqIterator) {
+    // edited by Pawel Sztromwasser to support overlap with multiple exons/genes
+    private List<String> getGeneNames(GenomeLoc target, LocationAwareSeekableRODIterator refseqIterator) {
         logger.debug("Examining "+target.toString());
-        if (refseqIterator == null) { return "UNKNOWN"; }
+        
+        List<String> unknown = Arrays.asList("UNKNOWN");
+        
+        if (refseqIterator == null) { return unknown; }
 
         RODRecordList annotationList = refseqIterator.seekForward(target);
         logger.debug("Annotation list is " + (annotationList == null ? "null" : annotationList.getName()));
-        if (annotationList == null) { return "UNKNOWN"; }
+        if (annotationList == null) { return unknown; }
 
+        List<String> geneNames = new ArrayList<String>();
         for(GATKFeature rec : annotationList) {
             if ( ((RefSeqFeature)rec.getUnderlyingObject()).overlapsExonP(target) ) {
                 logger.debug("We do overlap "+ rec.getUnderlyingObject().toString());
-                return ((RefSeqFeature)rec.getUnderlyingObject()).getGeneName();
+                geneNames.add(((RefSeqFeature)rec.getUnderlyingObject()).getGeneName());
+            } else {
+            	logger.debug("No overlap");
             }
-            logger.debug("No overlap");
         }
 
-        return "UNKNOWN";
-
+        if (geneNames.isEmpty()) { geneNames = unknown; }
+        
+        return geneNames;
+        
     }
 
     private LocationAwareSeekableRODIterator initializeRefSeq() {
@@ -972,7 +985,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     }
 
     public boolean checkType(DepthOfCoverageStats stats, DoCOutputType.Partition type ) {
-        if ( stats.getHistograms().size() < 1 ) {
+        if ( stats.getHistograms().isEmpty() ) {
             logger.warn("The histogram per partition type "+type.toString()+" was empty\n"+
                     "Do your read groups have this type? (Check your .bam header).");
             return false;

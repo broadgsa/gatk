@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -166,6 +166,7 @@ public abstract class ArgumentTypeDescriptor {
                 source.isHidden(),
                 makeRawTypeIfNecessary(getCollectionComponentType(source.field)),
                 ArgumentDefinition.getExclusiveOf(argumentAnnotation),
+                ArgumentDefinition.getOtherArgumentRequired(argumentAnnotation),
                 ArgumentDefinition.getValidationRegex(argumentAnnotation),
                 getValidOptions(source) );
     }

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -29,17 +29,17 @@ package org.broadinstitute.gatk.utils;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.util.CollectionUtil;
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.SimpleFeature;
-import org.broadinstitute.gatk.utils.BaseTest;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.VariantContext;
+import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
-import htsjdk.variant.variantcontext.Allele;
-import htsjdk.variant.variantcontext.VariantContext;
-import htsjdk.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -47,9 +47,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -65,11 +63,87 @@ public class GenomeLocParserUnitTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
     private SAMFileHeader header;
 
+    private GenomeLocParser bizareGenomeLocParser;
+    private SAMFileHeader bizareHeader;
+
     @BeforeClass
-         public void init() {
+    public void init() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+
+        //Crazy contig names that are all allowed by the SAM-Spec
+        bizareHeader = ArtificialSAMUtils.createArtificialSamHeader(
+                CollectionUtil.makeList("LooksLikeHasPos:01",//1
+                        "LooksLikeARange:01-02",//2
+                        "LooksLikeWhole:1+",//3
+                        "\'Quoted\'",//4
+                        "***Stars***",//5
+                        "TwoColons:01:02",//6
+                        "ConfusingElements:1-2",//7
+                        "ConfusingElements:1",//8
+                        "ConfusingElements:1+"//9
+                      // , "ConfusingElements" //10 ... This element causes trouble
+                     ),
+                CollectionUtil.makeList(20, 20, 20, 20, 20, 20, 20, 20, 20
+                       // ,20  //                   ... not sure how to deal with it.
+        ));
+        bizareGenomeLocParser = new GenomeLocParser(bizareHeader.getSequenceDictionary());
     }
+
+
+    @DataProvider()
+    public Object[][] TestConfusingContigNamesData(){
+        List<Object[]> tests=new ArrayList<>();
+
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1-2","ConfusingElements")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1-2","ConfusingElements:1-")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1-2","ConfusingElements:1")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1-2,00","ConfusingElements:1")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1,0-200","ConfusingElements:1,0")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1-2,00","ConfusingElements:1")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1-3","ConfusingElements")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1","ConfusingElements")});
+        tests.add(new Object[]{CollectionUtil.makeList("ConfusingElements:1+","ConfusingElements")});
+
+        return tests.toArray(new Object[tests.size()][]);
+    }
+
+    @Test(dataProvider = "TestConfusingContigNamesData" )
+    void TestConfusingContigNames(final List<String> contigNames){
+
+        ValidationAppender checkWarning = new ValidationAppender(GenomeLocParser.AMBIGUOUS_CONTIG_WARNINIG);
+
+        final SAMFileHeader confusingHeader = ArtificialSAMUtils.createArtificialSamHeader(
+                contigNames, Collections.nCopies(contigNames.size(), 20));
+
+        logger.addAppender(checkWarning);
+        new GenomeLocParser(confusingHeader.getSequenceDictionary());
+
+        Assert.assertTrue(checkWarning.foundString(),"Expected warning about prefixes");
+    }
+
+
+    @DataProvider
+    public Object[][] testBizzarreContigNamesData() {
+        List<Object[]> tests = new ArrayList<>();
+
+        for (final SAMSequenceRecord sequence : bizareGenomeLocParser.getContigs().getSequences()) {
+            String name = sequence.getSequenceName();
+            tests.add(new Object[]{name, new GenomeLoc(name, bizareGenomeLocParser.getContigIndex(name), 1, sequence.getSequenceLength())});
+            tests.add(new Object[]{name + ":1", new GenomeLoc(name, bizareGenomeLocParser.getContigIndex(name), 1, 1)});
+            tests.add(new Object[]{name + ":1+", new GenomeLoc(name, bizareGenomeLocParser.getContigIndex(name), 1, sequence.getSequenceLength())});
+            tests.add(new Object[]{name + ":1-10", new GenomeLoc(name, bizareGenomeLocParser.getContigIndex(name), 1, 10)});
+        }
+
+        return tests.toArray(new Object[tests.size()][]);
+    }
+
+    @Test(dataProvider = "testBizzarreContigNamesData")
+    public void testBizzarreContigNames(String inputString, GenomeLoc expectedResult) {
+
+        Assert.assertEquals(bizareGenomeLocParser.parseGenomeLoc(inputString), expectedResult);
+    }
+
 
     @Test(expectedExceptions=UserException.MalformedGenomeLoc.class)
     public void testGetContigIndex() {

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -66,7 +66,7 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                 // See: GATKBAMIndex.getStartOfLastLinearBin(), BAMScheduler.advance(), IntervalOverlapFilteringIterator.advance()
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, "", "0b58c903f54e8543a8b2ce1439aa769b")},
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1", "5b1154cc81dba6bcfe76188e4df8d79c")},
-                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.cram"}, " -L 1:10001 -L GL000192.1:500204", "e9caf8a0e6ec947cdcbdfc48a4292eb5")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.cram"}, " -L 1:10001 -L GL000192.1:500204", "a84efdc3d4a8d6329b5f0b494dd280d2")},
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L unmapped", "cbd3d1d50c8674f79033aa8c36aa3cd1")},
                 {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1 -L unmapped", "5b1154cc81dba6bcfe76188e4df8d79c")},
                 {new PRTest(b37KGReference, new String[]{"oneReadAllInsertion.bam"}, "",  "e212d1799ae797e781b17e630656a9a1")},

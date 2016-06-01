@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -32,17 +32,36 @@ import org.broadinstitute.gatk.engine.ReadProperties;
 import org.broadinstitute.gatk.utils.ValidationExclusion;
 import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
 
 /**
  * Filter out malformed reads
  *
  * <p>This filter is applied automatically by all GATK tools in order to protect them from crashing on reads that are
- * grossly malformed. There are a few issues (such as the absence of sequence bases) that will cause the run to fail with an
- * error, but these cases can be preempted by setting flags that cause the problem reads to also be filtered.</p>
+ * malformed. There are a few types of malformation (such as the absence of sequence bases) that are not filtered out 
+ * by default and can cause errors, but these cases can be preempted by setting flags that cause the problem reads to 
+ * also be filtered.</p>
+ * 
+ * <h4>Criteria used by default</h4>
+ * <ul>
+ *      <li><b>Invalid Alignment Start:</b> Read alignment start is inconsistent with the read unmapped flag; either read is not flagged as 'unmapped', but alignment start is NO_ALIGNMENT_START, or read is not flagged as 'unmapped', but alignment start is -1.</li>
+ *      <li><b>Invalid Alignment End:</b> Read aligns to negative number of bases in the reference.</li>
+ *      <li><b>Alignment Disagrees With Header:</b> Read is aligned to nonexistent contig or read is aligned to a point after the end of the contig.</li>
+ *      <li><b>Missing or Undefined Read Group:</b> Either the RG tag is missing, it is not defined in the header, or required elements such as RGID are missing.</li>
+ *      <li><b>Cigar Disagrees With Alignment:</b> Read has a valid alignment start, but the CIGAR string is empty.</li>
+ *      <li><b>CIGAR Is Not Supported:</b> Read CIGAR contains operators that are not supported (N which is treated separately).</li>
+ * </ul>
+ * 
+ * <h4>Optional criteria</h4>
+ * <ul>
+ *      <li><b>Mismatching Bases And Quals:</b> Read does not have the same number of bases and base qualities.</li>
+ *      <li><b>Bases Not Stored:</b> Read with no stored bases, has '*' instead in the SEQ field.</li>
+ *      <li><b>CIGAR With N Operator:</b> Read CIGAR contains N operator (typical of RNA_seq data).</li>
+ * </ul>
  *
  * <h3>Usage example</h3>
  *
- * <h4>Set the malformed read filter to filter out reads that have no sequence bases</h4>
+ * <h4>Set the malformed read filter to also filter out reads that have no stored sequence bases</h4>
  * <pre>
  *     java -jar GenomeAnalysisTk.jar \
  *         -T ToolName \
@@ -200,26 +219,13 @@ public class MalformedReadFilter extends ReadFilter {
             if (! filterReadsWithNCigar && !allowNCigars) {
                 throw new UserException.UnsupportedCigarOperatorException(
                         CigarOperator.N,read,
-                        "Perhaps you are"
-                        + " trying to use RNA-Seq data?"
-                        + " While we are currently actively working to"
-                        + " support this data type unfortunately the"
-                        + " GATK cannot be used with this data in its"
-                        + " current form. You have the option of either"
-                        + " filtering out all reads with operator "
-                        + CigarOperator.N + " in their CIGAR string"
-                        + " (please add --"
-                        +  FILTER_READS_WITH_N_CIGAR_ARGUMENT_FULL_NAME
-                        + " to your command line) or"
-                        + " assume the risk of processing those reads as they"
-                        + " are including the pertinent unsafe flag (please add -U"
-                        + ' ' + ValidationExclusion.TYPE.ALLOW_N_CIGAR_READS
-                        + " to your command line). Notice however that if you were"
-                        + " to choose the latter, an unspecified subset of the"
-                        + " analytical outputs of an unspecified subset of the tools"
-                        + " will become unpredictable. Consequently the GATK team"
-                        + " might well not be able to provide you with the usual support"
-                        + " with any issue regarding any output");
+                        "If you are working with RNA-Seq data, see " + HelpConstants.articlePost(3891) + " for guidance. "
+                        + "If you choose to disregard those instructions, or for other uses, you have the option of either "
+                        + "filtering out all reads with operator " + CigarOperator.N + " in their CIGAR string" + " (add --"
+                        +  FILTER_READS_WITH_N_CIGAR_ARGUMENT_FULL_NAME + " to your command line) or overriding this check (add -U " 
+                        + ValidationExclusion.TYPE.ALLOW_N_CIGAR_READS + " to your command line). Notice however that the latter "
+                        + "is unsupported, so if you use it and encounter any problems, the GATK support team not be able to help "
+                        + "you.");
             }
             return ! filterReadsWithNCigar;
         }

@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -28,14 +28,17 @@ package org.broadinstitute.gatk.utils;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import com.google.java.contract.ThrowEnsures;
-import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
-import org.apache.log4j.Logger;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Feature;
+import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Factory class for creating GenomeLocs
@@ -105,6 +108,7 @@ public final class GenomeLocParser {
         this(seqDict, ValidationLevel.STANDARD);
     }
 
+    static public String AMBIGUOUS_CONTIG_WARNINIG = "Ambiguous contig prefix!";
     /**
      * Create a genome loc parser based on seqDict with the specified level of validation
      * @param seqDict the sequence dictionary to use when creating genome locs
@@ -124,6 +128,24 @@ public final class GenomeLocParser {
             logger.debug(String.format("Prepared reference sequence contig dictionary"));
             for (SAMSequenceRecord contig : seqDict.getSequences()) {
                 logger.debug(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
+            }
+        }
+
+        final Pattern numericEnding = Pattern.compile(".*:[0-9][0-9,]*(\\+|-[0-9][0-9,]*)?$");
+        for(final SAMSequenceRecord contig1: this.getContigs().getSequences()) {
+            final String name1 = contig1.getSequenceName();
+            for (final SAMSequenceRecord contig2 : this.getContigs().getSequences()) {
+                if (contig1 == contig2) continue;
+                final String name2 = contig2.getSequenceName();
+
+                final Matcher numericMatcher = numericEnding.matcher(name1);
+                if (name1.startsWith(name2) && numericMatcher.matches()) {
+                    logger.warn(AMBIGUOUS_CONTIG_WARNINIG);
+                    logger.warn("Contig name" + name1 + " has a prefix that is also the name of another contig (" +
+                            name1 +
+                            "), and has an ending that looks like a genomic position. The contigs in this reference may not parse reliably." +
+                            " In addition, the existence of a colon (:) in the contig name is not compliant with the VCF specifications (1.4.1.1).");
+                }
             }
         }
     }
@@ -350,7 +372,7 @@ public final class GenomeLocParser {
     @Requires("str != null")
     @Ensures("result != null")
     public GenomeLoc parseGenomeLoc(final String str) {
-        // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
+        // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000' or 'chr2:500+'
         //System.out.printf("Parsing location '%s'%n", str);
 
         String contig = null;
@@ -358,15 +380,15 @@ public final class GenomeLocParser {
         int stop = -1;
 
         final int colonIndex = str.lastIndexOf(":");
-        if(colonIndex == -1) {
-            contig = str.substring(0, str.length());  // chr1
+        if (colonIndex == -1 || contigIsInDictionary(str) ) {
+            contig = str;  // chr1
             stop = Integer.MAX_VALUE;
         } else {
             contig = str.substring(0, colonIndex);
             final int dashIndex = str.indexOf('-', colonIndex);
             try {
-                if(dashIndex == -1) {
-                    if(str.charAt(str.length() - 1) == '+') {
+                if (dashIndex == -1) {
+                    if (str.charAt(str.length() - 1) == '+') {
                         start = parsePosition(str.substring(colonIndex + 1, str.length() - 1));  // chr:1+
                         stop = Integer.MAX_VALUE;
                     } else {
@@ -377,7 +399,7 @@ public final class GenomeLocParser {
                     start = parsePosition(str.substring(colonIndex + 1, dashIndex));  // chr1:1-1
                     stop = parsePosition(str.substring(dashIndex + 1));
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 throw new UserException("Failed to parse Genome Location string: " + str, e);
             }
         }

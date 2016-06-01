@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -45,6 +45,4 @@ public @interface DocumentedGATKFeature {
     public String summary() default "";
     /** Are there links to other docs that we should include?  CommandLineGATK.class for walkers, for example? */
     public Class[] extraDocs() default {};
-    /** Who is the go-to developer for operation/documentation issues? */
-    public String gotoDev() default "NA";
 }

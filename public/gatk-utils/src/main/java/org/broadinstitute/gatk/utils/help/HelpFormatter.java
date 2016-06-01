@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -204,6 +204,7 @@ public class HelpFormatter {
             builder.append(Utils.join("|",argumentDefinition.validOptions));
             builder.append(")");
         }
+
         return builder.toString();
     }
 

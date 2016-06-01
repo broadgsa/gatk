@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -559,6 +559,12 @@ public class GATKVariantContextUtils {
         SET_TO_NO_CALL,
 
         /**
+         * set all of the genotype GT values to NO_CALL and remove annotations
+         */
+        SET_TO_NO_CALL_NO_ANNOTATIONS,
+
+
+        /**
          * Use the subsetted PLs to greedily assigned genotypes
          */
         USE_PLS_TO_ASSIGN,
@@ -589,7 +595,7 @@ public class GATKVariantContextUtils {
     }
 
     /**
-     * subset the Variant Context to the specific set of alleles passed in (pruning the PLs appropriately)
+     * Subset the Variant Context to the specific set of alleles passed in (pruning the PLs appropriately)
      *
      * @param vc                 variant context with genotype likelihoods
      * @param allelesToUse       which alleles from the vc are okay to use; *** must be in the same relative order as those in the original VC ***
@@ -601,6 +607,7 @@ public class GATKVariantContextUtils {
                                                         final GenotypeAssignmentMethod assignGenotypes) {
         if ( vc == null ) throw new IllegalArgumentException("the VariantContext cannot be null");
         if ( allelesToUse == null ) throw new IllegalArgumentException("the alleles to use cannot be null");
+        if ( allelesToUse.isEmpty() ) throw new IllegalArgumentException("must have alleles to use");
         if ( allelesToUse.get(0).isNonReference() ) throw new IllegalArgumentException("First allele must be the reference allele");
         if ( allelesToUse.size() == 1 ) throw new IllegalArgumentException("Cannot subset to only 1 alt allele");
 
@@ -859,7 +866,7 @@ public class GATKVariantContextUtils {
                     newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
                 }
 
-                if ( newLikelihoods == null || likelihoodsAreUninformative(newLikelihoods) )
+                if ( newLikelihoods == null || (originalVC.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0) == 0 && likelihoodsAreUninformative(newLikelihoods) ))
                     gb.noPL();
                 else
                     gb.PL(newLikelihoods);
@@ -896,12 +903,23 @@ public class GATKVariantContextUtils {
                                                      final GenotypeAssignmentMethod assignmentMethod,
                                                      final double[] newLikelihoods,
                                                      final List<Allele> allelesToUse) {
+        if ( originalGT == null ) throw new IllegalArgumentException("originalGT cannot be null");
+        if ( gb == null ) throw new IllegalArgumentException("gb cannot be null");
+        if ( allelesToUse.isEmpty() || allelesToUse == null ) throw new IllegalArgumentException("allelesToUse cannot be empty or null");
+
         switch ( assignmentMethod ) {
             case DO_NOT_ASSIGN_GENOTYPES:
                 break;
             case SET_TO_NO_CALL:
                 gb.alleles(NO_CALL_ALLELES);
                 gb.noGQ();
+                break;
+            case SET_TO_NO_CALL_NO_ANNOTATIONS:
+                gb.alleles(NO_CALL_ALLELES);
+                gb.noGQ();
+                gb.noAD();
+                gb.noPL();
+                gb.noAttributes();
                 break;
             case USE_PLS_TO_ASSIGN:
                 if ( newLikelihoods == null || likelihoodsAreUninformative(newLikelihoods) ) {
@@ -918,12 +936,10 @@ public class GATKVariantContextUtils {
                 break;
             case BEST_MATCH_TO_ORIGINAL:
                 final List<Allele> best = new LinkedList<>();
-                final Allele ref = allelesToUse.get(0); // WARNING -- should be checked in input argument
+                final Allele ref = allelesToUse.get(0);
                 for ( final Allele originalAllele : originalGT ) {
                     best.add(allelesToUse.contains(originalAllele) ? originalAllele : ref);
                 }
-                gb.noGQ();
-                gb.noPL();
                 gb.alleles(best);
                 break;
         }
@@ -970,7 +986,7 @@ public class GATKVariantContextUtils {
     /**
      * Assign genotypes (GTs) to the samples in the Variant Context greedily based on the PLs
      *
-     * @param vc            variant context with genotype likelihoods
+     * @param vc variant context with genotype likelihoods
      * @return genotypes context
      */
     public static GenotypesContext assignDiploidGenotypes(final VariantContext vc) {
@@ -999,7 +1015,6 @@ public class GATKVariantContextUtils {
      * Split variant context into its biallelic components if there are more than 2 alleles
      *
      * For VC has A/B/C alleles, returns A/B and A/C contexts.
-     * Genotypes are all no-calls now (it's not possible to fix them easily)
      * Alleles are right trimmed to satisfy VCF conventions
      *
      * If vc is biallelic or non-variant it is just returned
@@ -1008,21 +1023,63 @@ public class GATKVariantContextUtils {
      *
      * @param vc a potentially multi-allelic variant context
      * @param trimLeft if true, we will also left trim alleles, potentially moving the resulting vcs forward on the genome
+     * @param genotypeAssignmentMethod assignment strategy for the (subsetted) PLs
      * @return a list of bi-allelic (or monomorphic) variant context
      */
-    public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc, final boolean trimLeft, final GenotypeAssignmentMethod genotypeAssignmentMethod) {
+    public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc, final boolean trimLeft, final GenotypeAssignmentMethod genotypeAssignmentMethod){
+        return splitVariantContextToBiallelics(vc, trimLeft,genotypeAssignmentMethod, false);
+    }
+
+    /**
+     * Split variant context into its biallelic components if there are more than 2 alleles
+     *
+     * For VC has A/B/C alleles, returns A/B and A/C contexts.
+     * Alleles are right trimmed to satisfy VCF conventions
+     *
+     * If vc is biallelic or non-variant it is just returned
+     *
+     * Chromosome counts are updated (but they are by definition 0)
+     *
+     * @param vc a potentially multi-allelic variant context
+     * @param trimLeft if true, we will also left trim alleles, potentially moving the resulting vcs forward on the genome
+     * @param genotypeAssignmentMethod assignment strategy for the (subsetted) PLs
+     * @param keepOriginalChrCounts keep the orignal chromosome counts before subsetting
+     * @return a list of bi-allelic (or monomorphic) variant context
+     */
+    public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc, final boolean trimLeft, final GenotypeAssignmentMethod genotypeAssignmentMethod,
+                                                                       final boolean keepOriginalChrCounts) {
+        if ( vc == null ) throw new IllegalArgumentException("vc cannot be null");
+
         if ( ! vc.isVariant() || vc.isBiallelic() )
             // non variant or biallelics already satisfy the contract
             return Collections.singletonList(vc);
         else {
             final List<VariantContext> biallelics = new LinkedList<>();
 
+            // if any of the genotypes ar ehet-not-ref (i.e. 1/2), set all of them to no-call
+            final GenotypeAssignmentMethod genotypeAssignmentMethodUsed = hasHetNonRef(vc.getGenotypes()) ? GATKVariantContextUtils.GenotypeAssignmentMethod.SET_TO_NO_CALL_NO_ANNOTATIONS : genotypeAssignmentMethod;
+
             for ( final Allele alt : vc.getAlternateAlleles() ) {
-                VariantContextBuilder builder = new VariantContextBuilder(vc);
+                final VariantContextBuilder builder = new VariantContextBuilder(vc);
+
+                // make biallelic alleles
                 final List<Allele> alleles = Arrays.asList(vc.getReference(), alt);
                 builder.alleles(alleles);
-                builder.genotypes(subsetDiploidAlleles(vc, alleles, genotypeAssignmentMethod));
-                VariantContextUtils.calculateChromosomeCounts(builder, true);
+
+                // since the VC has been subset, remove the invalid attributes
+                for ( final String key : vc.getAttributes().keySet() ) {
+                    if ( !(key.equals(VCFConstants.ALLELE_COUNT_KEY) || key.equals(VCFConstants.ALLELE_FREQUENCY_KEY) || key.equals(VCFConstants.ALLELE_NUMBER_KEY)) ||
+                            genotypeAssignmentMethodUsed == GATKVariantContextUtils.GenotypeAssignmentMethod.SET_TO_NO_CALL_NO_ANNOTATIONS ) {
+                        builder.rmAttribute(key);
+                    }
+                }
+
+                // subset INFO field annotations if available if genotype is called
+                if ( genotypeAssignmentMethodUsed != GATKVariantContextUtils.GenotypeAssignmentMethod.SET_TO_NO_CALL_NO_ANNOTATIONS &&
+                        genotypeAssignmentMethodUsed != GATKVariantContextUtils.GenotypeAssignmentMethod.SET_TO_NO_CALL )
+                    addInfoFiledAnnotations(vc, builder, alt, keepOriginalChrCounts);
+                
+                builder.genotypes(subsetDiploidAlleles(vc, alleles, genotypeAssignmentMethodUsed));
                 final VariantContext trimmed = trimAlleles(builder.make(), trimLeft, true);
                 biallelics.add(trimmed);
             }
@@ -1030,6 +1087,21 @@ public class GATKVariantContextUtils {
             return biallelics;
         }
     }
+
+    /**
+     * Check if any of the genotypes is heterozygous, non-reference (i.e. 1/2)
+     *
+     * @param genotypesContext  genotype information
+     * @return true if any of the genotypes are heterozygous, non-reference, false otherwise
+     */
+    private static boolean hasHetNonRef(final GenotypesContext genotypesContext ){
+        for (final Genotype gt : genotypesContext ) {
+            if (gt.isHetNonRef())
+                return true;
+        }
+        return false;
+    }
+
 
     public static Genotype removePLsAndAD(final Genotype g) {
         return ( g.hasLikelihoods() || g.hasAD() ) ? new GenotypeBuilder(g).noPL().noAD().make() : g;
@@ -1336,7 +1408,7 @@ public class GATKVariantContextUtils {
      *
      * @param originalGs       the original GenotypesContext
      * @param originalVC       the original VariantContext
-     * @param allelesToUse     the new (sub)set of alleles to use
+     * @param allelesToUse     the new subset of alleles to use
      * @return a new non-null GenotypesContext
      */
     static private GenotypesContext fixDiploidGenotypesFromSubsettedAlleles(final GenotypesContext originalGs, final VariantContext originalVC, final List<Allele> allelesToUse) {
@@ -2121,4 +2193,142 @@ public class GATKVariantContextUtils {
 
         return -1;
     }
+
+    /**
+     * Add the VCF INFO field annotations for the used alleles
+     *
+     * @param vc                original variant context
+     * @param builder           variant context builder with subset of original variant context's alleles
+     * @param altAllele         alternate allele
+     * @param keepOriginalChrCounts keep the orignal chromosome counts before subsetting
+     * @return variant context builder with updated INFO field attribute values
+     */
+    private static void addInfoFiledAnnotations(final VariantContext vc, final VariantContextBuilder builder,  final Allele altAllele,
+                                                         final boolean keepOriginalChrCounts){
+
+        if (vc == null) throw new IllegalArgumentException("the variant context cannot be null");
+        if (builder == null) throw new IllegalArgumentException("the variant context builder cannot be null");
+        if (builder.getAlleles() == null) throw new IllegalArgumentException("the variant context builder alleles cannot be null");
+
+        final List<Allele> alleles = builder.getAlleles();
+        if (alleles.size() < 2) throw new IllegalArgumentException("the variant context builder must contain at least 2 alleles");
+
+        // don't have to subset, the original vc has the same number and hence, the same alleles
+        boolean keepOriginal = ( vc.getAlleles().size() == builder.getAlleles().size() );
+
+        if ( keepOriginalChrCounts ) {
+            if (vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY))
+                builder.attribute(GATKVCFConstants.ORIGINAL_AC_KEY, keepOriginal ? 
+                        vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY) : getAltAlleleInfoFieldValue(VCFConstants.ALLELE_COUNT_KEY, vc, altAllele));
+            if (vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY))
+                builder.attribute(GATKVCFConstants.ORIGINAL_AF_KEY, keepOriginal ?
+                        vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) :  getAltAlleleInfoFieldValue(VCFConstants.ALLELE_FREQUENCY_KEY, vc, altAllele));
+            if (vc.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY)) {
+                builder.attribute(GATKVCFConstants.ORIGINAL_AN_KEY, vc.getAttribute(VCFConstants.ALLELE_NUMBER_KEY));
+            }
+        }
+
+        VariantContextUtils.calculateChromosomeCounts(builder, true);
+    }
+    
+
+    /**
+     * Get the alternate allele INFO field value
+     *
+     * @param infoFieldName     VCF INFO field name
+     * @param vc                variant context
+     * @param altAllele         the alternate allele
+     * @return alternate allele INFO field value
+     * @throws ReviewedGATKException if the alternate allele is part of the variant context
+     */
+    private static Object getAltAlleleInfoFieldValue(final String infoFieldName, final VariantContext vc, final Allele altAllele) {
+
+        //final String[] splitOriginalField = vc.getAttribute(infoFieldName).toString().split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR);
+        final Object[] splitOriginalField = getVAttributeValues(vc.getAttribute(infoFieldName));
+
+        // subset the field
+        final boolean[] alleleIndexesToUse = getAlleleIndexBitset(vc, Arrays.asList(altAllele));
+
+        // skip the first allele, which is the reference
+        for (int i = 1; i < alleleIndexesToUse.length; i++) {
+            if (alleleIndexesToUse[i] == true)
+                return splitOriginalField[i-1];
+        }
+
+        throw new ReviewedGATKException("Alternate allele " + altAllele.toString() + " not in Variant Context " + vc.toString());
+    }
+
+    /**
+     * Pulls out the appropriate values for the INFO field attribute
+     *
+     * @param attribute    INFO field attribute
+     * @return tokenized attribute values
+     */
+    private static Object[] getVAttributeValues(final Object attribute) {
+
+        if (attribute == null) throw new IllegalArgumentException("the attribute cannot be null");
+
+        // break the original attributes into separate tokens
+        final Object[] tokens;
+        if ( attribute.getClass().isArray() )
+            tokens = (Object[])attribute;
+        else if ( List.class.isAssignableFrom(attribute.getClass()) )
+            tokens = ((List)attribute).toArray();
+        else
+            tokens = attribute.toString().split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR);
+
+        return tokens;
+    }
+    
+    /**
+     * Increment the number of called alternate and reference plus alternate alleles for a genotype
+     *
+     * @param calledAltAlleles number of called alternate alleles for all genotypes
+     * @param calledAlleles    number of called alleles for all genotypes
+     * @param genotype         genotype
+     * @return incremented called alleles
+     * @throws IllegalArgumentException if calledAltAlleles or genotype are null
+     */
+    public static int incrementChromosomeCountsInfo(final Map<Allele, Integer> calledAltAlleles, final int calledAlleles, final Genotype genotype) {
+        if ( calledAltAlleles == null ) throw new IllegalArgumentException("Called alternate alleles can not be null");
+        if ( genotype == null ) throw new IllegalArgumentException("Genotype can not be null");
+
+        int incrementedCalledAlleles = calledAlleles;
+        if (genotype.isCalled()) {
+            for (final Allele allele : genotype.getAlleles()) {
+                incrementedCalledAlleles++;
+                if (allele.isNonReference()) {
+                    calledAltAlleles.put(allele, calledAltAlleles.get(allele) + 1);
+                }
+            }
+        }
+
+        return incrementedCalledAlleles;
+    }
+
+    /**
+     * Update the variant context chromosome counts info fields (AC, AN, AF)
+     *
+     * @param calledAltAlleles  number of called alternate alleles for all genotypes
+     * @param calledAlleles     number of called alleles for all genotypes
+     * @param builder           builder for variant context
+     * @throws IllegalArgumentException if calledAltAlleles or builder are null
+     */
+    public static void updateChromosomeCountsInfo(final Map<Allele, Integer> calledAltAlleles, final int calledAlleles,
+                                             final VariantContextBuilder builder) {
+        if ( calledAltAlleles == null ) throw new IllegalArgumentException("Called alternate alleles can not be null");
+        if ( builder == null ) throw new IllegalArgumentException("Variant context builder can not be null");
+
+        builder.attribute(VCFConstants.ALLELE_COUNT_KEY, calledAltAlleles.values().toArray()).
+                attribute(VCFConstants.ALLELE_NUMBER_KEY, calledAlleles);
+        // Add AF is there are called alleles
+        if ( calledAlleles != 0 ) {
+            final Set<Double> alleleFrequency = new LinkedHashSet<Double>(calledAltAlleles.size());
+            for ( final Integer value : calledAltAlleles.values() ) {
+                alleleFrequency.add(value.doubleValue()/calledAlleles);
+            }
+            builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFrequency.toArray());
+        }
+    }
 }
+

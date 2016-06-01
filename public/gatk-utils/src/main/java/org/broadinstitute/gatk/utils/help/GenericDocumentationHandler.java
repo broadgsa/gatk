@@ -1,5 +1,5 @@
 /*
-* Copyright 2012-2015 Broad Institute, Inc.
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -117,8 +117,6 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
         for (Tag tag : toProcess.classDoc.tags()) {
             root.put(tag.name(), tag.text());
         }
-
-        root.put("gotoDev", toProcess.annotation.gotoDev());
     }
 
     /**
@@ -190,7 +188,6 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
                         argBindings.put("maxValue", "NA");
                         argBindings.put("minRecValue", "NA");
                         argBindings.put("maxRecValue", "NA");
-                        argBindings.put("defaultValue", "NA");
                     }
                     // Finalize argument bindings
                     args.get(kind).add(argBindings);
@@ -276,9 +273,9 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
         final Object instance = makeInstanceIfPossible(toProcess.clazz);
         if (instance != null) {
             final Object value = getFieldValue(instance, argumentSource.field.getName());
-            if (value != null)
+            if (value != null) {
                 return value;
-
+            }
             if (argumentSource.createsTypeDefault()) {
                 try { // handle the case where there's an implicit default
                     return argumentSource.typeDefaultDocString();
@@ -391,7 +388,7 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
     }
 
     /**
-     * Pretty prints value
+     * Pretty prints value TODO I think this is what I need to fix the value problem
      * <p/>
      * Assumes value != null
      *
@@ -512,7 +509,7 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
             if (field.isAnnotationPresent(ArgumentCollection.class)) {
                 ClassDoc typeDoc = getRootDoc().classNamed(fieldDoc.type().qualifiedTypeName());
                 if (typeDoc == null)
-                    throw new ReviewedGATKException("Tried to get javadocs for ArgumentCollection field " + fieldDoc + " but could't find the class in the RootDoc");
+                    throw new ReviewedGATKException("Tried to get javadocs for ArgumentCollection field " + fieldDoc + " but couldn't find the class in the RootDoc");
                 else {
                     FieldDoc result = getFieldDoc(typeDoc, name, false);
                     if (result != null)
@@ -563,7 +560,7 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
     /**
      * Returns a human readable string that describes the Type type of a GATK argument.
      * <p/>
-     * This will include parameterized types, so that Set{T} shows up as Set(T) and not
+     * This will include parametrized types, so that Set{T} shows up as Set(T) and not
      * just Set in the docs.
      *
      * @param type
@@ -644,9 +641,7 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
             FeatureManager manager = new FeatureManager();
             List<String> rodTypes = new ArrayList<String>();
             for (FeatureManager.FeatureDescriptor descriptor : manager.getByFeature(featureClass)) {
-                rodTypes.add(String.format("<a href=%s>%s</a>",
-                        GATKDocUtils.phpFilenameForClass(descriptor.getCodecClass()),
-                        descriptor.getName()));
+                rodTypes.add(descriptor.getName());
             }
 
             root.put("rodTypes", Utils.join(", ", rodTypes));
@@ -657,6 +652,10 @@ public abstract class GenericDocumentationHandler extends DocumentedGATKFeatureH
         // summary and fulltext
         root.put("summary", def.doc != null ? def.doc : "");
         root.put("fulltext", fieldDoc.commentText());
+
+        // Does this argument interact with any others?
+        root.put("otherArgumentRequired", def.otherArgumentRequired != null ? def.otherArgumentRequired : "NA");
+        root.put("exclusiveOf", def.otherArgumentRequired != null ? def.exclusiveOf : "NA");
 
         // What are our enum options?
         if (def.validOptions != null) {
