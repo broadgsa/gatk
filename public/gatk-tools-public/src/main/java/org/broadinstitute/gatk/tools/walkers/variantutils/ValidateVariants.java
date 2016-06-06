@@ -235,12 +235,20 @@ public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
             lastVcEnd = vc.getEnd();
         }
 
+        // if there were no variants do not add anything!
+        if (lastVcEnd == -1)
+            return null;
+
         return GenomeLoc.setStop(ref.getLocus(), lastVcEnd);
     }
 
     @Override
     public GenomeLocSortedSet reduce(GenomeLoc value, GenomeLocSortedSet sum) {
-        sum.add(value, true);
+        // unless we are doing gvcf validation, there's no need
+        // to add all the genomelocs. Also, since we do not expect them to be contiguous, it will
+        // take a lot of memory.
+        if (VALIDATE_GVCF)
+            sum.add(value, GenomeLocSortedSet.MergeStrategy.MERGE_CONTIGUOUS);
         return sum;
     }
 
@@ -252,8 +260,16 @@ public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
     @Override
     public void onTraversalDone(GenomeLocSortedSet result) {
         if (VALIDATE_GVCF) {
-            final GenomeLocSortedSet uncoveredIntervals = getToolkit().getIntervals().subtractRegions(result);
-            if (uncoveredIntervals.coveredSize() > 0) {
+            final GenomeLocSortedSet toolkitIntervals = getToolkit().getIntervals();
+            final GenomeLocSortedSet traversalIntervals;
+            if (toolkitIntervals == null) {
+                traversalIntervals = GenomeLocSortedSet.createSetFromSequenceDictionary(getToolkit().getMasterSequenceDictionary());
+            } else {
+                traversalIntervals = toolkitIntervals;
+            }
+
+            final GenomeLocSortedSet uncoveredIntervals = traversalIntervals.subtractRegions(result);
+            if (traversalIntervals.subtractRegions(result).coveredSize() > 0) {
                 final UserException e = new UserException.FailsStrictValidation(file, "A GVCF must cover the entire region. Found " + uncoveredIntervals.coveredSize() +
                         " loci with no VariantContext covering it. The first uncovered segment is:" +
                         uncoveredIntervals.iterator().next());
