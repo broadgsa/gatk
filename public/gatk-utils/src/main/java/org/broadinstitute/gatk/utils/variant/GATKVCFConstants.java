@@ -138,6 +138,10 @@ public final class GATKVCFConstants {
     public static final String TLOD_REV_KEY =                       "TLOD_REV";
     public static final String TUMOR_SB_POWER_FWD_KEY =             "TUMOR_SB_POWER_FWD";
     public static final String TUMOR_SB_POWER_REV_KEY =             "TUMOR_SB_POWER_REV";
+    public static final String MEDIAN_LEFT_OFFSET_KEY =              "MEDIAN_LEFT_OFFSET";
+    public static final String MEDIAN_RIGHT_OFFSET_KEY =             "MEDIAN_RIGHT_OFFSET";
+    public static final String MAD_MEDIAN_LEFT_OFFSET_KEY =          "MAD_LEFT_OFFSET";
+    public static final String MAD_MEDIAN_RIGHT_OFFSET_KEY =         "MAD_RIGHT_OFFSET";
 
 
     //FORMAT keys
@@ -179,6 +183,8 @@ public final class GATKVCFConstants {
     public static final String TUMOR_LOD_FILTER_NAME =                        "t_lod_fstar"; //M2
     public static final String TRIALLELIC_SITE_FILTER_NAME =                  "triallelic_site"; //M2
     public static final String STRAND_ARTIFACT_FILTER_NAME =                  "strand_artifact"; // M2
+    public static final String CLUSTERED_READ_POSITION_FILTER_NAME =          "clustered_read_position"; // M2
+
 
     // Symbolic alleles
     public final static String SYMBOLIC_ALLELE_DEFINITION_HEADER_TAG = "ALT";
