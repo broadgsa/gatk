@@ -31,9 +31,11 @@ import org.broadinstitute.gatk.utils.commandline.Gatherer;
 import org.broadinstitute.gatk.utils.report.GATKReport;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -55,7 +57,7 @@ public class BQSRGatherer extends Gatherer  {
         final PrintStream outputFile;
         try {
             outputFile = new PrintStream(output);
-        } catch(FileNotFoundException e) {
+        } catch(final FileNotFoundException e) {
             throw new UserException.MissingArgument("output", MISSING_OUTPUT_FILE);
         }
         final GATKReport report = gatherReport(inputs);
@@ -70,10 +72,13 @@ public class BQSRGatherer extends Gatherer  {
      */
     public static GATKReport gatherReport(final List<File> inputs) {
         final SortedSet<String> allReadGroups = new TreeSet<String>();
-        final LinkedHashMap<File, Set<String>> inputReadGroups = new LinkedHashMap<File, Set<String>>();
+        final LinkedHashMap<File, Set<String>> inputReadGroups = new LinkedHashMap<>();
+
+        // Parse the input list for .list files and replace them with the files contained within them
+        final List<File> parsedInputs = parseInputList(inputs);
 
         // Get the read groups from each input report
-        for (final File input : inputs) {
+        for (final File input : parsedInputs) {
             final Set<String> readGroups = RecalibrationReport.getReadGroups(input);
             inputReadGroups.put(input, readGroups);
             allReadGroups.addAll(readGroups);
@@ -93,7 +98,7 @@ public class BQSRGatherer extends Gatherer  {
         }
 
         RecalibrationReport generalReport = null;
-        for (File input : inputs) {
+        for (final File input : parsedInputs) {
             final RecalibrationReport inputReport = new RecalibrationReport(input, allReadGroups);
             if( inputReport.isEmpty() ) { continue; }
 
@@ -108,5 +113,28 @@ public class BQSRGatherer extends Gatherer  {
         generalReport.calculateQuantizedQualities();
 
         return generalReport.createGATKReport();
+    }
+
+    /**
+     * Replaces any .list files in rawFileList with the files named in said .list file.
+     * Identical to parseVariantList method in CatVariants.
+     * @param rawFileList the original file list, possibly including .list files
+     * @return a new List, with .list files replaced
+     */
+    private static List<File> parseInputList(final List<File> rawFileList) {
+        final List<File> result = new ArrayList<>(rawFileList.size());
+        for (final File rawFile : rawFileList) {
+            if (rawFile.getName().endsWith(".list")) {
+                try {
+                    for (final String line : new XReadLines(rawFile, true))
+                        result.add(new File(line));
+                } catch (final IOException e) {
+                    throw new UserException.CouldNotReadInputFile(rawFile, e);
+                }
+            } else {
+                result.add(rawFile);
+            }
+        }
+        return result;
     }
 }
