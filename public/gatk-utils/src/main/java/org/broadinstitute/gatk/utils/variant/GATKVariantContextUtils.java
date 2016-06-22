@@ -2314,5 +2314,31 @@ public class GATKVariantContextUtils {
             builder.attribute(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFrequency.toArray());
         }
     }
+
+    /**
+     * @param plValues  array of PL values
+     * @return          the genotype quality corresponding to the PL values
+     */
+    public static int calculateGQFromPLs(final int[] plValues) {
+        if ( plValues == null ) throw new IllegalArgumentException("Array of PL values cannot be null.");
+        if ( plValues.length < 2 ) throw new IllegalArgumentException("Array of PL values must contain at least two elements.");
+
+        int first = plValues[0];
+        int second = plValues[1];
+        if (first > second) {
+            second = first;
+            first = plValues[1];
+        }
+        for (int i = 2; i < plValues.length; i++) {
+            final int candidate = plValues[i];
+            if (candidate >= second) continue;
+            if (candidate <= first) {
+                second = first;
+                first = candidate;
+            } else
+                second = candidate;
+        }
+        return second - first;
+    }
 }
 
