@@ -195,7 +195,8 @@ public class CatVariants extends CommandLineProgram {
     }
 
     /**
-     * Replaces any .list files in rawFileList with the files named in said .list file
+     * Replaces any .list files in rawFileList with the files named in said .list file.
+     * Identical to {@link org.broadinstitute.gatk.engine.recalibration.BQSRGatherer#parseInputList}.
      * @param rawFileList the original file list, possibly including .list files
      * @return a new List, with .list files replaced
      */
@@ -206,7 +207,7 @@ public class CatVariants extends CommandLineProgram {
                 try {
                     for (final String line : new XReadLines(rawFile, true))
                         result.add(new File(line));
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new UserException.CouldNotReadInputFile(rawFile, e);
                 }
             } else {
