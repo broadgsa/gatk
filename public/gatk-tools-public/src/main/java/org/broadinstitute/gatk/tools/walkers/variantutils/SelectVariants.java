@@ -627,7 +627,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private Map<String, VCFHeader> vcfRods;
 
     private final List<Allele> diploidNoCallAlleles = GATKVariantContextUtils.noCallAlleles(2);
-    private final Map<Integer, Integer> ploidyToNumberOfAlleles = new HashMap<Integer, Integer>();
+    private final Map<Integer, Integer> ploidyToNumberOfAlleles = new LinkedHashMap<Integer, Integer>();
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
