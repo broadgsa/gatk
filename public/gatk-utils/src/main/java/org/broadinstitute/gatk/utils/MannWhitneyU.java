@@ -503,7 +503,7 @@ public class MannWhitneyU {
      * @return P-value based on histogram with u calculated for every possible permutation of group tag.
      */
     public double permutationTest(final double[] series1, final double[] series2, final double testStatU) {
-        final Histogram<Double> histo = new Histogram<Double>();
+        final Histogram<Double> histo = new Histogram<>();
         final int n1 = series1.length;
         final int n2 = series2.length;
 
@@ -555,7 +555,7 @@ public class MannWhitneyU {
          */
         double sumOfAllSmallerBins = histo.get(testStatU).getValue() / 2.0;
 
-        for (final Histogram<Double>.Bin bin : histo.values()) {
+        for (final Histogram.Bin<Double> bin : histo.values()) {
             if (bin.getId() < testStatU) sumOfAllSmallerBins += bin.getValue();
         }
 

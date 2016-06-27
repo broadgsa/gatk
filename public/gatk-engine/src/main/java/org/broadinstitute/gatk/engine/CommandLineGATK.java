@@ -178,8 +178,7 @@ public class CommandLineGATK extends CommandLineExecutable {
                     System.getProperty("os.name") + " " + System.getProperty("os.version") +
                     " " + System.getProperty("os.arch"));
             header.add( System.getProperty("java.vm.name") +
-                    " " + System.getProperty("java.runtime.version") +
-                    " " + (DeflaterFactory.usingIntelDeflater()? "IntelDeflater": "JdkDeflater"));
+                    " " + System.getProperty("java.runtime.version"));
         }
         catch (Exception e) { /* Unpossible! */ }
 
