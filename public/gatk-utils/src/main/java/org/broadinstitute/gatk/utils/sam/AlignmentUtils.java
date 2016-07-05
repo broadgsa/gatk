@@ -488,6 +488,7 @@ public final class AlignmentUtils {
             }
         }
 
+        // pos counts read bases. alignmentPos counts ref bases
         int pos = 0;
         int alignmentPos = 0;
 

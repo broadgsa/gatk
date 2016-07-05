@@ -303,10 +303,10 @@ public class VariantAnnotatorEngine {
             if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
                 continue;
 
-                final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(referenceContext, perReadAlleleLikelihoodMap, newGenotypeAnnotatedVC);
-                if (annotationsFromCurrentType != null) {
-                    infoAnnotations.putAll(annotationsFromCurrentType);
-                }
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(null, walker, referenceContext, null, newGenotypeAnnotatedVC, perReadAlleleLikelihoodMap);
+            if (annotationsFromCurrentType != null) {
+                infoAnnotations.putAll(annotationsFromCurrentType);
+            }
         }
 
         // create a new VC with info and genotype annotations
