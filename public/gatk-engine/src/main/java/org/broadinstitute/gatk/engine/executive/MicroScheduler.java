@@ -204,7 +204,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         // Create the progress meter, and register it with the analysis engine
         engine.registerProgressMeter(new ProgressMeter(progressLogFile,
                 availableTraversalEngines.peek().getTraversalUnits(),
-                engine.getRegionsOfGenomeBeingProcessed()));
+                engine.getRegionsOfGenomeBeingProcessed(),
+                engine.getArguments().secondsBetweenProgressUpdates));
 
         // Now that we have a progress meter, go through and initialize the traversal engines
         for ( final TraversalEngine traversalEngine : allCreatedTraversalEngines )
