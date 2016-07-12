@@ -72,8 +72,8 @@ public class GATKVCFHeaderLines {
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TUMOR_LOD_FILTER_NAME, "Tumor does not meet likelihood threshold"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STR_CONTRACTION_FILTER_NAME, "Site filtered due to contraction of short tandem repeat region"));
         addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.TRIALLELIC_SITE_FILTER_NAME, "Site filtered because more than two alt alleles pass tumor LOD"));
-        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STRAND_ARTIFACT_FILTER_NAME, "Strand bias detected: evidence for alt allele comes from one read direction only"));
-        // addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.CLUSTERED_READ_POSITION_FILTER_NAME, "Variant appears in similar read positions"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.STRAND_ARTIFACT_FILTER_NAME, "Evidence for alt allele comes from one read direction only"));
+        addFilterLine(new VCFFilterHeaderLine(GATKVCFConstants.CLUSTERED_READ_POSITION_FILTER_NAME, "Evidence for somatic variant clusters near the ends of reads"));
 
 
 
@@ -197,7 +197,7 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(BEAGLE_AF_COMP_KEY, 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
         addInfoLine(new VCFInfoHeaderLine(BEAGLE_AN_COMP_KEY, 1, VCFHeaderLineType.Float, "Allele Number from Comparison ROD at this site"));
 
-        // M2-related info lines
+        // More M2-related info lines
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.EVENT_COUNT_IN_HAPLOTYPE_KEY, 1, VCFHeaderLineType.String, "Number of events in this haplotype"));
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.EVENT_DISTANCE_MAX_KEY, 1, VCFHeaderLineType.Integer, "Maximum distance between events in this active region"));
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.EVENT_DISTANCE_MIN_KEY, 1, VCFHeaderLineType.Integer, "Minimum distance between events in this active region"));
@@ -209,6 +209,10 @@ public class GATKVCFHeaderLines {
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TLOD_REV_KEY,1,VCFHeaderLineType.Float,"TLOD from reverse reads only"));
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TUMOR_SB_POWER_FWD_KEY,1,VCFHeaderLineType.Float,"Strand bias power for forward reads"));
         addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.TUMOR_SB_POWER_REV_KEY,1,VCFHeaderLineType.Float,"Stand bias power for reverse reads"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.MEDIAN_LEFT_OFFSET_KEY, 1, VCFHeaderLineType.Float, "Median of the number of bases between the left end of the tumor read and the variant"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.MEDIAN_RIGHT_OFFSET_KEY, 1, VCFHeaderLineType.Float, "Median of the number of bases between the variant and the right end of the tumor read"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.MAD_MEDIAN_LEFT_OFFSET_KEY, 1, VCFHeaderLineType.Float, "Median absolute deviation of medians of the number of bases between the left end of the tumor read and the variant"));
+        addInfoLine(new VCFInfoHeaderLine(GATKVCFConstants.MAD_MEDIAN_RIGHT_OFFSET_KEY, 1, VCFHeaderLineType.Float, "Median absolute deviation of medians of the number of bases between the variant and the right end of the tumor read"));
 
     }
 }
