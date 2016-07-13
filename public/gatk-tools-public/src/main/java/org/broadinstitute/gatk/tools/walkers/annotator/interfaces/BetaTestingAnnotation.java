@@ -28,5 +28,5 @@ package org.broadinstitute.gatk.tools.walkers.annotator.interfaces;
 /**
  * Annotations implementing this interface are not guaranteed to persist between GATK versions
  */
-public interface BetaTestingAnnotation {
+public interface BetaTestingAnnotation extends AnnotationType {
 }
