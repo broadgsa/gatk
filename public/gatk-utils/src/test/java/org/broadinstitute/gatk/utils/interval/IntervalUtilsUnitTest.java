@@ -1046,23 +1046,12 @@ public class IntervalUtilsUnitTest extends BaseTest {
         };
     }
 
-    /*
-     * This test is disabled because its assumption that we will not throw an error
-     * upon parsing invalid Picard intervals is no longer true, as htsjdk has added
-     * extra protection against invalid intervals to IntervalList.add().
-     *
-     * We should reconsider our decision in IntervalUtils.intervalFileToList() to
-     * silently ignore invalid intervals when parsing Picard interval files, as it's
-     * inconsistent with the way we handle invalid intervals for GATK interval files
-     * (throw a UserException, covered by testInvalidGATKFileIntervalHandling() below),
-     * and update this test accordingly.
-     */
-    @Test(dataProvider="invalidIntervalTestData", enabled = false)
+    @Test(dataProvider="invalidIntervalTestData", expectedExceptions=UserException.class, enabled = true)
     public void testInvalidPicardIntervalHandling(GenomeLocParser genomeLocParser,
                                                   String contig, int intervalStart, int intervalEnd ) throws Exception {
 
         SAMFileHeader picardFileHeader = new SAMFileHeader();
-        picardFileHeader.addSequence(genomeLocParser.getContigInfo("chr1"));
+        picardFileHeader.addSequence(genomeLocParser.getContigInfo(contig));
         IntervalList picardIntervals = new IntervalList(picardFileHeader);
         picardIntervals.add(new Interval(contig, intervalStart, intervalEnd, true, "dummyname"));
 

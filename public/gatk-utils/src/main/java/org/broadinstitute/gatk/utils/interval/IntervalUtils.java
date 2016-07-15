@@ -144,16 +144,17 @@ public class IntervalUtils {
                 IntervalList il = IntervalList.fromFile(inputFile);
                 isPicardInterval = true;
 
-                int nInvalidIntervals = 0;
                 for (Interval interval : il.getIntervals()) {
-                    if ( glParser.isValidGenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd(), true))
-                        ret.add(glParser.createGenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd(), true));
+                    if (interval.getStart() - interval.getEnd() == 1 ) { // remove once a corrected version of the exome interval list is released.
+                        logger.warn("Possible incorrectly converted length 1 interval : " + interval);
+                    }
+                    else if ( glParser.isValidGenomeLoc(interval.getContig(), interval.getStart(), interval.getEnd(), true)) {
+                        ret.add(glParser.createGenomeLoc(interval.getContig(), interval.getStart(), interval.getEnd(), true));
+                    }
                     else {
-                        nInvalidIntervals++;
+                        throw new UserException(inputFile.toString() +  " has an invalid genome location : " + interval) ;
                     }
                 }
-                if ( nInvalidIntervals > 0 )
-                    logger.warn("Ignoring " + nInvalidIntervals + " invalid intervals from " + inputFile);
             }
 
             // if that didn't work, try parsing file as a GATK interval file

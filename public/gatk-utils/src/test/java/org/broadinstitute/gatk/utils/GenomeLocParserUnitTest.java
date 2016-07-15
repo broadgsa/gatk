@@ -51,6 +51,7 @@ import java.util.*;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.assertFalse;
 
 /**
  * @author aaron
@@ -316,14 +317,14 @@ public class GenomeLocParserUnitTest extends BaseTest {
     @Test
     public void testValidationOfGenomeLocs() {
         assertTrue(genomeLocParser.isValidGenomeLoc("chr1",1,1));
-        assertTrue(!genomeLocParser.isValidGenomeLoc("chr2",1,1)); // shouldn't have an entry
-        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,11)); // past the end of the contig
-        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",-1,10)); // bad start
-        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,-2)); // bad stop
-        assertTrue( genomeLocParser.isValidGenomeLoc("chr1",-1,2, false)); // bad stop
-        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",10,11)); // bad start, past end
-        assertTrue( genomeLocParser.isValidGenomeLoc("chr1",10,11, false)); // bad start, past end
-        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",2,1)); // stop < start
+        assertFalse(genomeLocParser.isValidGenomeLoc("chr2",1,1)); // shouldn't have an entry
+        assertFalse(genomeLocParser.isValidGenomeLoc("chr1",1,11)); // past the end of the contig
+        assertFalse(genomeLocParser.isValidGenomeLoc("chr1",-1,10)); // bad start
+        assertFalse(genomeLocParser.isValidGenomeLoc("chr1",1,-2)); // bad stop
+        assertTrue(genomeLocParser.isValidGenomeLoc("chr1",-1,2, false)); // bad stop
+        assertFalse(genomeLocParser.isValidGenomeLoc("chr1",10,11)); // bad start, past end
+        assertTrue(genomeLocParser.isValidGenomeLoc("chr1",10,11, false)); // bad start, past end
+        assertFalse(genomeLocParser.isValidGenomeLoc("chr1",2,1)); // stop < start
     }
 
     @Test(expectedExceptions = ReviewedGATKException.class)
