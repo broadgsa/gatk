@@ -539,6 +539,51 @@ public final class AlignmentUtils {
     }
 
     /**
+     * Is the offset inside a deletion?
+     *
+     * @param cigar         the read's CIGAR -- cannot be null
+     * @param offset        the offset into the CIGAR
+     * @return true if the offset is inside a deletion, false otherwise
+     */
+    public static boolean isInsideDeletion(final Cigar cigar, final int offset) {
+        if ( cigar == null ) throw new IllegalArgumentException("attempting to find the alignment position from a CIGAR that is null");
+        if ( offset < 0 ) return false;
+
+        // pos counts read bases
+        int pos = 0;
+        int prevPos = 0;
+
+        for (final CigarElement ce : cigar.getCigarElements()) {
+
+            switch (ce.getOperator()) {
+                case I:
+                case S:
+                case D:
+                case M:
+                case EQ:
+                case X:
+                    prevPos = pos;
+                    pos += ce.getLength();
+                    break;
+                case H:
+                case P:
+                case N:
+                    break;
+                default:
+                    throw new ReviewedGATKException("Unsupported cigar operator: " + ce.getOperator());
+            }
+
+            // Is the offset inside a deletion?
+            if ( prevPos < offset && pos >= offset && ce.getOperator() == CigarOperator.D ) {
+                return true;
+
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Generate an array of bases for just those that are aligned to the reference (i.e. no clips or insertions)
      *
      * @param cigar            the read's CIGAR -- cannot be null
