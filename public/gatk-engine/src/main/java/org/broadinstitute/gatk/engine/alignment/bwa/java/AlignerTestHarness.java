@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.engine.alignment.Aligner;
 import org.broadinstitute.gatk.engine.alignment.Alignment;
 import org.broadinstitute.gatk.utils.BaseUtils;
@@ -126,7 +127,7 @@ public class AlignerTestHarness {
 
                 mismatches++;
 
-                IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
+                final ReferenceSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
 
                 System.out.printf("read          = %s, position = %d, negative strand = %b%n", formatBasesBasedOnCigar(read.getReadString(),read.getCigar(),CigarOperator.DELETION),
                                                                                                read.getAlignmentStart(),

@@ -26,45 +26,37 @@
 package org.broadinstitute.gatk.engine.datasources.reads;
 
 import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 
 /**
- * Test basic functionality in the GATK's implementation of the BAM index classes.
+ * Test basic functionality in the GATK's wrapper around htsjdk.samtools.BrowseableBAMIndex.
  */
-public class GATKBAMIndexUnitTest extends BaseTest {
+public class GATKBAMIndexFromDataSourceUnitTest extends BaseTest {
     private static File bamFile = new File(validationDataLocation+"MV1994.selected.bam");
-
-    /**
-     * Index file forming the source of all unit tests.
-     */
-    private static File bamIndexFile = new File(validationDataLocation+"MV1994.selected.bam.bai");
 
     /**
      * Storage for the index itself.
      */
     private GATKBAMIndex bamIndex;
 
-    /**
-     * Sequences.
-     */
-    private SAMSequenceDictionary sequenceDictionary;
-
-
     @BeforeClass
-    public void init() throws FileNotFoundException {
-        SAMFileReader reader = new SAMFileReader(bamFile);
-        this.sequenceDictionary = reader.getFileHeader().getSequenceDictionary();
+    public void init() throws IOException {
+        final SAMFileReader reader = new SAMFileReader(bamFile);
+        reader.enableIndexCaching(true); // needed ot get BrowseableBAMIndex
+        Assert.assertTrue(reader.hasIndex());
+        Assert.assertTrue(reader.indexing().hasBrowseableIndex());
+
+        bamIndex = new GATKBAMIndexFromDataSource(bamFile, reader.getFileHeader(), reader.indexing().getBrowseableIndex());
         reader.close();
-        
-        bamIndex = new GATKBAMIndex(bamIndexFile, sequenceDictionary);
     }
 
     @Test
@@ -95,19 +87,12 @@ public class GATKBAMIndexUnitTest extends BaseTest {
 
         // Level 5                                
         Assert.assertEquals(GATKBAMIndex.getFirstBinInLevel(5),4681);
-        Assert.assertEquals(bamIndex.getLevelSize(5),37448-4681+1);
+        // Need to wait unitl AbstractBAMFileIndex.getLevelSize() is fixed, will throw an ArrayIndexOutOfBoundsException if 1 before the end of the GenomicIndexUtil.LEVEL_STARTS array
+        //Assert.assertEquals(bamIndex.getLevelSize(5),37448-4681+1);
     }
 
-    @Test( expectedExceptions = UserException.MalformedFile.class )
-    public void testDetectTruncatedBamIndexWordBoundary() {
-        GATKBAMIndex index = new GATKBAMIndex(new File(privateTestDir + "truncated_at_word_boundary.bai"), sequenceDictionary);
-        index.readReferenceSequence(0);
+    @Test( expectedExceptions = ReviewedGATKException.class )
+    public void testTooManyReferenceSequencesDataSource() {
+        final GATKBAMIndexData index = bamIndex.readReferenceSequence(1);
     }
-
-    @Test( expectedExceptions = UserException.MalformedFile.class )
-    public void testDetectTruncatedBamIndexNonWordBoundary() {
-        GATKBAMIndex index = new GATKBAMIndex(new File(privateTestDir + "truncated_at_non_word_boundary.bai"), sequenceDictionary);
-        index.readReferenceSequence(0);
-    }
-
 }

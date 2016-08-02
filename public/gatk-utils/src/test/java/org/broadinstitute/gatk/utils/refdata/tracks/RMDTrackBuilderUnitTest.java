@@ -26,7 +26,7 @@
 package org.broadinstitute.gatk.utils.refdata.tracks;
 
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Tribble;
 import htsjdk.tribble.index.Index;
 import htsjdk.tribble.util.LittleEndianOutputStream;
@@ -54,7 +54,7 @@ import java.nio.channels.FileChannel;
  */
 public class RMDTrackBuilderUnitTest extends BaseTest {
     private RMDTrackBuilder builder;
-    private IndexedFastaSequenceFile seq;
+    private ReferenceSequenceFile seq;
     private GenomeLocParser genomeLocParser;
 
     @BeforeMethod

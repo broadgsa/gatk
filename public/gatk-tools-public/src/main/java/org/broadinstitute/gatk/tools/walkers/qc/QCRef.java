@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.tools.walkers.qc;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
@@ -70,7 +70,7 @@ public class QCRef extends RefWalker<Integer, Integer> {
 
     String contigName = "";
     int contigStart, contigEnd;
-    IndexedFastaSequenceFile uncachedRef;
+    ReferenceSequenceFile uncachedRef;
     byte[] uncachedBases;
 
     @Override

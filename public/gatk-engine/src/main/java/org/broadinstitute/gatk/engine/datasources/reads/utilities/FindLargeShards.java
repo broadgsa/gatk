@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.commandline.Input;
@@ -88,12 +89,12 @@ public class FindLargeShards extends CommandLineProgram {
     @Override
     public int execute() throws IOException {
         // initialize reference
-        IndexedFastaSequenceFile refReader = new IndexedFastaSequenceFile(referenceFile);
-        GenomeLocParser genomeLocParser = new GenomeLocParser(refReader);        
+        final ReferenceSequenceFile refReader = new IndexedFastaSequenceFile(referenceFile);
+        final GenomeLocParser genomeLocParser = new GenomeLocParser(refReader);
 
         // initialize reads
         List<SAMReaderID> bamReaders = ListFileUtils.unpackBAMFileList(samFiles,parser);
-        SAMDataSource dataSource = new SAMDataSource(referenceFile, bamReaders, new ThreadAllocation(), null, genomeLocParser);
+        final SAMDataSource dataSource = new SAMDataSource(referenceFile, bamReaders, new ThreadAllocation(), null, genomeLocParser);
 
         // intervals
         final GenomeLocSortedSet intervalSortedSet;
@@ -124,12 +125,12 @@ public class FindLargeShards extends CommandLineProgram {
         }
 
         // Print out the stddev: (sum(x^2) - (1/N)*sum(x)^2)/N
-        long mean = sum.divide(BigInteger.valueOf(numberOfShards)).longValue();
-        long stddev = (long)(Math.sqrt(sumOfSquares.subtract(sum.pow(2).divide(BigInteger.valueOf(numberOfShards))).divide(BigInteger.valueOf(numberOfShards)).doubleValue()));
+        final long mean = sum.divide(BigInteger.valueOf(numberOfShards)).longValue();
+        final long stddev = (long)(Math.sqrt(sumOfSquares.subtract(sum.pow(2).divide(BigInteger.valueOf(numberOfShards))).divide(BigInteger.valueOf(numberOfShards)).doubleValue()));
         logger.info(String.format("Number of shards: %d; mean uncompressed size = %d; stddev uncompressed size  = %d%n",numberOfShards,mean,stddev));
 
         // Crank through the shards again, this time reporting on the shards significantly larger than the mean.
-        long threshold = mean + stddev*5;
+        final long threshold = mean + stddev*5;
         logger.warn(String.format("PROGRESS: Searching for large shards: Contig\tRegion.Start\tRegion.Stop\tSize"));
         out.printf("Contig\tRegion.Start\tRegion.Stop\tSize%n");
 

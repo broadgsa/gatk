@@ -29,10 +29,10 @@ package org.broadinstitute.gatk.utils;
 // the imports for unit testing.
 
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
@@ -57,7 +57,7 @@ public class ExampleToCopyUnitTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
 
     // example fasta index file, can be deleted if you don't use the reference
-    private IndexedFastaSequenceFile seq;
+    private ReferenceSequenceFile seq;
 
     @BeforeClass
     public void setup() throws FileNotFoundException {

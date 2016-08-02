@@ -26,7 +26,7 @@
 package org.broadinstitute.gatk.engine.executive;
 
 import com.google.java.contract.Ensures;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.ReadMetrics;
@@ -104,7 +104,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     protected final GenomeAnalysisEngine engine;
 
-    protected final IndexedFastaSequenceFile reference;
+    protected final ReferenceSequenceFile reference;
 
     private final SAMDataSource reads;
     protected final Collection<ReferenceOrderedDataSource> rods;
@@ -131,7 +131,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      *
      * @return The best-fit microscheduler.
      */
-    public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
+    public static MicroScheduler create(final GenomeAnalysisEngine engine, final Walker walker, final SAMDataSource reads, final ReferenceSequenceFile reference,
+                                        final Collection<ReferenceOrderedDataSource> rods, final ThreadAllocation threadAllocation) {
         if ( threadAllocation.isRunningInParallelMode() ) {
             logger.info(String.format("Running the GATK in parallel mode with %d total threads, " +
                     "%d CPU thread(s) for each of %d data thread(s), of %d processors available on this machine",
@@ -183,7 +184,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     protected MicroScheduler(final GenomeAnalysisEngine engine,
                              final Walker walker,
                              final SAMDataSource reads,
-                             final IndexedFastaSequenceFile reference,
+                             final ReferenceSequenceFile reference,
                              final Collection<ReferenceOrderedDataSource> rods,
                              final ThreadAllocation threadAllocation) {
         this.engine = engine;
@@ -397,7 +398,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * Returns the reference maintained by this scheduler.
      * @return The reference maintained by this scheduler.
      */
-    public IndexedFastaSequenceFile getReference() { return reference; }
+    public ReferenceSequenceFile getReference() { return reference; }
 
     protected void cleanup() {
         try {

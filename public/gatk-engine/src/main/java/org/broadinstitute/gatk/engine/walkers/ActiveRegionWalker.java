@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.walkers;
 
 import com.google.java.contract.Ensures;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
@@ -181,7 +182,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     // Map over the ActiveRegion
     public abstract MapType map(final ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);
 
-    public final GenomeLocSortedSet extendIntervals( final GenomeLocSortedSet intervals, final GenomeLocParser genomeLocParser, IndexedFastaSequenceFile reference ) {
+    public final GenomeLocSortedSet extendIntervals( final GenomeLocSortedSet intervals, final GenomeLocParser genomeLocParser, final ReferenceSequenceFile reference ) {
         final int activeRegionExtension = this.getClass().getAnnotation(ActiveRegionTraversalParameters.class).extension();
         final List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
         for( final GenomeLoc interval : intervals.toList() ) {

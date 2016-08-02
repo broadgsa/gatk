@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.utils.activeregion;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
@@ -168,7 +168,7 @@ public class ActiveRegion implements HasGenomeLocation {
     /**
      * See #getActiveRegionReference but with padding == 0
      */
-    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader ) {
+    public byte[] getActiveRegionReference( final ReferenceSequenceFile referenceReader ) {
         return getActiveRegionReference(referenceReader, 0);
     }
 
@@ -182,21 +182,21 @@ public class ActiveRegion implements HasGenomeLocation {
      * @return a non-null array of bytes holding the reference bases in referenceReader
      */
     @Ensures("result != null")
-    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+    public byte[] getActiveRegionReference( final ReferenceSequenceFile referenceReader, final int padding ) {
         return getReference(referenceReader, padding, extendedLoc);
     }
 
     /**
      * See #getActiveRegionReference but using the span including regions not the extended span
      */
-    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
+    public byte[] getFullReference( final ReferenceSequenceFile referenceReader ) {
         return getFullReference(referenceReader, 0);
     }
 
     /**
      * See #getActiveRegionReference but using the span including regions not the extended span
      */
-    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+    public byte[] getFullReference( final ReferenceSequenceFile referenceReader, final int padding ) {
         return getReference(referenceReader, padding, spanIncludingReads);
     }
 
@@ -211,7 +211,7 @@ public class ActiveRegion implements HasGenomeLocation {
      * @return a non-null array of bytes holding the reference bases in referenceReader
      */
     @Ensures("result != null")
-    public byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
+    public byte[] getReference( final ReferenceSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
         if ( referenceReader == null ) throw new IllegalArgumentException("referenceReader cannot be null");
         if ( padding < 0 ) throw new IllegalArgumentException("padding must be a positive integer but got " + padding);
         if ( genomeLoc == null ) throw new IllegalArgumentException("genomeLoc cannot be null");

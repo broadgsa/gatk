@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.utils.sam;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.NGSPlatform;
 
@@ -52,7 +52,7 @@ import java.util.*;
 public class ArtificialBAMBuilder {
     public final static int BAM_SHARD_SIZE = 16384;
 
-    private final IndexedFastaSequenceFile reference;
+    private final ReferenceSequenceFile reference;
     private final GenomeLocParser parser;
 
     final int nReadsPerLocus;
@@ -73,7 +73,7 @@ public class ArtificialBAMBuilder {
 
     SAMFileHeader header;
 
-    public ArtificialBAMBuilder(final IndexedFastaSequenceFile reference, int nReadsPerLocus, int nLoci) {
+    public ArtificialBAMBuilder(final ReferenceSequenceFile reference, int nReadsPerLocus, int nLoci) {
         this.nReadsPerLocus = nReadsPerLocus;
         this.nLoci = nLoci;
 
@@ -94,7 +94,7 @@ public class ArtificialBAMBuilder {
         createAndSetHeader(1);
     }
 
-    public IndexedFastaSequenceFile getReference() {
+    public ReferenceSequenceFile getReference() {
         return reference;
     }
 

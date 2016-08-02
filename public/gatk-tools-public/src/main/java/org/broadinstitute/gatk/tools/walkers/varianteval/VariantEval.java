@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.tools.walkers.varianteval;
 
 import com.google.java.contract.Requires;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.samtools.util.IntervalTree;
 import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
@@ -282,7 +283,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     private final VariantEvalUtils variantEvalUtils = new VariantEvalUtils(this);
 
     // Ancestral alignments
-    private IndexedFastaSequenceFile ancestralAlignments = null;
+    private ReferenceSequenceFile ancestralAlignments = null;
 
     // The set of all possible evaluation contexts
     StratificationManager<VariantStratifier, EvaluationContext> stratManager;

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.executive;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.TribbleException;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.datasources.reads.SAMDataSource;
@@ -111,7 +111,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     protected HierarchicalMicroScheduler(final GenomeAnalysisEngine engine,
                                          final Walker walker,
                                          final SAMDataSource reads,
-                                         final IndexedFastaSequenceFile reference,
+                                         final ReferenceSequenceFile reference,
                                          final Collection<ReferenceOrderedDataSource> rods,
                                          final ThreadAllocation threadAllocation) {
         super(engine, walker, reads, reference, rods, threadAllocation);

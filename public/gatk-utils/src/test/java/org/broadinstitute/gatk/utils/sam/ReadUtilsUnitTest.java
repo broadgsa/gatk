@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMReadGroupRecord;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.Utils;
@@ -223,7 +223,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     @Test (enabled = true)
     public void testReadWithNsRefIndexInDeletion() throws FileNotFoundException {
 
-        final IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
         final int readLength = 76;
 
@@ -239,7 +239,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     @Test (enabled = true)
     public void testReadWithNsRefAfterDeletion() throws FileNotFoundException {
 
-        final IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
         final int readLength = 76;
 

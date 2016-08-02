@@ -25,7 +25,6 @@
 
 package org.broadinstitute.gatk.engine.traversals;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.engine.walkers.TestCountReadsWalker;
 import org.broadinstitute.gatk.utils.BaseTest;
@@ -90,7 +89,7 @@ public class TraverseReadsUnitTest extends BaseTest {
     private File output;
     private TraverseReadsNano traversalEngine = null;
 
-    private IndexedFastaSequenceFile ref = null;
+    private ReferenceSequenceFile ref = null;
     private GenomeLocParser genomeLocParser = null;
     private GenomeAnalysisEngine engine = null;
 

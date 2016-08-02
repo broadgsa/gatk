@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.filters;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.WalkerManager;
 import org.broadinstitute.gatk.engine.iterators.ReadTransformer;
@@ -41,7 +41,7 @@ import org.broadinstitute.gatk.utils.sam.GATKSAMRecord;
  */
 public class BAQReadTransformer extends ReadTransformer {
     private BAQ baqHMM;
-    private IndexedFastaSequenceFile refReader;
+    private ReferenceSequenceFile refReader;
     private BAQ.CalculationMode cmode;
     private BAQ.QualityMode qmode;
 

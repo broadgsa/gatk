@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.executive;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.gatk.engine.datasources.providers.ReadShardDataProvider;
@@ -63,7 +63,7 @@ public class LinearMicroScheduler extends MicroScheduler {
     protected LinearMicroScheduler(final GenomeAnalysisEngine engine,
                                    final Walker walker,
                                    final SAMDataSource reads,
-                                   final IndexedFastaSequenceFile reference,
+                                   final ReferenceSequenceFile reference,
                                    final Collection<ReferenceOrderedDataSource> rods,
                                    final ThreadAllocation threadAllocation) {
         super(engine, walker, reads, reference, rods, threadAllocation);
@@ -84,7 +84,6 @@ public class LinearMicroScheduler extends MicroScheduler {
         Accumulator accumulator = Accumulator.create(engine,walker);
 
         boolean done = walker.isDone();
-        int counter = 0;
 
         final TraversalEngine traversalEngine = borrowTraversalEngine(this);
         for (Shard shard : shardStrategy ) {
