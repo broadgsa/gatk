@@ -269,8 +269,13 @@ public class GenomeAnalysisEngine {
             Utils.resetRandomGenerator(System.currentTimeMillis());
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
-        if (args.BQSR_RECAL_FILE != null)
-            setBaseRecalibration(args);
+        if (args.BQSR_RECAL_FILE != null) {
+            if (args.BQSR_RECAL_FILE.exists()) {
+                setBaseRecalibration(args);
+            } else {
+                throw new UserException("The BQSR recalibration file, " + args.BQSR_RECAL_FILE.getAbsolutePath() + ", does not exist");
+            }
+        }
 
         // setup the runtime limits
         setupRuntimeLimits(args);
