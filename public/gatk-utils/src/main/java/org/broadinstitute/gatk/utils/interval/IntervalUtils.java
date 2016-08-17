@@ -658,7 +658,7 @@ public class IntervalUtils {
 
         GenomeLocSortedSet excludeSortedSet = null;
         if (excludeIntervals != null && excludeIntervals.size() > 0) {
-            excludeSortedSet = loadIntervals(excludeIntervals, IntervalSetRule.UNION, intervalMergingRule, 0, genomeLocParser);
+            excludeSortedSet = loadIntervals(excludeIntervals, IntervalSetRule.UNION, intervalMergingRule, intervalPadding, genomeLocParser);
         }
         return new Pair<GenomeLocSortedSet, GenomeLocSortedSet>(includeSortedSet, excludeSortedSet);
     }
