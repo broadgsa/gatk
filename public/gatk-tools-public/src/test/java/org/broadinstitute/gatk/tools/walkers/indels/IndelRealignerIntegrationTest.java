@@ -40,8 +40,8 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     private static final String knownIndels = validationDataLocation + "indelRealignerTest.pilot1.ceu.vcf";
     private static final String baseCommandPrefix = "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + mainTestBam + " -targetIntervals " + mainTestIntervals + " -compress 0 -L 20:49,500-55,500 ";
     private static final String baseCommand = baseCommandPrefix + "-o %s ";
-    private static final String base_md5 = "ab7407d2299d9ba73449cea376eeb9c4";
-    private static final String base_md5_with_SW_or_VCF = "fa57bd96b83038ac6a70e58e11bf5364";
+    private static final String base_md5 = "12e7c9fd7af4fc9184c5f58a1660eac5";
+    private static final String base_md5_with_SW_or_VCF = "2d3f79298687da007da52286b5c7261d";
 
     @Test
     public void testDefaults() {
@@ -64,7 +64,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -known " + knownIndels,
                 1,
-                Arrays.asList("c42b6f3e1270e43cce2b6f75b6a38f30"));
+                Arrays.asList("3d028025dcb8d268262274d8ffc42635"));
         executeTest("realigner known indels only from VCF", spec1);
     }
 
@@ -81,7 +81,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     public void testLods() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put("-LOD 60", base_md5);
-        e.put( "-LOD 1 --consensusDeterminationModel USE_SW",  "0c4597e48b4e194de32ebe494704ea6b" );
+        e.put( "-LOD 1 --consensusDeterminationModel USE_SW",  "44868da9b026201572cbfaaedacc57eb" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -97,7 +97,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 -o %s",
                 1,
-                Arrays.asList("19e6859b9ef09c7e0a79a19626908b17"));
+                Arrays.asList("c40aa32bca520015acb175fde52b4ed4"));
         executeTest("realigner long run", spec);
     }
 
@@ -106,7 +106,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseCommand + "--noOriginalAlignmentTags --consensusDeterminationModel USE_SW",
                 1,
-                Arrays.asList("8f5684359d7b26acaacfa657ef395a0c"));
+                Arrays.asList("3adc7711a163a65a570a47fe28eb4d24"));
         executeTest("realigner no output tags", spec);
     }
 
@@ -128,7 +128,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
     public void testMaxReadsInMemory() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put("--maxReadsInMemory 10000", "236c64f2da0047534b44444d9d699378");
+        e.put("--maxReadsInMemory 10000", "b8a4491506303dc96cf105ba069dd928");
         e.put( "--maxReadsInMemory 40000", base_md5 );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
