@@ -31,6 +31,7 @@ import htsjdk.samtools.util.ProgressLoggerInterface;
 import htsjdk.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.io.stubs.SAMFileWriterStub;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.sam.SimplifyingSAMFileWriter;
 
@@ -112,7 +113,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
     }
 
     public void mergeInto( SAMFileWriter targetStream ) {
-        SAMFileReader reader = new SAMFileReader( file );
+        final SamReader reader = SamReaderFactory.makeDefault().open(file);
         try {
             CloseableIterator<SAMRecord> iterator = reader.iterator();
             while( iterator.hasNext() )
@@ -120,7 +121,11 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             iterator.close();
         }
         finally {
-            reader.close();
+            try {
+                reader.close();
+            } catch (IOException e ) {
+                throw new GATKException(e.getMessage());
+            }
             file.delete();
         }
     }

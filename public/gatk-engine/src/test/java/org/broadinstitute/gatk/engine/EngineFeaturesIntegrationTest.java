@@ -344,7 +344,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------
 
     @Test
-    public void testGATKEngineConsolidatesCigars() {
+    public void testGATKEngineConsolidatesCigars() throws IOException {
         final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
                                                        " -I " + privateTestDir + "zero_length_cigar_elements.bam" +
@@ -352,8 +352,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                                                        1, Arrays.asList(""));  // No MD5s; we only want to check the cigar
 
         final File outputBam = executeTest("testGATKEngineConsolidatesCigars", spec).first.get(0);
-        final SAMFileReader reader = new SAMFileReader(outputBam);
-        reader.setValidationStringency(ValidationStringency.SILENT);
+        final SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(outputBam);
 
         final SAMRecord read = reader.iterator().next();
         reader.close();
@@ -382,7 +381,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                                                        1, Arrays.asList(""));  // No MD5s; we only want to check the read groups
 
         final File outputBam = executeTest("testOnTheFlySampleRenamingWithSingleBamFile", spec).first.get(0);
-        final SAMFileReader reader = new SAMFileReader(outputBam);
+        final SamReader reader = SamReaderFactory.makeDefault().open(outputBam);
 
         for ( final SAMReadGroupRecord readGroup : reader.getFileHeader().getReadGroups() ) {
             Assert.assertEquals(readGroup.getSample(), "myNewSampleName", String.format("Sample for read group %s not renamed correctly", readGroup.getId()));
@@ -402,12 +401,12 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final Map<String, String> readGroupToNewSampleMap = new HashMap<>();
         for ( String inputBamID : Arrays.asList("12878", "12891", "12892") ) {
             final File inputBam = new File(privateTestDir + String.format("CEUTrio.HiSeq.WGS.b37.NA%s.HEADERONLY.bam", inputBamID));
-            final SAMFileReader inputBamReader = new SAMFileReader(inputBam);
+            final SamReader reader = SamReaderFactory.makeDefault().open(inputBam);
             final String newSampleName = String.format("newSampleFor%s", inputBamID);
-            for ( final SAMReadGroupRecord readGroup : inputBamReader.getFileHeader().getReadGroups() ) {
+            for ( final SAMReadGroupRecord readGroup : reader.getFileHeader().getReadGroups() ) {
                 readGroupToNewSampleMap.put(readGroup.getId(), newSampleName);
             }
-            inputBamReader.close();
+            reader.close();
         }
 
         final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
@@ -420,10 +419,10 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                                                        1, Arrays.asList(""));  // No MD5s; we only want to check the read groups
 
         final File outputBam = executeTest("testOnTheFlySampleRenamingWithMultipleBamFiles", spec).first.get(0);
-        final SAMFileReader outputBamReader = new SAMFileReader(outputBam);
+        final SamReader reader =  SamReaderFactory.makeDefault().open(outputBam);
 
         int totalReadGroupsSeen = 0;
-        for ( final SAMReadGroupRecord readGroup : outputBamReader.getFileHeader().getReadGroups() ) {
+        for ( final SAMReadGroupRecord readGroup : reader.getFileHeader().getReadGroups() ) {
             Assert.assertEquals(readGroup.getSample(), readGroupToNewSampleMap.get(readGroup.getId()),
                                 String.format("Wrong sample for read group %s after on-the-fly renaming", readGroup.getId()));
             totalReadGroupsSeen++;
@@ -431,7 +430,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         Assert.assertEquals(totalReadGroupsSeen, readGroupToNewSampleMap.size(), "Wrong number of read groups encountered in output bam file");
 
-        outputBamReader.close();
+        reader.close();
     }
 
     // On-the-fly sample renaming test case: three single-sample bams with multiple read groups per bam,
@@ -446,15 +445,15 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final Map<String, String> readGroupToNewSampleMap = new HashMap<>();
         for ( String inputBamID : Arrays.asList("12878", "12891", "12892") ) {
             final File inputBam = new File(privateTestDir + String.format("CEUTrio.HiSeq.WGS.b37.NA%s.HEADERONLY.bam", inputBamID));
-            final SAMFileReader inputBamReader = new SAMFileReader(inputBam);
+            final SamReader reader = SamReaderFactory.makeDefault().open(inputBam);
 
             // Special-case NA12891, which we're not renaming:
             final String newSampleName = inputBamID.equals("12891") ? "NA12891" : String.format("newSampleFor%s", inputBamID);
 
-            for ( final SAMReadGroupRecord readGroup : inputBamReader.getFileHeader().getReadGroups() ) {
+            for ( final SAMReadGroupRecord readGroup : reader.getFileHeader().getReadGroups() ) {
                 readGroupToNewSampleMap.put(readGroup.getId(), newSampleName);
             }
-            inputBamReader.close();
+            reader.close();
         }
 
         final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
@@ -467,10 +466,10 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                                                        1, Arrays.asList(""));  // No MD5s; we only want to check the read groups
 
         final File outputBam = executeTest("testOnTheFlySampleRenamingWithMultipleBamFilesPartialRename", spec).first.get(0);
-        final SAMFileReader outputBamReader = new SAMFileReader(outputBam);
+        final SamReader reader = SamReaderFactory.makeDefault().open(outputBam);
 
         int totalReadGroupsSeen = 0;
-        for ( final SAMReadGroupRecord readGroup : outputBamReader.getFileHeader().getReadGroups() ) {
+        for ( final SAMReadGroupRecord readGroup : reader.getFileHeader().getReadGroups() ) {
             Assert.assertEquals(readGroup.getSample(), readGroupToNewSampleMap.get(readGroup.getId()),
                                 String.format("Wrong sample for read group %s after on-the-fly renaming", readGroup.getId()));
             totalReadGroupsSeen++;
@@ -478,7 +477,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         Assert.assertEquals(totalReadGroupsSeen, readGroupToNewSampleMap.size(), "Wrong number of read groups encountered in output bam file");
 
-        outputBamReader.close();
+        reader.close();
     }
 
     // On-the-fly sample renaming test case: two single-sample bams with read group collisions
@@ -489,11 +488,11 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                               privateTestDir + "CEUTrio.HiSeq.WGS.b37.READ_GROUP_COLLISIONS_WITH_NA12878.HEADERONLY.bam  newSampleForNot12878"));
 
         final Set<String> na12878ReadGroups = new HashSet<>();
-        final SAMFileReader inputBamReader = new SAMFileReader(new File(privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam"));
-        for ( final SAMReadGroupRecord readGroup : inputBamReader.getFileHeader().getReadGroups() ) {
+        final SamReader inpuBAMreader = SamReaderFactory.makeDefault().open(new File(privateTestDir + "CEUTrio.HiSeq.WGS.b37.NA12878.HEADERONLY.bam"));
+        for ( final SAMReadGroupRecord readGroup : inpuBAMreader.getFileHeader().getReadGroups() ) {
             na12878ReadGroups.add(readGroup.getId());
         }
-        inputBamReader.close();
+        inpuBAMreader.close();
 
         final WalkerTestSpec spec = new WalkerTestSpec(" -T TestPrintReadsWalker" +
                                                        " -R " + b37KGReference +
@@ -504,10 +503,10 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                                                        1, Arrays.asList(""));  // No MD5s; we only want to check the read groups
 
         final File outputBam = executeTest("testOnTheFlySampleRenamingWithReadGroupCollisions", spec).first.get(0);
-        final SAMFileReader outputBamReader = new SAMFileReader(outputBam);
+        final SamReader outputBAMreader = SamReaderFactory.makeDefault().open(outputBam);
 
         int totalReadGroupsSeen = 0;
-        for ( final SAMReadGroupRecord readGroup : outputBamReader.getFileHeader().getReadGroups() ) {
+        for ( final SAMReadGroupRecord readGroup : outputBAMreader.getFileHeader().getReadGroups() ) {
             String expectedSampleName = "";
             if ( na12878ReadGroups.contains(readGroup.getId()) ) {
                 expectedSampleName = "newSampleFor12878";
@@ -523,7 +522,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
         Assert.assertEquals(totalReadGroupsSeen, na12878ReadGroups.size() * 2, "Wrong number of read groups encountered in output bam file");
 
-        outputBamReader.close();
+        outputBAMreader.close();
     }
 
     // On-the-fly sample renaming test case: a multi-sample bam (this should generate a UserException)

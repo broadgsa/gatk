@@ -25,7 +25,6 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads;
 
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import org.broadinstitute.gatk.utils.BaseTest;
@@ -50,8 +49,7 @@ public class GATKBAMIndexFromDataSourceUnitTest extends BaseTest {
 
     @BeforeClass
     public void init() throws IOException {
-        final SAMFileReader reader = new SAMFileReader(bamFile);
-        reader.enableIndexCaching(true); // needed ot get BrowseableBAMIndex
+        final SamReader reader = SamReaderFactory.makeDefault().enable(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES).open(bamFile);
         Assert.assertTrue(reader.hasIndex());
         Assert.assertTrue(reader.indexing().hasBrowseableIndex());
 

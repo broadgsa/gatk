@@ -31,6 +31,7 @@ import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,9 +54,8 @@ public class PrintBAMRegion extends CommandLineProgram {
     private static final int MIN_OFFSET_SIZE = 0;
     private static final int MAX_OFFSET_SIZE = (int)Math.pow(2,16)-1;
 
-    public int execute() {
-        SAMFileReader reader = new SAMFileReader(input);
-        reader.setValidationStringency(ValidationStringency.SILENT);
+    public int execute() throws IOException {
+        final SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(input);
 
         Pattern regionPattern = Pattern.compile("(\\d+):(\\d+)-(\\d+):(\\d+)");
         Matcher matcher = regionPattern.matcher(region);
@@ -76,10 +76,10 @@ public class PrintBAMRegion extends CommandLineProgram {
         if(lastOffset < MIN_OFFSET_SIZE || lastOffset > MAX_OFFSET_SIZE)
             throw new UserException(String.format("Last offset is invalid; must be between %d and %d; actually is %d",MIN_OFFSET_SIZE,MAX_OFFSET_SIZE,lastOffset));
 
-        GATKChunk chunk = new GATKChunk(firstBlock<<16 | firstOffset,lastBlock<<16 | lastOffset);
-        GATKBAMFileSpan fileSpan = new GATKBAMFileSpan(chunk);
+        final GATKChunk chunk = new GATKChunk(firstBlock<<16 | firstOffset,lastBlock<<16 | lastOffset);
+        final GATKBAMFileSpan fileSpan = new GATKBAMFileSpan(chunk);
 
-        SAMRecordIterator iterator = reader.iterator(fileSpan);
+        final SAMRecordIterator iterator = ((SamReader.PrimitiveSamReaderToSamReaderAdapter) reader).iterator(fileSpan);
         long readCount = 0;
         while(iterator.hasNext()) {
             System.out.printf("%s%n",iterator.next().format());

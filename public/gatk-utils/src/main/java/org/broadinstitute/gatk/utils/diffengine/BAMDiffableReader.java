@@ -25,11 +25,13 @@
 
 package org.broadinstitute.gatk.utils.diffengine;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.ValidationStringency;
 import htsjdk.samtools.util.BlockCompressedInputStream;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.*;
 import java.util.Arrays;
@@ -49,8 +51,7 @@ public class BAMDiffableReader implements DiffableReader {
 
     @Override
     public DiffElement readFromFile(File file, int maxElementsToRead) {
-        final SAMFileReader reader = new SAMFileReader(file, null); // null because we don't want it to look for the index
-        reader.setValidationStringency(ValidationStringency.SILENT);
+        final SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(file);
 
         DiffNode root = DiffNode.rooted(file.getName());
         SAMRecordIterator iterator = reader.iterator();
@@ -93,7 +94,11 @@ public class BAMDiffableReader implements DiffableReader {
                 break;
         }
 
-        reader.close();
+        try {
+            reader.close();
+        } catch (final IOException ex ) {
+            throw new ReviewedGATKException("Unable to close " + file , ex);
+        }
 
         return root.getBinding();
     }

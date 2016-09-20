@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import htsjdk.samtools.CigarOperator;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
@@ -149,7 +149,7 @@ public final class LocusIteratorByState extends LocusIterator {
     }
 
     /**
-     * Create a new LocusIteratorByState based on a SAMFileReader using reads in an iterator it
+     * Create a new LocusIteratorByState based on a SamReader using reads in an iterator it
      *
      * Simple constructor that uses the samples in the reader, doesn't do any downsampling,
      * and makes a new GenomeLocParser using the reader.  This constructor will be slow(ish)
@@ -158,7 +158,7 @@ public final class LocusIteratorByState extends LocusIterator {
      * @param reader a non-null reader
      * @param it an iterator from reader that has the reads we want to use to create ReadBackPileups
      */
-    public LocusIteratorByState(final SAMFileReader reader, final CloseableIterator<SAMRecord> it) {
+    public LocusIteratorByState(final SamReader reader, final CloseableIterator<SAMRecord> it) {
         this(new GATKSAMRecordIterator(it),
                 new LIBSDownsamplingInfo(false, 0),
                 true,

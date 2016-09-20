@@ -30,9 +30,11 @@ package org.broadinstitute.gatk.utils;
 
 
 import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
@@ -50,6 +52,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 
 public class ExampleToCopyUnitTest extends BaseTest {
@@ -217,12 +220,17 @@ public class ExampleToCopyUnitTest extends BaseTest {
         // create a fake BAM file, and iterate through it
         final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(seq, 20, 10);
         final File bam = bamBuilder.makeTemporarilyBAMFile();
-        final SAMFileReader reader = new SAMFileReader(bam);
+        final SamReader reader = SamReaderFactory.makeDefault().open(bam);
 
         final Iterator<SAMRecord> bamIt = reader.iterator();
         while ( bamIt.hasNext() ) {
             final SAMRecord read = bamIt.next(); // all reads are actually GATKSAMRecords
             // TODO -- add some tests that use reads from a BAM
+        }
+        try {
+            reader.close();
+        } catch ( IOException ex ) {
+            throw new ReviewedGATKException("Unable to close " + bam , ex);
         }
     }
 

@@ -25,15 +25,14 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
-import htsjdk.samtools.BAMIndex;
-import htsjdk.samtools.SAMFileReader;
-import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.*;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.instrumentation.Sizeof;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +55,7 @@ public class BAMFileStat extends CommandLineProgram {
     @Argument(doc="The range to inspect.",required=false)
     private String range;
 
-    public int execute() {
+    public int execute() throws IOException {
         switch(command) {
             case ShowBlocks:
                 throw new ReviewedGATKException("The BAM block inspector has been disabled.");
@@ -81,14 +80,11 @@ public class BAMFileStat extends CommandLineProgram {
         }
     }
 
-    private void showIndexBins(File bamFile,String contigName) {
-        SAMFileReader reader;
-        BAMIndex index;
+    private void showIndexBins(File bamFile,String contigName) throws IOException {
 
-        reader = new SAMFileReader(bamFile);
-        reader.setValidationStringency(ValidationStringency.SILENT);
-        reader.enableIndexCaching(true);
-        index = reader.getIndex();
+        final SamReader reader = SamReaderFactory.makeDefault().enable(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES).
+                validationStringency(ValidationStringency.SILENT).open(bamFile);
+        final SamReader.Indexing index = reader.indexing();
 
         reader.queryOverlapping(contigName,1,reader.getFileHeader().getSequence(contigName).getSequenceLength()).close();
 
