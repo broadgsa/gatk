@@ -163,7 +163,7 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
         }
         else{
             for (SAMReadGroupRecord rg : readGroups)
-                tableReport.addColumn(rg.getSample());
+                tableReport.addColumn(rg.getSample() + "[rg:" + rg.getReadGroupId() +"]");
             int rowIndex = 0;
             for (Integer length : table.keySet()){
                 tableReport.set(rowIndex,0,length);
