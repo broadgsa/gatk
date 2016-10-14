@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.queue.util
 
 import java.io.File
 import io.Source._
-import htsjdk.samtools.{SAMReadGroupRecord, SAMFileReader}
+import htsjdk.samtools.{SamReaderFactory, SAMReadGroupRecord}
 
 import collection.JavaConversions._
 
@@ -87,8 +87,10 @@ object QScriptUtils {
    * Returns the number of contigs in the BAM file header.
    */
   def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(bamFile)
-    samReader.getFileHeader.getSequenceDictionary.getSequences.size()
+    val samReader = SamReaderFactory.makeDefault().open(bamFile)
+    val size = samReader.getFileHeader.getSequenceDictionary.getSequences.size()
+    samReader.close
+    return size
   }
 
   /**
@@ -112,11 +114,12 @@ object QScriptUtils {
    * @return    a set with all distinct samples (in no particular order)
    */
   def getSamplesFromBAM(bam: File) : Set[String] = {
-    val reader = new SAMFileReader(bam)
+    val reader = SamReaderFactory.makeDefault().open(bam);
     var samples: Set[String] = Set()
     for (rg <- reader.getFileHeader.getReadGroups) {
       samples += rg.getSample
     }
+    reader.close
     samples
   }
 }

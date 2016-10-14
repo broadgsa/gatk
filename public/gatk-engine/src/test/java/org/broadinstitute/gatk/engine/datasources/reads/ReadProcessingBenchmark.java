@@ -25,11 +25,11 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads;
 
-import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
@@ -51,7 +51,7 @@ public abstract class ReadProcessingBenchmark extends SimpleBenchmark {
 
     @Override
     public void setUp() {
-        SAMFileReader fullInputFile = new SAMFileReader(new File(getBAMFile()));
+        SamReader reader = SamReaderFactory.makeDefault().open(new File(getBAMFile()));
 
         File tempFile = null;
         try {
@@ -62,15 +62,20 @@ public abstract class ReadProcessingBenchmark extends SimpleBenchmark {
         }
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         factory.setCreateIndex(true);
-        SAMFileWriter writer = factory.makeBAMWriter(fullInputFile.getFileHeader(),true,tempFile);
+        SAMFileWriter writer = factory.makeBAMWriter(reader.getFileHeader(),true,tempFile);
 
         long numReads = 0;
-        for(SAMRecord read: fullInputFile) {
+        for(SAMRecord read: reader) {
             if(numReads++ >= getMaxReads())
                 break;
             writer.addAlignment(read);
         }
 
+        try {
+            reader.close();
+        } catch ( IOException ex ) {
+            throw new ReviewedGATKException("Unable to close " + getBAMFile() , ex);
+        }
         writer.close();
 
         inputFile = tempFile;

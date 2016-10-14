@@ -25,14 +25,17 @@
 
 package org.broadinstitute.gatk.utils.sam;
 
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import org.broadinstitute.gatk.utils.BaseTest;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -94,7 +97,7 @@ public class ArtificialBAMBuilderUnitTest extends BaseTest {
         }
 
         final File bam = bamBuilder.makeTemporarilyBAMFile();
-        final SAMFileReader reader = new SAMFileReader(bam);
+        final SamReader reader = SamReaderFactory.makeDefault().open(bam);
         Assert.assertTrue(reader.hasIndex());
         final Iterator<SAMRecord> bamIt = reader.iterator();
         int nReadsFromBam = 0;
@@ -105,6 +108,11 @@ public class ArtificialBAMBuilderUnitTest extends BaseTest {
             nReadsFromBam++;
             Assert.assertTrue(read.getAlignmentStart() >= lastStart);
             lastStart = read.getAlignmentStart();
+        }
+        try {
+            reader.close();
+        } catch ( IOException ex ) {
+            throw new ReviewedGATKException("Unable to close " + bam , ex);
         }
         Assert.assertEquals(nReadsFromBam, bamBuilder.expectedNumberOfReads());
     }

@@ -25,8 +25,9 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads;
 
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMSequenceDictionary;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
@@ -34,7 +35,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 
 /**
  * Test basic functionality in the GATK's implementation of the BAM index classes.
@@ -59,8 +60,8 @@ public class GATKBAMIndexFromFileUnitTest extends BaseTest {
 
 
     @BeforeClass
-    public void init() throws FileNotFoundException {
-        final SAMFileReader reader = new SAMFileReader(bamFile);
+    public void init() throws IOException {
+        final SamReader reader = SamReaderFactory.makeDefault().enable(SamReaderFactory.Option.CACHE_FILE_BASED_INDEXES).open(bamFile);
         sequenceDictionary = reader.getFileHeader().getSequenceDictionary();
         reader.close();
 
