@@ -62,6 +62,15 @@ public class VariantAnnotatorEngine {
     // Map of info field name to info field
     private final Map<String, VCFInfoHeaderLine> hInfoMap = new HashMap<>();
 
+    /**
+     * Get the requested INFO field annotations
+     * 
+     * @return requested INFO field annotations
+     */
+    public List<InfoFieldAnnotation> getRequestedInfoAnnotations() {
+        return requestedInfoAnnotations;
+    }
+
     protected static class VAExpression {
 
         public String fullName, fieldName;
