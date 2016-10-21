@@ -363,10 +363,10 @@ public abstract class CommandLineProgram {
      * @param listAppender  Appender for saving logging messages to a list
      */
     private static void printDoneAndLogMessages(final ListAppender listAppender) {
-        System.out.println("------------------------------------------------------------------------------------------");
-        System.out.print("Done. ");
+        System.err.println("------------------------------------------------------------------------------------------");
+        System.err.print("Done. ");
         listAppender.write();
-        System.out.println("------------------------------------------------------------------------------------------");
+        System.err.println("------------------------------------------------------------------------------------------");
     }
 
     /**
