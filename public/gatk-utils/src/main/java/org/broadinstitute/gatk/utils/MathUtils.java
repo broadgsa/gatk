@@ -330,6 +330,10 @@ public class MathUtils {
         return log10sumLog10(log10values, 0);
     }
 
+    public static double log10SumLog10(final double a, final double b) {
+        return a > b ? a + Math.log10(1 + Math.pow(10.0, b - a)) : b + Math.log10(1 + Math.pow(10.0, a - b));
+    }
+
     public static boolean wellFormedDouble(final double val) {
         return !Double.isInfinite(val) && !Double.isNaN(val);
     }
