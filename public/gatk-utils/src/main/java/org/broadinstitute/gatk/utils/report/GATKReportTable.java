@@ -150,7 +150,6 @@ public class GATKReportTable {
                         // read a data line
                         final String dataLine = reader.readLine();
                         final List<String> lineSplits = Arrays.asList(TextFormattingUtils.splitFixedWidth(dataLine, columnStarts));
-
                         underlyingData.add(new Object[nColumns]);
                         for ( int columnIndex = 0; columnIndex < nColumns; columnIndex++ ) {
 
