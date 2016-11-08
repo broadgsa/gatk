@@ -25,22 +25,22 @@
 
 package org.broadinstitute.gatk.tools.walkers.annotator;
 
+import htsjdk.variant.variantcontext.Allele;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
 import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.gatk.utils.BaseUtils;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 import org.broadinstitute.gatk.utils.variant.GATKVCFHeaderLines;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -61,7 +61,7 @@ import java.util.Map;
  * </ul>
  */
 
- public class BaseCounts extends InfoFieldAnnotation {
+ public class BaseCounts extends InfoFieldAnnotation implements ActiveRegionBasedAnnotation {
 
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                         final AnnotatorCompatible walker,
@@ -69,21 +69,34 @@ import java.util.Map;
                                         final Map<String, AlignmentContext> stratifiedContexts,
                                         final VariantContext vc,
                                         final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
-        if ( stratifiedContexts.size() == 0 )
+
+        if ( stratifiedPerReadAlleleLikelihoodMap == null || stratifiedPerReadAlleleLikelihoodMap.isEmpty() ) {
             return null;
+        }
 
-        int[] counts = new int[4];
+        final Map<String, Object> map = new HashMap<>();
+        map.put(getKeyNames().get(0), Arrays.stream(getBaseCounts(stratifiedPerReadAlleleLikelihoodMap, vc)).boxed().collect(Collectors.toList()));
+        return map;
+    }
 
-        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            for (byte base : sample.getValue().getBasePileup().getBases() ) {
-                int index = BaseUtils.simpleBaseToBaseIndex(base);
-                if ( index != -1 )
-                    counts[index]++;
+    /**
+     * Counts of observed bases at a genomic position (e.g. {13,0,0,1} at chr1:100,000,000) over all samples
+     *
+     * @param stratifiedPerReadAlleleLikelihoodMap for each read, the underlying alleles represented by an aligned read, and corresponding relative likelihood.
+     * @param vc variant context
+     * @return count of A, C, G, T bases
+     */
+    private int[] getBaseCounts(final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap, final VariantContext vc) {
+        final Set<Allele> alleles = new HashSet<>(vc.getAlleles());
+        final int[] baseCounts = new int[4];
+        for ( final Map.Entry<String, PerReadAlleleLikelihoodMap> strat : stratifiedPerReadAlleleLikelihoodMap.entrySet() ) {
+            final int[] counts = AlignmentUtils.countBasesAtPileupPosition(strat.getValue(), alleles, vc.getStart());
+            for ( int i = 0; i < baseCounts.length; i++ ) {
+                baseCounts[i] += counts[i];
             }
         }
-        Map<String, Object> map = new HashMap<>();
-        map.put(getKeyNames().get(0), counts);
-        return map;
+
+        return baseCounts;
     }
 
     public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.BASE_COUNTS_KEY); }
