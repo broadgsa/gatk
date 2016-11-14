@@ -54,8 +54,8 @@ public class FragmentUtilsUnitTest extends BaseTest {
     private final static boolean DEBUG = false;
 
     private class FragmentUtilsTest extends TestDataProvider {
-        List<TestState> statesForPileup = new ArrayList<TestState>();
-        List<TestState> statesForReads = new ArrayList<TestState>();
+        List<TestState> statesForPileup = new ArrayList<>();
+        List<TestState> statesForReads = new ArrayList<>();
 
         private FragmentUtilsTest(String name, int readLen, int leftStart, int rightStart,
                                   boolean leftIsFirst, boolean leftIsNegative) {
@@ -70,8 +70,8 @@ public class FragmentUtilsUnitTest extends BaseTest {
                 boolean posCoveredByRight = pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd();
 
                 if ( posCoveredByLeft || posCoveredByRight ) {
-                    List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
-                    List<Integer> offsets = new ArrayList<Integer>();
+                    List<GATKSAMRecord> reads = new ArrayList<>();
+                    List<Integer> offsets = new ArrayList<>();
 
                     if ( posCoveredByLeft ) {
                         reads.add(left);
@@ -174,7 +174,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "MergeFragmentsTest")
     public Object[][] createMergeFragmentsTest() throws Exception {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         final String leftFlank = "CCC";
         final String rightFlank = "AAA";
@@ -248,29 +248,29 @@ public class FragmentUtilsUnitTest extends BaseTest {
         final byte[] commonQuals = Utils.dupBytes((byte)30, common.length());
         final String adapter    = "NNNN";
 
-        final GATKSAMRecord read1 = makeOverlappingRead(adapter, 30, common, commonQuals, "", 30, 10);
-        final GATKSAMRecord read2 = makeOverlappingRead("", 30, common, commonQuals, adapter, 30, 10);
+        final GATKSAMRecord readLeftAdapter = makeOverlappingRead(adapter, 30, common, commonQuals, "", 30, 10);
+        final GATKSAMRecord readRightAdapter = makeOverlappingRead("", 30, common, commonQuals, adapter, 30, 10);
         final GATKSAMRecord expectedMerged = makeOverlappingRead("", 30, common, commonQuals, "", 30, 10);
-        read1.setCigarString("4S" + common.length() + "M");
-        read1.setProperPairFlag(true);
-        read1.setReadPairedFlag(true);
-        read1.setFirstOfPairFlag(true);
-        read1.setReadNegativeStrandFlag(true);
-        read1.setMateNegativeStrandFlag(false);
-        read1.setMateAlignmentStart(read2.getAlignmentStart());
-        read2.setCigarString(common.length() + "M4S");
-        read2.setProperPairFlag(true);
-        read2.setReadPairedFlag(true);
-        read2.setFirstOfPairFlag(false);
-        read2.setReadNegativeStrandFlag(false);
-        read2.setMateNegativeStrandFlag(true);
-        read2.setMateAlignmentStart(read1.getAlignmentStart());
+        readLeftAdapter.setCigarString(adapter.length() + "S" + common.length() + "M");
+        readLeftAdapter.setProperPairFlag(true);
+        readLeftAdapter.setReadPairedFlag(true);
+        readLeftAdapter.setFirstOfPairFlag(true);
+        readLeftAdapter.setReadNegativeStrandFlag(true);
+        readLeftAdapter.setMateNegativeStrandFlag(false);
+        readLeftAdapter.setMateAlignmentStart(readRightAdapter.getAlignmentStart());
+        readRightAdapter.setCigarString(common.length() + "M4S");
+        readRightAdapter.setProperPairFlag(true);
+        readRightAdapter.setReadPairedFlag(true);
+        readRightAdapter.setFirstOfPairFlag(false);
+        readRightAdapter.setReadNegativeStrandFlag(false);
+        readRightAdapter.setMateNegativeStrandFlag(true);
+        readRightAdapter.setMateAlignmentStart(readLeftAdapter.getAlignmentStart());
 
-        final int insertSize = common.length() - 1;
-        read1.setInferredInsertSize(-insertSize);
-        read2.setInferredInsertSize(insertSize);
+        final int insertSize = common.length();
+        readLeftAdapter.setInferredInsertSize(-insertSize);
+        readRightAdapter.setInferredInsertSize(insertSize);
 
-        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(readLeftAdapter, readRightAdapter);
         Assert.assertEquals(actual.getCigarString(), expectedMerged.getCigarString());
         Assert.assertEquals(actual.getReadBases(), expectedMerged.getReadBases());
         Assert.assertEquals(actual.getReadGroup(), expectedMerged.getReadGroup());
@@ -282,24 +282,25 @@ public class FragmentUtilsUnitTest extends BaseTest {
     @Test(enabled = true)
     public void testHardClippingBeforeMergeResultingInCompletelyContainedSecondRead() {
         final String adapter    = "NNNN";
+        final int minReadSize   = 7;
 
-        final GATKSAMRecord read1 = makeOverlappingRead(adapter, 30, Utils.dupString("A", 10), Utils.dupBytes((byte)30, 10), "", 30, 10);
-        final GATKSAMRecord read2 = makeOverlappingRead("", 30, Utils.dupString("A", 7), Utils.dupBytes((byte)30, 7), adapter, 30, 10);
-        read1.setCigarString("4S10M");
-        read1.setProperPairFlag(true);
-        read1.setFirstOfPairFlag(true);
-        read1.setReadNegativeStrandFlag(true);
-        read1.setMateAlignmentStart(10);
-        read2.setCigarString("7M4S");
-        read2.setProperPairFlag(true);
-        read2.setFirstOfPairFlag(false);
-        read2.setReadNegativeStrandFlag(false);
+        final GATKSAMRecord readLeftAdapter = makeOverlappingRead(adapter, 30, Utils.dupString("A", 10), Utils.dupBytes((byte)30, 10), "", 30, 10);
+        final GATKSAMRecord readRightAdapter = makeOverlappingRead("", 30, Utils.dupString("A", minReadSize), Utils.dupBytes((byte)30, minReadSize), adapter, 30, 10);
+        readLeftAdapter.setCigarString(adapter.length() + "S10M");
+        readLeftAdapter.setProperPairFlag(true);
+        readLeftAdapter.setFirstOfPairFlag(true);
+        readLeftAdapter.setReadNegativeStrandFlag(true);
+        readLeftAdapter.setMateAlignmentStart(10);
+        readRightAdapter.setCigarString(minReadSize + "M4S");
+        readRightAdapter.setProperPairFlag(true);
+        readRightAdapter.setFirstOfPairFlag(false);
+        readRightAdapter.setReadNegativeStrandFlag(false);
 
-        final int insertSize = 7 - 1;
-        read1.setInferredInsertSize(insertSize);
-        read2.setInferredInsertSize(-insertSize);
+        final int insertSize = minReadSize;
+        readLeftAdapter.setInferredInsertSize(insertSize);
+        readRightAdapter.setInferredInsertSize(-insertSize);
 
-        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(readLeftAdapter, readRightAdapter);
         Assert.assertNull(actual);
     }
 
@@ -356,7 +357,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "AdjustFragmentsTest")
     public Object[][] createAdjustFragmentsTest() throws Exception {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         final String leftFlank = "CCC";
         final String rightFlank = "AAA";

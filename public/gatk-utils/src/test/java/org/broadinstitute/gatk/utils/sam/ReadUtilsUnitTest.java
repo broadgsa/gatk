@@ -90,7 +90,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
-        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+        Assert.assertEquals(boundary, myStart + fragmentSize);
 
         // Test case 2: positive strand, second read
         read = makeRead(fragmentSize, mateStart);
@@ -99,7 +99,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
-        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+        Assert.assertEquals(boundary, myStart + fragmentSize);
 
         // Test case 3: negative strand, second read
         read = makeRead(fragmentSize, mateStart);
