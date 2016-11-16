@@ -35,9 +35,9 @@ import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
 import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.gatk.tools.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
 import org.broadinstitute.gatk.utils.MathUtils;
 import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.gatk.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.util.Arrays;
@@ -70,7 +70,7 @@ import java.util.Map;
  * </ul>
  */
 
-public class AlleleBalance extends InfoFieldAnnotation {
+public class AlleleBalance extends InfoFieldAnnotation implements ActiveRegionBasedAnnotation {
 
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                         final AnnotatorCompatible walker,
@@ -78,135 +78,105 @@ public class AlleleBalance extends InfoFieldAnnotation {
                                         final Map<String, AlignmentContext> stratifiedContexts,
                                         final VariantContext vc,
                                         final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
-        //if ( stratifiedContexts.size() == 0 )
-        //    return null;
-
-        if ( !vc.isBiallelic() )
+        if ( !(vc.isBiallelic() && vc.hasGenotypes())) {
             return null;
-        final GenotypesContext genotypes = vc.getGenotypes();
-        if ( !vc.hasGenotypes() )
-            return null;
-
-        double ratioHom = 0.0;
-        double ratioHet = 0.0;
-        double weightHom = 0.0;
-        double weightHet = 0.0;
-        double overallNonDiploid = 0.0;
-        for ( Genotype genotype : genotypes ) {
-
-            if ( vc.isSNP() ) {
-
-                final int[] counts = getCounts(genotype, stratifiedContexts, vc);
-                // If AD was not calculated, we can't continue
-                if(counts == null)
-                    continue;
-
-                final int n_allele = counts.length;
-                int count_sum = 0;
-                for(int i=0; i<n_allele; i++){
-                    count_sum += counts[i];
-                }
-                double pTrue = 1.0 - Math.pow(10.0,-genotype.getGQ() / (double) 10 );
-                if ( genotype.isHet() ) {
-
-                    final int otherCount = count_sum - (counts[0] + counts[1]);
-                    // sanity check
-                    if ( counts[0] + counts[1] == 0 )
-                        continue;
-
-                    // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
-                    ratioHet += pTrue * ((double)counts[0] / (double)(counts[0] + counts[1]));
-                    weightHet += pTrue;
-                    overallNonDiploid += ( (double) otherCount )/((double) count_sum*genotypes.size());
-                } else if ( genotype.isHom() ) {
-                    final int alleleIdx = genotype.isHomRef() ?  0 : 1 ;
-                    final int alleleCount = counts[alleleIdx];
-                    int bestOtherCount = 0;
-                    for(int i=0; i<n_allele; i++){
-                        if( i == alleleIdx )
-                            continue;
-                        if( counts[i] > bestOtherCount )
-                            bestOtherCount = counts[i];
-                    }
-                    final int otherCount = count_sum - alleleCount;
-                    ratioHom += pTrue*( (double) alleleCount)/((double) (alleleCount+bestOtherCount));
-                    weightHom += pTrue;
-                    overallNonDiploid += ((double ) otherCount)/((double) count_sum*genotypes.size());
-                }
-                // Allele Balance for indels was not being computed correctly (since there was no allele matching).  Instead of
-                // prolonging the life of imperfect code, I've decided to delete it.  If someone else wants to try again from
-                // scratch, be my guest - but make sure it's done correctly!  [EB]
-            }
         }
 
-        // make sure we had a het genotype
+        double refCountInHetSamples = 0.0;
+        double altCountInHetSamples = 0.0;
+        double correctCountInHomSamples = 0.0;
+        double incorrectCountInHomSamples = 0.0;
+        double nonDiploidCount = 0.0;
+        double totalReadCount = 0.0;
+
+        for ( final Genotype genotype : vc.getGenotypes() ) {
+            if ( !vc.isSNP() ) {
+                continue;
+            }
+
+            final int[] alleleCounts = getCounts(genotype, stratifiedContexts, vc);
+
+            if (alleleCounts == null) continue;
+
+            final long totalReads = MathUtils.sum(alleleCounts);
+            if ( genotype.isHet() ) {
+                // weight read counts by genotype quality so that e.g. mis-called homs don't affect the ratio too much
+                refCountInHetSamples += alleleCounts[0];
+                altCountInHetSamples += alleleCounts[1];
+                nonDiploidCount += totalReads - (alleleCounts[0] + alleleCounts[1]);
+                totalReadCount += totalReads;
+            } else if ( genotype.isHom() ) {
+                final int alleleIndex = genotype.isHomRef() ?  0 : 1 ;
+                final int alleleCount = alleleCounts[alleleIndex];
+                int bestOtherCount = 0;
+                for(int n = 0; n < alleleCounts.length; n++){
+                    if( n != alleleIndex && alleleCounts[n] > bestOtherCount ) {
+                        bestOtherCount = alleleCounts[n];
+                    }
+                }
+                correctCountInHomSamples += alleleCount;
+                incorrectCountInHomSamples += bestOtherCount;
+                nonDiploidCount += totalReads - alleleCount;
+                totalReadCount += totalReads;
+            }
+            // Allele Balance for indels was not being computed correctly (since there was no allele matching).  Instead of
+            // prolonging the life of imperfect code, I've decided to delete it.  If someone else wants to try again from
+            // scratch, be my guest - but make sure it's done correctly!  [EB]
+
+        }
+        final double diploidCountInHetSamples = altCountInHetSamples + refCountInHetSamples;
+        final double diploidCountInHomSamples = correctCountInHomSamples + incorrectCountInHomSamples;
 
         Map<String, Object> map = new HashMap<>();
-        if ( weightHet > 0.0 ) {
-            map.put(GATKVCFConstants.ALLELE_BALANCE_HET_KEY,ratioHet/weightHet);
+        if ( diploidCountInHetSamples > 0.0 ) {
+            map.put(GATKVCFConstants.ALLELE_BALANCE_HET_KEY, refCountInHetSamples / diploidCountInHetSamples);
         }
 
-        if ( weightHom > 0.0 ) {
-            map.put(GATKVCFConstants.ALLELE_BALANCE_HOM_KEY,ratioHom/weightHom);
+        if ( diploidCountInHomSamples > 0.0 ) {
+            map.put(GATKVCFConstants.ALLELE_BALANCE_HOM_KEY, correctCountInHomSamples / diploidCountInHomSamples);
         }
 
-        if ( overallNonDiploid > 0.0 ) {
-            map.put(GATKVCFConstants.NON_DIPLOID_RATIO_KEY,overallNonDiploid);
+        if ( totalReadCount > 0.0 ) {
+            map.put(GATKVCFConstants.NON_DIPLOID_RATIO_KEY, nonDiploidCount / totalReadCount);
         }
         return map;
     }
 
     /**
-     * Provide a centralized method of getting the number of reads per allele, 
-     * depending on the input given.  Will use the following (in order of preference):
+     * Get the number of reads per allele, using the following (in order of preference):
      * - genotype.getAD()
      * - reads from an AlignmentContext
      * - reads from a PerReadAlleleLikelihoodMap (Not yet implemented) 
      *
-     *
      * @param genotype The genotype of interest
-     * @param stratifiedContexts A mapping 
-     * @param vc
-     * @return
+     * @param stratifiedContexts A mapping of sample name to read alignments at a location
+     * @param vc The Variant Context
+     * @return The number of reads per allele
      */
     private int[] getCounts(final Genotype genotype,
                             final Map<String, AlignmentContext> stratifiedContexts,
                             final VariantContext vc){
-
-        // Can't do anything without a genotype here
         if(genotype == null)
             return null;
 
-        int[] retVal = genotype.getAD();
-        AlignmentContext context;
+        if (genotype.hasAD()) {
+            return genotype.getAD();
+        } else {    // If  getAD() returned no information we count alleles from the pileup
+            final AlignmentContext context = stratifiedContexts == null ? null : stratifiedContexts.get(genotype.getSampleName());
+            if (context == null) return null;
 
-        if ( retVal == null && stratifiedContexts != null &&
-                (context = stratifiedContexts.get(genotype.getSampleName())) != null){
-            // If we get to this point, the getAD() function returned no information
-            // about AlleleDepth by Sample - perhaps it wasn't annotated?
-            // In that case, let's try to build it up using the algorithm that
-            // was here in v 3.1-1 and earlier
-            // Also, b/c of the assignment check in the if statement above,
-            // we know we have a valid AlignmentContext for this sample!
-
-            final ReadBackedPileup pileup = context.getBasePileup();
-            final String bases = new String(pileup.getBases());
-            List<Allele> alleles = vc.getAlleles();
-            final int n_allele = alleles.size();
-            retVal = new int[n_allele];
-
-            // Calculate the depth for each allele, under the assumption that
-            // the allele is a single base
-            int i=0;
-            for(Allele a : alleles){
-                retVal[i] = MathUtils.countOccurrences(a.toString().charAt(0), bases);
-                i++;
+            final byte[] bases = context.getBasePileup().getBases();
+            // Should be able to replace with the following, but this annotation was not found when using -A AlleleBalance
+            // return vc.getAlleles().stream().map(a -> MathUtils.countOccurrences(a.getBases()[0], bases)).mapToInt(Integer::intValue).toArray();
+            final List<Allele> alleles = vc.getAlleles();
+            final int[] result = new int[alleles.size()];
+            // Calculate the depth for each allele, assuming that the allele is a single base
+            for(int n = 0; n < alleles.size(); n++){
+                result[n] = MathUtils.countOccurrences(alleles.get(n).getBases()[0], bases);
             }
+            return result;
 
         }
-
-        return retVal;
-
     }
 
     @Override
