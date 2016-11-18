@@ -215,7 +215,7 @@ public class ReadUtils {
             return read.getMateAlignmentStart() - 1;           // case 1 (see header)
         } else {
             final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
-            return read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
+            return read.getAlignmentStart() + insertSize;  // case 2 (see header)
         }
     }
 

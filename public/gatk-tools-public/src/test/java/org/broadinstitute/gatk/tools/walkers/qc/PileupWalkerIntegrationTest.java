@@ -77,10 +77,10 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
     @DataProvider(name="GATKBAMIndexTest")
     public Object[][] makeMyDataProvider() {
         List<Object[]> tests = new ArrayList<Object[]>();
-        tests.add(new Object[]{"-L 20:1-76,050","8702701350de11a6d28204acefdc4775"});
+        tests.add(new Object[]{"-L 20:1-76,050","f275a2de053f44db19bc6591fe1c8dae"});
         tests.add(new Object[]{"-L 20:10,000,000-10,001,100","818cf5a8229efe6f89fc1cd8145ccbe3"});
-        tests.add(new Object[]{"-L 20:62,954,114-63,025,520","22471ea4a12e5139aef62bf8ff2a5b63"});
-        tests.add(new Object[]{"-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ","08d899ed7c5a76ef3947bf67338acda1"});
+        tests.add(new Object[]{"-L 20:62,954,114-63,025,520","7e3462745d298de3b7493b42d3603392"});
+        tests.add(new Object[]{"-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ","977298255b04d66c17bb5466da8251f7"});
         return tests.toArray(new Object[][]{});
     }
 
