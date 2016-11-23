@@ -457,9 +457,9 @@ public abstract class CommandLineProgram {
             throw new ReviewedGATKException("SamException found with no message!", t);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A BAM/CRAM ERROR has occurred (version %s): %n", getVersionNumber());
+        errorPrintf("AN INPUT FILE ERROR has occurred (version %s): %n", getVersionNumber());
         errorPrintf("%n");
-        errorPrintf("This means that there is something wrong with the BAM/CRAM file(s) you provided.%n");
+        errorPrintf("This means that there is something wrong with the input file(s) you provided.%n");
         errorPrintf("The error message below tells you what is the problem.%n");
         errorPrintf("%n");
         printDocumentationReference();
