@@ -52,7 +52,7 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
 
 import java.io.File;
 import java.util.*;
@@ -116,7 +116,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
     VariantOverlapAnnotator variantOverlapAnnotator = null;
 
     public void initialize() {
-        vcfwriter = VariantContextWriterFactory.sortOnTheFly(baseWriter, 40, false);
+        vcfwriter = new SortingVariantContextWriter(baseWriter, 40);
         variantOverlapAnnotator = new VariantOverlapAnnotator(dbsnp.dbsnp, getToolkit().getGenomeLocParser());
     }
 
