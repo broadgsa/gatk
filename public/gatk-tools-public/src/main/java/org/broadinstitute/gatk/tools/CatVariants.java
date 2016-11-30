@@ -51,7 +51,7 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextComparator;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 
 import java.io.*;
 import java.util.*;
@@ -265,11 +265,16 @@ public class CatVariants extends CommandLineProgram {
             }
         }
 
-        FileOutputStream outputStream = new FileOutputStream(outputFile);
         EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
         IndexCreator idxCreator = GATKVCFUtils.makeIndexCreator(variant_index_type, variant_index_parameter, outputFile, ref.getSequenceDictionary());
-        final VariantContextWriter outputWriter = VariantContextWriterFactory.create(outputFile, outputStream, ref.getSequenceDictionary(), idxCreator, options);
 
+        final VariantContextWriter outputWriter =
+                new VariantContextWriterBuilder()
+                        .setOutputFile(outputFile)
+                        .setReferenceDictionary(ref.getSequenceDictionary())
+                        .setIndexCreator(idxCreator)
+                        .setOptions(options)
+                        .build();
         boolean firstFile = true;
         int count = 0;
         while(!priorityQueue.isEmpty() ){

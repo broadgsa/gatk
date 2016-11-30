@@ -44,7 +44,7 @@ import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 
 import java.io.File;
 import java.util.*;
@@ -134,14 +134,20 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         if(splitToMany){
             writers = new VariantContextWriter[numOfFiles];
             for(int i = 0; i<writers.length; i++){
-                writers[i] = VariantContextWriterFactory.create(new File(baseFileName+".split."+i+".vcf"), getMasterSequenceDictionary());
+                writers[i] = new VariantContextWriterBuilder()
+                                .setOutputFile(new File(baseFileName+".split."+i+".vcf"))
+                                .setReferenceDictionary(getMasterSequenceDictionary())
+                                .build();
                 writers[i].writeHeader(new VCFHeader(hInfo,samples));
             }
 
         }
         else {
             vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
-            vcfWriter2 = VariantContextWriterFactory.create(file2, getMasterSequenceDictionary());
+            vcfWriter2 = new VariantContextWriterBuilder()
+                            .setOutputFile(file2)
+                            .setReferenceDictionary(getMasterSequenceDictionary())
+                            .build();
             vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
         }
     }

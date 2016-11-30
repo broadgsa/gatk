@@ -38,7 +38,7 @@ import htsjdk.variant.bcf2.BCF2Utils;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
 
 import java.io.*;
@@ -82,8 +82,11 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
             this.stream = stub.getOutputStream();
-            writer = VariantContextWriterFactory.create(stream,
-                    stub.getMasterSequenceDictionary(), stub.getWriterOptions(false));
+            writer = new VariantContextWriterBuilder()
+                    .setOutputVCFStream(stream)
+                    .setReferenceDictionary(stub.getMasterSequenceDictionary())
+                    .setOptions(stub.getWriterOptions(false))
+                    .build();
         }
         else
             throw new ReviewedGATKException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
@@ -131,22 +134,31 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
         }
 
-        EnumSet<Options> options = stub.getWriterOptions(indexOnTheFly);
-        VariantContextWriter writer = VariantContextWriterFactory.create(file, this.stream, stub.getMasterSequenceDictionary(), stub.getIndexCreator(), options);
+        final VariantContextWriterBuilder.OutputType fileOutputType = allowCompressed && stub.isCompressed() ?
+                VariantContextWriterBuilder.OutputType.BLOCK_COMPRESSED_VCF : VariantContextWriterBuilder.OutputType.VCF;
+        final EnumSet<Options> options = stub.getWriterOptions(indexOnTheFly);
+
+        VariantContextWriter writer = new VariantContextWriterBuilder()
+                        .setOutputFile(file)
+                        .setOutputFileType(fileOutputType)
+                        .setReferenceDictionary(stub.getMasterSequenceDictionary())
+                        .setIndexCreator(stub.getIndexCreator())
+                        .setOptions(options)
+                        .build();
 
         // if the stub says to test BCF, create a secondary writer to BCF and an 2 way out writer to send to both
         // TODO -- remove me when argument generateShadowBCF is removed
-        if ( stub.alsoWriteBCFForTest() && ! VariantContextWriterFactory.isBCFOutput(file, options)) {
+        if ( stub.alsoWriteBCFForTest() &&
+                ! (options.contains(Options.FORCE_BCF) || file != null && file.getName().contains(".bcf")) ) {
             final File bcfFile = BCF2Utils.shadowBCF(file);
             if ( bcfFile != null ) {
-                FileOutputStream bcfStream;
-                try {
-                    bcfStream = new FileOutputStream(bcfFile);
-                } catch (FileNotFoundException e) {
-                    throw new RuntimeException(bcfFile + ": Unable to create BCF writer", e);
-                }
+                final VariantContextWriter bcfWriter = new VariantContextWriterBuilder()
+                        .setOutputFile(bcfFile)
+                        .setOutputFileType(VariantContextWriterBuilder.OutputType.BCF)
+                        .setReferenceDictionary(stub.getMasterSequenceDictionary())
+                        .setOptions(options)
+                        .build();
 
-                VariantContextWriter bcfWriter = VariantContextWriterFactory.create(bcfFile, bcfStream, stub.getMasterSequenceDictionary(), stub.getIndexCreator(), options);
                 writer = new TestWriter(writer, bcfWriter);
             }
         }
