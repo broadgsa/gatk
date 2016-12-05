@@ -54,9 +54,7 @@ import java.util.*;
  *
  * <p>
  * This tool is designed to annotate variant calls based on their context (as opposed to functional annotation).
- * Various annotation modules are available; see the
- * <a href="https://www.broadinstitute.org/gatk/guide/tooldocs/org_broadinstitute_gatk_tools_walkers_annotator_VariantAnnotator.php#VariantAnnotations">documentation</a>
- * for a complete list.
+ * Various annotation modules are available; see the "Annotation Modules" page linked in the Tool Documentation sidebar for a complete list.
  *
  * <h3>Input</h3>
  * <p>
@@ -77,9 +75,9 @@ import java.util.*;
  *   -R reference.fasta \
  *   -T VariantAnnotator \
  *   -I input.bam \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   -A Coverage \
- *   -V input.vcf \
  *   -L input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
@@ -90,11 +88,11 @@ import java.util.*;
  *   -R reference.fasta \
  *   -T VariantAnnotator \
  *   -I input.bam \
- *   -o output.vcf \
  *   -V input.vcf \
+ *   -o output.vcf \
  *   -L input.vcf \
- *   --resource:foo resource.vcf
- *   -E foo.AF
+ *   --resource:foo resource.vcf \
+ *   -E foo.AF \
  *   --resourceAlleleConcordance
  * </pre>
  *
@@ -103,11 +101,11 @@ import java.util.*;
  * java -jar GenomeAnalysisTK.jar \
  *   -R reference.fasta \
  *   -T VariantAnnotator \
+ *   -V input.vcf \
  *   -o output.vcf \
  *   --resource:foo resource.vcf \
  *   --expression foo.AF \
- *   --expression foo.FILTER \
- *   -V input.vcf \
+ *   --expression foo.FILTER
  * </pre>
  *
  */

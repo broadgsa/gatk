@@ -27,9 +27,9 @@ package org.broadinstitute.gatk.utils.help;
 
 public class HelpConstants {
 
-    public final static String BASE_GATK_URL = "https://www.broadinstitute.org/gatk";
-    public final static String GATK_DOCS_URL = BASE_GATK_URL + "/guide/tooldocs/";
-    public final static String GATK_ARTICLE_URL = BASE_GATK_URL + "/guide/article";
+    public final static String BASE_GATK_URL = "https://software.broadinstitute.org/gatk";
+    public final static String GATK_DOCS_URL = BASE_GATK_URL + "/documentation/tooldocs/";
+    public final static String GATK_ARTICLE_URL = BASE_GATK_URL + "/documentation/article";
     public final static String GATK_FORUM_URL = "http://gatkforums.broadinstitute.org/";
     public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
 

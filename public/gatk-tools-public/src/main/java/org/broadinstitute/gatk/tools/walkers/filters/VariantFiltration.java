@@ -119,7 +119,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> implements Tr
     protected VariantContextWriter writer = null;
 
     /**
-     * VariantFiltration accepts any number of JEXL expressions (so you can have two named filters by using
+     * VariantFiltration accepts any number of <a href='https://software.broadinstitute.org/gatk/guide/article?id=1255'>JEXL expressions</a> (so you can have two named filters by using
      * {@code --filterName One --filterExpression "X < 1" --filterName Two --filterExpression "X > 2"}).
      */
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter", required=false)

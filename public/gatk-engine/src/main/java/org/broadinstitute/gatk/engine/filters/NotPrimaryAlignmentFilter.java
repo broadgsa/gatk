@@ -28,11 +28,10 @@ package org.broadinstitute.gatk.engine.filters;
 import htsjdk.samtools.SAMRecord;
 
 /**
- * Filter out reads that are non-primary alignments
+ * Filter out read records that are secondary alignments
  *
- * <p>This filter recognizes the SAM flag that identifies secondary and supplementary alignments, i.e. non-primary alignments.
- * It is intended to ensure that only reads that are likely to be mapped in the right place, and therefore to be
- * informative, will be used in analysis.</p>
+ * <p>This filter recognizes the SAM flag that identifies secondary alignments. It is intended to ensure that only records that are likely to be mapped in the right place, and therefore to be
+ * informative, will be used in analysis. To be clear, it does NOT filter out read records that are supplementary alignments.</p>
  *
  * <h3>Usage example</h3>
  *
@@ -45,8 +44,6 @@ import htsjdk.samtools.SAMRecord;
  *         -rf NotPrimaryAlignment
  * </pre>
  *
- * @author rpoplin
- * @since Dec 9, 2009
  */
 
 public class NotPrimaryAlignmentFilter extends ReadFilter {

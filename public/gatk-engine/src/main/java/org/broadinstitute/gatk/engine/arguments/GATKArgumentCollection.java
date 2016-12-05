@@ -416,10 +416,9 @@ public class GATKArgumentCollection {
     public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
 
     /**
-     * FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.
+     * This option is intended to be used FOR DEBUGGING PURPOSES ONLY. Note to developers: it is required in order to pass integration tests.
      */
-    @Hidden
-    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't include the command line in the VCF header",
+    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't include the command line in output VCF headers",
               required = false)
     public boolean disableCommandLineInVCF = false;
 
