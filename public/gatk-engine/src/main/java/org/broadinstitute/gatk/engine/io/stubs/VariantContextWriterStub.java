@@ -216,7 +216,8 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         if ( writeFullFormatField ) options.add(Options.WRITE_FULL_FORMAT_FIELD);
 
         final File file = getOutputFile();
-        if ( forceBCF || (file != null && options.contains(Options.FORCE_BCF) || file != null && file.getName().contains(".bcf")) )
+        if ( forceBCF || (file != null && options.contains(Options.FORCE_BCF) ||
+                file != null && (file.getName().endsWith(".bcf") || file.getName().endsWith(".bcf.gz"))) )
             options.add(Options.FORCE_BCF);
 
         return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);
