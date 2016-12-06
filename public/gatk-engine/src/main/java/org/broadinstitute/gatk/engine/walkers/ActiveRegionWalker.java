@@ -108,6 +108,24 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     @Argument(fullName="bandPassSigma", shortName="bandPassSigma", doc="The sigma of the band pass filter Gaussian kernel; if not provided defaults to Walker annotated default", required = false)
     public Double bandPassSigma = null;
 
+    /**
+     * What is the maximum number of reads we're willing to hold in memory per sample
+     * during the traversal?  This limits our exposure to unusually large amounts
+     * of coverage in the engine.
+     */
+    @Advanced
+    @Argument(fullName="maxReadsInMemoryPerSample", shortName="maxReadsInMemoryPerSample", doc="Maximum reads per sample given to traversal map() function", required = false)
+    public int maxReadsInMemoryPerSample = 30000;
+
+    /**
+     * What is the maximum number of reads we're willing to hold in memory per sample
+     * during the traversal?  This limits our exposure to unusually large amounts
+     * of coverage in the engine.
+     */
+    @Advanced
+    @Argument(fullName="maxTotalReadsInMemory", shortName="maxTotalReadsInMemory", doc="Maximum total reads given to traversal map() function", required = false)
+    public int maxTotalReadsInMemory = 10000000;
+
     /*
      * For active region limits in ActivityProfile
 *   */
