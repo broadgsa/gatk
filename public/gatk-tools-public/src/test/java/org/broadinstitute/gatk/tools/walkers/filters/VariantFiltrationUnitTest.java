@@ -113,8 +113,8 @@ public class VariantFiltrationUnitTest extends BaseTest {
 
         final VariantContext vc = buildDataForFilters().make();
 
-        final String filterName = "LowDP";
-        final String filterExpr = "DP < 10";
+        final String filterName = "LowZ"; //an attribute that doesn't appear in the VariantContext, so there isn't any chance of confusion like with the INFO DP
+        final String filterExpr = "Z < 10";
 
         final List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps = VariantContextUtils.initializeMatchExps(Arrays.asList(filterName), Arrays.asList(filterExpr));
 
@@ -197,33 +197,34 @@ public class VariantFiltrationUnitTest extends BaseTest {
         vcBuilder.attribute("SOR", 0.693);
 
         GenotypeBuilder gtBuilder = new GenotypeBuilder("one", Arrays.asList(altC,altC));
+        final String ATTRIBUTE_NOT_IN_VC = "Z";
         final Genotype firstSample = gtBuilder.attribute(VCFConstants.GENOTYPE_KEY, GenotypeType.HOM_VAR)
-                                                .DP(9) // edge case not passing "DP < 10"
+                                                .attribute(ATTRIBUTE_NOT_IN_VC, 9) // edge case not passing "Z < 10"
                                                 .make();
 
         gtBuilder = new GenotypeBuilder("two", Arrays.asList(altC,altC));
         final Genotype secondSample = gtBuilder.attribute(VCFConstants.GENOTYPE_KEY, GenotypeType.HOM_VAR)
-                                                .DP(10) // edge case passing    "DP < 10"
+                                                .attribute(ATTRIBUTE_NOT_IN_VC, 10) // edge case passing    "Z = 10"
                                                 .make();
 
         gtBuilder = new GenotypeBuilder("three", Arrays.asList(nocall,nocall));
         final Genotype thirdSample = gtBuilder.attribute(VCFConstants.GENOTYPE_KEY, GenotypeType.NO_CALL)
-                                                .DP(3)
+                                                .attribute(ATTRIBUTE_NOT_IN_VC, 3)
                                                 .make();
 
         gtBuilder = new GenotypeBuilder("four", Arrays.asList(nocall,nocall));
         final Genotype fourthSample = gtBuilder.attribute(VCFConstants.GENOTYPE_KEY, GenotypeType.NO_CALL)
-                                                .DP(0)
+                                                .attribute(ATTRIBUTE_NOT_IN_VC, (0))
                                                 .make();
 
         gtBuilder = new GenotypeBuilder("five", Arrays.asList(nocall,nocall));
         final Genotype fifthSample = gtBuilder.attribute(VCFConstants.GENOTYPE_KEY, GenotypeType.NO_CALL)
-                                                .DP(0)
+                                                .attribute(ATTRIBUTE_NOT_IN_VC, 0)
                                                 .make();
 
         gtBuilder = new GenotypeBuilder("six", Arrays.asList(altC,altC));
         final Genotype sixthSample = gtBuilder.attribute(VCFConstants.GENOTYPE_KEY, GenotypeType.HOM_VAR)
-                                                .DP(-1)
+                                                //no Z
                                                 .make();
 
         vcBuilder.genotypes(firstSample, secondSample, thirdSample, fourthSample, fifthSample, sixthSample);

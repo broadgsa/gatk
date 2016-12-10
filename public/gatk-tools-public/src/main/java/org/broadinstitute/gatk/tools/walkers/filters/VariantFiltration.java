@@ -424,17 +424,8 @@ public class VariantFiltration extends RodWalker<Integer, Integer> implements Tr
 
                 // Add if expression filters the variant context
                 for ( final VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExpressions ) {
-                    try {
-                        if (Utils.invertLogic(VariantContextUtils.match(vc, g, exp), invertGenotypeFilterExpression)) {
-                            filters.add(exp.name);
-                        }
-                    } catch (final IllegalArgumentException e) {
-                        // logic: right now (2016/08/18) if a filter is applied based on specific annotation and some sample contains missing value for such annotation,
-                        //        lower level code will throw IllegalArgumentException, therefore we specifically catch this type of exception
-                        // do nothing unless specifically asked to; it just means that the expression isn't defined for this context
-                        if ( failIfMissingValues  ) {
-                            filters.add(exp.name);
-                        }
+                    if (matchesFilter(vc, g, exp, invertGenotypeFilterExpression, failIfMissingValues)){
+                        filters.add(exp.name);
                     }
                 }
 
@@ -480,18 +471,16 @@ public class VariantFiltration extends RodWalker<Integer, Integer> implements Tr
         final Set<String> filters = new LinkedHashSet<>(vc.getFilters());
 
         for ( final VariantContextUtils.JexlVCMatchExp exp : vcFilterExpressions ) {
-            try {
-                if ( Utils.invertLogic(VariantContextUtils.match(vc, exp), invertVCfilterExpression) ) {
-                    filters.add(exp.name);
-                }
-            } catch (final Exception e) {
-                // do nothing unless specifically asked to; it just means that the expression isn't defined for this context
-                if ( failIfMissingValues  ) {
-                    filters.add(exp.name);
-                }
+            if (matchesFilter(vc, null, exp, invertVCfilterExpression, failIfMissingValues)) {
+                filters.add(exp.name);
             }
         }
         return filters;
+    }
+
+    private static boolean matchesFilter(final VariantContext vc, final Genotype g, final VariantContextUtils.JexlVCMatchExp exp, final boolean invertVCfilterExpression, final boolean failIfMissingValues) {
+        final JexlMissingValueTreatment howToTreatMissingValues = failIfMissingValues ? JexlMissingValueTreatment.TREAT_AS_MATCH : JexlMissingValueTreatment.TREAT_AS_MISMATCH;
+        return Utils.invertLogic(VariantContextUtils.match(vc, g, exp, howToTreatMissingValues), invertVCfilterExpression);
     }
 
     // -----------------------------------------------------------------------------------------------
