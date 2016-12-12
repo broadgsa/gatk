@@ -36,8 +36,10 @@
 
 #include <sys/time.h>
 
+#if defined(__x86_64__)
 #include <immintrin.h>
 #include <emmintrin.h>
+#endif
 #include <omp.h>
 
 #include <string>
