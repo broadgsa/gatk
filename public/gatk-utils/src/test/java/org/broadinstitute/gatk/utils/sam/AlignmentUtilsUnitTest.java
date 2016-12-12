@@ -26,17 +26,24 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.variant.variantcontext.Allele;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.gatk.utils.Utils;
+import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.broadinstitute.gatk.utils.BaseTest;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
-public class AlignmentUtilsUnitTest {
+public class AlignmentUtilsUnitTest extends BaseTest {
     private final static boolean DEBUG = false;
     private SAMFileHeader header;
 
@@ -513,6 +520,28 @@ public class AlignmentUtilsUnitTest {
     public void testAlignmentByteArrayOffsetData(final Cigar cigar, final int offset, final int expectedResult, final boolean isDeletion, final int lengthOfSoftClip) {
         final int actual = AlignmentUtils.calcAlignmentByteArrayOffset(cigar, isDeletion ? -1 : offset, isDeletion, 20, 20 + offset - lengthOfSoftClip);
         Assert.assertEquals(actual, expectedResult, "Wrong alignment offset detected for cigar " + cigar.toString());
+    }
+
+    @Test
+    public void testIsInsideDeletion() {
+        final List<CigarElement> cigarElements = Arrays.asList(new CigarElement(5, CigarOperator.S),
+                new CigarElement(5, CigarOperator.M),
+                new CigarElement(5, CigarOperator.EQ),
+                new CigarElement(6, CigarOperator.N),
+                new CigarElement(5, CigarOperator.X),
+                new CigarElement(6, CigarOperator.D),
+                new CigarElement(1, CigarOperator.P),
+                new CigarElement(1, CigarOperator.H));
+        final Cigar cigar = new Cigar(cigarElements);
+        for ( int i=-1; i <= 20; i++ ) {
+            Assert.assertFalse(AlignmentUtils.isInsideDeletion(cigar, i));
+        }
+        for ( int i=21; i <= 26; i++ ){
+            Assert.assertTrue(AlignmentUtils.isInsideDeletion(cigar, i));
+        }
+        for ( int i=27; i <= 28; i++ ) {
+            Assert.assertFalse(AlignmentUtils.isInsideDeletion(cigar, i));
+        }
     }
 
     ////////////////////////////////////////////////////
@@ -1041,5 +1070,53 @@ public class AlignmentUtilsUnitTest {
         final Cigar newCigar = AlignmentUtils.removeTrailingDeletions(originalCigar);
 
         Assert.assertEquals(originalCigar.equals(newCigar), !cigar.endsWith("D"));
+    }
+
+    @DataProvider(name = "CountBasesAtPileupPositionData")
+    public Object[][] makeCountBasesAtPileupPositionData() throws FileNotFoundException {
+        final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(publicTestDir + "exampleFASTA.fasta"));
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
+        final byte[] bases = new byte[]{'A','C','G','T'};
+        final byte[] basesSnp = new byte[]{'A','A','G','T'};
+        final byte[] basesDel = new byte[]{'A','G','T'};
+        final byte[] basesIns = ArrayUtils.addAll(new byte[]{'A'}, bases);
+        final Allele allele = Allele.create(new byte[]{'A'}, false);
+        final byte[] quals = new byte[] {30,30,30,30};
+        final byte[] qualsDel = new byte[] {30,30,30};
+        final byte[] qualsIns = new byte[] {30,30,30,30,30};
+
+        return new Object[][]{
+                { header, new byte[][]{bases, bases}, new byte[][]{quals, quals}, allele, new String[]{"4M", "4M"}, new int[][]{{2,0,0,0}, {0,2,0,0}, {0,0,2,0}, {0,0,0,2}} },
+                { header, new byte[][]{basesSnp, bases}, new byte[][]{quals, quals}, allele, new String[]{"4M", "4M"}, new int[][]{{2,0,0,0}, {1,1,0,0}, {0,0,2,0}, {0,0,0,2}} },
+                { header, new byte[][]{basesDel, bases}, new byte[][]{qualsDel, quals}, allele, new String[]{"1M1D2M", "4M"}, new int[][]{{2,0,0,0}, {0,1,0,0}, {0,0,2,0}, {0,0,0,2}} },
+                { header, new byte[][]{basesIns, bases}, new byte[][]{qualsIns, quals}, allele, new String[]{"1M1I3M", "4M"}, new int[][]{{2,0,0,0}, {0,2,0,0}, {0,0,2,0}, {0,0,0,2}} }
+        };
+    }
+
+    @Test(dataProvider = "CountBasesAtPileupPositionData")
+    public void testCountBasesAtPileupPosition(final SAMFileHeader header, final byte[][] bases, final byte[][] quals, final Allele allele, final String[] cigar, final int[][] expected) {
+
+        final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap = new PerReadAlleleLikelihoodMap();
+
+        for ( int i = 1; i <= bases.length; i++ ) {
+            final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read" + i, 0, 1, bases[i-1], quals[i-1], cigar[i-1]);
+            perReadAlleleLikelihoodMap.add(read, allele, -0.01);
+        }
+
+        final Set<Allele> alleles = new HashSet<>(Arrays.asList(allele));
+        final int endPosition = Math.min(bases[0].length, bases[1].length);
+        for ( int i = 1; i <= endPosition; i++ ) {
+            final int[] baseCounts = AlignmentUtils.countBasesAtPileupPosition(perReadAlleleLikelihoodMap, alleles, i);
+            Assert.assertEquals(baseCounts, expected[i-1]);
+        }
+    }
+
+    @Test(dataProvider = "CountBasesAtPileupPositionData", expectedExceptions = IllegalStateException.class)
+    public void testCountBasesAtPileupPositionException(final SAMFileHeader header, final byte[][] bases, final byte[][] quals, final Allele allele, final String[] cigar, final int[][] expected) {
+
+        final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap = new PerReadAlleleLikelihoodMap();
+
+        final Set<Allele> wrongAlleles = new HashSet<>(Arrays.asList(allele));
+        AlignmentUtils.countBasesAtPileupPosition(perReadAlleleLikelihoodMap, wrongAlleles, bases.length);
     }
 }

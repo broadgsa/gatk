@@ -65,8 +65,6 @@ public class PrintBGZFBounds extends CommandLineProgram {
         float uncompressedSize = 0;
         long totalBlocks = 0;
 
-        //SAMFileReader reader = new SAMFileReader(input);
-
         while(true) {
             final long blockStart = fis.getChannel().position();
 

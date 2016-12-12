@@ -26,7 +26,7 @@
 package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
@@ -57,7 +57,7 @@ public abstract class ReferenceViewTemplate extends BaseTest {
     /**
      * The fasta, for comparison.
      */
-    protected IndexedFastaSequenceFile sequenceFile = null;
+    protected ReferenceSequenceFile sequenceFile = null;
     protected GenomeLocParser genomeLocParser = null;
 
     //

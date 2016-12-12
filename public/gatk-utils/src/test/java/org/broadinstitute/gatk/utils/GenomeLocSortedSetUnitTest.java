@@ -26,15 +26,8 @@
 package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.SAMFileHeader;
-import org.broadinstitute.gatk.utils.BaseTest;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.gatk.utils.sam.ArtificialSAMUtils;
-
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
-
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -43,6 +36,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.*;
+
+import static org.testng.Assert.*;
 
 /**
  *
@@ -126,6 +121,48 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         GenomeLoc g = genomeLocParser.createGenomeLoc(contigTwoName, 1, 50);
         mSortedSet.add(g);
         GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, 30, 80);
+        mSortedSet.addRegion(f);
+        assertTrue(mSortedSet.size() == 2);
+        assertTrue(mSortedSet.toList().get(0).getContig().equals(contigOneName));
+        assertTrue(mSortedSet.toList().get(1).getContig().equals(contigTwoName));
+    }
+
+    @DataProvider(name="secondContigStart")
+    public Object[][] secondContigStart(){
+        return new Object[][]{
+                new Object[]{49},
+                new Object[]{50},
+                new Object[]{51}
+        };
+    }
+
+    @Test(dataProvider = "secondContigStart")
+    public void addMergeContiguous(final int secondContigStart) {
+        assertTrue(mSortedSet.size() == 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 1, 50);
+        mSortedSet.add(g);
+        GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, secondContigStart, 80);
+        mSortedSet.add(f, GenomeLocSortedSet.MergeStrategy.MERGE_CONTIGUOUS);
+        assertTrue(mSortedSet.size() == 1);
+    }
+
+    @Test(dataProvider = "secondContigStart")
+    public void addMergeContiguousReverse(final int secondContigStart) {
+        assertTrue(mSortedSet.size() == 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, secondContigStart, 80);
+        mSortedSet.add(g);
+        GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, 1, 50);
+        mSortedSet.add(f, GenomeLocSortedSet.MergeStrategy.MERGE_CONTIGUOUS);
+        assertTrue(mSortedSet.size() == 1);
+    }
+
+    @Test(dataProvider = "secondContigStart")
+    public void addMergeContiguousOutOfOrder(final int secondContigStart) {
+        final String contigTwoName = header.getSequenceDictionary().getSequence(2).getSequenceName();
+        assertTrue(mSortedSet.size() == 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigTwoName, 1, 50);
+        mSortedSet.add(g);
+        GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, secondContigStart, 80);
         mSortedSet.addRegion(f);
         assertTrue(mSortedSet.size() == 2);
         assertTrue(mSortedSet.toList().get(0).getContig().equals(contigOneName));
@@ -328,7 +365,6 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         testSizeBeforeLocX(50, 9);
         testSizeBeforeLocX(50, (int)mSortedSet.coveredSize());
     }
-
 
     @Test
     public void fromSequenceDictionary() {

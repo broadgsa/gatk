@@ -30,6 +30,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -138,5 +139,11 @@ public class MWUnitTest extends BaseTest {
         System.out.println("       Z: " + test.getZ());
         System.out.println("1-side p: " + test.getP());
         Assert.assertEquals(test.getZ(), Z, DELTA_PRECISION, name);
+    }
+
+    @Test
+    public void testTooManyTies(){
+        ArrayList<Integer> listOfNumberOfTies = new ArrayList<>(Arrays.asList(26,3,6,4,13,18,29,36,60,58,87,63,98,125,158,185,193,171,17592,115,100,141,216,298,451,719,1060,1909,3210,5167,7135,10125,11035,3541,732,9));
+        Assert.assertEquals(rst.transformTies(64890, listOfNumberOfTies), 8.41378729572e+12);
     }
 }

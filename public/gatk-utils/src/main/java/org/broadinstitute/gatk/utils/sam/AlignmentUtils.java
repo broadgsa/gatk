@@ -31,8 +31,11 @@ import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.variant.variantcontext.Allele;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
+import org.broadinstitute.gatk.utils.genotyper.MostLikelyAllele;
+import org.broadinstitute.gatk.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.gatk.utils.haplotype.Haplotype;
 import org.broadinstitute.gatk.utils.pileup.PileupElement;
 import org.broadinstitute.gatk.utils.recalibration.EventType;
@@ -488,6 +491,7 @@ public final class AlignmentUtils {
             }
         }
 
+        // pos counts read bases. alignmentPos counts ref bases
         int pos = 0;
         int alignmentPos = 0;
 
@@ -535,6 +539,51 @@ public final class AlignmentUtils {
         }
 
         return alignmentPos;
+    }
+
+    /**
+     * Is the offset inside a deletion?
+     *
+     * @param cigar         the read's CIGAR -- cannot be null
+     * @param offset        the offset into the CIGAR
+     * @return true if the offset is inside a deletion, false otherwise
+     */
+    public static boolean isInsideDeletion(final Cigar cigar, final int offset) {
+        if ( cigar == null ) throw new IllegalArgumentException("attempting to find the alignment position from a CIGAR that is null");
+        if ( offset < 0 ) return false;
+
+        // pos counts read bases
+        int pos = 0;
+        int prevPos = 0;
+
+        for (final CigarElement ce : cigar.getCigarElements()) {
+
+            switch (ce.getOperator()) {
+                case I:
+                case S:
+                case D:
+                case M:
+                case EQ:
+                case X:
+                    prevPos = pos;
+                    pos += ce.getLength();
+                    break;
+                case H:
+                case P:
+                case N:
+                    break;
+                default:
+                    throw new ReviewedGATKException("Unsupported cigar operator: " + ce.getOperator());
+            }
+
+            // Is the offset inside a deletion?
+            if ( prevPos < offset && pos >= offset && ce.getOperator() == CigarOperator.D ) {
+                return true;
+
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1336,4 +1385,45 @@ public final class AlignmentUtils {
             // 1: xxx I1 yyy
             new CigarPairTransform(CigarOperator.I, CigarOperator.I, CigarOperator.I, 1, 0)
             );
+
+    /**
+     * Get the counts of bases at a genome location for a pileup
+     *
+     * @param perReadAlleleLikelihoodMap  underlying alleles represented by an aligned read, and corresponding relative likelihood.
+     * @param alleles            the alleles
+     * @param location           genome location
+     * @return  the number of A, C, G, and T bases across all samples, in that order
+     * @throws IllegalStateException if alleles are not in perReadAlleleLikelihoodMap
+     */
+    @Ensures({"likelihoodReadMap != null", "alleles != null", "location >= 0", "baseCounts != null && !baseCounts.isEmpty()"})
+    public static int[] countBasesAtPileupPosition(final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap, final Set<Allele> alleles,
+                                                   final int location) throws IllegalStateException {
+
+        if ( perReadAlleleLikelihoodMap == null ) { throw new IllegalArgumentException("PerReadAlleleLikelihoodMap is null."); }
+        if ( alleles == null ) { throw new IllegalArgumentException("Alleles are null."); }
+        if ( location < 0 ) { throw new IllegalArgumentException("location < 0"); }
+
+        // make sure that there's a meaningful relationship between the alleles in the perReadAlleleLikelihoodMap and our VariantContext
+        if ( !perReadAlleleLikelihoodMap.getAllelesSet().containsAll(alleles) ) {
+            throw new IllegalStateException("VC alleles " + alleles + " not a strict subset of per read allele map alleles " + perReadAlleleLikelihoodMap.getAllelesSet());
+        }
+
+        final int[] baseCounts = new int[4];
+        for ( final Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : perReadAlleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+            final MostLikelyAllele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue(), alleles);
+            if (a.isInformative()) {
+                final byte[] bases = el.getKey().getReadBases();
+                final int position = location - el.getKey().getAlignmentStart();
+                if (position >= 0 && position < bases.length) {
+                    final byte[] coveredBases = AlignmentUtils.getBasesCoveringRefInterval(position, position, bases, 0, el.getKey().getCigar());
+                    if ( coveredBases != null && coveredBases.length != 0 ) {
+                        final int index = BaseUtils.simpleBaseToBaseIndex(coveredBases[0]);
+                        if (index != -1) baseCounts[index]++;
+                    }
+                }
+            }
+        }
+
+        return baseCounts;
+    }
 }

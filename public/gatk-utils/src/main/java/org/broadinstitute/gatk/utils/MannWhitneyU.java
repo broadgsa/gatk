@@ -280,23 +280,9 @@ public class MannWhitneyU {
         RankedData ranked = calculateRank(series1, series2);
         Rank[] ranks = ranked.getRank();
         ArrayList<Integer> numOfTies = ranked.getNumOfTies();
+        int lengthOfRanks = ranks.length;
 
-        //Calculate number of ties transformed for formula for Sigma to calculate Z-score
-        ArrayList<Integer> transformedTies = new ArrayList<>();
-        for (int count : numOfTies) {
-            //If every single datapoint is tied then we want to return a p-value of .5 and
-            //the formula for sigma that includes the number of ties breaks down. Setting
-            //the number of ties to 0 in this case gets the desired result in the normal
-            //approximation case.
-            if (count != ranks.length) {
-                transformedTies.add((count * count * count) - count);
-            }
-        }
-
-        double numOfTiesForSigma = 0.0;
-        for (int count : transformedTies) {
-            numOfTiesForSigma += count;
-        }
+        double numOfTiesForSigma = transformTies(lengthOfRanks, numOfTies);
 
         // Calculate R1 and R2 and U.
         float r1 = 0, r2 = 0;
@@ -314,6 +300,26 @@ public class MannWhitneyU {
         return result;
     }
 
+    public double transformTies(int numOfRanks, ArrayList<Integer> numOfTies) {
+        //Calculate number of ties transformed for formula for Sigma to calculate Z-score
+        ArrayList<Double> transformedTies = new ArrayList<>();
+        for (int count : numOfTies) {
+            //If every single datapoint is tied then we want to return a p-value of .5 and
+            //the formula for sigma that includes the number of ties breaks down. Setting
+            //the number of ties to 0 in this case gets the desired result in the normal
+            //approximation case.
+            if (count != numOfRanks) {
+                transformedTies.add((Math.pow(count, 3)) - count);
+            }
+        }
+
+        double numOfTiesForSigma = 0.0;
+        for (double count : transformedTies) {
+            numOfTiesForSigma += count;
+        }
+
+        return(numOfTiesForSigma);
+    }
     /**
      * Calculates the rank-sum test statisic U (sometimes W) from two sets of input data for a one-sided test
      * with an int indicating which group is the dominator. Returns a test statistic object with trueU and number of
@@ -503,7 +509,7 @@ public class MannWhitneyU {
      * @return P-value based on histogram with u calculated for every possible permutation of group tag.
      */
     public double permutationTest(final double[] series1, final double[] series2, final double testStatU) {
-        final Histogram<Double> histo = new Histogram<Double>();
+        final Histogram<Double> histo = new Histogram<>();
         final int n1 = series1.length;
         final int n2 = series2.length;
 
@@ -555,7 +561,7 @@ public class MannWhitneyU {
          */
         double sumOfAllSmallerBins = histo.get(testStatU).getValue() / 2.0;
 
-        for (final Histogram<Double>.Bin bin : histo.values()) {
+        for (final Histogram.Bin<Double> bin : histo.values()) {
             if (bin.getId() < testStatU) sumOfAllSmallerBins += bin.getValue();
         }
 

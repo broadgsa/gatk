@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.utils.commandline;
 
+import htsjdk.samtools.util.Log;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -279,30 +280,43 @@ public abstract class CommandLineProgram {
     }
 
     /**
-     * this function takes the logger level passed in on the command line and uses it to set the level of the logger
+     * This function takes the logger level passed in on the command line and uses it to set the level of the GATK and HTSJDK loggers.
+     * Caveat: The HTSJDK logger level can only be set to DEBUG, INFO, WARN or ERROR. A command line FATAL or OFF will set the HTSJDK logger level to ERROR.
+     *
      * @throws ArgumentException if the logging level is not valid (DEBUG, INFO, WARN, ERROR, FATAL, OFF)
      */
     private void setupLoggerLevel() {
         // set the default logger level
-        Level par;
+        Level gatkLevel;
+        Log.LogLevel htsjdkLevel;
         if (logging_level.toUpperCase().equals("DEBUG")) {
-            par = Level.DEBUG;
+            gatkLevel = Level.DEBUG;
+            htsjdkLevel = Log.LogLevel.DEBUG;
         } else if (logging_level.toUpperCase().equals("INFO")) {
-            par = Level.INFO;
+            gatkLevel = Level.INFO;
+            htsjdkLevel = Log.LogLevel.INFO;
         } else if (logging_level.toUpperCase().equals("WARN")) {
-            par = Level.WARN;
+            gatkLevel = Level.WARN;
+            htsjdkLevel = Log.LogLevel.WARNING;
         } else if (logging_level.toUpperCase().equals("ERROR")) {
-            par = Level.ERROR;
+            gatkLevel = Level.ERROR;
+            htsjdkLevel = Log.LogLevel.ERROR;
         } else if (logging_level.toUpperCase().equals("FATAL")) {
-            par = Level.FATAL;
+            gatkLevel = Level.FATAL;
+            htsjdkLevel = Log.LogLevel.ERROR;
         } else if (logging_level.toUpperCase().equals("OFF")) {
-            par = Level.OFF;
+            gatkLevel = Level.OFF;
+            htsjdkLevel = Log.LogLevel.ERROR;
         } else {
             // we don't understand the logging level, let's get out of here
             throw new ArgumentException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (DEBUG, INFO, WARN, ERROR, FATAL, OFF)");
         }
 
-        Logger.getRootLogger().setLevel(par);
+        // Set GATK log level
+        Logger.getRootLogger().setLevel(gatkLevel);
+
+        // Set HTSJDK log level
+        Log.setGlobalLogLevel(htsjdkLevel);
     }
 
     public static String getVersionNumber() {
@@ -363,10 +377,10 @@ public abstract class CommandLineProgram {
      * @param listAppender  Appender for saving logging messages to a list
      */
     private static void printDoneAndLogMessages(final ListAppender listAppender) {
-        System.out.println("------------------------------------------------------------------------------------------");
-        System.out.print("Done. ");
+        System.err.println("------------------------------------------------------------------------------------------");
+        System.err.print("Done. ");
         listAppender.write();
-        System.out.println("------------------------------------------------------------------------------------------");
+        System.err.println("------------------------------------------------------------------------------------------");
     }
 
     /**
@@ -443,9 +457,9 @@ public abstract class CommandLineProgram {
             throw new ReviewedGATKException("SamException found with no message!", t);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A BAM/CRAM ERROR has occurred (version %s): %n", getVersionNumber());
+        errorPrintf("AN INPUT FILE ERROR has occurred (version %s): %n", getVersionNumber());
         errorPrintf("%n");
-        errorPrintf("This means that there is something wrong with the BAM/CRAM file(s) you provided.%n");
+        errorPrintf("This means that there is something wrong with the input file(s) you provided.%n");
         errorPrintf("The error message below tells you what is the problem.%n");
         errorPrintf("%n");
         printDocumentationReference();

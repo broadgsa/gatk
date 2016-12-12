@@ -52,6 +52,9 @@ public class GATKArgumentCollection {
     // the default value of the stop of the expanded window
     public static final int DEFAULT_REFERENCE_WINDOW_STOP = 0;
 
+    // the default time in seconds between progress meter calls
+    public final static long DEFAULT_SECONDS_BETWEEN_PROGRESS_UPDATES = 10;
+
     /** the constructor */
     public GATKArgumentCollection() {
     }
@@ -354,6 +357,10 @@ public class GATKArgumentCollection {
     @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "Global Qscore Bayesian prior to use for BQSR", required = false)
     public double globalQScorePrior = -1.0;
 
+    @Advanced
+    @Argument(fullName="secondsBetweenProgressUpdates", shortName = "secondsBetweenProgressUpdates", doc = "Time interval for process meter information output (in seconds)", required=false)
+    public long secondsBetweenProgressUpdates = DEFAULT_SECONDS_BETWEEN_PROGRESS_UPDATES;
+
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -409,10 +416,9 @@ public class GATKArgumentCollection {
     public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
 
     /**
-     * FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.
+     * This option is intended to be used FOR DEBUGGING PURPOSES ONLY. Note to developers: it is required in order to pass integration tests.
      */
-    @Hidden
-    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't include the command line in the VCF header",
+    @Argument(fullName = "no_cmdline_in_header", shortName = "no_cmdline_in_header", doc = "Don't include the command line in output VCF headers",
               required = false)
     public boolean disableCommandLineInVCF = false;
 

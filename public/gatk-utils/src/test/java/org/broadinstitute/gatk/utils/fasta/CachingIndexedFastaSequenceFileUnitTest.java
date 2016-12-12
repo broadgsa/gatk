@@ -32,6 +32,7 @@ package org.broadinstitute.gatk.utils.fasta;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Priority;
 import org.broadinstitute.gatk.utils.BaseTest;
@@ -93,7 +94,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     private void testSequential(final CachingIndexedFastaSequenceFile caching, final File fasta, final int querySize) throws FileNotFoundException {
         Assert.assertTrue(caching.isPreservingCase(), "testSequential only works for case preserving CachingIndexedFastaSequenceFile readers");
 
-        final IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
+        final ReferenceSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
         for ( int i = 0; i < contig.getSequenceLength(); i += STEP_SIZE ) {
@@ -123,7 +124,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     // Tests grabbing sequences around a middle cached value.
     @Test(dataProvider = "fastas", enabled = true && ! DEBUG)
     public void testCachingIndexedFastaReaderTwoStage(File fasta, int cacheSize, int querySize) throws FileNotFoundException {
-        final IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
+        final ReferenceSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
         final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true, false);
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
@@ -191,7 +192,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     // make sure some bases are lower case and some are upper case
     @Test(enabled = true)
     public void testMixedCasesInExample() throws FileNotFoundException, InterruptedException {
-        final IndexedFastaSequenceFile original = new IndexedFastaSequenceFile(new File(exampleFASTA));
+        final ReferenceSequenceFile original = new IndexedFastaSequenceFile(new File(exampleFASTA));
         final CachingIndexedFastaSequenceFile casePreserving = new CachingIndexedFastaSequenceFile(new File(exampleFASTA), true);
         final CachingIndexedFastaSequenceFile allUpper = new CachingIndexedFastaSequenceFile(new File(exampleFASTA));
 
@@ -208,9 +209,9 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
         Assert.assertTrue(nMixedCase > 0, "No mixed cases sequences found in file.  Unexpected test state");
     }
 
-    private int testCases(final IndexedFastaSequenceFile original,
-                          final IndexedFastaSequenceFile casePreserving,
-                          final IndexedFastaSequenceFile allUpper,
+    private int testCases(final ReferenceSequenceFile original,
+                          final ReferenceSequenceFile casePreserving,
+                          final ReferenceSequenceFile allUpper,
                           final String contig, final int start, final int stop ) {
         final String orig = fetchBaseString(original, contig, start, stop);
         final String keptCase = fetchBaseString(casePreserving, contig, start, stop);
@@ -226,7 +227,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
         }
     }
 
-    private String fetchBaseString(final IndexedFastaSequenceFile reader, final String contig, final int start, final int stop) {
+    private String fetchBaseString(final ReferenceSequenceFile reader, final String contig, final int start, final int stop) {
         if ( start == -1 )
             return new String(reader.getSequence(contig).getBases());
         else

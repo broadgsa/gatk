@@ -194,10 +194,11 @@ public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
     protected Boolean WARN_ON_ERROR = false;
 
     /**
-     *  Validate this file as a gvcf. In particular, every variant must include a <NON_REF> allele, and that
-     *  every base in the territory under consideration is covered by a variant (or a reference block).
-     *  If you specifed intervals (using -L or -XL) to restrict analysis to a subset of genomic regions,
-     *  those intervals will need to be covered in a valid gvcf.
+     * This validation option REQUIRES that the input GVCF satisfies the following conditions:
+     * (1) every variant record must feature an allele in the list of ALT alleles, and
+     * (2) every position in the genomic territory under consideration must covered by a record, whether a single-position record or a reference block record.
+     * If the analysis that produced the file was restricted to a subset of genomic regions (for example using the -L or -XL arguments), the same intervals must be provided for validation.
+     * Otherwise, the validation tool will find positions that are not covered by records and will fail.
      */
     @Argument(fullName = "validateGVCF", shortName = "gvcf", doc = "Validate this file as a GVCF", required = false, exclusiveOf = "DO_NOT_VALIDATE_FILTERED")
     protected Boolean VALIDATE_GVCF = false;
@@ -235,12 +236,20 @@ public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
             lastVcEnd = vc.getEnd();
         }
 
+        // if there were no variants do not add anything!
+        if (lastVcEnd == -1)
+            return null;
+
         return GenomeLoc.setStop(ref.getLocus(), lastVcEnd);
     }
 
     @Override
     public GenomeLocSortedSet reduce(GenomeLoc value, GenomeLocSortedSet sum) {
-        sum.add(value, true);
+        // unless we are doing gvcf validation, there's no need
+        // to add all the genomelocs. Also, since we do not expect them to be contiguous, it will
+        // take a lot of memory.
+        if (VALIDATE_GVCF)
+            sum.add(value, GenomeLocSortedSet.MergeStrategy.MERGE_CONTIGUOUS);
         return sum;
     }
 
@@ -252,11 +261,21 @@ public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
     @Override
     public void onTraversalDone(GenomeLocSortedSet result) {
         if (VALIDATE_GVCF) {
-            final GenomeLocSortedSet uncoveredIntervals = getToolkit().getIntervals().subtractRegions(result);
-            if (uncoveredIntervals.coveredSize() > 0) {
-                final UserException e = new UserException.FailsStrictValidation(file, "A GVCF must cover the entire region. Found " + uncoveredIntervals.coveredSize() +
-                        " loci with no VariantContext covering it. The first uncovered segment is:" +
-                        uncoveredIntervals.iterator().next());
+            final GenomeLocSortedSet toolkitIntervals = getToolkit().getIntervals();
+            final GenomeLocSortedSet traversalIntervals;
+            if (toolkitIntervals == null) {
+                traversalIntervals = GenomeLocSortedSet.createSetFromSequenceDictionary(getToolkit().getMasterSequenceDictionary());
+            } else {
+                traversalIntervals = toolkitIntervals;
+            }
+
+            final GenomeLocSortedSet uncoveredIntervals = traversalIntervals.subtractRegions(result);
+            if (traversalIntervals.subtractRegions(result).coveredSize() > 0) {
+                final UserException e = new UserException.FailsStrictValidation(file, "Found " + uncoveredIntervals.coveredSize() +
+                        " positions not covered by a VariantContext record. The first uncovered segment is: " + uncoveredIntervals.iterator().next() +
+                        ". As noted in the documentation for the --validateGVCF/-gvcf argument, GVCF validation requires that all positions to validate " +
+                        "be covered by records. Use -L or --XL to specify what intervals are covered in the GVCF. These should be the same intervals used " +
+                        "to generate the GVCF or a subset thereof.");
 
                 if (WARN_ON_ERROR) {
                     numErrors++;

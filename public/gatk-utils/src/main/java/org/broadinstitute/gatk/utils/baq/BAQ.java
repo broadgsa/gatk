@@ -25,12 +25,12 @@
 
 package org.broadinstitute.gatk.utils.baq;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMUtils;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -151,7 +151,7 @@ public class BAQ {
      * @param b band width
      * @param minBaseQual All bases with Q < minBaseQual are up'd to this value
      */
-	public BAQ(final double d, final double e, final int b, final byte minBaseQual, boolean includeClippedBases) {
+	public BAQ(final double d, final double e, final int b, final byte minBaseQual, final boolean includeClippedBases) {
 		cd = d; ce = e; cb = b;
         this.minBaseQual = minBaseQual;
         this.includeClippedBases = includeClippedBases;
@@ -521,7 +521,7 @@ public class BAQ {
         }
     }
 
-     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, IndexedFastaSequenceFile refReader) {
+     public BAQCalculationResult calcBAQFromHMM(final SAMRecord read, final ReferenceSequenceFile refReader) {
         // start is alignment start - band width / 2 - size of first I element, if there is one.  Stop is similar
         int offset = getBandWidth() / 2;
         long readStart = includeClippedBases ? read.getUnclippedStart() : read.getAlignmentStart();
@@ -540,7 +540,7 @@ public class BAQ {
 //    final SimpleTimer total = new SimpleTimer();
 //    final SimpleTimer local = new SimpleTimer();
 //    int n = 0;
-    public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
+    public BAQCalculationResult calcBAQFromHMM(final byte[] ref, final byte[] query, final byte[] quals, final int queryStart, final int queryEnd ) {
 //        total.restart();
         if ( queryStart < 0 ) throw new ReviewedGATKException("BUG: queryStart < 0: " + queryStart);
         if ( queryEnd < 0 ) throw new ReviewedGATKException("BUG: queryEnd < 0: " + queryEnd);
@@ -564,7 +564,7 @@ public class BAQ {
      * @param read
      * @return
      */
-    private final Pair<Integer,Integer> calculateQueryRange(SAMRecord read) {
+    private final Pair<Integer,Integer> calculateQueryRange(final SAMRecord read) {
         int queryStart = -1, queryStop = -1;
         int readI = 0;
 
@@ -599,7 +599,7 @@ public class BAQ {
     }
 
     // we need to pad ref by at least the bandwidth / 2 on either side
-    public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
+    public BAQCalculationResult calcBAQFromHMM(final SAMRecord read, final byte[] ref, final int refOffset) {
         // todo -- need to handle the case where the cigar sum of lengths doesn't cover the whole read
         Pair<Integer, Integer> queryRange = calculateQueryRange(read);
         if ( queryRange == null ) return null; // read has Ns, or is completely clipped away
@@ -642,7 +642,7 @@ public class BAQ {
         return baqResult;
     }
 
-    public byte capBaseByBAQ( byte oq, byte bq, int state, int expectedPos ) {
+    public byte capBaseByBAQ( final byte oq, final byte bq, final int state, final int expectedPos ) {
         byte b;
         boolean isIndel = stateIsIndel(state);
         int pos = stateAlignedPosition(state);
@@ -664,7 +664,7 @@ public class BAQ {
      * @param calculationType
      * @return BQ qualities for use, in case qmode is DONT_MODIFY
      */
-    public byte[] baqRead(SAMRecord read, IndexedFastaSequenceFile refReader, CalculationMode calculationType, QualityMode qmode ) {
+    public byte[] baqRead(final SAMRecord read, final ReferenceSequenceFile refReader, final CalculationMode calculationType, final QualityMode qmode ) {
         if ( DEBUG ) System.out.printf("BAQ %s read %s%n", calculationType, read.getReadName());
 
         byte[] BAQQuals = read.getBaseQualities();      // in general we are overwriting quals, so just get a pointer to them
@@ -706,7 +706,7 @@ public class BAQ {
      * @param read
      * @return
      */
-    public boolean excludeReadFromBAQ(SAMRecord read) {
+    public boolean excludeReadFromBAQ(final SAMRecord read) {
         // keeping mapped reads, regardless of pairing status, or primary alignment status.
         return read.getReadUnmappedFlag() || read.getReadFailsVendorQualityCheckFlag() || read.getDuplicateReadFlag();
     }

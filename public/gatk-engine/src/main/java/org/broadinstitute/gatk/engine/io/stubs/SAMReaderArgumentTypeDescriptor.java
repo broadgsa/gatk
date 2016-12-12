@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.engine.io.stubs;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
 import org.broadinstitute.gatk.utils.commandline.*;
 import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -43,7 +43,7 @@ public class SAMReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     private GenomeAnalysisEngine engine;
 
     /**
-     * Create a new SAMFileReader argument, notifying the given engine when that argument has been created.
+     * Create a new SamReader argument, notifying the given engine when that argument has been created.
      * @param engine engine
      */
     public SAMReaderArgumentTypeDescriptor(GenomeAnalysisEngine engine) {
@@ -52,7 +52,7 @@ public class SAMReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public boolean supports( Class type ) {
-        return SAMFileReader.class.isAssignableFrom(type);
+        return SamReader.class.isAssignableFrom(type);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class SAMReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         // WARNING: Skipping required side-effect because stub is impossible to generate.
         engine.addInput(source, builder);
 
-        // MASSIVE KLUDGE!  SAMFileReader is tricky to implement and we don't yet have a stub.  Return null, then
+        // MASSIVE KLUDGE!  SamReader is tricky to implement and we don't yet have a stub.  Return null, then
         // let the output tracker load it in.
         // TODO: Add a stub for SAMReader.
         return null;

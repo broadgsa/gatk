@@ -23,31 +23,20 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.gatk.engine.filters;
+package org.broadinstitute.gatk.tools.walkers.diagnostics;
 
-import htsjdk.samtools.SAMRecord;
+import org.broadinstitute.gatk.engine.walkers.WalkerTest;
+import org.testng.annotations.Test;
 
-/**
- * Filter out read records that are secondary alignments
- *
- * <p>This filter recognizes the SAM flag that identifies secondary alignments. It is intended to ensure that only records that are likely to be mapped in the right place, and therefore to be
- * informative, will be used in analysis. To be clear, it does NOT filter out read records that are supplementary alignments.</p>
- *
- * <h3>Usage example</h3>
- *
- * <pre>
- *     java -jar GenomeAnalysisTk.jar \
- *         -T ToolName \
- *         -R reference.fasta \
- *         -I input.bam \
- *         -o output.file \
- *         -rf NotPrimaryAlignment
- * </pre>
- *
- */
+import java.util.Arrays;
 
-public class NotPrimaryAlignmentFilter extends ReadFilter {
-    public boolean filterOut( final SAMRecord read ) {
-        return read.getNotPrimaryAlignmentFlag();
+public class ReadLengthDistributionIntegrationTest extends WalkerTest {
+
+    @Test
+    public void testReadLengthDistributionMultiSample() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T ReadLengthDistribution -R " + b37KGReference + " -I " + privateTestDir + "testReadPos.snippet.bam -rf NotPrimaryAlignment -rf UnmappedRead -rf FailsVendorQualityCheck -rf DuplicateRead -o %s", 1,
+                Arrays.asList("9f0551e7116c7c8a56d6f7f756d02795"));
+        executeTest("test ReadLengthDistribution with a bame with multiple read groups", spec);
     }
 }

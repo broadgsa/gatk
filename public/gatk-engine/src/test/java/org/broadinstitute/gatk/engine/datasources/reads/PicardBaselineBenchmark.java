@@ -26,13 +26,13 @@
 package org.broadinstitute.gatk.engine.datasources.reads;
 
 import com.google.caliper.Param;
-import com.google.caliper.SimpleBenchmark;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.util.SamLocusIterator;
-import htsjdk.samtools.SAMFileReader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -55,9 +55,9 @@ public class PicardBaselineBenchmark extends ReadProcessingBenchmark {
     @Override
     public Integer getMaxReads() { return maxReads; }
     
-    public void timeDecompressBamFile(int reps) {
+    public void timeDecompressBamFile(int reps) throws IOException {
         for(int i = 0; i < reps; i++) {
-            SAMFileReader reader = new SAMFileReader(inputFile);
+            final SamReader reader = SamReaderFactory.makeDefault().open(inputFile);
             CloseableIterator<SAMRecord> iterator = reader.iterator();
             while(iterator.hasNext())
                 iterator.next();
@@ -66,9 +66,9 @@ public class PicardBaselineBenchmark extends ReadProcessingBenchmark {
         }
     }
 
-    public void timeExtractTag(int reps) {
+    public void timeExtractTag(int reps) throws IOException {
         for(int i = 0; i < reps; i++) {
-            SAMFileReader reader = new SAMFileReader(inputFile);
+            final SamReader reader = SamReaderFactory.makeDefault().open(inputFile);
             CloseableIterator<SAMRecord> iterator = reader.iterator();
             while(iterator.hasNext()) {
                 SAMRecord read = iterator.next();
@@ -79,9 +79,9 @@ public class PicardBaselineBenchmark extends ReadProcessingBenchmark {
         }
     }
 
-    public void timeSamLocusIterator(int reps) {
+    public void timeSamLocusIterator(int reps) throws IOException {
         for(int i = 0; i < reps; i++) {
-            SAMFileReader reader = new SAMFileReader(inputFile);
+            final SamReader reader = SamReaderFactory.makeDefault().open(inputFile);
             long loci = 0;
 
             SamLocusIterator samLocusIterator = new SamLocusIterator(reader);

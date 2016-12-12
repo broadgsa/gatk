@@ -26,13 +26,13 @@
 package org.broadinstitute.gatk.utils;
 
 import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.interval.IntervalMergingRule;
 import org.broadinstitute.gatk.utils.interval.IntervalUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  *         <p/>
@@ -54,7 +54,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     private GenomeLocParser genomeLocParser;
 
     // our private storage for the GenomeLoc's
-    private final List<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
+    private final List<GenomeLoc> mArray = new ArrayList<>();
 
     // cache this to make overlap checking much more efficient
     private int previousOverlapSearchIndex = -1;
@@ -92,7 +92,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     public GenomeLocSortedSet(final GenomeLocParser parser, final Collection<GenomeLoc> l) {
         this(parser);
 
-        final ArrayList<GenomeLoc> sorted = new ArrayList<GenomeLoc>(l);
+        final ArrayList<GenomeLoc> sorted = new ArrayList<>(l);
         Collections.sort(sorted);
         mArray.addAll(IntervalUtils.mergeIntervalLocations(sorted, IntervalMergingRule.OVERLAPPING_ONLY));
     }
@@ -228,7 +228,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         final int start = Math.max(-(index + 1) - 1, 0);
         final int size = mArray.size();
 
-        final List<GenomeLoc> overlapping = new LinkedList<GenomeLoc>();
+        final List<GenomeLoc> overlapping = new LinkedList<>();
         for ( int i = start; i < size; i++ ) {
             final GenomeLoc myLoc = mArray.get(i);
             if ( loc.overlapsP(myLoc) )
@@ -254,13 +254,10 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * @return a non-null list of locations that overlap loc
      */
     protected List<GenomeLoc> getOverlappingFullSearch(final GenomeLoc loc) {
-        final List<GenomeLoc> overlapping = new LinkedList<GenomeLoc>();
+        final List<GenomeLoc> overlapping = new LinkedList<>();
 
         // super slow, but definitely works
-        for ( final GenomeLoc myLoc : mArray ) {
-            if ( loc.overlapsP(myLoc) )
-                overlapping.add(myLoc);
-        }
+        overlapping.addAll(mArray.stream().filter(loc::overlapsP).collect(Collectors.toList()));
 
         return overlapping;
     }
@@ -273,8 +270,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      *
      * @return true if the loc was added or false otherwise (if the loc was null)
      */
+    @Override
     public boolean add(final GenomeLoc loc) {
-        return add(loc, false);
+        return add(loc, MergeStrategy.DO_NOT_MERGE);
     }
 
     /**
@@ -286,40 +284,53 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * @return true if the loc was added or false otherwise (if the loc was null)
      */
     public boolean addRegion(final GenomeLoc loc) {
-        return add(loc, true);
+        return add(loc, MergeStrategy.MERGE_OVERLAPS);
+    }
+
+    /**
+     * An enum describing the different ways in which one may wish to merge GenomeLocs
+     */
+    public enum MergeStrategy {
+        DO_NOT_MERGE, // nothing is merged
+        MERGE_OVERLAPS, // overlapping (sharing a locus) GenomeLocs will be merged
+        MERGE_CONTIGUOUS // overlapping _or_ just abutting GenomeLocs will be merged
     }
 
     /**
      * Adds a GenomeLoc to the collection, inserting at the correct sorted position into the set.
      *
-     * @param loc                      the GenomeLoc to add
-     * @param mergeIfIntervalOverlaps  if true we merge the interval if it overlaps another one already in the set, otherwise we throw an exception
+     * @param loc           The GenomeLoc to add
+     * @param mergeStrategy A merge strategy informing whether to avoid merging at all, to merge overlapping
+     *                      intervals, or to merge contiguous (i.e. overlapping or abutting) intervals.
+     *                      If mergeStrategy == DO_NOT_MERGE and loc overlaps another in the set, an exception is thrown
      *
      * @return true if the loc was added or false otherwise (if the loc was null or an exact duplicate)
+     *
+     * @throws IllegalArgumentException If loc overlaps any GenomeLoc in the set but mergeStrategy == DO_NOT_MERGE
      */
-    public boolean add(final GenomeLoc loc, final boolean mergeIfIntervalOverlaps) {
+    public boolean add(final GenomeLoc loc, final MergeStrategy mergeStrategy) throws IllegalArgumentException {
         if ( loc == null )
             return false;
 
         // if we have no other intervals yet or if the new loc is past the last one in the list (which is usually the
         // case because locs are generally added in order) then be extra efficient and just add the loc to the end
-        if ( mArray.size() == 0 || loc.isPast(mArray.get(mArray.size() - 1)) ) {
+        if ( mArray.size() == 0 || loc.isBeyond(mArray.get(mArray.size() - 1))) {
             return mArray.add(loc);
         }
 
         // find where in the list the new loc belongs
-        final int binarySearchIndex = Collections.binarySearch(mArray,loc);
+        final int binarySearchIndex = Collections.binarySearch(mArray, loc);
 
         // if it already exists in the list, return or throw an exception as needed
         if ( binarySearchIndex >= 0 ) {
-            if ( mergeIfIntervalOverlaps )
+            if ( mergeStrategy != MergeStrategy.DO_NOT_MERGE )
                 return false;
             throw new IllegalArgumentException("GenomeLocSortedSet already contains the GenomeLoc " + loc);
         }
 
         // if it overlaps a loc already in the list merge or throw an exception as needed
         final int insertionIndex = -1 * (binarySearchIndex + 1);
-        if ( ! mergeOverlappingIntervalsFromAdd(loc, insertionIndex, !mergeIfIntervalOverlaps) ) {
+        if ( ! mergeOverlappingIntervalsFromAdd(loc, insertionIndex, mergeStrategy) ) {
             // it does not overlap any current intervals, so add it to the set
             mArray.add(insertionIndex, loc);
         }
@@ -327,28 +338,42 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         return true;
     }
 
-    /*
+
+
+    /**
      * If the provided GenomeLoc overlaps another already in the set, merge them (or throw an exception if requested)
      *
-     * @param loc                          the GenomeLoc to add
-     * @param insertionIndex               the index in the sorted set to add the new loc
-     * @param throwExceptionIfOverlapping  if true we throw an exception if there's overlap, otherwise we merge them
+     * @param loc                      the GenomeLoc to add
+     * @param insertionIndex           the index in the sorted set to add the new loc
+     * @param mergeStrategy            a MergeStrategy informing how to deal with overlapping and abutting intervals
      *
      * @return true if the loc was added or false otherwise
      */
-    private boolean mergeOverlappingIntervalsFromAdd(final GenomeLoc loc, final int insertionIndex, final boolean throwExceptionIfOverlapping) {
+    private boolean mergeOverlappingIntervalsFromAdd(final GenomeLoc loc, final int insertionIndex, final MergeStrategy mergeStrategy) {
         // try merging with the previous index
         if ( insertionIndex != 0 && loc.overlapsP(mArray.get(insertionIndex - 1)) ) {
-            if ( throwExceptionIfOverlapping )
+            if ( mergeStrategy == MergeStrategy.DO_NOT_MERGE )
                 throw new IllegalArgumentException(String.format("GenomeLocSortedSet contains a GenomeLoc (%s) that overlaps with the provided one (%s)", mArray.get(insertionIndex - 1).toString(), loc.toString()));
+            mArray.set(insertionIndex - 1, mArray.get(insertionIndex - 1).merge(loc));
+            return true;
+        }
+
+        // if asking to merge contiguous, and is contiguous, merge and add
+        if ( mergeStrategy == MergeStrategy.MERGE_CONTIGUOUS & insertionIndex != 0 && loc.contiguousP(mArray.get(insertionIndex - 1)) ) {
             mArray.set(insertionIndex - 1, mArray.get(insertionIndex - 1).merge(loc));
             return true;
         }
 
         // try merging with the following index
         if ( insertionIndex < mArray.size() && loc.overlapsP(mArray.get(insertionIndex)) ) {
-            if ( throwExceptionIfOverlapping )
+            if ( mergeStrategy == MergeStrategy.DO_NOT_MERGE )
                 throw new IllegalArgumentException(String.format("GenomeLocSortedSet contains a GenomeLoc (%s) that overlaps with the provided one (%s)", mArray.get(insertionIndex).toString(), loc.toString()));
+            mArray.set(insertionIndex, mArray.get(insertionIndex).merge(loc));
+            return true;
+        }
+
+        // if asking to merge contiguous, and is contiguous, merge and add
+        if ( mergeStrategy == MergeStrategy.MERGE_CONTIGUOUS && insertionIndex < mArray.size() && loc.contiguousP(mArray.get(insertionIndex)) ) {
             mArray.set(insertionIndex, mArray.get(insertionIndex).merge(loc));
             return true;
         }
@@ -357,9 +382,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     }
 
     public GenomeLocSortedSet subtractRegions(GenomeLocSortedSet toRemoveSet) {
-        LinkedList<GenomeLoc> good = new LinkedList<GenomeLoc>();
-        Stack<GenomeLoc> toProcess = new Stack<GenomeLoc>();
-        Stack<GenomeLoc> toExclude = new Stack<GenomeLoc>();
+        LinkedList<GenomeLoc> good = new LinkedList<>();
+        Stack<GenomeLoc> toProcess = new Stack<>();
+        Stack<GenomeLoc> toExclude = new Stack<>();
 
         // initialize the stacks
         toProcess.addAll(mArray);
@@ -379,8 +404,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
             if ( p.overlapsP(e) ) {
                 toProcess.pop();
-                for ( GenomeLoc newP : p.subtract(e) )
-                    toProcess.push(newP);
+                p.subtract(e).forEach(toProcess::push);
             } else if ( p.compareContigs(e) < 0 ) {
                 good.add(toProcess.pop());         // p is now good
             } else if ( p.compareContigs(e) > 0 ) {
@@ -399,7 +423,6 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
         return createSetFromList(genomeLocParser,good);
     }
-
 
     /**
      * a simple removal of an interval contained in this list.  The interval must be identical to one in the list (no partial locations or overlapping)
@@ -420,9 +443,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     public static GenomeLocSortedSet createSetFromSequenceDictionary(final SAMSequenceDictionary dict) {
         final GenomeLocParser parser = new GenomeLocParser(dict);
         final GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet(parser);
-        for ( final SAMSequenceRecord sequence : dict.getSequences() ) {
-            returnSortedSet.add(parser.createOverEntireContig(sequence.getSequenceName()));
-        }
+        returnSortedSet.addAll(dict.getSequences().stream().map(sequence -> parser.createOverEntireContig(sequence.getSequenceName())).collect(Collectors.toList()));
         return returnSortedSet;
     }
 
@@ -433,12 +454,11 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      *
      * @return the sorted genome loc list
      */
-    public static GenomeLocSortedSet createSetFromList(GenomeLocParser parser,List<GenomeLoc> locs) {
+    public static GenomeLocSortedSet createSetFromList(final GenomeLocParser parser, final List<GenomeLoc> locs) {
         GenomeLocSortedSet set = new GenomeLocSortedSet(parser);
         set.addAll(locs);
         return set;
     }
-
 
     /**
      * return a deep copy of this collection.
@@ -447,10 +467,8 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      */
     public GenomeLocSortedSet clone() {
         GenomeLocSortedSet ret = new GenomeLocSortedSet(genomeLocParser);
-        for (GenomeLoc loc : this.mArray) {
-            // ensure a deep copy
-            ret.mArray.add(genomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStop()));
-        }
+        // ensure a deep copy
+        ret.mArray.addAll(this.mArray.stream().map(loc -> genomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStop())).collect(Collectors.toList()));
         return ret;
     }
 

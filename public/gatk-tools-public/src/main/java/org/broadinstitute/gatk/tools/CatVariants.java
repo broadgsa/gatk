@@ -51,7 +51,7 @@ import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextComparator;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 
 import java.io.*;
 import java.util.*;
@@ -195,7 +195,8 @@ public class CatVariants extends CommandLineProgram {
     }
 
     /**
-     * Replaces any .list files in rawFileList with the files named in said .list file
+     * Replaces any .list files in rawFileList with the files named in said .list file.
+     * Identical to {@link org.broadinstitute.gatk.engine.recalibration.BQSRGatherer#parseInputList}.
      * @param rawFileList the original file list, possibly including .list files
      * @return a new List, with .list files replaced
      */
@@ -206,7 +207,7 @@ public class CatVariants extends CommandLineProgram {
                 try {
                     for (final String line : new XReadLines(rawFile, true))
                         result.add(new File(line));
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     throw new UserException.CouldNotReadInputFile(rawFile, e);
                 }
             } else {
@@ -264,11 +265,16 @@ public class CatVariants extends CommandLineProgram {
             }
         }
 
-        FileOutputStream outputStream = new FileOutputStream(outputFile);
         EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
         IndexCreator idxCreator = GATKVCFUtils.makeIndexCreator(variant_index_type, variant_index_parameter, outputFile, ref.getSequenceDictionary());
-        final VariantContextWriter outputWriter = VariantContextWriterFactory.create(outputFile, outputStream, ref.getSequenceDictionary(), idxCreator, options);
 
+        final VariantContextWriter outputWriter =
+                new VariantContextWriterBuilder()
+                        .setOutputFile(outputFile)
+                        .setReferenceDictionary(ref.getSequenceDictionary())
+                        .setIndexCreator(idxCreator)
+                        .setOptions(options)
+                        .build();
         boolean firstFile = true;
         int count = 0;
         while(!priorityQueue.isEmpty() ){

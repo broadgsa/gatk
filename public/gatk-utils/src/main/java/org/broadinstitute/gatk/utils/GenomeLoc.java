@@ -376,6 +376,17 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     /**
+     * Tests whether this contig is completely after contig 'that' and separate from it by at-least one base.
+     * @param that Contig to test against.
+     * @return true if this contig starts after 'that' ends + 1 ; false if this is completely before or
+     * is continguous with 'that', in the sensce of {@link GenomeLoc#contiguousP(GenomeLoc)}
+     */
+    @Requires("that != null")
+    public boolean isBeyond( final GenomeLoc that ) {
+        return isPast(that) && minDistance(that) > 1;
+    }
+
+    /**
      * Return the minimum distance between any pair of bases in this and that GenomeLocs:
      */
     @Requires("that != null")

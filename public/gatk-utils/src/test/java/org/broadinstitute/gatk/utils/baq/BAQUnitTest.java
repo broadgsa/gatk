@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.utils.baq;
 
 
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -52,7 +53,7 @@ public class BAQUnitTest extends BaseTest {
     private final int startChr = 1;
     private final int numChr = 2;
     private final int chrSize = 1000;
-    IndexedFastaSequenceFile fasta = null;
+    ReferenceSequenceFile fasta = null;
 
     @BeforeMethod
     public void before() {

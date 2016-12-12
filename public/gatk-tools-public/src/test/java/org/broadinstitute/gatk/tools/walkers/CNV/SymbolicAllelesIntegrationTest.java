@@ -57,7 +57,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_2.vcf"),
                 1,
-                Arrays.asList("c8b294089832bb1a2c450b550318a471"));
+                Arrays.asList("3f97ed3243fad7f953f4859af92d227f"));
         executeTest("Test symbolic alleles mixed in with non-symbolic alleles", spec);
     }
 }

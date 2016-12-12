@@ -28,11 +28,13 @@ package org.broadinstitute.gatk.engine.datasources.reads;
 import com.google.caliper.Param;
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.CloseableIterator;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,10 +56,10 @@ public class TheoreticalMinimaBenchmark extends ReadProcessingBenchmark {
     @Override
     public Integer getMaxReads() { return maxReads; }
 
-    public void timeIterateOverEachBase(int reps) {
+    public void timeIterateOverEachBase(int reps) throws IOException {
         System.out.printf("Processing " + inputFile);
         for(int i = 0; i < reps; i++) {
-            SAMFileReader reader = new SAMFileReader(inputFile);
+            final SamReader reader = SamReaderFactory.makeDefault().open((inputFile));
             CloseableIterator<SAMRecord> iterator = reader.iterator();
 
             long As=0,Cs=0,Gs=0,Ts=0;
@@ -78,14 +80,14 @@ public class TheoreticalMinimaBenchmark extends ReadProcessingBenchmark {
         }
     }
 
-    public void timeIterateOverCigarString(int reps) {
+    public void timeIterateOverCigarString(int reps) throws IOException {
         for(int i = 0; i < reps; i++) {
             long matchMismatches = 0;
             long insertions = 0;
             long deletions = 0;
             long others = 0;
 
-            SAMFileReader reader = new SAMFileReader(inputFile);
+            final SamReader reader = SamReaderFactory.makeDefault().open(inputFile);
             CloseableIterator<SAMRecord> iterator = reader.iterator();
             while(iterator.hasNext()) {
                 SAMRecord read = iterator.next();

@@ -25,7 +25,10 @@
 
 package org.broadinstitute.gatk.engine;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamInputResource;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.ValidationStringency;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -42,8 +45,11 @@ public class CommandLineGATKUnitTest extends BaseTest {
     public void testSamTextFileError1() {
         final File samFile = new File(publicTestDir + "testfile.sam");
         final File indexFile = new File(publicTestDir + "HiSeq.1mb.1RG.bai");
+        final SamInputResource samInputResource = SamInputResource.of(samFile);
+        samInputResource.index(indexFile);
         try {
-            final SAMFileReader reader = new SAMFileReader(samFile, indexFile, false);
+            final SamReader reader =
+                    SamReaderFactory.makeDefault().open(samInputResource);
 
             // we shouldn't get here
             Assert.fail("We should have exceptioned out when trying to create a reader with an index for a textual SAM file");
@@ -56,8 +62,9 @@ public class CommandLineGATKUnitTest extends BaseTest {
     public void testSamTextFileError2() {
         File samFile = new File(publicTestDir + "testfile.sam");
         try {
-            final SAMFileReader reader = new SAMFileReader(samFile);
-            reader.getFilePointerSpanningReads();
+            final SamInputResource samInputResource = SamInputResource.of(samFile);
+            final SamReader reader = SamReaderFactory.makeDefault().open(samInputResource);
+            reader.indexing().getFilePointerSpanningReads();
 
             // we shouldn't get here
             Assert.fail("We should have exceptioned out when trying to call getFilePointerSpanningReads() for a textual SAM file");

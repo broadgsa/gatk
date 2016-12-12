@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.engine.datasources.providers;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.engine.datasources.reads.Shard;
 import org.broadinstitute.gatk.engine.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.gatk.utils.iterators.GATKSAMIterator;
@@ -50,7 +51,7 @@ public class ReadShardDataProvider extends ShardDataProvider {
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.
      */
-    public ReadShardDataProvider(Shard shard, GenomeLocParser genomeLocParser, GATKSAMIterator reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    public ReadShardDataProvider(final Shard shard, final GenomeLocParser genomeLocParser, final GATKSAMIterator reads, final ReferenceSequenceFile reference, final Collection<ReferenceOrderedDataSource> rods) {
         super(shard,genomeLocParser,reference,rods);
         this.reads = reads;
     }

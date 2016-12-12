@@ -25,6 +25,8 @@
 
 package org.broadinstitute.gatk.utils.progressmeter;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Daemon thread that periodically prints the progress of the progress meter
  *
@@ -33,20 +35,10 @@ package org.broadinstitute.gatk.utils.progressmeter;
  * Time: 9:16 PM
  */
 public final class ProgressMeterDaemon extends Thread {
-    public final static long DEFAULT_POLL_FREQUENCY_MILLISECONDS = 10 * 1000;
-
     /**
      * How frequently should we poll and print progress?
      */
-    private final long pollFrequencyMilliseconds;
-
-    /**
-     * How long are we waiting between print progress calls are issued?
-     * @return the time in milliseconds between progress meter calls
-     */
-    private long getPollFrequencyMilliseconds() {
-        return pollFrequencyMilliseconds;
-    }
+    private final long secondsBetweenProgressUpdates;
 
     /**
      * Are we to continue periodically printing status, or should we shut down?
@@ -60,20 +52,17 @@ public final class ProgressMeterDaemon extends Thread {
 
     /**
      * Create a new ProgressMeterDaemon printing progress for meter
-     * @param meter the progress meter to print progress of
+     * @param meter the progress meter to print progress
+     * @param secondsBetweenProgressUpdates how frequently (in seconds) to print progress
      */
-    public ProgressMeterDaemon(final ProgressMeter meter, final long pollFrequencyMilliseconds) {
+    public ProgressMeterDaemon(final ProgressMeter meter, final long secondsBetweenProgressUpdates) {
         if ( meter == null ) throw new IllegalArgumentException("meter cannot be null");
-        if ( pollFrequencyMilliseconds <= 0 ) throw new IllegalArgumentException("pollFrequencyMilliseconds must be greater than 0 but got " + pollFrequencyMilliseconds);
+        if ( secondsBetweenProgressUpdates <= 0 ) throw new IllegalArgumentException("secondsBetweenProgressUpdates must be greater than 0 but got " + secondsBetweenProgressUpdates);
 
         this.meter = meter;
-        this.pollFrequencyMilliseconds = pollFrequencyMilliseconds;
+        this.secondsBetweenProgressUpdates = secondsBetweenProgressUpdates;
         setDaemon(true);
         setName("ProgressMeterDaemon");
-    }
-
-    public ProgressMeterDaemon(final ProgressMeter meter) {
-        this(meter, DEFAULT_POLL_FREQUENCY_MILLISECONDS);
     }
 
     /**
@@ -102,7 +91,7 @@ public final class ProgressMeterDaemon extends Thread {
             meter.printProgress(false);
             meter.updateElapsedTimeInNanoseconds();
             try {
-                Thread.sleep(getPollFrequencyMilliseconds());
+                Thread.sleep(TimeUnit.SECONDS.toMillis(secondsBetweenProgressUpdates));
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

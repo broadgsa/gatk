@@ -41,7 +41,7 @@ import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 
@@ -100,7 +100,7 @@ public class VariantsToAllelicPrimitives extends RodWalker<Integer, Integer> {
 
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        vcfWriter = VariantContextWriterFactory.sortOnTheFly(baseWriter, 200);
+        vcfWriter = new SortingVariantContextWriter(baseWriter, 200);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

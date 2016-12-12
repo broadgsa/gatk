@@ -98,7 +98,7 @@ public abstract class OutputTracker implements ReferenceBacked {
             ArgumentSource targetField = io.getKey();
             Object targetValue = io.getValue();
 
-            // Ghastly hack: reaches in and finishes building out the SAMFileReader.
+            // Ghastly hack: reaches in and finishes building out the SameReader.
             // TODO: Generalize this, and move it to its own initialization step.
             if( targetValue instanceof SAMReaderBuilder) {
                 SAMReaderBuilder builder = (SAMReaderBuilder)targetValue;

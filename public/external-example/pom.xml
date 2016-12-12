@@ -9,7 +9,7 @@
     <name>External Example</name>
 
     <properties>
-        <gatk.version>3.6</gatk.version>
+        <gatk.version>3.7-SNAPSHOT</gatk.version>
         <!--
         gatk.basedir property must point to your checkout of GATK/GATK until we can get all the
         dependencies out of the committed gatk repo and into central.

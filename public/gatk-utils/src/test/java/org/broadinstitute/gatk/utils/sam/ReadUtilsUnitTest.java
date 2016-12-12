@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.utils.sam;
 
 import htsjdk.samtools.SAMReadGroupRecord;
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.Utils;
@@ -90,7 +90,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
-        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+        Assert.assertEquals(boundary, myStart + fragmentSize);
 
         // Test case 2: positive strand, second read
         read = makeRead(fragmentSize, mateStart);
@@ -99,7 +99,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
-        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
+        Assert.assertEquals(boundary, myStart + fragmentSize);
 
         // Test case 3: negative strand, second read
         read = makeRead(fragmentSize, mateStart);
@@ -208,7 +208,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     public void testGetMaxReadLength() {
         for( final int minLength : Arrays.asList( 5, 30, 50 ) ) {
             for( final int maxLength : Arrays.asList( 50, 75, 100 ) ) {
-                final List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
+                final List<GATKSAMRecord> reads = new ArrayList<>();
                 for( int readLength = minLength; readLength <= maxLength; readLength++ ) {
                     reads.add( ReadUtils.createRandomRead( readLength ) );
                 }
@@ -216,14 +216,14 @@ public class ReadUtilsUnitTest extends BaseTest {
             }
         }
 
-        final List<GATKSAMRecord> reads = new LinkedList<GATKSAMRecord>();
+        final List<GATKSAMRecord> reads = new LinkedList<>();
         Assert.assertEquals(ReadUtils.getMaxReadLength(reads), 0, "Empty list should have max length of zero");
     }
 
     @Test (enabled = true)
     public void testReadWithNsRefIndexInDeletion() throws FileNotFoundException {
 
-        final IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
         final int readLength = 76;
 
@@ -239,7 +239,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     @Test (enabled = true)
     public void testReadWithNsRefAfterDeletion() throws FileNotFoundException {
 
-        final IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(seq.getSequenceDictionary());
         final int readLength = 76;
 
@@ -254,7 +254,7 @@ public class ReadUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "HasWellDefinedFragmentSizeData")
     public Object[][] makeHasWellDefinedFragmentSizeData() throws Exception {
-        final List<Object[]> tests = new LinkedList<Object[]>();
+        final List<Object[]> tests = new LinkedList<>();
 
         // setup a basic read that will work
         final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader();

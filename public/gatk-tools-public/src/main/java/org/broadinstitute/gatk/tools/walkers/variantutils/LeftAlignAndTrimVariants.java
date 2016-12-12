@@ -55,7 +55,7 @@ import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.sam.AlignmentUtils;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
 
 import java.util.*;
 
@@ -194,7 +194,7 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
 
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, MAX_INDEL_LENGTH);
+        writer = new SortingVariantContextWriter(baseWriter, MAX_INDEL_LENGTH);
 
         referenceWindowStop = getToolkit().getArguments().reference_window_stop;
     }

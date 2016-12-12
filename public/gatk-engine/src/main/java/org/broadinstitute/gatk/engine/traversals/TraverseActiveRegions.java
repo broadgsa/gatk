@@ -162,8 +162,8 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), engine.getIntervals(), this.walker.maxProbPropagationDistance, this.walker.activeProbThreshold,
                 BandPassActivityProfile.MAX_FILTER_SIZE, bandPassSigma);
 
-        final int maxReadsAcrossSamples = annotation.maxReadsToHoldInMemoryPerSample() * ReadUtils.getSAMFileSamples(engine.getSAMFileHeader()).size();
-        final int maxReadsToHoldInMemory = Math.min(maxReadsAcrossSamples, annotation.maxReadsToHoldTotal());
+        final int maxReadsAcrossSamples = this.walker.maxReadsInMemoryPerSample * ReadUtils.getSAMFileSamples(engine.getSAMFileHeader()).size();
+        final int maxReadsToHoldInMemory = Math.min(maxReadsAcrossSamples, this.walker.maxTotalReadsInMemory);
         myReads = new TAROrderedReadCache(maxReadsToHoldInMemory);
     }
 

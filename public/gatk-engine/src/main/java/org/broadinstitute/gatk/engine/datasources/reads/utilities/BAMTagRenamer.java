@@ -25,14 +25,17 @@
 
 package org.broadinstitute.gatk.engine.datasources.reads.utilities;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
+import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * A simple utility written directly in Picard that will rename tags
@@ -62,7 +65,7 @@ public class BAMTagRenamer extends CommandLineProgram {
         long readsWritten = 0;
         long readsAltered = 0;
 
-        SAMFileReader reader = new SAMFileReader(input);
+        final SamReader reader = SamReaderFactory.makeDefault().open(input);
         SAMFileWriter writer = new SAMFileWriterFactory().makeBAMWriter(reader.getFileHeader(),true,output,compressionLevel);
 
         for(SAMRecord read: reader) {
@@ -79,7 +82,13 @@ public class BAMTagRenamer extends CommandLineProgram {
         }
 
         writer.close();
-        System.out.printf("%d reads written.  %d tag names updated from %s to %s.%n",readsWritten,readsAltered,sourceTagName,targetTagName);        
+        System.out.printf("%d reads written.  %d tag names updated from %s to %s.%n",readsWritten,readsAltered,sourceTagName,targetTagName);
+
+        try {
+            reader.close();
+        } catch ( IOException ex ) {
+            throw new ReviewedGATKException("Unable to close " + input , ex);
+        }
 
         return 0;
     }

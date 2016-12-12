@@ -33,6 +33,9 @@ import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.function.DoublePredicate;
+import java.util.function.DoubleUnaryOperator;
+import java.util.function.IntPredicate;
 
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
@@ -57,6 +60,10 @@ public class MathUtils {
     public static final double LOG_ONE_THIRD = -Math.log10(3.0);
     private static final double NATURAL_LOG_OF_TEN = Math.log(10.0);
     private static final double SQUARE_ROOT_OF_TWO_TIMES_PI = Math.sqrt(2.0 * Math.PI);
+    /**
+     * Log10 of the e constant.
+     */
+    public static final double LOG10_OF_E = Math.log10(Math.E);
 
     /**
      * A helper class to maintain a cache of log10 values
@@ -321,6 +328,10 @@ public class MathUtils {
 
     public static double log10sumLog10(final double ... log10values) {
         return log10sumLog10(log10values, 0);
+    }
+
+    public static double log10SumLog10(final double a, final double b) {
+        return a > b ? a + Math.log10(1 + Math.pow(10.0, b - a)) : b + Math.log10(1 + Math.pow(10.0, a - b));
     }
 
     public static boolean wellFormedDouble(final double val) {
@@ -1685,5 +1696,70 @@ public class MathUtils {
 
     public static ExponentialDistribution exponentialDistribution( final double mean ) {
         return new ExponentialDistributionImpl(mean);
+    }
+
+    /**
+     * The following method implements Arrays.stream(array).map(func).toArray(), which is concise but performs poorly due
+     * to the overhead of creating a stream, especially with small arrays.  Thus we wrap the wordy but fast array code
+     * in the following method which permits concise Java 8 code.
+     *
+     * Returns a new array -- the original array in not modified.
+     *
+     * This method has been benchmarked and performs as well as array-only code.
+     */
+    public static double[] applyToArray(final double[] array, final DoubleUnaryOperator func) {
+        Utils.nonNull(func, "function may not be null");
+        Utils.nonNull(array, "array may not be null");
+        final double[] result = new double[array.length];
+        for (int m = 0; m < result.length; m++) {
+            result[m] = func.applyAsDouble(array[m]);
+        }
+        return result;
+    }
+
+    /**
+     * The following method implements Arrays.stream(array).map(func).toArray(), which is concise but performs poorly due
+     * to the overhead of creating a stream, especially with small arrays.  Thus we wrap the wordy but fast array code
+     * in the following method which permits concise Java 8 code.
+     *
+     * The original array is modified in place.
+     *
+     * This method has been benchmarked and performs as well as array-only code.
+     */
+    public static double[] applyToArrayInPlace(final double[] array, final DoubleUnaryOperator func) {
+        Utils.nonNull(array, "array may not be null");
+        Utils.nonNull(func, "function may not be null");
+        for (int m = 0; m < array.length; m++) {
+            array[m] = func.applyAsDouble(array[m]);
+        }
+        return array;
+    }
+
+    /**
+     * Test whether all elements of a double[] array satisfy a double -> boolean predicate
+     */
+    public static boolean allMatch(final double[] array, final DoublePredicate pred) {
+        Utils.nonNull(array, "array may not be null");
+        Utils.nonNull(pred, "predicate may not be null");
+        for (final double x : array) {
+            if (!pred.test(x)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Test whether all elements of an int[] array satisfy an int -> boolean predicate
+     */
+    public static boolean allMatch(final int[] array, final IntPredicate pred) {
+        Utils.nonNull(array, "array may not be null");
+        Utils.nonNull(pred, "predicate may not be null");
+        for (final int x : array) {
+            if (!pred.test(x)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

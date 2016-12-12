@@ -29,6 +29,7 @@ import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.GenomeLocParser;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
@@ -61,13 +62,13 @@ public class ReferenceView implements View {
     /**
      * The source of reference data.
      */
-    protected IndexedFastaSequenceFile reference = null;
+    protected ReferenceSequenceFile reference = null;
 
     /**
      * Create a new ReferenceView.
      * @param provider
      */
-    public ReferenceView( ShardDataProvider provider ) {
+    public ReferenceView( final ShardDataProvider provider ) {
         this.genomeLocParser = provider.getGenomeLocParser();
         this.reference = provider.getReference();
     }

@@ -710,7 +710,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                         read.setReadNegativeStrandFlag(false);
                         read.setMateNegativeStrandFlag(true);
                         read.setMateAlignmentStart(start - 1);
-                        read.setInferredInsertSize(goodBases - 1);
+                        read.setInferredInsertSize(goodBases);
                         tests.add(new Object[]{0, goodBases, nClips, read});
                     }
                 }
@@ -738,6 +738,6 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         }
 
         final int nExpectedPileups = nReadContainingPileups;
-        Assert.assertEquals(nPileups, nExpectedPileups, "Wrong number of pileups seen");
+        Assert.assertEquals(nPileups, nExpectedPileups, "Wrong number of pileups seen for " + read + " with " + nClipsOnLeft + " clipped bases.");
     }
 }

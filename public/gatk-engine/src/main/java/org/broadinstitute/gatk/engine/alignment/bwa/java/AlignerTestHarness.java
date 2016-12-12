@@ -27,6 +27,7 @@ package org.broadinstitute.gatk.engine.alignment.bwa.java;
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.engine.alignment.Aligner;
 import org.broadinstitute.gatk.engine.alignment.Alignment;
 import org.broadinstitute.gatk.utils.BaseUtils;
@@ -34,6 +35,7 @@ import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 /**
  * A test harness to ensure that the perfect aligner works.
@@ -62,8 +64,7 @@ public class AlignerTestHarness {
         Aligner aligner = new BWAJavaAligner(bwtFile,rbwtFile,suffixArrayFile,reverseSuffixArrayFile);
         int count = 0;
 
-        SAMFileReader reader = new SAMFileReader(bamFile);
-        reader.setValidationStringency(ValidationStringency.SILENT);
+        final SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(bamFile);
 
         int mismatches = 0;
         int failures = 0;
@@ -126,7 +127,7 @@ public class AlignerTestHarness {
 
                 mismatches++;
 
-                IndexedFastaSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
+                final ReferenceSequenceFile reference = new IndexedFastaSequenceFile(referenceFile);
 
                 System.out.printf("read          = %s, position = %d, negative strand = %b%n", formatBasesBasedOnCigar(read.getReadString(),read.getCigar(),CigarOperator.DELETION),
                                                                                                read.getAlignmentStart(),
@@ -157,6 +158,12 @@ public class AlignerTestHarness {
 
             if( count % 1000 == 0 )
                 System.out.printf("%d reads examined.%n",count);                
+        }
+
+        try {
+            reader.close();
+        } catch ( IOException ex ) {
+            throw new ReviewedGATKException("Unable to close " + bamFile , ex);
         }
 
         System.out.printf("%d reads examined; %d mismatches; %d failures.%n",count,mismatches,failures);

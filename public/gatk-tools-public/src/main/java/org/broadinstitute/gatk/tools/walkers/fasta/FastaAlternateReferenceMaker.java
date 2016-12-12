@@ -42,12 +42,15 @@ import org.broadinstitute.gatk.utils.collections.Pair;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
+import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 
 
 /**
@@ -122,6 +125,8 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
 
     private int deletionBasesRemaining = 0;
 
+    private static final String EMPTY_BASE = " ";
+
     @Override
     public void initialize() {
         super.initialize();
@@ -159,11 +164,16 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
                 deletionBasesRemaining = vc.getReference().length() - 1;
                 // delete the next n bases, not this one
                 return new Pair<>(context.getLocation(), refBase);
-            } else if ( vc.isSimpleInsertion()) {
-                return new Pair<>(context.getLocation(), vc.getAlternateAllele(0).toString());
-            } else if (vc.isSNP()) {
-                final String base = (iupacSample != null) ? getIUPACbase(vc.getGenotype(iupacSample), refBase) : vc.getAlternateAllele(0).toString();
-                return new Pair<>(context.getLocation(), base);
+            } else if ( vc.isSimpleInsertion() || vc.isSNP() ) {
+                // Get the first alt allele that is not a spanning deletion. If none present, use the empty allele
+                final Optional<Allele> optionalAllele = getFirstNonSpanDelAltAllele(vc.getAlternateAlleles());
+                final Allele allele = optionalAllele.isPresent() ? optionalAllele.get() : Allele.create(EMPTY_BASE, false);
+                if ( vc.isSimpleInsertion() ) {
+                    return new Pair<>(context.getLocation(), allele.toString());
+                } else {
+                    final String base = (iupacSample != null) ? getIUPACbase(vc.getGenotype(iupacSample), refBase) : allele.toString();
+                    return new Pair<>(context.getLocation(), base);
+                }
             }
         }
 
@@ -175,6 +185,21 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
 
         // if we got here then we're just ref
         return new Pair<>(context.getLocation(), refBase);
+    }
+
+    /**
+     * Get the first non spanning deletion (* or <*:DEL>) alt allele
+     * @param altAlleles the alternate alleles
+     * @return the first non spanning deletion allele or null
+     */
+    private Optional<Allele> getFirstNonSpanDelAltAllele( final List<Allele> altAlleles ) {
+        for (final Allele allele : altAlleles) {
+            if (!allele.equals(Allele.SPAN_DEL) && !allele.equals(GATKVCFConstants.SPANNING_DELETION_SYMBOLIC_ALLELE_DEPRECATED)) {
+                return Optional.of(allele);
+            }
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -199,11 +224,21 @@ public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
      *
      * @param genotype  the genotype to encode
      * @param ref       the reference base
-     * @return non-null, non-empty String
+     * @return non-null, non-empty String of bases
      */
     private String getIUPACbase(final Genotype genotype, final String ref) {
         if ( genotype == null )
             throw new IllegalStateException("The genotype is null for sample " + iupacSample);
+
+        // If have a spanning deletion, if both alleles are spanning deletions, use the empty allele. Otherwise, use the allele is not a
+        // spanning deletion.
+        if ( genotype.getAlleles().contains(Allele.SPAN_DEL) ) {
+            if ( genotype.isHomVar() ) {
+                return EMPTY_BASE;
+            } else {
+                return genotype.getAllele(0).equals(Allele.SPAN_DEL) ? genotype.getAllele(1).getBaseString() : genotype.getAllele(0).getBaseString();
+            }
+        }
 
         if ( !genotype.isHet() )
             return genotype.isHom() ? genotype.getAllele(0).getBaseString() : ref;

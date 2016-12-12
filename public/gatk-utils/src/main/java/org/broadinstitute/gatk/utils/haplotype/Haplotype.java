@@ -130,6 +130,7 @@ public class Haplotype extends Allele {
         final Haplotype ret = new Haplotype(newBases, isReference());
         ret.setCigar(newCigar);
         ret.setGenomeLocation(loc);
+        ret.setScore(score);
         ret.setAlignmentStartHapwrtRef(newStart + getAlignmentStartHapwrtRef());
         return ret;
     }

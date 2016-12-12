@@ -55,12 +55,12 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
 
 //    public void timeDownsampling(int reps) {
 //        for(int i = 0; i < reps; i++) {
-//            SAMFileReader reader = new SAMFileReader(inputFile);
+//            SamReader reader = SamReaderFactory.makeDefault().open(inputFile);
 //            ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
 //                    reader.getFileHeader(),
 //                    SAMFileHeader.SortOrder.coordinate,
 //                    false,
-//                    SAMFileReader.ValidationStringency.SILENT,
+//                    ValidationStringency.SILENT,
 //                    downsampling.create(),
 //                    new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
 //                    Collections.<ReadFilter>emptyList(),

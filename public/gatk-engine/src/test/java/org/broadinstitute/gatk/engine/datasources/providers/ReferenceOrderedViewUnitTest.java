@@ -25,6 +25,7 @@
 
 package org.broadinstitute.gatk.engine.datasources.providers;
 
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.commandline.RodBinding;
 import org.broadinstitute.gatk.utils.commandline.Tags;
@@ -71,7 +72,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     /**
      * Sequence file.
      */
-    private static IndexedFastaSequenceFile seq;
+    private static ReferenceSequenceFile seq;
     private GenomeLocParser genomeLocParser;
 
     /**

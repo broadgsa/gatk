@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.utils.refdata.utils;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import htsjdk.tribble.Feature;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.GenomeLoc;
@@ -43,7 +43,7 @@ public class FeatureToGATKFeatureIteratorUnitTest extends BaseTest {
     @SuppressWarnings("unchecked")
     public void testCloseFilePointers() throws IOException {
         final String chr = "20";
-        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
+        ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
         GenomeLocParser parser = new GenomeLocParser(seq);
         File file = new File(privateTestDir + "NA12878.hg19.example1.vcf");
         VCFCodec codec = new VCFCodec();

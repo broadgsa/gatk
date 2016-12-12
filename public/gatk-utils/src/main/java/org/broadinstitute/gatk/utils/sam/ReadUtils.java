@@ -215,7 +215,7 @@ public class ReadUtils {
             return read.getMateAlignmentStart() - 1;           // case 1 (see header)
         } else {
             final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
-            return read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
+            return read.getAlignmentStart() + insertSize;  // case 2 (see header)
         }
     }
 
@@ -501,7 +501,7 @@ public class ReadUtils {
                 if (refBases + cigarElement.getLength() < goal)
                     shift = cigarElement.getLength();
                 else
-                    shift = goal - refBases;
+                    shift = goal - refBases; // get to the goal
 
                 refBases += shift;
             }
@@ -515,7 +515,7 @@ public class ReadUtils {
                 final boolean endsWithinCigar = shift < cigarElement.getLength();
 
                 // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
-                // since we checked if the goal coordinate is within the read length, so this is just a sanity check.
+                // since we checked if the goal coordinate is within the read length, this is just a sanity check.
                 if (!endsWithinCigar && !cigarElementIterator.hasNext()) {
                     if (allowGoalNotReached) {
                         return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);

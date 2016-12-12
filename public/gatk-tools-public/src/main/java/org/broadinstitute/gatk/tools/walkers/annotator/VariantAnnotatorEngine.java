@@ -62,6 +62,15 @@ public class VariantAnnotatorEngine {
     // Map of info field name to info field
     private final Map<String, VCFInfoHeaderLine> hInfoMap = new HashMap<>();
 
+    /**
+     * Get the requested INFO field annotations
+     * 
+     * @return requested INFO field annotations
+     */
+    public List<InfoFieldAnnotation> getRequestedInfoAnnotations() {
+        return requestedInfoAnnotations;
+    }
+
     protected static class VAExpression {
 
         public String fullName, fieldName;
@@ -303,10 +312,10 @@ public class VariantAnnotatorEngine {
             if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
                 continue;
 
-                final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(referenceContext, perReadAlleleLikelihoodMap, newGenotypeAnnotatedVC);
-                if (annotationsFromCurrentType != null) {
-                    infoAnnotations.putAll(annotationsFromCurrentType);
-                }
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(null, walker, referenceContext, null, newGenotypeAnnotatedVC, perReadAlleleLikelihoodMap);
+            if (annotationsFromCurrentType != null) {
+                infoAnnotations.putAll(annotationsFromCurrentType);
+            }
         }
 
         // create a new VC with info and genotype annotations

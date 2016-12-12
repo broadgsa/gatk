@@ -34,7 +34,6 @@ import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 
@@ -216,7 +215,9 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         if ( indexOnTheFly) options.add(Options.INDEX_ON_THE_FLY);
         if ( writeFullFormatField ) options.add(Options.WRITE_FULL_FORMAT_FIELD);
 
-        if ( forceBCF || (getOutputFile() != null && VariantContextWriterFactory.isBCFOutput(getOutputFile())) )
+        final File file = getOutputFile();
+        if ( forceBCF || (file != null && options.contains(Options.FORCE_BCF) ||
+                file != null && (file.getName().endsWith(".bcf") || file.getName().endsWith(".bcf.gz"))) )
             options.add(Options.FORCE_BCF);
 
         return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);

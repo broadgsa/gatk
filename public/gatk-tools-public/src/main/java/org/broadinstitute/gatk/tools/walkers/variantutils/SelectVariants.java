@@ -626,7 +626,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private Set<String> IDsToRemove = null;
     private Map<String, VCFHeader> vcfRods;
 
-    private final List<Allele> diploidNoCallAlleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+    private final List<Allele> diploidNoCallAlleles = GATKVariantContextUtils.noCallAlleles(2);
+    private final Map<Integer, Integer> ploidyToNumberOfAlleles = new LinkedHashMap<Integer, Integer>();
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -844,12 +845,24 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                     continue;
             }
 
-           if (considerNoCallGenotypes()) {
+            if (considerNoCallGenotypes()) {
                final int numNoCallSamples = numNoCallGenotypes(vc);
                final double fractionNoCallGenotypes = samples.isEmpty() ? 0.0 : ((double) numNoCallSamples) / samples.size();
                if (numNoCallSamples > maxNOCALLnumber || fractionNoCallGenotypes > maxNOCALLfraction)
                     continue;
-           }
+            }
+
+            // Initialize cache of PL index to a list of alleles for any ploidy
+            if (vc.getType() != VariantContext.Type.NO_VARIATION) {
+                for (final Genotype g : vc.getGenotypes()) {
+                    if (g.getPloidy() != 0) {
+                        if (!ploidyToNumberOfAlleles.containsKey(g.getPloidy()) || ploidyToNumberOfAlleles.get(g.getPloidy()) < vc.getNAlleles()) {
+                            GenotypeLikelihoods.initializeAnyploidPLIndexToAlleleIndices(vc.getNAlleles() - 1, g.getPloidy());
+                            ploidyToNumberOfAlleles.put(g.getPloidy(), vc.getNAlleles());
+                        }
+                    }
+                }
+            }
 
             VariantContext sub = subsetRecord(vc, preserveAlleles, removeUnusedAlternates);
 
@@ -1089,7 +1102,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             for ( Genotype genotype : newGC ) {
                 //Set genotype to no call if it falls in the fraction.
                 if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
-                    genotypes.add(new GenotypeBuilder(genotype).alleles(diploidNoCallAlleles).noGQ().make());
+                    final List<Allele> noCallAlleles = (genotype.getPloidy() == 2 ? diploidNoCallAlleles :
+                            GATKVariantContextUtils.noCallAlleles(genotype.getPloidy()));
+                    genotypes.add(new GenotypeBuilder(genotype).alleles(noCallAlleles).noGQ().make());
                 }
                 else{
                     genotypes.add(genotype);
@@ -1137,7 +1152,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         for ( final Genotype g : vc.getGenotypes() ) {
             if ( g.isCalled() && g.isFiltered() ) {
                 haveFilteredNoCallAlleles = true;
-                genotypes.add(new GenotypeBuilder(g).alleles(diploidNoCallAlleles).make());
+                final List<Allele> noCallAlleles = (g.getPloidy() == 2 ? diploidNoCallAlleles :
+                        GATKVariantContextUtils.noCallAlleles(g.getPloidy()));
+                genotypes.add(new GenotypeBuilder(g).alleles(noCallAlleles).make());
             }
             else {
                 // increment the number called alleles and called alternate alleles

@@ -40,7 +40,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Presents decompressed blocks to the SAMFileReader.
+ * Presents decompressed blocks to the SamReader.
  */
 public class BlockInputStream extends InputStream {
     /**

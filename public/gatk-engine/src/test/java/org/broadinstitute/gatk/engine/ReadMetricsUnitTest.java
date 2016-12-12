@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.engine;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.*;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.commandline.Tags;
 import org.broadinstitute.gatk.utils.ValidationExclusion;
@@ -82,7 +82,7 @@ public class ReadMetricsUnitTest extends BaseTest {
     // Test the accuracy of the read metrics
 
     private File referenceFile;
-    private IndexedFastaSequenceFile reference;
+    private ReferenceSequenceFile reference;
     private SAMSequenceDictionary dictionary;
     private SAMFileHeader header;
     private GATKSAMReadGroupRecord readGroup;

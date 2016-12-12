@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.queue.extensions.gatk;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SAMFileWriter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -245,7 +245,7 @@ public abstract class ArgumentField {
 
     protected static Class<?> mapType(Class<?> clazz) {
         if (InputStream.class.isAssignableFrom(clazz)) return File.class;
-        if (SAMFileReader.class.isAssignableFrom(clazz)) return File.class;
+        if (SamReader.class.isAssignableFrom(clazz)) return File.class;
         if (OutputStream.class.isAssignableFrom(clazz)) return File.class;
         if (VariantContextWriter.class.isAssignableFrom(clazz)) return File.class;
         if (SAMFileWriter.class.isAssignableFrom(clazz)) return File.class;

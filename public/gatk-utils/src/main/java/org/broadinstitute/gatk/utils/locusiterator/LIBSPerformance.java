@@ -25,10 +25,11 @@
 
 package org.broadinstitute.gatk.utils.locusiterator;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
+import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.CommandLineProgram;
@@ -62,10 +63,10 @@ public class LIBSPerformance extends CommandLineProgram {
 
     @Override
     public int execute() throws IOException {
-        final IndexedFastaSequenceFile reference = new CachingIndexedFastaSequenceFile(referenceFile);
+        final ReferenceSequenceFile reference = new CachingIndexedFastaSequenceFile(referenceFile);
         final GenomeLocParser genomeLocParser = new GenomeLocParser(reference);
 
-        final SAMFileReader reader = new SAMFileReader(samFile);
+        final SamReader reader = SamReaderFactory.makeDefault().open(samFile);
 
         SAMRecordIterator rawIterator;
         if ( location == null )
@@ -80,6 +81,8 @@ public class LIBSPerformance extends CommandLineProgram {
         final Set<String> samples = new HashSet<String>();
         for ( final SAMReadGroupRecord rg : reader.getFileHeader().getReadGroups() )
             samples.add(rg.getSample());
+
+        reader.close();
 
         final LIBSDownsamplingInfo ds = new LIBSDownsamplingInfo(downsample, 250);
 

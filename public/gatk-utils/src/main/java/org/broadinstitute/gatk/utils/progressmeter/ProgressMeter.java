@@ -170,22 +170,15 @@ public class ProgressMeter {
     /**
      * Create a new ProgressMeter
      *
-     * Note that progress meter isn't started until the client calls start()
-     *
      * @param performanceLogFile an optional performance log file where a table of performance logs will be written
      * @param processingUnitName the name of the unit type being processed, suitable for saying X seconds per processingUnitName
      * @param processingIntervals the intervals being processed
+     * @param secondsBetweenProgressUpdates how frequently (in seconds) to print progress
      */
     public ProgressMeter(final File performanceLogFile,
-                         final String processingUnitName,
-                         final GenomeLocSortedSet processingIntervals) {
-        this(performanceLogFile, processingUnitName, processingIntervals, ProgressMeterDaemon.DEFAULT_POLL_FREQUENCY_MILLISECONDS);
-    }
-
-    protected ProgressMeter(final File performanceLogFile,
                             final String processingUnitName,
                             final GenomeLocSortedSet processingIntervals,
-                            final long pollingFrequency) {
+                            final long secondsBetweenProgressUpdates) {
         if ( processingUnitName == null ) throw new IllegalArgumentException("processingUnitName cannot be null");
         if ( processingIntervals == null ) throw new IllegalArgumentException("Target intervals cannot be null");
 
@@ -212,7 +205,7 @@ public class ProgressMeter {
         targetSizeInBP = processingIntervals.coveredSize();
 
         // start up the timer
-        progressMeterDaemon = new ProgressMeterDaemon(this, pollingFrequency);
+        progressMeterDaemon = new ProgressMeterDaemon(this, secondsBetweenProgressUpdates);
     }
 
     public ProgressMeterDaemon getProgressMeterDaemon() {

@@ -135,4 +135,18 @@ public class PrintReadsIntegrationTest extends WalkerTest {
         executeTest("testPrintReadsException-"+params.args, spec);
     }
 
+    @Test
+    public void testPrintReadsNoBQSRFile() {
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T PrintReads" +
+                        " -R " + hg18Reference +
+                        " -I " + privateTestDir + "HiSeq.1mb.bam" +
+                        " -BSQR bqsrFile" +
+                        " --no_pg_tag" +
+                        " -o %s",
+                1, UserException.class);
+        executeTest("testPrintReadsNoBQSRFile-", spec);
+    }
+
 }
