@@ -32,6 +32,9 @@ uint8_t ConvertChar::conversionTable[255];
 //Global function pointers in utils.h
 float (*g_compute_full_prob_float)(testcase *tc, float* before_last_log) = 0;
 double (*g_compute_full_prob_double)(testcase *tc, double* before_last_log) = 0;
+#if defined(__POWER8_VECTOR__)
+unsigned long g_max_num_threads = omp_get_num_procs() *3/8; // 3 threads per core
+#endif
 //Static members in ContextBase
 template<>
 bool ContextBase<double>::staticMembersInitializedFlag = false;
@@ -45,9 +48,19 @@ template<>
 float ContextBase<float>::jacobianLogTable[JACOBIAN_LOG_TABLE_SIZE] = { };
 template<>
 float ContextBase<float>::matchToMatchProb[((MAX_QUAL + 1) * (MAX_QUAL + 2)) >> 1] = { };
-
-
+template<> bool ContextBase<double>::staticMembersInitializedFlag1 = false;
+template<> bool ContextBase<float>::staticMembersInitializedFlag1 = false;
+template<> double ContextBase<double>::ph2pr[128] = {0.0};
+template<> float ContextBase<float>::ph2pr[128] = {0.0F};
+template<> double ContextBase<double>::INITIAL_CONSTANT = 0.0;
+template<> float ContextBase<float>::INITIAL_CONSTANT = 0.0F;
+template<> double ContextBase<double>::LOG10_INITIAL_CONSTANT = 0.0;
+template<> float ContextBase<float>::LOG10_INITIAL_CONSTANT = 0.0F;
+template<> double ContextBase<double>::RESULT_THRESHOLD = 0.0;
+template<> float ContextBase<float>::RESULT_THRESHOLD = 0.0F;
 bool search_file_for_string(string filename, string search_string)
+
+
 {
   ifstream fptr;
   fptr.open(filename.c_str(),ios::in);
@@ -74,6 +87,7 @@ bool search_file_for_string(string filename, string search_string)
     return false;
 }
 
+#if defined(__x86_64__)
 bool is_cpuid_ecx_bit_set(int eax, int bitidx)
 {
   int ecx = 0, edx = 0, ebx = 0;
@@ -147,9 +161,11 @@ uint64_t get_machine_capabilities()
     machine_mask |= (1 << SSE41_CUSTOM_IDX);
   return machine_mask;
 }
+#endif
 
 void initialize_function_pointers(uint64_t mask)
 {
+#if defined(__x86_64__)
   //mask = 0ull;
   //mask = (1 << SSE41_CUSTOM_IDX);
   if(is_avx_supported() && (mask & (1<< AVX_CUSTOM_IDX)))
@@ -171,6 +187,32 @@ void initialize_function_pointers(uint64_t mask)
       g_compute_full_prob_float = compute_full_prob<float>;
       g_compute_full_prob_double = compute_full_prob<double>;
     }
+#elif defined(__POWER8_VECTOR__)
+  char *s = getenv("PHMM_N_THREADS");
+  if (s) {
+    char *endp;
+    long l = strtol(s, &endp, 10);
+    if (endp && *endp == 0) g_max_num_threads = l;
+  }
+  cerr << "OMP max_num_threads " << g_max_num_threads << "\n";
+  if (getenv("PHMM_NO_VECTOR")) {
+    cerr << "Using un-vectorized C++ implementation of PairHMM\n";
+    g_compute_full_prob_float = compute_full_prob<float>;
+    g_compute_full_prob_double = compute_full_prob<double>;
+  } else {
+    if (getenv("PHMM_VECTOR_FLOAT")) {
+      cerr << "Using POWER8 VMX (SP/DP) accelerated implementation of PairHMM\n";
+      g_compute_full_prob_float = compute_full_prob_sses<float>;
+    } else {
+      cerr << "Using POWER8 VMX DP accelerated implementation of PairHMM\n";
+    }
+    g_compute_full_prob_double = compute_full_prob_ssed<double>;
+  }
+#else
+  cerr << "Using un-vectorized C++ implementation of PairHMM\n";
+  g_compute_full_prob_float = compute_full_prob<float>;
+  g_compute_full_prob_double = compute_full_prob<double>;
+#endif
 }
 
 int normalize(char c)
@@ -467,11 +509,11 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
       assert(PAPI_start_counters(events, NUM_PAPI_COUNTERS) == PAPI_OK);
 #endif
       get_time(&start_time);
-#pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
 #ifdef DO_REPEAT_PROFILING
       for(unsigned z=0;z<10;++z)
 #endif
       {
+#pragma omp parallel for schedule(dynamic,chunk_size)  num_threads(12)
         for(unsigned i=0;i<tc_vector.size();++i)
         {
           testcase& tc = tc_vector[i];

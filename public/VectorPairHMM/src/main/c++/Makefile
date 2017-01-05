@@ -22,6 +22,11 @@
 #THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+arch=$(shell uname -m)
+ifeq ($(arch),ppc64le)
+USE_GCC=1
+DISABLE_FTZ=1
+endif
 
 #OMPCFLAGS=-fopenmp
 #OMPLFLAGS=-fopenmp #-openmp-link static
@@ -33,7 +38,7 @@ JRE_HOME?=/opt/jdk1.7.0_25/jre
 JNI_COMPILATION_FLAGS=-D_REENTRANT -fPIC -I${JRE_HOME}/../include -I${JRE_HOME}/../include/linux
 
 #COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -W -Wall -pedantic $(OMPCFLAGS) -Wno-unknown-pragmas
-COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -O3 -Wall $(OMPCFLAGS) -Wno-unknown-pragmas -Wno-write-strings -Wno-unused-variable -Wno-unused-but-set-variable
+COMMON_COMPILATION_FLAGS=$(JNI_COMPILATION_FLAGS) -g -O3 -Wall $(OMPCFLAGS) -Wno-unknown-pragmas -Wno-write-strings -Wno-unused-variable -Wno-unused-but-set-variable
 ifdef DISABLE_FTZ
   COMMON_COMPILATION_FLAGS+=-DDISABLE_FTZ
 endif
@@ -41,8 +46,15 @@ endif
 ifdef USE_GCC
   C_COMPILER?=gcc
   CPP_COMPILER?=g++
+ifeq ($(arch),ppc64le)
+  COMMON_COMPILATION_FLAGS+=-mcpu=power8 -mtune=power8 -fopenmp
+  OMPLDFLAGS=-lgomp
+  AVX_FLAGS=
+  SSE41_FLAGS=
+else
   AVX_FLAGS=-mavx
   SSE41_FLAGS=-msse4.1
+endif
   COMMON_COMPILATION_FLAGS+=-Wno-char-subscripts
 else
   C_COMPILER?=icc
@@ -55,7 +67,7 @@ else
   endif
 endif
 
-LDFLAGS=-lm -lrt $(OMPLDFLAGS)
+LDFLAGS=-lm -lrt -lgcc_s -lgcc $(OMPLDFLAGS)
 
 PAPI_DIR=/home/karthikg/softwares/papi-5.3.0
 ifdef USE_PAPI
@@ -72,7 +84,11 @@ DEPDIR=.deps
 DF=$(DEPDIR)/$(*).d
 
 #Common across libJNI and sandbox
+ifeq ($(arch),ppc64le)
+COMMON_SOURCES=utils.cc baseline.cc sse_function_instantiations.cc LoadTimeInitializer.cc
+else
 COMMON_SOURCES=utils.cc avx_function_instantiations.cc baseline.cc sse_function_instantiations.cc LoadTimeInitializer.cc
+endif
 #Part of libJNI
 LIBSOURCES=org_broadinstitute_gatk_utils_pairhmm_VectorLoglessPairHMM.cc org_broadinstitute_gatk_utils_pairhmm_DebugJNILoglessPairHMM.cc Sandbox.cc $(COMMON_SOURCES)
 SOURCES=$(LIBSOURCES) pairhmm-template-main.cc pairhmm-1-base.cc
@@ -93,7 +109,11 @@ SSE_OBJECTS=$(SSE_SOURCES:.cc=.o)
 $(NO_VECTOR_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS)
 $(AVX_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) $(AVX_FLAGS)
 $(SSE_OBJECTS): CXXFLAGS=$(COMMON_COMPILATION_FLAGS) $(SSE41_FLAGS)
+ifeq ($(arch),ppc64le)
+OBJECTS=$(NO_VECTOR_OBJECTS) $(SSE_OBJECTS)
+else
 OBJECTS=$(NO_VECTOR_OBJECTS) $(AVX_OBJECTS) $(SSE_OBJECTS)
+endif
 
 all: $(BIN) Sandbox.class copied_lib
 

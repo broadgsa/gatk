@@ -25,8 +25,13 @@
 
 #include "headers.h"
 
+#if defined(__x86_64__)
 #define SIMD_ENGINE avx
 #define SIMD_ENGINE_AVX
+#elif defined(__POWER8_VECTOR__)
+#define SIMD_ENGINE sse
+#define SIMD_ENGINE_SSE
+#endif
 
 #include "utils.h"
 

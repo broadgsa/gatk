@@ -45,9 +45,12 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
 {
 #if (defined(__GNUC__) || defined(__GNUG__)) && !defined(__INTEL_COMPILER)
   //compiles only with gcc >= 4.8
+#if defined(__x86_64__)
   __builtin_cpu_init();
 #endif
+#endif
   ConvertChar::init();
+#if defined(__x86_64__)
 #ifndef DISABLE_FTZ
   //Very important to get good performance on Intel processors
   //Function: enabling FTZ converts denormals to 0 in hardware
@@ -56,6 +59,7 @@ LoadTimeInitializer::LoadTimeInitializer()		//will be called when library is loa
   //cout << "FTZ enabled - may decrease accuracy if denormal numbers encountered\n";
 #else
   cout << "FTZ is not set - may slow down performance if denormal numbers encountered\n";
+#endif
 #endif
   //Profiling: times for compute and transfer (either bytes copied or pointers copied)
   m_compute_time = 0;

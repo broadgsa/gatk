@@ -251,10 +251,22 @@ inline void compute_testcases(vector<testcase>& tc_array, unsigned numTestCases,
   for(unsigned i=0;i<10;++i)
 #endif
   {
+#if defined(__POWER8_VECTOR__)
+    extern unsigned long g_max_num_threads; 
+#pragma omp parallel for schedule (dynamic,10) num_threads(g_max_num_threads) /* 12:68.9s */
+#else
 #pragma omp parallel for schedule (dynamic,10000) num_threads(maxNumThreadsToUse)
+#endif
     for(unsigned tc_idx=0;tc_idx<numTestCases;++tc_idx)
     {
-      float result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
+      float result_avxf; 
+#if defined(__POWER8_VECTOR__)
+      if (g_compute_full_prob_float)
+#endif
+      result_avxf = g_compute_full_prob_float(&(tc_array[tc_idx]), 0);
+#if defined(__POWER8_VECTOR__)
+      else result_avxf = 0.0f;
+#endif
       double result = 0;
       if (result_avxf < MIN_ACCEPTED) {
         double result_avxd = g_compute_full_prob_double(&(tc_array[tc_idx]), 0);
