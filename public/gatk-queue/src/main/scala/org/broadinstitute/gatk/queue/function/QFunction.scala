@@ -63,6 +63,10 @@ trait QFunction extends Logging with QJobReport {
   /** Temporary directory to write any files. Must be network accessible. */
   var jobTempDir: File = null
 
+  var qualityOfSerice: Option[String] = None
+
+  var waitBeforeJob: Option[Int] = None
+
   /**
    * Local path available on all machines to store LOCAL temporary files. Not an @Input,
    * nor an @Output. Currently only used for local intermediate files for composite jobs.
@@ -402,6 +406,12 @@ trait QFunction extends Logging with QJobReport {
 
     if (jobPriority.isEmpty)
       jobPriority = qSettings.jobPriority
+
+    if (qualityOfSerice.isEmpty)
+      qualityOfSerice = qSettings.qualityOfSerice
+
+    if (waitBeforeJob.isEmpty)
+      waitBeforeJob = Some(qSettings.waitBeforeJob)
 
     // Do not set the temp and local dir relative to the command directory
     jobTempDir = IOUtils.absolute(jobTempDir)

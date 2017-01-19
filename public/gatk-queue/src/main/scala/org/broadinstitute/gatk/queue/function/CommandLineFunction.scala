@@ -34,7 +34,7 @@ import org.broadinstitute.gatk.utils.commandline.Argument
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
-  /** Setting the wall time request for DRMAA / run limit for LSF */
+  /** Setting the wall time request for DRMAA / run limit for LSF/SLURM */
   var wallTime: Option[Long] = None
   
   /** Upper memory limit */

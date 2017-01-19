@@ -26,7 +26,8 @@
 package org.broadinstitute.gatk.queue
 
 import java.io.File
-import org.broadinstitute.gatk.utils.commandline.{ClassType, Argument}
+
+import org.broadinstitute.gatk.utils.commandline.{Argument, ClassType}
 
 /**
  * Default settings settable on the command line and passed to CommandLineFunctions.
@@ -98,6 +99,13 @@ class QSettings {
   
   @Argument(fullName="log_directory", shortName="logDir", doc="Directory to write log files into.", required=false)
   var logDirectory: File = _
+
+  @Argument(fullName = "quality_of_service", shortName = "qos", doc="Quality of Service for Slurm.", required=false)
+  @ClassType(classOf[String])
+  var qualityOfSerice: Option[String] = None
+
+  @Argument(fullName="waitBeforeJob", shortName="waitBeforeJob", doc="For Slurm the job submission waits a number of seconds, in case of io delay on storage. Default is 5 seconds.", required=false)
+  var waitBeforeJob: Int = 5
 
   /**
    * If set, use Broad-specific cluster settings in the GridEngine job runner. Activated via the -qsub-broad argument in QGraphSettings.

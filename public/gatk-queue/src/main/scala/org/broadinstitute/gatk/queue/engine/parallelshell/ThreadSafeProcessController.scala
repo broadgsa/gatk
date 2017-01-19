@@ -38,6 +38,9 @@ class ThreadSafeProcessController extends Logging {
 
   private var process: Option[Process] = None
 
+  private var stdOutPrintWriter: Option[PrintWriter] = None
+  private var stdErrPrintWriter: Option[PrintWriter] = None
+
   /**
    * Construct a process logger writing the stdout and stderr of the
    * process controlled by this instance to the files specified in
@@ -60,16 +63,20 @@ class ThreadSafeProcessController extends Logging {
 
     }
 
-    val stdOutPrintWriter = new PrintWriter(stdOutFile)
-    val stdErrPrintWriter = new PrintWriter(stdErrFile)
+    stdOutPrintWriter = Some(new PrintWriter(stdOutFile))
+    if (stdOutFile != stdErrFile) stdErrPrintWriter = Some(new PrintWriter(stdErrFile))
 
     def printToWriter(printWriter: PrintWriter)(line: String): Unit = {
       printWriter.println(line)
       printWriter.flush()
     }
 
-    val stringStdOutPrinterFunc = printToWriter(stdOutPrintWriter) _
-    val stringStdErrPrinterFunc = printToWriter(stdErrPrintWriter) _
+    val stringStdOutPrinterFunc = printToWriter(stdOutPrintWriter.get) _
+    // When stdErr is not defined this write to stdOut
+    val stringStdErrPrinterFunc = stdErrPrintWriter match {
+      case Some(x) => printToWriter(x) _
+      case _       => printToWriter(stdOutPrintWriter.get) _
+    }
 
     val processLogger = ProcessLogger(
       stringStdOutPrinterFunc,
@@ -89,8 +96,11 @@ class ThreadSafeProcessController extends Logging {
     val commandLine: ProcessBuilder = processSettings.getCommand.mkString(" ")
     logger.debug("Trying to start process: " + commandLine)
     process = Some(commandLine.run(getProcessLogger(processSettings)))
-    process.get.exitValue()
-
+    val exitCode = process.get.exitValue()
+    process.get.destroy()
+    stdOutPrintWriter.foreach(_.close())
+    stdErrPrintWriter.foreach(_.close())
+    exitCode
   }
 
   /**

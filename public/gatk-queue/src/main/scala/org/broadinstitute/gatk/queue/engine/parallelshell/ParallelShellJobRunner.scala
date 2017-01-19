@@ -26,13 +26,15 @@
 package org.broadinstitute.gatk.queue.engine.parallelshell
 
 import org.broadinstitute.gatk.queue.function.CommandLineFunction
-import org.broadinstitute.gatk.queue.engine.{ RunnerStatus, CommandLineJobRunner }
+import org.broadinstitute.gatk.queue.engine.{CommandLineJobRunner, RunnerStatus}
 import java.util.Date
+import java.util.concurrent.Executors
+
 import org.broadinstitute.gatk.utils.Utils
-import org.broadinstitute.gatk.utils.runtime.{ ProcessSettings, OutputStreamSettings }
+import org.broadinstitute.gatk.utils.runtime.{OutputStreamSettings, ProcessSettings}
+
 import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.util.{ Success, Failure }
+import scala.util.{Failure, Success}
 import org.broadinstitute.gatk.queue.util.Logging
 
 /**
@@ -83,6 +85,17 @@ class ParallelShellJobRunner(val function: CommandLineFunction) extends CommandL
     getRunInfo.startTime = new Date()
     getRunInfo.exechosts = Utils.resolveHostname()
     updateStatus(RunnerStatus.RUNNING)
+
+    // Spawn a new thread for each process
+    implicit val ec = new ExecutionContext {
+      val threadPool = Executors.newFixedThreadPool(1)
+
+      def execute(runnable: Runnable) {
+        threadPool.submit(runnable)
+      }
+
+      def reportFailure(t: Throwable) {}
+    }
 
     // Run the command line process in a future.
     val executedFuture =

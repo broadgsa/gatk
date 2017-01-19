@@ -46,6 +46,9 @@ class QGraphSettings {
   @Argument(fullName="qsub", shortName="qsub", doc="Equivalent to -jobRunner GridEngine", required=false)
   var qsub = false
 
+  @Argument(fullName="slurm", shortName="slurm", doc="Equivalent to -jobRunner Slurm", required=false)
+  var slurm = false
+
   @Argument(fullName="qsub-broad", shortName="qsub-broad", doc="Equivalent to -qsub, but uses GridEngine parameters specific to the Broad GridEngine cluster", required=false)
   var qsubBroad = false
 

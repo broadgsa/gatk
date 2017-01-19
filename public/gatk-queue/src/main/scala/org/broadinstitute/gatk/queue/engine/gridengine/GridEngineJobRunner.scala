@@ -88,7 +88,8 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
     if (priority.isDefined)
       nativeSpec += " -p " + priority.get
 
-    logger.info("Native spec is: %s".format(nativeSpec))
-    (nativeSpec + " " + super.functionNativeSpec).trim()
+    val n = nativeSpec + " " + super.functionNativeSpec
+    logger.info(s"Native spec is: $n")
+    n.trim
   }
 }

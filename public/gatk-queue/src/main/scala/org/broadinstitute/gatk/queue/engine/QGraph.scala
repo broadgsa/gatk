@@ -404,6 +404,9 @@ class QGraph extends Logging {
           settings.qSettings.useBroadClusterSettings = true
         }
       }
+      else if (settings.slurm) {
+        settings.jobRunner = "Slurm"
+      }
       else if (settings.jobRunner == null) {
         settings.jobRunner = "Shell"
       }

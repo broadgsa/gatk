@@ -92,7 +92,8 @@ class PbsEngineJobRunner(session: Session, function: CommandLineFunction) extend
     if (priority.isDefined)
       nativeSpec += " -p " + priority.get
 
-    logger.debug("Native spec is: %s".format(nativeSpec))
-    (nativeSpec + " " + super.functionNativeSpec).trim()
+    val n = nativeSpec + " " + super.functionNativeSpec
+    logger.info(s"Native spec is: $n")
+    n.trim()
   }
 }
