@@ -25,15 +25,10 @@
 
 package org.broadinstitute.gatk.utils.refdata;
 
-import htsjdk.samtools.util.SequenceUtil;
 import htsjdk.tribble.Feature;
-import htsjdk.tribble.annotation.Strand;
-import htsjdk.tribble.gelitext.GeliTextFeature;
 import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
-import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.classloader.PluginManager;
 import org.broadinstitute.gatk.utils.codecs.hapmap.RawHapMapFeature;
-import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.variantcontext.*;
 
 import java.util.*;
@@ -59,10 +54,10 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static Map<Class<? extends Feature>,VCAdaptor> adaptors = new HashMap<Class<? extends Feature>,VCAdaptor>();
+    private static Map<Class<? extends Feature>,VCAdaptor> adaptors = new HashMap<>();
 
     static {
-        PluginManager<VCAdaptor> vcAdaptorManager = new PluginManager<VCAdaptor>(VCAdaptor.class);
+        PluginManager<VCAdaptor> vcAdaptorManager = new PluginManager<>(VCAdaptor.class);
         List<VCAdaptor> adaptorInstances = vcAdaptorManager.createAllTypes();
         for(VCAdaptor adaptor: adaptorInstances)
             adaptors.put(adaptor.getAdaptableFeatureType(),adaptor);
@@ -110,67 +105,6 @@ public class VariantContextAdaptors {
         }
     }
 
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // GELI to VariantContext
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    private static class GeliTextAdaptor implements VCAdaptor {
-        /**
-         * Converts Geli text records to VariantContext. 
-         * @return GeliTextFeature.
-         */
-        @Override
-        public Class<? extends Feature> getAdaptableFeatureType() { return GeliTextFeature.class; }
-
-        /**
-         * convert to a Variant Context, given:
-         * @param name  the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @param ref   the reference context
-         * @return a VariantContext object
-         */
-        @Override
-        public VariantContext convert(String name, Object input, ReferenceContext ref) {
-            GeliTextFeature geli = (GeliTextFeature)input;
-            if ( ! Allele.acceptableAlleleBases(String.valueOf(geli.getRefBase())) )
-                return null;
-            Allele refAllele = Allele.create(String.valueOf(geli.getRefBase()), true);
-
-            // make sure we can convert it
-            if ( geli.getGenotype().isHet() || !geli.getGenotype().containsBase(geli.getRefBase())) {
-                // add the reference allele
-                List<Allele> alleles = new ArrayList<Allele>();
-                List<Allele> genotypeAlleles = new ArrayList<Allele>();
-                // add all of the alt alleles
-                for ( char alt : geli.getGenotype().toString().toCharArray() ) {
-                    if ( ! Allele.acceptableAlleleBases(String.valueOf(alt)) ) {
-                        return null;
-                    }
-                    Allele allele = Allele.create(String.valueOf(alt), false);
-                    if (!alleles.contains(allele) && !refAllele.basesMatch(allele.getBases())) alleles.add(allele);
-
-                    // add the allele, first checking if it's reference or not
-                    if (!refAllele.basesMatch(allele.getBases())) genotypeAlleles.add(allele);
-                    else genotypeAlleles.add(refAllele);
-                }
-
-                Map<String, Object> attributes = new HashMap<String, Object>();
-                Collection<Genotype> genotypes = new ArrayList<Genotype>();
-                Genotype call = GenotypeBuilder.create(name, genotypeAlleles);
-
-                // add the call to the genotype list, and then use this list to create a VariantContext
-                genotypes.add(call);
-                alleles.add(refAllele);
-                GenomeLoc loc = ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart());
-                return new VariantContextBuilder(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles).genotypes(genotypes).log10PError(-1 * geli.getLODBestToReference()).attributes(attributes).make();
-            } else
-                return null; // can't handle anything else
-        }
-    }
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // HapMap to VariantContext
@@ -203,7 +137,7 @@ public class VariantContextAdaptors {
             if ( index < 0 )
                 return null; // we weren't given enough reference context to create the VariantContext
 
-            HashSet<Allele> alleles = new HashSet<Allele>();
+            HashSet<Allele> alleles = new HashSet<>();
             Allele refSNPAllele = Allele.create(ref.getBase(), true);
             int deletionLength = -1;
 
@@ -231,7 +165,7 @@ public class VariantContextAdaptors {
 
                 String a1 = genotypeStrings[i].substring(0,1);
                 String a2 = genotypeStrings[i].substring(1);
-                ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
+                ArrayList<Allele> myAlleles = new ArrayList<>(2);
 
                 // use the mapping to actual alleles, if available
                 if ( alleleMap != null ) {
