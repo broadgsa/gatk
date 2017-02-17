@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.utils.codecs.hapmap;
 import htsjdk.tribble.annotation.Strand;
 import htsjdk.tribble.readers.LineIterator;
 import htsjdk.tribble.readers.LineIteratorImpl;
-import htsjdk.tribble.readers.LineReaderUtil;
+import htsjdk.tribble.readers.SynchronousLineReader;
 import htsjdk.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
@@ -160,11 +160,11 @@ public class HapMapUnitTest extends BaseTest {
         Assert.assertFalse(codec.canDecode("filename." + RawHapMapCodec.FILE_EXT + EXTRA_CHAR));
         Assert.assertFalse(codec.canDecode("filename" + RawHapMapCodec.FILE_EXT));
     }
-
-
+    
     public LineIterator getLineIterator() {
         try {
-            return new LineIteratorImpl(LineReaderUtil.fromBufferedStream(new PositionalBufferedStream(new FileInputStream(hapMapFile))));
+
+            return new LineIteratorImpl(new SynchronousLineReader(new PositionalBufferedStream(new FileInputStream(hapMapFile))));
         } catch (FileNotFoundException e) {
             Assert.fail("Unable to open hapmap file : " + hapMapFile);
         }
