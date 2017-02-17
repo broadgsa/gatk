@@ -39,15 +39,13 @@ public class UnzipSingleBlock extends CommandLineProgram {
     @Input(fullName = "block_file", shortName = "b", doc = "block file over which to test unzipping", required = true)
     private File blockFile;
 
-    @Input(fullName = "compressed_block_size", shortName = "cbs", doc = "size of compressed block", required = true)
-    private int compressedBufferSize;
-
     public int execute() throws IOException {
         final byte[] uncompressedBuffer = new byte[65536];
 
         final BlockCompressedInputStream gunzipper = new BlockCompressedInputStream(blockFile);
         gunzipper.setCheckCrcs(true);
         gunzipper.read(uncompressedBuffer);
+        gunzipper.close();
 
         System.out.printf("SUCCESS!%n");
 
