@@ -927,7 +927,7 @@ public class GATKVariantContextUtils {
                 final List<Allele> best = new LinkedList<>();
                 final Allele ref = allelesToUse.get(0);
                 for ( final Allele originalAllele : originalGT ) {
-                    best.add(allelesToUse.contains(originalAllele) ? originalAllele : ref);
+                    best.add((allelesToUse.contains(originalAllele) || originalAllele.isNoCall()) ? originalAllele : ref);
                 }
                 gb.alleles(best);
                 break;
@@ -1045,7 +1045,7 @@ public class GATKVariantContextUtils {
         else {
             final List<VariantContext> biallelics = new LinkedList<>();
 
-            // if any of the genotypes ar ehet-not-ref (i.e. 1/2), set all of them to no-call
+            // if any of the genotypes are het-not-ref (i.e. 1/2), set all of them to no-call
             final GenotypeAssignmentMethod genotypeAssignmentMethodUsed = hasHetNonRef(vc.getGenotypes()) ? GATKVariantContextUtils.GenotypeAssignmentMethod.SET_TO_NO_CALL_NO_ANNOTATIONS : genotypeAssignmentMethod;
 
             for ( final Allele alt : vc.getAlternateAlleles() ) {
@@ -1466,6 +1466,10 @@ public class GATKVariantContextUtils {
 
         int currentIndex = 0;
         for ( int i = alleleIndexesToUse.nextSetBit(0); i >= 0; i = alleleIndexesToUse.nextSetBit(i+1) ) {
+            if ( i >= oldAD.length ) {
+                throw new IllegalStateException("AD has " + oldAD.length + " items. It should have at least " + (i+1) + ".");
+            }
+
             newAD[currentIndex++] = oldAD[i];
         }
 
