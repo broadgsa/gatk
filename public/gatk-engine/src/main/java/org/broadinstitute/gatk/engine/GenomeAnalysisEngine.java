@@ -26,11 +26,15 @@
 package org.broadinstitute.gatk.engine;
 
 import com.google.java.contract.Ensures;
+import com.intel.gkl.compression.IntelDeflaterFactory;
+import com.intel.gkl.compression.IntelInflaterFactory;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
+import htsjdk.samtools.util.BlockGunzipper;
 import htsjdk.variant.vcf.VCFConstants;
 import org.apache.log4j.Logger;
 import org.broadinstitute.gatk.engine.arguments.GATKArgumentCollection;
@@ -268,6 +272,9 @@ public class GenomeAnalysisEngine {
         if (args.nonDeterministicRandomSeed)
             Utils.resetRandomGenerator(System.currentTimeMillis());
 
+        // Try to use the accelerated Intel zlib implementations if possible, or fall back to the JDK implementation if necessary (or requested)
+        initializeCompressionAndDecompression();
+
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null) {
             if (args.BQSR_RECAL_FILE.exists()) {
@@ -384,6 +391,21 @@ public class GenomeAnalysisEngine {
         }
 
         return Collections.unmodifiableList(filters);
+    }
+
+    public void initializeCompressionAndDecompression() {
+        // Use the Intel Inflater/Deflater for accelerated BAM reading/writing, if possible:
+        if (! getArguments().useJdkDeflater) {
+            BlockCompressedOutputStream.setDefaultDeflaterFactory(new IntelDeflaterFactory());
+        }
+        if (! getArguments().useJdkInflater) {
+            BlockGunzipper.setDefaultInflaterFactory(new IntelInflaterFactory());
+        }
+
+        final boolean usingIntelDeflater = (BlockCompressedOutputStream.getDefaultDeflaterFactory() instanceof IntelDeflaterFactory && ((IntelDeflaterFactory)BlockCompressedOutputStream.getDefaultDeflaterFactory()).usingIntelDeflater());
+        logger.info("Deflater: " + (usingIntelDeflater ? "IntelDeflater": "JdkDeflater"));
+        final boolean usingIntelInflater = (BlockGunzipper.getDefaultInflaterFactory() instanceof IntelInflaterFactory && ((IntelInflaterFactory)BlockGunzipper.getDefaultInflaterFactory()).usingIntelInflater());
+        logger.info("Inflater: " + (usingIntelInflater ? "IntelInflater": "JdkInflater"));
     }
 
     /**

@@ -87,6 +87,11 @@
                 <version>${picard.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.intel.gkl</groupId>
+                <artifactId>gkl</artifactId>
+                <version>0.4.3</version>
+            </dependency>
+            <dependency>
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <version>1.2.15</version>
