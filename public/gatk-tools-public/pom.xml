@@ -30,6 +30,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.intel.gkl</groupId>
+            <artifactId>gkl</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>gatk-utils</artifactId>
             <version>${project.version}</version>
