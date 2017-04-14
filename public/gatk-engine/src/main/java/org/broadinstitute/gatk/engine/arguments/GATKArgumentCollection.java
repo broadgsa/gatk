@@ -402,6 +402,19 @@ public class GATKArgumentCollection {
     @Advanced
     @Argument(fullName = "unsafe", shortName = "U", doc = "Enable unsafe operations: nothing will be checked at runtime", required = false)
     public ValidationExclusion.TYPE unsafe;
+
+    /**
+     * There are two different libraries that can be used for compression when writing BAM files: IntelDeflater  (the new default in GATK version 3.8) and the JDK Deflater (the previous GATK default) which is an older implementation and is slower in our tests. Use this flag to disable the IntelDeflater and use the JDK Deflater in its place.
+     */
+    @Argument(fullName = "use_jdk_deflater", shortName = "jdk_deflater", doc = "Use the JDK Deflater instead of the IntelDeflater for writing BAMs")
+    public boolean useJdkDeflater = false;
+
+    /**
+     * There are two different libraries that can be used for decompression when reading BAM files: IntelInflater  (the new default in GATK version 3.8) and the JDK Inflater (the previous GATK default) which is an older implementation and is slower in our tests. Use this flag to disable the IntelInflater and use the JDK Inflater in its place.
+     */
+    @Argument(fullName = "use_jdk_inflater", shortName = "jdk_inflater", doc = "Use the JDK Inflater instead of the IntelInflater for reading BAMs")
+    public boolean useJdkInflater = false;
+
     /**
      * Not recommended for general use. Disables both auto-generation of index files and index file locking
      * when reading VCFs and other rods and an index isn't present or is out-of-date. The file locking necessary for auto index
