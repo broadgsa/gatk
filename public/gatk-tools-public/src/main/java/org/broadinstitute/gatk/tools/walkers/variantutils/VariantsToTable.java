@@ -361,6 +361,9 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( val instanceof List )
             return prettyPrintObject(((List)val).toArray());
 
+        if ( val == null )
+            return "";
+
         if ( !val.getClass().isArray() )
             return val.toString();
 
