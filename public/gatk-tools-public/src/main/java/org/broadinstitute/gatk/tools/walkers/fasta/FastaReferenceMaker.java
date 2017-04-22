@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -28,9 +28,9 @@ package org.broadinstitute.gatk.tools.walkers.fasta;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RefWalker;
 import org.broadinstitute.gatk.utils.GenomeLoc;
 import org.broadinstitute.gatk.utils.collections.Pair;
@@ -40,13 +40,13 @@ import org.broadinstitute.gatk.utils.help.HelpConstants;
 import java.io.PrintStream;
 
 /**
- * Renders a new reference in FASTA format consisting of only those loci provided in the input data set.
+ * Create a subset of a FASTA reference sequence
  *
- * <p>
- * The output format can be partially controlled using the provided command-line arguments.
- * Specify intervals with the usual -L argument to output only the reference bases within your intervals.
+ * <p>This tool creates a new reference in FASTA format consisting of only those positions or intervals
+ * provided in the input data set. The output format can be partially controlled using the provided command-line
+ * arguments. Specify intervals with the usual -L argument to output only the reference bases within your intervals.
  * Overlapping intervals are automatically merged; reference bases for each disjoint interval will be output as a
- * separate fasta sequence (named numerically in order).
+ * separate fasta sequence (named numerically in order).</p>
  *
  * <h3>Input</h3>
  * <p>
@@ -55,14 +55,22 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  * <p>
- * A fasta file representing the requested intervals.
+ * A fasta file representing the requested intervals. Each interval has a description line starting with a greater-than (">") symbol followed by sequence data.
+ * The description begins with the contig name followed by the beginning position on the contig.
+ * <pre>
+ * For example, the fasta file for contig 1 and intervals 1:3-1:4 and 1:6-1:9
+ * >1 1:3
+ * AT
+ * >1 1:6
+ * GGGG
+ * </pre>
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T FastaReferenceMaker \
+ *   -R reference.fasta \
  *   -o output.fasta \
  *   -L input.intervals
  * </pre>
@@ -104,18 +112,20 @@ public class FastaReferenceMaker extends RefWalker<Pair<GenomeLoc, String>, Geno
         // if there is no interval to the left, then this is the first one
         if ( sum == null ) {
             sum = value.first;
+            fasta.setName(fasta.getName() + " " + sum.toString());
             fasta.append(value.second);
         }
-        // if the intervals don't overlap, print out the leftmost one and start a new one
+        // if the intervals are not contiguous, print out the leftmost one and start a new one
         // (end of contig or new interval)
-        else if ( value.first.getStart() != sum.getStop() + 1 ) {
+        else if ( value.first.getStart() != sum.getStop() + 1 || ! value.first.getContig().equals(sum.getContig()) ) {
             fasta.flush();
             sum = value.first;
+            fasta.setName(fasta.getName() + " " + sum.toString());
             fasta.append(value.second);
         }
         // otherwise, merge them
         else {
-            sum = getToolkit().getGenomeLocParser().setStop(sum, value.first.getStop());
+            sum = sum.setStop(sum, value.first.getStop());
             fasta.append(value.second);
         }
 		return sum;

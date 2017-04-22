@@ -112,7 +112,7 @@ gsa.read.gatkreportv1 <- function(lines) {
   
   finishTable <- function() {
     if ( rowCount == 1 )
-      # good I hate R.  Work around to avoid collapsing into an unstructured vector when 
+      # Workaround to avoid collapsing into an unstructured vector when 
       # there's only 1 row
       sub <- t(as.matrix(tableRows[1:rowCount,]))
     else

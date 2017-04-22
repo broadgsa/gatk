@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -53,6 +53,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     @Override protected String getShortName() { return escape(argumentDefinition.shortName); }
     @Override protected boolean isRequired() { return argumentDefinition.required; }
     @Override protected String getExclusiveOf() { return escape(argumentDefinition.exclusiveOf); }
+    @Override protected String getOtherArgumentRequired() { return escape(argumentDefinition.otherArgumentRequired); }
     @Override protected String getValidation() { return escape(argumentDefinition.validation); }
     protected boolean isFlag() { return argumentDefinition.isFlag; }
     protected boolean isMultiValued() { return argumentDefinition.isMultiValued; }
@@ -250,6 +251,15 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             exclusiveOf.append(escape(argumentDefinition.fullName)).append("String");
             return exclusiveOf.toString();
         }
+
+        @Override
+        protected String getOtherArgumentRequired() {
+            StringBuilder otherArgumentRequired = new StringBuilder(super.getOtherArgumentRequired());
+            if (otherArgumentRequired.length() > 0)
+                otherArgumentRequired.append(",");
+            otherArgumentRequired.append(escape(argumentDefinition.fullName)).append("String");
+            return otherArgumentRequired.toString();
+        }
     }
 
     // if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT)
@@ -276,6 +286,15 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                 exclusiveOf.append(",");
             exclusiveOf.append(escape(argumentDefinition.fullName));
             return exclusiveOf.toString();
+        }
+
+        @Override
+        protected String getOtherArgumentRequired() {
+            StringBuilder otherArgumentRequired = new StringBuilder(super.getOtherArgumentRequired());
+            if (otherArgumentRequired.length() > 0)
+                otherArgumentRequired.append(",");
+            otherArgumentRequired.append(escape(argumentDefinition.fullName));
+            return otherArgumentRequired.toString();
         }
     }
 
@@ -507,7 +526,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getFreezeFields() {
             return String.format(
                     ("if (%2$s != null && !org.broadinstitute.gatk.utils.io.IOUtils.isSpecialFile(%2$s))%n" +
-                            "  if (!org.broadinstitute.gatk.engine.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
+                            "  if (!org.broadinstitute.gatk.utils.commandline.ArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
                             "    %1$s = new File(%2$s.getPath + \"%3$s\")%n"),
                     auxFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
         }

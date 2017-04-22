@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -58,8 +58,14 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
       nativeSpec += " -l %s=%dM".format(function.qSettings.residentRequestParameter, function.residentRequest.map(_ * 1024).get.ceil.toInt)
 
     // If the resident set size limit is defined specify the memory limit
-    if (function.residentLimit.isDefined)
-      nativeSpec += " -l h_rss=%dM".format(function.residentLimit.map(_ * 1024).get.ceil.toInt)
+    if (function.residentLimit.isDefined) {
+      var memoryLimitParameter : String = "h_rss"
+      if (function.qSettings.useBroadClusterSettings) {
+        memoryLimitParameter = "h_vmem"
+      }
+
+      nativeSpec += " -l %s=%dM".format(memoryLimitParameter, function.residentLimit.map(_ * 1024).get.ceil.toInt)
+    }
 
     // If more than 1 core is requested, set the proper request
     // if we aren't being jerks and just stealing cores (previous behavior)
@@ -82,7 +88,7 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
     if (priority.isDefined)
       nativeSpec += " -p " + priority.get
 
-    logger.debug("Native spec is: %s".format(nativeSpec))
+    logger.info("Native spec is: %s".format(nativeSpec))
     (nativeSpec + " " + super.functionNativeSpec).trim()
   }
 }

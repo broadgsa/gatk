@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -98,4 +98,9 @@ class QSettings {
   
   @Argument(fullName="log_directory", shortName="logDir", doc="Directory to write log files into.", required=false)
   var logDirectory: File = _
+
+  /**
+   * If set, use Broad-specific cluster settings in the GridEngine job runner. Activated via the -qsub-broad argument in QGraphSettings.
+   */
+  var useBroadClusterSettings: Boolean = false
 }

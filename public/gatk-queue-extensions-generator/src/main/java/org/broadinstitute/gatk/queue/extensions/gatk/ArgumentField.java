@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,7 +25,7 @@
 
 package org.broadinstitute.gatk.queue.extensions.gatk;
 
-import htsjdk.samtools.SAMFileReader;
+import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SAMFileWriter;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -56,7 +56,8 @@ public abstract class ArgumentField {
     public final String getArgumentAddition() {
         return String.format("%n" +
                 "/** %s */%n" +
-                "@%s(fullName=\"%s\", shortName=\"%s\", doc=\"%s\", required=%s, exclusiveOf=\"%s\", validation=\"%s\")%n" +
+                "@%s(fullName=\"%s\", shortName=\"%s\", doc=\"%s\", required=%s, exclusiveOf=\"%s\", " +
+                        "otherArgumentRequired=\"%s\", validation=\"%s\")%n" +
                 "%s%svar %s: %s = %s%n" +
                 "%s",
                 getDoc(),
@@ -66,6 +67,7 @@ public abstract class ArgumentField {
                 getDoc(),
                 isRequired(),
                 getExclusiveOf(),
+                getOtherArgumentRequired(),
                 getValidation(),
                 getGatherAnnotation(), getPrivacy(), getFieldName(), getFieldType(), getDefaultValue(),
                 getDefineAddition());
@@ -96,6 +98,9 @@ public abstract class ArgumentField {
 
     /** @return A comma separated list of arguments that may be substituted for this field. */
     protected String getExclusiveOf() { return ""; }
+
+    /** @return A string containing an argument that is necessary for the current argument to work. */
+    protected String getOtherArgumentRequired() { return ""; }
 
     /** @return A validation string for the argument. */
     protected String getValidation() { return ""; }
@@ -240,7 +245,7 @@ public abstract class ArgumentField {
 
     protected static Class<?> mapType(Class<?> clazz) {
         if (InputStream.class.isAssignableFrom(clazz)) return File.class;
-        if (SAMFileReader.class.isAssignableFrom(clazz)) return File.class;
+        if (SamReader.class.isAssignableFrom(clazz)) return File.class;
         if (OutputStream.class.isAssignableFrom(clazz)) return File.class;
         if (VariantContextWriter.class.isAssignableFrom(clazz)) return File.class;
         if (SAMFileWriter.class.isAssignableFrom(clazz)) return File.class;

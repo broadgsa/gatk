@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -30,9 +30,10 @@ import org.broadinstitute.gatk.utils.io.{Resource}
 import org.broadinstitute.gatk.queue.engine.{JobRunInfo, QGraph}
 import org.broadinstitute.gatk.queue.function.QFunction
 import org.broadinstitute.gatk.utils.R.{RScriptLibrary, RScriptExecutor}
-import org.broadinstitute.gatk.engine.report.{GATKReportTable, GATKReport}
+import org.broadinstitute.gatk.utils.report.GATKReportTable
 import org.broadinstitute.gatk.utils.exceptions.UserException
 import org.apache.commons.io.{FileUtils, IOUtils}
+import org.broadinstitute.gatk.utils.report.{GATKReportTable, GATKReport}
 
 /**
  * Writes out RunInfo to a GATKReport

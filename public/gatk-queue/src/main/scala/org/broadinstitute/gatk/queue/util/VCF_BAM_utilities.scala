@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -28,7 +28,7 @@ package org.broadinstitute.gatk.queue.util
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import scala.io.Source._
-import htsjdk.samtools.SAMFileReader
+import htsjdk.samtools.{SamReaderFactory}
 import htsjdk.variant.vcf.{VCFHeader, VCFCodec}
 import scala.collection.JavaConversions._
 import htsjdk.tribble.AbstractFeatureReader
@@ -40,7 +40,7 @@ object VCF_BAM_utilities {
   }
 
   def getSamplesInBAM(bam: File): List[String] = {
-    return new SAMFileReader(bam).getFileHeader().getReadGroups().toList.map(srgr => srgr.getSample()).toSet.toList
+    return SamReaderFactory.makeDefault().open(bam).getFileHeader().getReadGroups().toList.map(srgr => srgr.getSample()).toSet.toList
   }
 
   def parseBAMsInput(bamsIn: File): List[File] = FilenameUtils.getExtension(bamsIn.getPath) match {

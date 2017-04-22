@@ -12,7 +12,7 @@
 
     <groupId>org.broadinstitute.gatk</groupId>
     <artifactId>gatk-root</artifactId>
-    <version>3.3</version>
+    <version>3.7</version>
     <packaging>pom</packaging>
     <name>GATK Root</name>
 
@@ -24,8 +24,8 @@
         <sourceEncoding>UTF-8</sourceEncoding>
         <project.build.sourceEncoding>${sourceEncoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${sourceEncoding}</project.reporting.outputEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <maven.build.timestamp.format>yyyy/MM/dd HH:mm:ss</maven.build.timestamp.format>
         <gatk.basedir>${project.basedir}/../..</gatk.basedir>
         <gatk.committests.skipped>true</gatk.committests.skipped>
@@ -44,8 +44,8 @@
         <test.listeners>org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.gatk.utils.TestNGTestTransformer,org.broadinstitute.gatk.utils.GATKTextReporter,org.uncommons.reportng.HTMLReporter</test.listeners>
 
         <!-- Version numbers for picard and htsjdk -->
-        <htsjdk.version>1.120.1620</htsjdk.version>
-        <picard.version>1.120.1579</picard.version>
+        <htsjdk.version>2.8.1</htsjdk.version>
+        <picard.version>2.7.2</picard.version>
     </properties>
 
     <!-- Dependency configuration (versions, etc.) -->
@@ -64,10 +64,10 @@
             <dependency>
                 <groupId>com.google.code.cofoja</groupId>
                 <artifactId>cofoja</artifactId>
-                <version>1.0-r139</version>
+                <version>1.2-20140817</version>
             </dependency>
             <dependency>
-                <groupId>samtools</groupId>
+                <groupId>com.github.samtools</groupId>
                 <artifactId>htsjdk</artifactId>
                 <version>${htsjdk.version}</version>
                 <exclusions>
@@ -82,7 +82,7 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>picard</groupId>
+                <groupId>com.github.broadinstitute</groupId>
                 <artifactId>picard</artifactId>
                 <version>${picard.version}</version>
             </dependency>
@@ -130,10 +130,16 @@
                 <artifactId>reflections</artifactId>
                 <version>0.9.9-RC1</version>
             </dependency>
+            <!-- slf4j bindings must only be at the package level: http://www.slf4j.org/manual.html -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.6.1</version>
+            </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-log4j12</artifactId>
-                <version>1.6.1</version>
+                <version>1.7.5</version>
             </dependency>
             <dependency>
                 <groupId>gov.nist.math</groupId>
@@ -178,7 +184,7 @@
             <dependency>
                 <groupId>commons-collections</groupId>
                 <artifactId>commons-collections</artifactId>
-                <version>3.2.1</version>
+                <version>3.2.2</version>
             </dependency>
             <dependency>
                 <groupId>commons-httpclient</groupId>
@@ -189,6 +195,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math</artifactId>
                 <version>2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-math3</artifactId>
+                <version>3.5</version>
             </dependency>
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
@@ -362,7 +373,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.1</version>
+                    <version>2.4.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -404,6 +415,7 @@
                             <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
+                            <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -458,8 +470,7 @@
                             <gatkdir>${gatk.basedir}</gatkdir>
                             <clover.pertest.coverage>diff</clover.pertest.coverage>
                             <java.awt.headless>true</java.awt.headless>
-                            <!-- TODO: Fix BaseTest to not error out if this property is missing. -->
-                            <pipeline.run>${gatk.queuetests.run}</pipeline.run>
+                            <queuetest.run>${gatk.queuetests.run}</queuetest.run>
                             <java.io.tmpdir>${java.io.tmpdir}</java.io.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
@@ -711,6 +722,17 @@
             <id>gatk.public.repo.local</id>
             <name>GATK Public Local Repository</name>
             <url>file:${gatk.basedir}/public/repo</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>broad.artifactory.snapshots</id>
+            <name>Broad Institute Artifactory SNAPSHOTs</name>
+            <url>https://artifactory.broadinstitute.org/artifactory/libs-snapshot</url>
         </repository>
     </repositories>
 

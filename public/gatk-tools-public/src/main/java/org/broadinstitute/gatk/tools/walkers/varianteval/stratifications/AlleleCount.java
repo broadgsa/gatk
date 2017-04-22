@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,14 +25,15 @@
 
 package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications;
 
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantSummary;
 import htsjdk.variant.vcf.VCFConstants;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.util.*;
 
@@ -66,15 +67,15 @@ public class AlleleCount extends VariantStratifier {
         getVariantEvalWalker().getLogger().info("AlleleCount using " + nchrom + " chromosomes");
     }
 
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String familyName) {
         if (eval != null) {
             int AC = 0; // by default, the site is considered monomorphic
 
             try {
                 if ( eval.isBiallelic() ) {
-                    if ( eval.hasAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY) ) {
+                    if ( eval.hasAttribute(GATKVCFConstants.MLE_ALLELE_COUNT_KEY) ) {
                         // the MLEAC is allowed to be larger than the AN (e.g. in the case of all PLs being 0, the GT is ./. but the exact model may arbitrarily choose an AC>1)
-                        AC = Math.min(eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
+                        AC = Math.min(eval.getAttributeAsInt(GATKVCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
                     } else if ( eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
                         AC = eval.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
                     }

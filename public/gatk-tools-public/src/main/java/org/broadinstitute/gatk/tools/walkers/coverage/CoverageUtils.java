@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -27,7 +27,7 @@ package org.broadinstitute.gatk.tools.walkers.coverage;
 
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
@@ -137,6 +137,9 @@ public class CoverageUtils {
     public static Map<SAMReadGroupRecord,int[]> getBaseCountsByReadGroup(AlignmentContext context, int minMapQ, int maxMapQ, byte minBaseQ, byte maxBaseQ, CountPileupType countType) {
         Map<SAMReadGroupRecord, int[]> countsByRG = new HashMap<SAMReadGroupRecord,int[]>();
 
+        Map<String, int[]> countsByRGName = new HashMap<String, int[]>();
+        Map<String, SAMReadGroupRecord> RGByName = new HashMap<String, SAMReadGroupRecord>();
+
         List<PileupElement> countPileup = new LinkedList<PileupElement>();
         FragmentCollection<PileupElement> fpile;
 
@@ -202,10 +205,20 @@ public class CoverageUtils {
 
         for (PileupElement e : countPileup) {
             SAMReadGroupRecord readGroup = getReadGroup(e.getRead());
-            if (!countsByRG.keySet().contains(readGroup))
-                countsByRG.put(readGroup, new int[6]);
 
-            updateCounts(countsByRG.get(readGroup), e);
+            String readGroupId = readGroup.getSample() + "_" + readGroup.getReadGroupId();
+            int[] counts = countsByRGName.get(readGroupId);
+            if (counts == null) {
+                counts = new int[6];
+                countsByRGName.put(readGroupId, counts);
+                RGByName.put(readGroupId, readGroup);
+            }
+
+            updateCounts(counts, e);
+        }
+
+        for (String readGroupId : RGByName.keySet()) {
+            countsByRG.put(RGByName.get(readGroupId), countsByRGName.get(readGroupId));
         }
 
         return countsByRG;

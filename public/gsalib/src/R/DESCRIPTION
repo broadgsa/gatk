@@ -1,13 +1,14 @@
 Package: gsalib
 Type: Package
-Title: Utility functions
-Version: 1.0
-Date: 2010-10-02
-Imports: gplots, ggplot2, png
+Title: Utility Functions For GATK
+Version: 2.2
+Date: 2015-03-17
 Author: Kiran Garimella
-Maintainer: Mauricio Carneiro <carneiro@broadinstitute.org>
-BugReports: http://gatkforums.broadinstitute.org
-Description: Utility functions for GATK NGS analyses
+Maintainer: Geraldine Van der Auwera <vdauwera@broadinstitute.org>
+Description: This package contains utility functions used by the Genome Analysis Toolkit (GATK) to load tables and plot data. The GATK is a toolkit for variant discovery in high-throughput sequencing data.
 License: MIT + file LICENSE
 LazyLoad: yes
+Packaged: 2013-07-02 07:56:13 UTC; gege
 NeedsCompilation: no
+Repository: CRAN
+Date/Publication: 2013-07-03 17:30:49

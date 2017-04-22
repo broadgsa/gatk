@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -41,6 +41,12 @@ class ExamplePrintReads extends QScript {
   @Output(doc="Bam output", shortName="out")
   var outFile: File = _
 
+  @Argument(doc="One or more genomic intervals over which to operate", shortName="L", required=false)
+  var intervals: Seq[String] = Nil
+
+  @Argument(doc = "Don't output a program tag", shortName = "npt", required = false)
+  var noPGTag: Boolean = _
+
   def script() {
     val printReads = new PrintReads
     printReads.reference_sequence = referenceFile
@@ -48,6 +54,8 @@ class ExamplePrintReads extends QScript {
     printReads.scatterCount = 3
     printReads.input_file :+= bamFile
     printReads.out = outFile
+    printReads.intervalsString = intervals
+    printReads.no_pg_tag = noPGTag
     add(printReads)
   }
 }

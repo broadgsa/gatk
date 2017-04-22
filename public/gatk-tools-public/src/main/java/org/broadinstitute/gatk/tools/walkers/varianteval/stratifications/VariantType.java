@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.tools.walkers.varianteval.stratifications;
 
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import htsjdk.variant.variantcontext.VariantContext;
 
 import java.util.Collections;
@@ -42,7 +42,7 @@ public class VariantType extends VariantStratifier {
             states.add(t.toString());
     }
 
-    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName, String FamilyName) {
         return eval == null ? Collections.emptyList() : Collections.singletonList((Object)eval.getType().toString());
     }
 

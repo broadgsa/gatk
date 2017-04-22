@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -68,7 +68,7 @@ class HelloWorldQueueTest {
     QueueTest.executeTest(spec)
   }
 
-  @Test(timeOut=36000000)
+  @Test(enabled=false, timeOut=36000000)
   def testHelloWorldWithLsfResource() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfResource"
@@ -78,7 +78,7 @@ class HelloWorldQueueTest {
     QueueTest.executeTest(spec)
   }
 
-  @Test(timeOut=36000000)
+  @Test(enabled=false, timeOut=36000000)
   def testHelloWorldWithLsfResourceAndMemoryLimit() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfResourceAndMemoryLimit"
@@ -88,7 +88,7 @@ class HelloWorldQueueTest {
     QueueTest.executeTest(spec)
   }
 
-  @Test(timeOut=36000000)
+  @Test(enabled=false, timeOut=36000000)
   def testHelloWorldWithLsfEnvironment() {
     val spec = new QueueTestSpec
     spec.name = "HelloWorldWithLsfEnvironment"
@@ -147,6 +147,25 @@ class HelloWorldQueueTest {
       " -logDir pipelineLogDir"
     spec.jobRunners = QueueTest.allJobRunners
     spec.expectedFilePaths = Seq("pipelineLogDir/HelloWorld-1.out")
+    QueueTest.executeTest(spec)
+  }
+
+  @Test(timeOut=36000000)
+  def testHelloWorldParallelShell() {
+    val spec = new QueueTestSpec
+    spec.name = "HelloWorldWithLogDirectory"
+    spec.args = "-S " + QueueTest.publicQScriptsPackageDir + "examples/HelloWorld.scala"
+    spec.jobRunners = Seq("ParallelShell")
+    QueueTest.executeTest(spec)
+  }
+
+  @Test(timeOut=36000000)
+  def testHelloWorldParallelShellMaxConcurrentRun() {
+    val spec = new QueueTestSpec
+    spec.name = "HelloWorldWithLogDirectory"
+    spec.args = "-S " + QueueTest.publicQScriptsPackageDir + "examples/HelloWorld.scala" +
+      " -maxConcurrentRun 10"
+    spec.jobRunners = Seq("ParallelShell")
     QueueTest.executeTest(spec)
   }
 }

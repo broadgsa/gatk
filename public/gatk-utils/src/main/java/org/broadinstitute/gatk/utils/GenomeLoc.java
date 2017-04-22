@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -62,6 +62,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     // TODO - WARNING WARNING WARNING code somehow depends on the name of the contig being null!
     public static final GenomeLoc UNMAPPED = new GenomeLoc((String)null);
     public static final GenomeLoc WHOLE_GENOME = new GenomeLoc("all");
+    public static final GenomeLoc END_OF_GENOME = new GenomeLoc("Y", 23, 59347566, 59347566);
 
     public static final boolean isUnmapped(GenomeLoc loc) {
         return loc == UNMAPPED;
@@ -375,6 +376,17 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     /**
+     * Tests whether this contig is completely after contig 'that' and separate from it by at-least one base.
+     * @param that Contig to test against.
+     * @return true if this contig starts after 'that' ends + 1 ; false if this is completely before or
+     * is continguous with 'that', in the sensce of {@link GenomeLoc#contiguousP(GenomeLoc)}
+     */
+    @Requires("that != null")
+    public boolean isBeyond( final GenomeLoc that ) {
+        return isPast(that) && minDistance(that) > 1;
+    }
+
+    /**
      * Return the minimum distance between any pair of bases in this and that GenomeLocs:
      */
     @Requires("that != null")
@@ -539,7 +551,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *
      * @return a newly allocated GenomeLoc as loc but with start == start
      */
-    public GenomeLoc setStart(GenomeLoc loc, int start) {
+    public static GenomeLoc setStart(GenomeLoc loc, int start) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop());
     }
 
@@ -553,7 +565,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      *
      * @return a newly allocated GenomeLoc as loc but with stop == stop
      */
-    public GenomeLoc setStop(GenomeLoc loc, int stop) {
+    public static GenomeLoc setStop(GenomeLoc loc, int stop) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop);
     }
 

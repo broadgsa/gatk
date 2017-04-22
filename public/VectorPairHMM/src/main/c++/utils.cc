@@ -154,20 +154,20 @@ void initialize_function_pointers(uint64_t mask)
   //mask = (1 << SSE41_CUSTOM_IDX);
   if(is_avx_supported() && (mask & (1<< AVX_CUSTOM_IDX)))
   {
-    cout << "Using AVX accelerated implementation of PairHMM\n";
+    cerr << "Using AVX accelerated implementation of PairHMM\n";
     g_compute_full_prob_float = compute_full_prob_avxs<float>;
     g_compute_full_prob_double = compute_full_prob_avxd<double>;
   }
   else
     if(is_sse41_supported() && (mask & ((1<< SSE41_CUSTOM_IDX) | (1<<SSE42_CUSTOM_IDX))))
     {
-      cout << "Using SSE4.1 accelerated implementation of PairHMM\n";
+      cerr << "Using SSE4.1 accelerated implementation of PairHMM\n";
       g_compute_full_prob_float = compute_full_prob_sses<float>;
       g_compute_full_prob_double = compute_full_prob_ssed<double>;
     }
     else
     {
-      cout << "Using un-vectorized C++ implementation of PairHMM\n";
+      cerr << "Using un-vectorized C++ implementation of PairHMM\n";
       g_compute_full_prob_float = compute_full_prob<float>;
       g_compute_full_prob_double = compute_full_prob<double>;
     }
@@ -300,16 +300,16 @@ void tokenize(std::ifstream& fptr, std::vector<std::string>& tokens)
       {
 	myVec.push_back(tmp);
 	++i;
-	//std::cout <<tmp <<"#";
+	//std::cerr <<tmp <<"#";
       }
       tmp = "";
     }
-    //std::cout << "\n";
+    //std::cerr << "\n";
     if(myVec.size() > 0)
       break;
   }
   tokens.clear();
-  //std::cout << "Why "<<myVec.size()<<"\n";
+  //std::cerr << "Why "<<myVec.size()<<"\n";
   tokens.resize(myVec.size());
   for(i=0;i<(int)myVec.size();++i)
     tokens[i] = myVec[i];
@@ -334,7 +334,7 @@ int read_mod_testcase(ifstream& fptr, testcase* tc, bool reformat)
   tc->i = new char[tc->rslen];
   tc->d = new char[tc->rslen];
   tc->c = new char[tc->rslen];
-  //cout << "Lengths "<<tc->haplen <<" "<<tc->rslen<<"\n";
+  //cerr << "Lengths "<<tc->haplen <<" "<<tc->rslen<<"\n";
   memcpy(tc->rs, tokens[1].c_str(),tokens[1].size());
   assert(tokens.size() == (size_t)(2 + 4*(tc->rslen)));
   //assert(tc->rslen < MROWS);
@@ -522,7 +522,7 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
           double rel_error = (baseline_result != 0) ? fabs(abs_error/baseline_result) : 0;
           if(abs_error > 1e-5 && rel_error > 1e-5)
           {
-            cout << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
+            cerr << std::scientific << baseline_result << " "<<results_vec[i]<<"\n";
             all_ok = false;
           }
         }
@@ -547,14 +547,14 @@ void do_compute(char* filename, bool use_old_read_testcase, unsigned chunk_size,
 #endif
   if(all_ok)
   {
-    cout << "All output values within acceptable error\n";
-    cout << "Baseline double precision compute time "<<baseline_compute_time*1e-9<<"\n";
+    cerr << "All output values within acceptable error\n";
+    cerr << "Baseline double precision compute time "<<baseline_compute_time*1e-9<<"\n";
   }
-  cout << "Num testcase "<<num_testcases<< " num double invocations "<<num_double_calls<<"\n";
-  cout << "Vector compute time "<< vector_compute_time*1e-9 << "\n";
+  cerr << "Num testcase "<<num_testcases<< " num double invocations "<<num_double_calls<<"\n";
+  cerr << "Vector compute time "<< vector_compute_time*1e-9 << "\n";
 #ifdef USE_PAPI
   for(unsigned i=0;i<NUM_PAPI_COUNTERS;++i)
-    cout << eventnames[i] << " : "<<accum_values[i]<<"\n";
+    cerr << eventnames[i] << " : "<<accum_values[i]<<"\n";
 #endif
 #ifdef PRINT_PER_INTERVAL_TIMINGS
   times_fptr.close();

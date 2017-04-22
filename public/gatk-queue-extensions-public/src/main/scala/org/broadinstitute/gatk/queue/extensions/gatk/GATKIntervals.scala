@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -59,7 +59,7 @@ case class GATKIntervals(reference: File, intervals: Seq[File], intervalsString:
       this.excludeIntervalsString.map(GATKIntervals.createBinding(_, "excludeIntervalsString"))
 
     IntervalUtils.parseIntervalBindings(
-      referenceDataSource,
+      referenceDataSource.getReference,
       includeIntervalBindings,
       intervalSetRule, intervalMergingRule, intervalPadding.getOrElse(0),
       excludeIntervalBindings).toList

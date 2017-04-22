@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.tools.walkers.varianteval;
 
-import org.broadinstitute.gatk.engine.report.GATKReport;
-import org.broadinstitute.gatk.engine.report.GATKReportTable;
+import org.broadinstitute.gatk.utils.report.GATKReport;
+import org.broadinstitute.gatk.utils.report.GATKReportTable;
 import org.broadinstitute.gatk.tools.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.gatk.tools.walkers.varianteval.stratifications.manager.StratificationManager;

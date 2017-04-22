@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -40,7 +40,7 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
         String gatk_args = "-T Pileup -I " + validationDataLocation + "FHS_Pileup_Test.bam "
                  + "-R " + hg18Reference
                  +  " -L chr15:46,347,148 -o %s";
-        String expected_md5 = "526c93b0fa660d6b953b57103e59fe98";
+        String expected_md5 = "22211a5da34a45b3b6045dbcbce8fede";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(expected_md5));
         executeTest("Testing the standard (no-indel) pileup on three merged FHS pools with 27 deletions in 969 bases", spec);
     }
@@ -77,10 +77,10 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
     @DataProvider(name="GATKBAMIndexTest")
     public Object[][] makeMyDataProvider() {
         List<Object[]> tests = new ArrayList<Object[]>();
-        tests.add(new Object[]{"-L 20:1-76,050","8702701350de11a6d28204acefdc4775"});
+        tests.add(new Object[]{"-L 20:1-76,050","f275a2de053f44db19bc6591fe1c8dae"});
         tests.add(new Object[]{"-L 20:10,000,000-10,001,100","818cf5a8229efe6f89fc1cd8145ccbe3"});
-        tests.add(new Object[]{"-L 20:62,954,114-63,025,520","22471ea4a12e5139aef62bf8ff2a5b63"});
-        tests.add(new Object[]{"-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ","08d899ed7c5a76ef3947bf67338acda1"});
+        tests.add(new Object[]{"-L 20:62,954,114-63,025,520","7e3462745d298de3b7493b42d3603392"});
+        tests.add(new Object[]{"-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ","977298255b04d66c17bb5466da8251f7"});
         return tests.toArray(new Object[][]{});
     }
 
@@ -115,7 +115,7 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
                 + "-R " + hg18Reference
                 + " -outputInsertLength"
                 +  " -L chr15:46,347,148 -o %s";
-        String expected_md5 = "53ced173768f3d4d90b8a8206e72eae5";
+        String expected_md5 = "cae23b79598b23feec665704f5578897";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(expected_md5));
         executeTest("Testing the standard (no-indel) pileup on three merged FHS pools with 27 deletions in 969 bases (with insert length)", spec);
     }

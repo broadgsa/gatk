@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -34,6 +34,7 @@ public class BAQIntegrationTest extends WalkerTest {
     private final static String baseCommand = "-T PrintReads -R " + b36KGReference +
             " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
             " -o %s" +
+            " --no_pg_tag " +
             " -L 1:10,000,000-10,100,000";
 
     // --------------------------------------------------------------------------------------------------------------
@@ -43,13 +44,13 @@ public class BAQIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testPrintReadsNoBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("d1f74074e718c82810512bf40dbc7f72"));
+        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("e33187ca383c7f5c75c5d547ec79e1cb"));
         executeTest(String.format("testPrintReadsNoBAQ"), spec);
     }
 
     @Test
     public void testPrintReadsRecalBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq RECALCULATE",  1, Arrays.asList("96ec97cf92f1f660bd5244c6b44539b3"));
+        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq RECALCULATE",  1, Arrays.asList("a25043edfbfa4f21a13cc21064b460df"));
         executeTest(String.format("testPrintReadsRecalBAQ"), spec);
     }
 }

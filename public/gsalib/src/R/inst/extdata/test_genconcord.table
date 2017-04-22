@@ -1,0 +1,30 @@
+#:GATKReport.v1.1:5
+#:GATKTable:20:2:%s:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:;
+#:GATKTable:GenotypeConcordance_CompProportions:Per-sample concordance tables: proportions of genotypes called in comp
+Sample   NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR  HOM_REF_HOM_REF  HOM_REF_HET  HOM_REF_HOM_VAR  HET_HOM_REF  HET_HET  HET_HOM_VAR  HOM_VAR_HOM_REF  HOM_VAR_HET  HOM_VAR_HOM_VAR  UNAVAILABLE_HOM_REF  UNAVAILABLE_HET  UNAVAILABLE_HOM_VAR  MIXED_HOM_REF  MIXED_HET  MIXED_HOM_VAR  Mismatching_Alleles
+ALL                0.000        0.000            0.000            0.000        0.000            0.000        0.000    0.007        0.000            0.000        0.001            0.013                0.000            0.992                0.986          0.000      0.000          0.000                0.000
+NA12878            0.000        0.000            0.000            0.000        0.000            0.000        0.000    0.007        0.000            0.000        0.001            0.013                0.000            0.992                0.986          0.000      0.000          0.000                0.000
+
+#:GATKTable:38:2:%s:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:;
+#:GATKTable:GenotypeConcordance_Counts:Per-sample concordance tables: comparison counts
+Sample   NO_CALL_NO_CALL  NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR  NO_CALL_UNAVAILABLE  NO_CALL_MIXED  HOM_REF_NO_CALL  HOM_REF_HOM_REF  HOM_REF_HET  HOM_REF_HOM_VAR  HOM_REF_UNAVAILABLE  HOM_REF_MIXED  HET_NO_CALL  HET_HOM_REF  HET_HET  HET_HOM_VAR  HET_UNAVAILABLE  HET_MIXED  HOM_VAR_NO_CALL  HOM_VAR_HOM_REF  HOM_VAR_HET  HOM_VAR_HOM_VAR  HOM_VAR_UNAVAILABLE  HOM_VAR_MIXED  UNAVAILABLE_NO_CALL  UNAVAILABLE_HOM_REF  UNAVAILABLE_HET  UNAVAILABLE_HOM_VAR  UNAVAILABLE_UNAVAILABLE  UNAVAILABLE_MIXED  MIXED_NO_CALL  MIXED_HOM_REF  MIXED_HET  MIXED_HOM_VAR  MIXED_UNAVAILABLE  MIXED_MIXED  Mismatching_Alleles
+ALL                    0                0            0                0                    0              0                0                0            0                0                    0              0            0            0    13463           90             3901          0                0                0         2935            18144                 4448              0                    0                    0          2053693              1326112                    11290                  0              0              0          0              0                  0            0                   16
+NA12878                0                0            0                0                    0              0                0                0            0                0                    0              0            0            0    13463           90             3901          0                0                0         2935            18144                 4448              0                    0                    0          2053693              1326112                    11290                  0              0              0          0              0                  0            0                   16
+
+#:GATKTable:20:2:%s:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:;
+#:GATKTable:GenotypeConcordance_EvalProportions:Per-sample concordance tables: proportions of genotypes called in eval
+Sample   HOM_REF_NO_CALL  HOM_REF_HOM_REF  HOM_REF_HET  HOM_REF_HOM_VAR  HOM_REF_UNAVAILABLE  HOM_REF_MIXED  HET_NO_CALL  HET_HOM_REF  HET_HET  HET_HOM_VAR  HET_UNAVAILABLE  HET_MIXED  HOM_VAR_NO_CALL  HOM_VAR_HOM_REF  HOM_VAR_HET  HOM_VAR_HOM_VAR  HOM_VAR_UNAVAILABLE  HOM_VAR_MIXED  Mismatching_Alleles
+ALL                0.000            0.000        0.000            0.000                0.000          0.000        0.000        0.000    0.771        0.005            0.224      0.000            0.000            0.000        0.115            0.711                0.174          0.000                0.000
+NA06989            0.000            0.000        0.000            0.000                0.000          0.000        0.000        0.000    0.771        0.005            0.224      0.000            0.000            0.000        0.115            0.711                0.174          0.000                0.000
+
+#:GATKTable:4:2:%s:%.3f:%.3f:%.3f:;
+#:GATKTable:GenotypeConcordance_Summary:Per-sample summary statistics: NRS, NRD, and OGC
+Sample   Non-Reference Sensitivity  Non-Reference Discrepancy  Overall_Genotype_Concordance
+ALL                          0.010                      0.087                         0.913
+NA06989                      0.010                      0.087                         0.913
+
+#:GATKTable:6:1:%d:%d:%d:%d:%d:%d:;
+#:GATKTable:SiteConcordance_Summary:Site-level summary statistics
+ALLELES_MATCH  EVAL_SUPERSET_TRUTH  EVAL_SUBSET_TRUTH  ALLELES_DO_NOT_MATCH  EVAL_ONLY  TRUTH_ONLY
+        34632                    0                  0                    16       8349     3391095
+

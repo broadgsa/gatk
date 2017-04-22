@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -161,6 +161,8 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                                     if (scatterClass != null) {
                                         isScatter = true;
                                         constructor += String.format("scatterClass = classOf[%s]%n", scatterClass);
+                                        final boolean includeUnmapped = getUnmappedInclusion(walkerType);
+                                        constructor += String.format("setupScatterFunction = { case scatter: GATKScatterFunction => scatter.includeUnmapped = %b }%n", includeUnmapped);
                                     }
 
                                     writeClass(GATK_EXTENSIONS_PACKAGE_NAME + "." + clpClassName, walkerName,
@@ -224,6 +226,15 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         if (partitionType == PartitionType.NONE)
             return null;
         return StringUtils.capitalize(partitionType.name().toLowerCase()) + "ScatterFunction";
+    }
+
+    /**
+     * Should the scatter function for this walker include unmapped reads?
+     * @param walkerType The walker
+     * @return True if unmapped reads should be processed by this walker
+     */
+    private boolean getUnmappedInclusion(Class<? extends Walker> walkerType) {
+        return walkerType.getAnnotation(PartitionBy.class).includeUnmapped();
     }
 
     /**

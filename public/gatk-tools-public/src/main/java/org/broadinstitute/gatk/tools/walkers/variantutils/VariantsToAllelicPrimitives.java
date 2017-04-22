@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -30,52 +30,54 @@ import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import org.broadinstitute.gatk.utils.variant.GATKVariantContextUtils;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.SortingVariantContextWriter;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 
 import java.util.*;
 
 /**
- * Takes alleles from a variants file and breaks them up (if possible) into more basic/primitive alleles.
+ * Simplify multi-nucleotide variants (MNPs) into more basic/primitive alleles.
  *
- * <p>
- * For now this tool modifies only multi-nucleotide polymorphisms (MNPs) and leaves SNPs, indels, and complex substitutions as is,
- * although one day it may be extended to handle the complex substitution case.
+ * <p>This tool will take an MNP (e.g. ACCCA -> TCCCG) and break it up into separate records for each component
+ * part (A-T and A->G).</p>
  *
- * This tool will take an MNP (e.g. ACCCA -> TCCCG) and break it up into separate records for each component part (A-T and A->G).
- *
- * Note that this tool modifies only bi-allelic variants.
- *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set with any type of alleles.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A VCF with alleles broken into primitive types.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T VariantsToAllelicPrimitives \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   -o output.vcf
  * </pre>
+ *
+ * <h3>Caveats</h3>
+ * <ul>
+ *     <li>For now this tool modifies only multi-nucleotide polymorphisms (MNPs) and leaves SNPs, indels, and
+ * complex substitutions as is, although one day it may be extended to handle the complex substitution case.</li>
+ *     <li>This tool modifies only bi-allelic variants.</li>
+ * </ul>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
@@ -98,7 +100,7 @@ public class VariantsToAllelicPrimitives extends RodWalker<Integer, Integer> {
 
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        vcfWriter = VariantContextWriterFactory.sortOnTheFly(baseWriter, 200);
+        vcfWriter = new SortingVariantContextWriter(baseWriter, 200);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

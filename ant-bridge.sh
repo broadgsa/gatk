@@ -1,6 +1,7 @@
 #!/bin/sh
 
-mvn_args="verify"
+default_args="verify '-Ddisable.shadepackage'"
+mvn_args="${default_args}"
 mvn_properties=
 mvn_clean=
 unknown_args=
@@ -44,22 +45,23 @@ for arg in "${@}" ; do
         fi
 
     else
-        if [[ "${arg}" != "dist" && "${mvn_args}" != "" && "${mvn_args}" != "verify" ]] ; then
+        if [[ "${arg}" != "dist" && "${mvn_args}" != "" && "${mvn_args}" != "${default_args}" ]] ; then
             echo "Sorry, this script does not currently support mixing targets." >&2
             exit 1
 
         elif [[ "${arg}" == "dist" ]] ; then
-            mvn_args="verify"
+            mvn_args="${default_args}"
 
         elif [[ "${arg}" == "gatk" ]] ; then
-            mvn_args="verify '-P!queue'"
+            mvn_args="${default_args} '-P!queue'"
 
         elif [[ "${arg}" == "test.compile" ]] ; then
             mvn_args="test-compile"
 
         elif [[ "${arg}" == "gatkdocs" ]] ; then
             local_repo="sitetemprepo"
-            mvn_args="install -Dmaven.repo.local=${local_repo} -Ddisable.queue && mvn site -Dmaven.repo.local=${local_repo} -Ddisable.queue"
+            mvn_args="install -Dmaven.repo.local=${local_repo} '-P!queue' && mvn site -Dmaven.repo.local=${local_repo} '-P!queue'"
+            mvn_pkg_args=
 
         elif [[ "${arg}" == "package.gatk.full" ]] ; then
             mvn_args="package '-P!private,!queue'"
@@ -75,11 +77,11 @@ for arg in "${@}" ; do
 
 #        elif [[ "${arg}" == "release.gatk.full" ]] ; then
 #            mvn_args="package '-P!private,!queue'"
-#            post_script=" && private/src/main/scripts/shell/copy_release.sh public/gatk-package/target/GenomeAnalysisTK-*.tar.bz2"
+#            post_script=" && private/src/main/scripts/shell/copy_release.sh protected/gatk-package-distribution/target/GenomeAnalysisTK-*.tar.bz2"
 
 #        elif [[ "${arg}" == "release.queue.full" ]] ; then
 #            mvn_args="package '-P!private'"
-#            post_script=" && private/src/main/scripts/shell/copy_release.sh public/queue-package/target/Queue-*.tar.bz2"
+#            post_script=" && private/src/main/scripts/shell/copy_release.sh protected/gatk-queue-package-distribution/target/Queue-*.tar.bz2"
 
         elif [[ "${arg}" == "build-picard-private" ]] ; then
             mvn_args="mvn install -f private/picard-maven/pom.xml"
@@ -113,7 +115,7 @@ for arg in "${@}" ; do
             mvn_args="${mvn_args} -Dgatk.queuetests.run=true"
 
         elif [[ "${arg}" == "committests" ]] ; then
-            mvn_args="verify -Dgatk.committests.skipped=false"
+            mvn_args="${default_args} -Dgatk.committests.skipped=false"
 
         elif [[ "${arg}" == "test" ]] ; then
             mvn_args="test -Dgatk.unittests.skipped=false"
@@ -122,19 +124,19 @@ for arg in "${@}" ; do
             mvn_args="test -Dgatk.unittests.skipped=false"
 
         elif [[ "${arg}" == "integrationtest" ]] ; then
-            mvn_args="verify -Dgatk.integrationtests.skipped=false"
+            mvn_args="${default_args} -Dgatk.integrationtests.skipped=false"
 
         elif [[ "${arg}" == "largescaletest" ]] ; then
-            mvn_args="verify -Dgatk.largescaletests.skipped=false"
+            mvn_args="${default_args} -Dgatk.largescaletests.skipped=false"
 
         elif [[ "${arg}" == "knowledgebasetest" ]] ; then
-            mvn_args="verify -Dgatk.knowledgebasetests.skipped=false"
+            mvn_args="${default_args} -Dgatk.knowledgebasetests.skipped=false"
 
         elif [[ "${arg}" == "queuetest" ]] ; then
-            mvn_args="verify -Dgatk.queuetests.skipped=false"
+            mvn_args="${default_args} -Dgatk.queuetests.skipped=false"
 
         elif [[ "${arg}" == "queuetestrun" ]] ; then
-            mvn_args="verify -Dgatk.queuetests.skipped=false -Dgatk.queuetests.run=true"
+            mvn_args="${default_args} -Dgatk.queuetests.skipped=false -Dgatk.queuetests.run=true"
 
         elif [[ "${arg}" == "fasttest" ]] ; then
             mvn_args="verify -Dgatk.committests.skipped=false -pl private/gatk-tools-private -am -Dresource.bundle.skip=true"

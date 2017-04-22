@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,33 +26,36 @@
 package org.broadinstitute.gatk.tools.walkers.variantutils;
 
 import htsjdk.tribble.TribbleException;
-import org.broadinstitute.gatk.utils.commandline.Argument;
-import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
-import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
-import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
-import org.broadinstitute.gatk.engine.walkers.Reference;
-import org.broadinstitute.gatk.engine.walkers.RodWalker;
-import org.broadinstitute.gatk.engine.walkers.Window;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.gatk.utils.help.HelpConstants;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFConstants;
+import org.broadinstitute.gatk.engine.CommandLineGATK;
+import org.broadinstitute.gatk.engine.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
+import org.broadinstitute.gatk.engine.walkers.Reference;
+import org.broadinstitute.gatk.engine.walkers.RodWalker;
+import org.broadinstitute.gatk.engine.walkers.Window;
+import org.broadinstitute.gatk.utils.GenomeLoc;
+import org.broadinstitute.gatk.utils.GenomeLocSortedSet;
+import org.broadinstitute.gatk.utils.commandline.Argument;
+import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.exceptions.UserException;
+import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.gatk.utils.help.HelpConstants;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.variant.GATKVCFConstants;
 
 import java.io.File;
 import java.util.*;
 
 
 /**
- * Validates a VCF file with an extra strict set of criteria.
+ * Validate a VCF file with an extra strict set of criteria
  *
  * <p>
- * ValidateVariants is a GATK tool that takes a VCF file and validates much of the information inside it.
+ * This tool is designed to validate much of the information inside a VCF file.
  * In addition to standard adherence to the VCF specification, this tool performs extra strict validations to ensure
  * the information contained within the file is correct. These include:
  * </p><p>
@@ -80,43 +83,52 @@ import java.util.*;
  * A variant set to validate using <code>-V</code> or <code>--variant</code> as shown below.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage examples</h3>
  *
- * <p>To perform VCF format and all strict validations: </p>
- *
+ * <h4>To perform VCF format tests and all strict validations</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
- *   --variant input.vcf \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   --dbsnp dbsnp.vcf
  * </pre>
  *
- * <p>To perform only VCF format tests:</p>
- *
+ * <h4>To perform VCF format tests and all strict validations with the VCFs containing alleles <= 208 bases</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
- *   <b>--validationTypeToExclude ALL</b> \
- *   --variant input.vcf
+ *   -R reference.fasta \
+ *   -V input.vcf \
+ *   --dbsnp dbsnp.vcf
+ *   --reference_window_stop 208
  * </pre>
  *
- * <p>To perform all validations except the strict <i>ALLELE</i> validation:</p>
- *
+ * <h4>To perform only VCF format tests</h4>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
+ * java -jar GenomeAnalysisTK.jar \
  *   -T ValidateVariants \
+ *   -R reference.fasta \
+ *   -V input.vcf \
+ *   <b>--validationTypeToExclude ALL</b>
+ * </pre>
+ *
+ * <h4>To perform all validations except the strict <i>ALLELE</i> validation</h4>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T ValidateVariants \
+ *   -R reference.fasta \
+ *   -V input.vcf \
  *   <b>--validationTypeToExclude ALLELES</b>
- *   --variant input.vcf \
- *   --dbsnp dbsnp.vcf
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VALIDATION, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VAREVAL, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
-public class ValidateVariants extends RodWalker<Integer, Integer> {
+public class ValidateVariants extends RodWalker<GenomeLoc, GenomeLocSortedSet> {
+
+    // Log message for a reference allele that is too long
+    protected static final String REFERENCE_ALLELE_TOO_LONG_MSG = "Reference allele is too long";
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -175,15 +187,28 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     /**
      * By default, even filtered records are validated.
      */
-    @Argument(fullName = "doNotValidateFilteredRecords", shortName = "doNotValidateFilteredRecords", doc = "skip validation on filtered records", required = false)
+    @Argument(fullName = "doNotValidateFilteredRecords", shortName = "doNotValidateFilteredRecords", doc = "skip validation on filtered records", required = false, exclusiveOf = "VALIDATE_GVCF")
     protected Boolean DO_NOT_VALIDATE_FILTERED = false;
 
     @Argument(fullName = "warnOnErrors", shortName = "warnOnErrors", doc = "just emit warnings on errors instead of terminating the run at the first instance", required = false)
     protected Boolean WARN_ON_ERROR = false;
 
+    /**
+     * This validation option REQUIRES that the input GVCF satisfies the following conditions:
+     * (1) every variant record must feature an allele in the list of ALT alleles, and
+     * (2) every position in the genomic territory under consideration must covered by a record, whether a single-position record or a reference block record.
+     * If the analysis that produced the file was restricted to a subset of genomic regions (for example using the -L or -XL arguments), the same intervals must be provided for validation.
+     * Otherwise, the validation tool will find positions that are not covered by records and will fail.
+     */
+    @Argument(fullName = "validateGVCF", shortName = "gvcf", doc = "Validate this file as a GVCF", required = false, exclusiveOf = "DO_NOT_VALIDATE_FILTERED")
+    protected Boolean VALIDATE_GVCF = false;
+
     private long numErrors = 0;
 
     private File file = null;
+
+    // Stop of the expanded window for which the reference context should be provided, relative to the locus.
+    private int referenceWindowStop;
 
     /**
      * Contains final set of validation to apply.
@@ -193,39 +218,92 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     public void initialize() {
         file = new File(variantCollection.variants.getSource());
         validationTypes = calculateValidationTypesToApply(excludeTypes);
+        referenceWindowStop = getToolkit().getArguments().reference_window_stop;
     }
 
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
-            return 0;
+            return null;
+
+        int lastVcEnd = -1;
 
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
-        for ( VariantContext vc : VCs )
-            validate(vc, tracker, ref);
+        if (VALIDATE_GVCF && VCs.size() > 1) {
+            logger.error("GVCF validation can only be performed one file at a time. Validation results are invalid.");
+        }
+        for ( VariantContext vc : VCs ) {
+            validate(vc, tracker, ref, VALIDATE_GVCF);
+            lastVcEnd = vc.getEnd();
+        }
 
-        return VCs.size();
+        // if there were no variants do not add anything!
+        if (lastVcEnd == -1)
+            return null;
+
+        return GenomeLoc.setStop(ref.getLocus(), lastVcEnd);
     }
 
-    public Integer reduceInit() { return 0; }
+    @Override
+    public GenomeLocSortedSet reduce(GenomeLoc value, GenomeLocSortedSet sum) {
+        // unless we are doing gvcf validation, there's no need
+        // to add all the genomelocs. Also, since we do not expect them to be contiguous, it will
+        // take a lot of memory.
+        if (VALIDATE_GVCF)
+            sum.add(value, GenomeLocSortedSet.MergeStrategy.MERGE_CONTIGUOUS);
+        return sum;
+    }
 
-    public Integer reduce(Integer value, Integer sum) { return sum+value; }
+    @Override
+    public GenomeLocSortedSet reduceInit() {
+        return new GenomeLocSortedSet(getToolkit().getGenomeLocParser());
+    }
 
-    public void onTraversalDone(Integer result) {
-        if ( numErrors == 0 )
-            System.out.println("Successfully validated the input file.  Checked " + result + " records with no failures.");
+    @Override
+    public void onTraversalDone(GenomeLocSortedSet result) {
+        if (VALIDATE_GVCF) {
+            final GenomeLocSortedSet toolkitIntervals = getToolkit().getIntervals();
+            final GenomeLocSortedSet traversalIntervals;
+            if (toolkitIntervals == null) {
+                traversalIntervals = GenomeLocSortedSet.createSetFromSequenceDictionary(getToolkit().getMasterSequenceDictionary());
+            } else {
+                traversalIntervals = toolkitIntervals;
+            }
+
+            final GenomeLocSortedSet uncoveredIntervals = traversalIntervals.subtractRegions(result);
+            if (traversalIntervals.subtractRegions(result).coveredSize() > 0) {
+                final UserException e = new UserException.FailsStrictValidation(file, "Found " + uncoveredIntervals.coveredSize() +
+                        " positions not covered by a VariantContext record. The first uncovered segment is: " + uncoveredIntervals.iterator().next() +
+                        ". As noted in the documentation for the --validateGVCF/-gvcf argument, GVCF validation requires that all positions to validate " +
+                        "be covered by records. Use -L or --XL to specify what intervals are covered in the GVCF. These should be the same intervals used " +
+                        "to generate the GVCF or a subset thereof.");
+
+                if (WARN_ON_ERROR) {
+                    numErrors++;
+                    logger.warn("***** " + e.getMessage() + " *****");
+                } else {
+                    throw e;
+                }
+            }
+        }
+
+        if (numErrors == 0)
+            System.out.println("Successfully validated the input file.  Checked " + result.size() + " records with no failures.");
         else
             System.out.println("Found " + numErrors + " records with failures.");                     
     }
 
-    private void validate(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref) {
+    private void validate(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, boolean gvcf) {
         if ( DO_NOT_VALIDATE_FILTERED && vc.isFiltered() )
             return;
 
         // get the true reference allele
         final Allele reportedRefAllele = vc.getReference();
         final int refLength = reportedRefAllele.length();
-        if ( refLength > 100 ) {
-            logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", refLength, vc.getChr(), vc.getStart()));
+
+        // reference length is greater than the reference window stop before and after expansion
+        if ( refLength > 100 && refLength > referenceWindowStop ) {
+            logger.info(String.format("%s (%d) at position %s:%d; skipping that record. Set --reference_window_stop >= %d",
+                    REFERENCE_ALLELE_TOO_LONG_MSG, refLength, vc.getContig(), vc.getStart(), refLength));
             return;
         }
 
@@ -236,7 +314,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         // get the RS IDs
         Set<String> rsIDs = null;
         if ( tracker.hasValues(dbsnp.dbsnp) ) {
-            rsIDs = new HashSet<String>();
+            rsIDs = new HashSet<>();
             for ( VariantContext rsID : tracker.getValues(dbsnp.dbsnp, ref.getLocus()) )
                 rsIDs.addAll(Arrays.asList(rsID.getID().split(VCFConstants.ID_FIELD_SEPARATOR)));
         }
@@ -244,6 +322,10 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         try {
             for (final ValidationType t : validationTypes)
                 applyValidationType(vc, reportedRefAllele, observedRefAllele, rsIDs, t);
+
+            if (gvcf) {
+                ValidateGVCFVariant(vc);
+            }
         } catch (TribbleException e) {
             if ( WARN_ON_ERROR ) {
                 numErrors++;
@@ -263,7 +345,14 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
      * @return never {@code null} but perhaps an empty set.
      */
     private Collection<ValidationType> calculateValidationTypesToApply(final List<ValidationType> excludeTypes) {
-        if (excludeTypes.size() == 0)
+
+        if (VALIDATE_GVCF && !excludeTypes.contains(ValidationType.ALLELES)) {
+            // Note: in a future version allele validation might be OK for GVCFs, if that happens
+            // this will be more complicated.
+            logger.warn("GVCF format is currently incompatible with allele validation. Not validating Alleles.");
+            excludeTypes.add(ValidationType.ALLELES);
+        }
+        if (excludeTypes.isEmpty())
             return Collections.singleton(ValidationType.ALL);
         final Set<ValidationType> excludeTypeSet = new LinkedHashSet<>(excludeTypes);
         if (excludeTypes.size() != excludeTypeSet.size())
@@ -276,6 +365,13 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
            final Set<ValidationType> result = new LinkedHashSet<>(ValidationType.CONCRETE_TYPES);
            result.removeAll(excludeTypeSet);
            return result;
+        }
+    }
+
+    private void ValidateGVCFVariant(final VariantContext vc) {
+        if (!vc.hasAllele(GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE)) {
+            throw new TribbleException.InternalCodecException(String.format("In a GVCF all records must contain a %s allele. Offending record: %s",
+                    GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE_NAME, vc.toStringWithoutGenotypes()));
         }
     }
 

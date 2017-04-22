@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -26,8 +26,8 @@
 package org.broadinstitute.gatk.queue.util
 
 import org.broadinstitute.gatk.queue.function.QFunction
-import org.broadinstitute.gatk.engine.report.GATKReportTable
 import org.broadinstitute.gatk.queue.engine.JobRunInfo
+import org.broadinstitute.gatk.utils.report.GATKReportTable
 
 /**
  * A mixin to add Job info to the class

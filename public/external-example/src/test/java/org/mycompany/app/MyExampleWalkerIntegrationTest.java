@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -46,9 +46,13 @@ public class MyExampleWalkerIntegrationTest extends WalkerTest {
     }
 
     private File getResource(String path) throws URISyntaxException {
+        return new File(publicTestDir, path);
+        /*
+        TODO: Enable proper resource extraction from the test jars. For now just use the publicTestDir path.
         URL resourceUrl = getClass().getResource(path);
         if (resourceUrl == null)
             throw new MissingResourceException("Resource not found: " + path, getClass().getSimpleName(), path);
         return new File(resourceUrl.toURI());
+         */
     }
 }

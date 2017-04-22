@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,13 +25,13 @@
 
 package org.broadinstitute.gatk.tools.walkers.qc;
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RefWalker;
 import org.broadinstitute.gatk.utils.BaseUtils;
 import org.broadinstitute.gatk.utils.exceptions.GATKException;
@@ -51,25 +51,26 @@ import java.io.PrintStream;
  *
  * <h3>Output</h3>
  * <p>
- *     If ok, nothing, else will throw an exception at the site where there's been a problem
+ *     If the reference is fully valid, the run will complete successfully. If not, an error message will be produced
+ *     at the site where the program encountered a problem.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Usage example</h3>
  * <pre>
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
- *   -T QCRef
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T QCRef \
+ *   -R reference.fasta
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_REFUTILS, extraDocs = {CommandLineGATK.class} )
 public class QCRef extends RefWalker<Integer, Integer> {
     @Output
     public PrintStream out;
 
     String contigName = "";
     int contigStart, contigEnd;
-    IndexedFastaSequenceFile uncachedRef;
+    ReferenceSequenceFile uncachedRef;
     byte[] uncachedBases;
 
     @Override

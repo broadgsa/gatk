@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -48,7 +48,7 @@ trait GATKScatterFunction extends ScatterFunction {
   protected var originalGATK: CommandLineGATK = _
 
   /** Whether the last scatter job should also include any unmapped reads. */
-  protected var includeUnmapped: Boolean = _
+  var includeUnmapped: Boolean = _
 
   override def init() {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]

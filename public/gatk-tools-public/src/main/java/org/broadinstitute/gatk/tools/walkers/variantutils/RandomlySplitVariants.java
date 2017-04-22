@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2012 The Broad Institute
+* Copyright 2012-2016 Broad Institute, Inc.
 * 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
@@ -25,32 +25,58 @@
 
 package org.broadinstitute.gatk.tools.walkers.variantutils;
 
+import org.broadinstitute.gatk.utils.Utils;
 import org.broadinstitute.gatk.utils.commandline.Argument;
 import org.broadinstitute.gatk.utils.commandline.ArgumentCollection;
 import org.broadinstitute.gatk.utils.commandline.Output;
 import org.broadinstitute.gatk.engine.CommandLineGATK;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
 import org.broadinstitute.gatk.engine.arguments.StandardVariantContextInputArgumentCollection;
-import org.broadinstitute.gatk.engine.contexts.AlignmentContext;
-import org.broadinstitute.gatk.engine.contexts.ReferenceContext;
-import org.broadinstitute.gatk.engine.refdata.RefMetaDataTracker;
+import org.broadinstitute.gatk.utils.contexts.AlignmentContext;
+import org.broadinstitute.gatk.utils.contexts.ReferenceContext;
+import org.broadinstitute.gatk.utils.refdata.RefMetaDataTracker;
 import org.broadinstitute.gatk.engine.walkers.RodWalker;
-import org.broadinstitute.gatk.utils.SampleUtils;
+import org.broadinstitute.gatk.engine.SampleUtils;
 import org.broadinstitute.gatk.utils.help.HelpConstants;
-import org.broadinstitute.gatk.utils.variant.GATKVCFUtils;
+import org.broadinstitute.gatk.engine.GATKVCFUtils;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.gatk.utils.exceptions.UserException;
 import org.broadinstitute.gatk.utils.help.DocumentedGATKFeature;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterFactory;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 
 import java.io.File;
 import java.util.*;
 
 /**
- * Takes a VCF file, randomly splits variants into two different sets, and outputs 2 new VCFs with the results.
+ * Randomly split variants into different sets
+ *
+ * <p>This tool takes a VCF file, randomly splits variants into different sets, and writes the
+ * results to separate files. By default the tool splits the input into two new sets, but it can be made to output
+ * more than two separate call sets.</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A variant call set to split.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * The new callsets.
+ * </p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ * java -jar GenomeAnalysisTK.jar \
+ *   -T RandomlySplitVariants \
+ *   -R reference.fasta \
+ *   -V input.vcf \
+ *   -o1 output_1.vcf \
+ *   -o2 output_2.vcf
+ * </pre>
+ *
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
@@ -108,14 +134,20 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         if(splitToMany){
             writers = new VariantContextWriter[numOfFiles];
             for(int i = 0; i<writers.length; i++){
-                writers[i] = VariantContextWriterFactory.create(new File(baseFileName+".split."+i+".vcf"), getMasterSequenceDictionary());
+                writers[i] = new VariantContextWriterBuilder()
+                                .setOutputFile(new File(baseFileName+".split."+i+".vcf"))
+                                .setReferenceDictionary(getMasterSequenceDictionary())
+                                .build();
                 writers[i].writeHeader(new VCFHeader(hInfo,samples));
             }
 
         }
         else {
             vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
-            vcfWriter2 = VariantContextWriterFactory.create(file2, getMasterSequenceDictionary());
+            vcfWriter2 = new VariantContextWriterBuilder()
+                            .setOutputFile(file2)
+                            .setReferenceDictionary(getMasterSequenceDictionary())
+                            .build();
             vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
         }
     }
@@ -134,7 +166,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
 
         final Collection<VariantContext> vcs = tracker.getValues(variantCollection.variants, context.getLocation());
         for ( final VariantContext vc : vcs ) {
-            final double random = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
+            final double random = Utils.getRandomGenerator().nextDouble();
             if(splitToMany){
                 final int index = (int)(numOfFiles * random);
                 writers[index].add(vc);
