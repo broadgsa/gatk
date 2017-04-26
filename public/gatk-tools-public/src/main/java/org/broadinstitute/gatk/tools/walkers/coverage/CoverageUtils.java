@@ -206,12 +206,13 @@ public class CoverageUtils {
         for (PileupElement e : countPileup) {
             SAMReadGroupRecord readGroup = getReadGroup(e.getRead());
 
-            String readGroupId = readGroup.getSample() + "_" + readGroup.getReadGroupId();
-            int[] counts = countsByRGName.get(readGroupId);
+            // uniqueReadGroupID is unique across the library, read group ID, and the sample
+            String uniqueReadGroupId = readGroup.getSample() + "_" + readGroup.getReadGroupId() + "_" + readGroup.getLibrary() + "_" + readGroup.getPlatformUnit();
+            int[] counts = countsByRGName.get(uniqueReadGroupId);
             if (counts == null) {
                 counts = new int[6];
-                countsByRGName.put(readGroupId, counts);
-                RGByName.put(readGroupId, readGroup);
+                countsByRGName.put(uniqueReadGroupId, counts);
+                RGByName.put(uniqueReadGroupId, readGroup);
             }
 
             updateCounts(counts, e);

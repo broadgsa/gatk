@@ -255,4 +255,30 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         final WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
         execute("testMissingSAMHeaderReadGroupSample", spec);
     }
+
+    @Test
+    public void testPartitionByLibrary() {
+        final String[] intervals = {"1:2329607"};
+        final String[] bams = {
+                // These 3 bams all have the same 2 read group IDs and the same sample name (HapMapVal_10plex)
+                privateTestDir + "partitionByLibraryExample1.bam",
+                privateTestDir + "partitionByLibraryExample2.bam",
+                privateTestDir + "partitionByLibraryExample3.bam"};
+
+        final String cmd = buildRootCmd(hg19Reference, new ArrayList<>(Arrays.asList(bams)), new ArrayList<>(Arrays.asList(intervals))) + " -mmq 20 -mbq 20 -pt library";
+        final WalkerTestSpec spec = new WalkerTestSpec(cmd, 0, new ArrayList<String>());
+
+        final File baseOutputFile = createTempFile("depthofcoveragepartitionbylibrary", ".tmp");
+        spec.setOutputFileLocation(baseOutputFile);
+
+        spec.addAuxFile("e0f0ab161225bf24fed20eb86777508e", baseOutputFile);
+        spec.addAuxFile("744e4d654536ef327288c9ee62adea15", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_counts"));
+        spec.addAuxFile("dc8b3aa0fee653f0e310cc8ada2bdb10", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_proportions"));
+        spec.addAuxFile("a1050deac4a01fd661149bb47253b590", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_statistics"));
+        spec.addAuxFile("e3f0f03233e0dc7d17811ed84101d8d8", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
+        spec.addAuxFile("76a0fde72b9c42546ee5ca1f88d4fb09", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_statistics"));
+        spec.addAuxFile("ed5c74dc512eae95987ed3b52f9a8743", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_summary"));
+
+        execute("testPartitionByLibrary", spec);
+    }
 }
