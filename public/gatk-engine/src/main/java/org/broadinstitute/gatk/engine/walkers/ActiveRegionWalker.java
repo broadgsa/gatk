@@ -189,10 +189,6 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         return desiredReadStates().contains(ActiveRegionReadState.EXTENDED);
     }
 
-    public boolean wantsUnmappedReads() {
-        return desiredReadStates().contains(ActiveRegionReadState.UNMAPPED);
-    }
-
     // Determine probability of active status over the AlignmentContext
     @Ensures({"result.isActiveProb >= 0.0", "result.isActiveProb <= 1.0"})
     public abstract ActivityProfileState isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
