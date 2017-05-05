@@ -152,7 +152,6 @@ public class GATKReportTable {
                         final List<String> lineSplits = Arrays.asList(TextFormattingUtils.splitFixedWidth(dataLine, columnStarts));
                         underlyingData.add(new Object[nColumns]);
                         for ( int columnIndex = 0; columnIndex < nColumns; columnIndex++ ) {
-
                             final GATKReportDataType type = columnInfo.get(columnIndex).getDataType();
                             final String columnName = columnNames[columnIndex];
                             set(i, columnName, type.Parse(lineSplits.get(columnIndex)));
