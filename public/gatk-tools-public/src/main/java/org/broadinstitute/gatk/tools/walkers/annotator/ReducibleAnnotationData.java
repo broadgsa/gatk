@@ -26,6 +26,7 @@
 package org.broadinstitute.gatk.tools.walkers.annotator;
 
 import htsjdk.variant.variantcontext.Allele;
+import org.broadinstitute.gatk.utils.exceptions.GATKException;
 
 import java.util.*;
 
@@ -101,5 +102,18 @@ public class ReducibleAnnotationData<T> {
      * @return
      */
     public Map<Allele, T> getAttributeMap() {return Collections.unmodifiableMap(attributeMap);}
+
+    public void validateAllelesList() {
+        boolean foundRef = false;
+        for (final Allele a : this.getAlleles()) {
+            if (a.isReference()) {
+                if (foundRef)
+                    throw new GATKException("ERROR: multiple reference alleles found in annotation data\n");
+                foundRef = true;
+            }
+        }
+        if (!foundRef)
+            throw new GATKException("ERROR: no reference alleles found in annotation data\n");
+    }
 
 }
