@@ -944,10 +944,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
             throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
 
-        boolean removeProgramRecords = argCollection.removeProgramRecords || walker.getClass().isAnnotationPresent(RemoveProgramRecords.class);
-
-        if (argCollection.keepProgramRecords)
-            removeProgramRecords = false;
+        final boolean removeProgramRecords = argCollection.keepProgramRecords ? false : argCollection.removeProgramRecords;
 
         final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
