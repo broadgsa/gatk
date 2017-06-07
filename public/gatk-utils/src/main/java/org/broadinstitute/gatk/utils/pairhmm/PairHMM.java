@@ -64,6 +64,8 @@ public abstract class PairHMM {
         VECTOR_LOGLESS_CACHING,
         /* Optimized, multi-threaded AVX implementation of LOGLESS_CACHING called through JNI */
         VECTOR_LOGLESS_CACHING_OMP,
+        /* Optimized, FPGA implementation of LOGLESS_CACHING called through JNI. This is still experimental! */
+        VECTOR_LOGLESS_CACHING_FPGA_EXPERIMENTAL,
         /* Use fastest available implementation. OMP -> AVX -> LOGLESS_CACHING */
         FASTEST_AVAILABLE,
         /* Debugging for vector implementation of LOGLESS_CACHING */
