@@ -61,8 +61,8 @@ public class BQSRGatherer extends Gatherer  {
             throw new UserException.MissingArgument("output", MISSING_OUTPUT_FILE);
         }
         final GATKReport report = gatherReport(inputs);
-        outputFile.close();
         report.print(outputFile);
+        outputFile.close();
     }
 
     /**
