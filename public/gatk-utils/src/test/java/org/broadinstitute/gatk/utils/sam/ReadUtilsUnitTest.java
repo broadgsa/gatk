@@ -25,8 +25,8 @@
 
 package org.broadinstitute.gatk.utils.sam;
 
-import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMFileHeader;
+import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.reference.ReferenceSequenceFile;
 import org.broadinstitute.gatk.utils.BaseTest;
 import org.broadinstitute.gatk.utils.BaseUtils;
@@ -335,7 +335,7 @@ public class ReadUtilsUnitTest extends BaseTest {
     }
 
     @Test(dataProvider = "HasWellDefinedFragmentSizeData")
-    private void testHasWellDefinedFragmentSize(final String name, final GATKSAMRecord read, final boolean expected) {
+    public void testHasWellDefinedFragmentSize(final String name, final GATKSAMRecord read, final boolean expected) {
         Assert.assertEquals(ReadUtils.hasWellDefinedFragmentSize(read), expected);
     }
 
