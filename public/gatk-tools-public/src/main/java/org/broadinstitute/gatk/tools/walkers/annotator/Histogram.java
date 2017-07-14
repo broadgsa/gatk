@@ -50,10 +50,12 @@ public class Histogram {
         precisionFormat = "%." + Math.round(-Math.log10(binSize)) + "f";
     }
 
-   public void add(final Double d) {
+    public void add(final Double d) {
+        if (d.isNaN())
+            return;
         long binKey = getBinnedValue(d);
         if (isValidBinKey(binKey))
-            dataList.add((int)binKey);
+            dataList.add((int) binKey);
         else
             throw new GATKException("Histogram values are suspiciously extreme.  Failed to add " + d + " to the Histogram.");
     }
@@ -132,6 +134,8 @@ public class Histogram {
         printDelim = ",";
         String str = "";
         Object[] keys = dataList.valueCounts.keySet().toArray();
+        if (keys.length == 0)
+            return Double.toString(Double.NaN);
         Arrays.sort(keys);
         for (Object i: keys){
             if(!str.isEmpty())
@@ -139,5 +143,9 @@ public class Histogram {
             str+=(String.format(precisionFormat,(double)(int)i*binSize)+printDelim+dataList.valueCounts.get(i));  //key i needs to be output with specified precision
         }
         return str;
+    }
+
+    public boolean isEmpty() {
+        return dataList.isEmpty();
     }
 }
