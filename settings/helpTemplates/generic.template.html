@@ -1,9 +1,13 @@
 <?php
 
-    include '../../../common/include/common.php';
-    include_once '../../config.php';
+    define('noTWITTER', TRUE);
+    include '../../../../common/include/common.php';
+    include_once '../../../config.php';
     $module = modules::GATK;
-    printHeader($module, "GATK | Tool Documentation Index", "Guide");
+    printHeader($module, "GATK | Tool Documentation Index", "Documentation");
+
+    $curr_version = file_get_contents(engConst::versions_dir.versionFiles::gatk);
+    $dirs = array_diff(scandir("../", SCANDIR_SORT_DESCENDING), array('..', '.'));
 ?>
 
 <div class='row-fluid' id="top">

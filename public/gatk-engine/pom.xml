@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-aggregator</artifactId>
-        <version>3.7</version>
+        <version>3.8-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -23,6 +23,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>gatk-utils</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.intel.gkl</groupId>
+            <artifactId>gkl</artifactId>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jets3t</groupId>

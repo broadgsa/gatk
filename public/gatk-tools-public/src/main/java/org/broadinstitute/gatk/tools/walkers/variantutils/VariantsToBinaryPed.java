@@ -53,14 +53,14 @@ import java.util.*;
  * Convert VCF to binary pedigree file
  *
  * <p>This tool takes a VCF and produces a binary pedigree as used by
- * <a href="http://pngu.mgh.harvard.edu/~purcell/plink/">PLINK</a>, consisting of three associated files (.bed/.bim/.fam).</p>
+ * <a href="https://www.cog-genomics.org/plink">PLINK</a>, consisting of three associated files (.bed/.bim/.fam).</p>
  *
  * <h3>Inputs</h3>
  * <p>
  * A VCF file and a metadata file.
  * </p>
  *
-* <p>The metaData file can take two formats, the first of which is the first 6 lines of the standard pedigree file. This
+* <p>The metaData file can take two formats, the first of which is the first 6 columns of the standard pedigree file. This
  * is what Plink describes as a .fam file. Note that the sex encoding convention is 1=male; 2=female; other=unknown. An example .fam file is as follows (note that there is no header):</p>
  * <pre>
  * CEUTrio NA12878 NA12891 NA12892 2 -9
@@ -85,7 +85,7 @@ import java.util.*;
  *
  * <h3>Outputs</h3>
  * <p>
- * A binary pedigree in PLINK format, composed of three files (.bed/.bim/.fam). See the <a href='http://pngu.mgh.harvard.edu/~purcell/plink/data.shtml#ped'>PLINK format specification</a> for more details.
+ * A binary pedigree in PLINK format, composed of three files (.bed/.bim/.fam). See the <a href='https://www.cog-genomics.org/plink/2.0/formats'>PLINK format specification</a> for more details.
  * </p>
  *
  * <h3>Example</h3>

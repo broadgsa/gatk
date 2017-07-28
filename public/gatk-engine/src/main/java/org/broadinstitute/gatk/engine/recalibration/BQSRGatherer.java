@@ -62,6 +62,7 @@ public class BQSRGatherer extends Gatherer  {
         }
         final GATKReport report = gatherReport(inputs);
         report.print(outputFile);
+        outputFile.close();
     }
 
     /**

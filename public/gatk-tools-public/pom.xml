@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.broadinstitute.gatk</groupId>
         <artifactId>gatk-aggregator</artifactId>
-        <version>3.7</version>
+        <version>3.8-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -27,6 +27,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-jexl</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.intel.gkl</groupId>
+            <artifactId>gkl</artifactId>
         </dependency>
 
         <dependency>

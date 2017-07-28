@@ -99,7 +99,7 @@ public class GATKVariantContextUtils {
         return Collections.nCopies(ploidy,allele);
     }
 
-    private static boolean hasPLIncompatibleAlleles(final Collection<Allele> alleleSet1, final Collection<Allele> alleleSet2) {
+    private static boolean hasIncompatibleAlleles(final Collection<Allele> alleleSet1, final Collection<Allele> alleleSet2) {
         final Iterator<Allele> it1 = alleleSet1.iterator();
         final Iterator<Allele> it2 = alleleSet2.iterator();
 
@@ -927,7 +927,7 @@ public class GATKVariantContextUtils {
                 final List<Allele> best = new LinkedList<>();
                 final Allele ref = allelesToUse.get(0);
                 for ( final Allele originalAllele : originalGT ) {
-                    best.add(allelesToUse.contains(originalAllele) ? originalAllele : ref);
+                    best.add((allelesToUse.contains(originalAllele) || originalAllele.isNoCall()) ? originalAllele : ref);
                 }
                 gb.alleles(best);
                 break;
@@ -1045,7 +1045,7 @@ public class GATKVariantContextUtils {
         else {
             final List<VariantContext> biallelics = new LinkedList<>();
 
-            // if any of the genotypes ar ehet-not-ref (i.e. 1/2), set all of them to no-call
+            // if any of the genotypes are het-not-ref (i.e. 1/2), set all of them to no-call
             final GenotypeAssignmentMethod genotypeAssignmentMethodUsed = hasHetNonRef(vc.getGenotypes()) ? GATKVariantContextUtils.GenotypeAssignmentMethod.SET_TO_NO_CALL_NO_ANNOTATIONS : genotypeAssignmentMethod;
 
             for ( final Allele alt : vc.getAlternateAlleles() ) {
@@ -1135,8 +1135,6 @@ public class GATKVariantContextUtils {
      * simpleMerge does not verify any more unique sample names EVEN if genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE. One should use
      * SampleUtils.verifyUniqueSamplesNames to check that before using simpleMerge.
      *
-     * For more information on this method see: http://www.thedistractionnetwork.com/programmer-problem/
-     *
      * @param unsortedVCs               collection of unsorted VCs
      * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
      * @param filteredRecordMergeType   merge type for filtered records
@@ -1190,6 +1188,7 @@ public class GATKVariantContextUtils {
         final Set<String> inconsistentAttributes = new HashSet<>();
         final Set<String> variantSources = new HashSet<>(); // contains the set of sources we found in our set of VCs that are variant
         final Set<String> rsIDs = new LinkedHashSet<>(1); // most of the time there's one id
+        final Map<String, Integer> nonBooleanAttributeOccurrences = new HashMap<>();
 
         VariantContext longestVC = first;
         int depth = 0;
@@ -1262,6 +1261,13 @@ public class GATKVariantContextUtils {
             for (final Map.Entry<String, Object> p : vc.getAttributes().entrySet()) {
                 final String key = p.getKey();
                 final Object value = p.getValue();
+                if ( !(value instanceof Boolean) ) {
+                    if ( nonBooleanAttributeOccurrences.containsKey(key) ) {
+                        nonBooleanAttributeOccurrences.put(key, nonBooleanAttributeOccurrences.get(key) + 1);
+                    } else {
+                        nonBooleanAttributeOccurrences.put(key, 1);
+                    }
+                }
                 // only output annotations that have the same value in every input VC
                 // if we don't like the key already, don't go anywhere
                 if ( ! inconsistentAttributes.contains(key) ) {
@@ -1280,12 +1286,15 @@ public class GATKVariantContextUtils {
             }
         }
 
+        // if the non-boolean attribute is not in all of the VCs, remove it.
+        nonBooleanAttributeOccurrences.entrySet().stream().filter(a -> a.getValue() < VCs.size()).map(a -> a.getKey()).forEach(attributes::remove);
+
         // if we have more alternate alleles in the merged VC than in one or more of the
         // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF, and AD
         for ( final VariantContext vc : VCs ) {
             if (vc.getAlleles().size() == 1)
                 continue;
-            if ( hasPLIncompatibleAlleles(alleles, vc.getAlleles())) {
+            if ( hasIncompatibleAlleles(alleles, vc.getAlleles())) {
                 if ( ! genotypes.isEmpty() ) {
                     logger.debug(String.format("Stripping PLs at %s:%d-%d due to incompatible alleles merged=%s vs. single=%s",
                             vc.getChr(), vc.getStart(), vc.getEnd(), alleles, vc.getAlleles()));
@@ -1348,6 +1357,10 @@ public class GATKVariantContextUtils {
 
         // Trim the padded bases of all alleles if necessary
         final VariantContext merged = builder.make();
+
+        // Recalculate chromosome count annotations or remove them if no genotypes
+        VariantContextUtils.calculateChromosomeCounts(merged, attributes, true);
+
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -1466,6 +1479,10 @@ public class GATKVariantContextUtils {
 
         int currentIndex = 0;
         for ( int i = alleleIndexesToUse.nextSetBit(0); i >= 0; i = alleleIndexesToUse.nextSetBit(i+1) ) {
+            if ( i >= oldAD.length ) {
+                throw new IllegalStateException("AD has " + oldAD.length + " items. It should have at least " + (i+1) + ".");
+            }
+
             newAD[currentIndex++] = oldAD[i];
         }
 

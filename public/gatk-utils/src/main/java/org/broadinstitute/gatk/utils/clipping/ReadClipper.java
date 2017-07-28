@@ -395,7 +395,7 @@ public class ReadClipper {
     /**
      * Checks if a read contains adaptor sequences. If it does, hard clips them out.
      *
-     * Note: To see how a read is checked for adaptor sequence see ReadUtils.getAdaptorBoundary()
+     * Note: To see how a read is checked for adaptor sequence see {@link ReadUtils::getAdaptorBoundary}
      *
      * @return a new read without adaptor sequence
      */

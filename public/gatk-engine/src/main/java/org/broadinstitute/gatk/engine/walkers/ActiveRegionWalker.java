@@ -60,7 +60,6 @@ import java.util.*;
 @ActiveRegionTraversalParameters(extension=50,maxRegion=1500)
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
 @Downsample(by = DownsampleType.BY_SAMPLE, toCoverage = 1000)
-@RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     /**
      * If provided, this walker will write out its activity profile (per bp probabilities of being active)
@@ -187,10 +186,6 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
 
     public boolean wantsExtendedReads() {
         return desiredReadStates().contains(ActiveRegionReadState.EXTENDED);
-    }
-
-    public boolean wantsUnmappedReads() {
-        return desiredReadStates().contains(ActiveRegionReadState.UNMAPPED);
     }
 
     // Determine probability of active status over the AlignmentContext

@@ -69,12 +69,10 @@ import java.util.*;
  * </p>
  *
  * <h3>Input</h3>
- * <p>
  * <ul>
  *     <li>A VCF file</li>
  *     <li>A list of -F fields to write</li>
  * </ul>
- * </p>
  *
  * <h3>Output</h3>
  * <p>
@@ -98,9 +96,11 @@ import java.util.*;
  *     et cetera...
  * </pre>
  *
- * <h3>Caveat</h3>
- * <p>If a VCF record is missing a value, then the tool by default throws an error, but the special value NA can
- * be emitted instead if requested at the command line using --allowMissingData.</p>
+ * <h3>Caveats</h3>
+ * <ul>
+ *     <li>Some annotations cannot be applied to all variant sites, so VCFs typically contain records where some annotation values are missing. By default this tool the tool will emit the special value NA for the missing annotations if you request export of an annotation for which not all records have values. You can override this behavior by setting --errorIfMissingData in the command line. As a result, the tool will throw an error if a record is missing a value.</li>
+ *     <li>When you request export of sample-level annotations (FORMAT field annotations such as GT), the annotations will be identified per-sample. If multiple samples are present in the VCF, the columns will be ordered alphabetically by sample name (SM tag).</li>
+ * </ul>
  *
  * @author Mark DePristo
  * @since 2010
@@ -173,18 +173,28 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      * fields (e.g., AC not being calculated for filtered records, if included).  When provided, this argument
      * will cause VariantsToTable to write out NA values for missing fields instead of throwing an error.
      */
-    @Advanced
-    @Argument(fullName="allowMissingData", shortName="AMD", doc="If provided, we will not require every record to contain every field", required=false)
+    @Hidden
+    @Deprecated
+    @Argument(fullName="allowMissingData", shortName="AMD", doc="This argument is no longer used in GATK versions 3.8 and newer. " +
+            "Please see the online documentation for --errorIfMissingData.", required=false)
     public boolean ALLOW_MISSING_DATA = false;
+
+    /**
+     * By default, this tool will write out NA values indicating missing data when it encounters a field without a value in a record.
+     * If this flag is added to the command, the tool will instead exit with an error if missing data is encountered..
+     */
+    @Advanced
+    @Argument(fullName="errorIfMissingData", shortName="EMD", doc="If provided, we will require every record to contain every field", required=false)
+    public boolean ERROR_IF_MISSING_DATA = false;
     private final static String MISSING_DATA = "NA";
 
-    private final List<String> samples = new ArrayList<String>();
+    private final List<String> samples = new ArrayList<>();
 
     public void initialize() {
 
         if ( !genotypeFieldsToTake.isEmpty() ) {
             Map<String, VCFHeader> vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), variants);
-            TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+            TreeSet<String> vcfSamples = new TreeSet<>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
             samples.addAll(vcfSamples);
 
             // optimization: if there are no samples, we don't have to worry about any genotype fields
@@ -210,7 +220,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         for ( VariantContext vc : tracker.getValues(variants, context.getLocation())) {
             if ( showFiltered || vc.isNotFiltered() ) {
                 nRecords++;
-                for ( final List<String> record : extractFields(vc, fieldsToTake, genotypeFieldsToTake, samples, ALLOW_MISSING_DATA, splitMultiAllelic) ) {
+                for ( final List<String> record : extractFields(vc, fieldsToTake, genotypeFieldsToTake, samples, !ERROR_IF_MISSING_DATA, splitMultiAllelic) ) {
                     if ( moltenizeOutput )
                         emitMoltenizedOutput(record);
                     else
@@ -281,7 +291,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                                                     final boolean splitMultiAllelic) {
         
         final int numRecordsToProduce = splitMultiAllelic ? vc.getAlternateAlleles().size() : 1;
-        final List<List<String>> records = new ArrayList<List<String>>(numRecordsToProduce);
+        final List<List<String>> records = new ArrayList<>(numRecordsToProduce);
 
         int numFields = fields.size();
         final boolean addGenotypeFields = genotypeFields != null && !genotypeFields.isEmpty();
@@ -289,7 +299,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             numFields += genotypeFields.size() * samples.size();
 
         for ( int i = 0; i < numRecordsToProduce; i++ )
-            records.add(new ArrayList<String>(numFields));
+            records.add(new ArrayList<>(numFields));
 
         for ( String field : fields ) {
 
@@ -302,7 +312,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             } else if ( vc.hasAttribute(field) ) {
                 addFieldValue(vc.getAttribute(field, null), records);
             } else if ( isWildCard(field) ) {
-                Set<String> wildVals = new HashSet<String>();
+                Set<String> wildVals = new HashSet<>();
                 for ( Map.Entry<String,Object> elt : vc.getAttributes().entrySet()) {
                     if ( elt.getKey().startsWith(field.substring(0, field.length() - 1)) ) {
                         wildVals.add(elt.getValue().toString());
@@ -310,17 +320,15 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 }
 
                 String val = MISSING_DATA;
-                if ( wildVals.size() > 0 ) {
-                    List<String> toVal = new ArrayList<String>(wildVals);
+                if ( !wildVals.isEmpty() ) {
+                    List<String> toVal = new ArrayList<>(wildVals);
                     Collections.sort(toVal);
                     val = Utils.join(",", toVal);
                 }
 
                 addFieldValue(val, records);
-            } else if ( ! allowMissingData ) {
-                throw new UserException(String.format("Missing field %s in vc %s at %s", field, vc.getSource(), vc));
             } else {
-                addFieldValue(MISSING_DATA, records);
+                handleMissingData(allowMissingData, field, records, vc);
             }
         }
 
@@ -330,11 +338,22 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                     if ( vc.hasGenotype(sample) && vc.getGenotype(sample).hasAnyAttribute(gf) ) {
                         if ( gf.equals(VCFConstants.GENOTYPE_KEY) )
                             addFieldValue(vc.getGenotype(sample).getGenotypeString(true), records);
-                        else
-                            addFieldValue(vc.getGenotype(sample).getAnyAttribute(gf), records);
+                        else {
+                            /**
+                             * TODO - If gf == "FT" and the GT record is not filtered, Genotype.getAnyAttribute == null. Genotype.hasAnyAttribute should be changed so it
+                             * returns false for this condition. Presently, it always returns true. Once this is fixed, then only the "addFieldValue" statement will
+                             * remain in the following logic block.
+                             */
+                            if (vc.getGenotype(sample).getAnyAttribute(gf) != null) {
+                                addFieldValue(vc.getGenotype(sample).getAnyAttribute(gf), records);
+                            } else {
+                                handleMissingData(allowMissingData, gf, records, vc);
+                            }
+                        }
                     }
-                    else
-                        addFieldValue(MISSING_DATA, records);
+                    else {
+                        handleMissingData(allowMissingData, gf, records, vc);
+                    }
                 }
             }
         }
@@ -342,9 +361,17 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         return records;
     }
 
+    private static void handleMissingData(final boolean allowMissingData, final String field, final List<List<String>> records, final VariantContext vc) {
+        if (allowMissingData) {
+            addFieldValue(MISSING_DATA, records);
+        } else {
+            throw new UserException(String.format("Missing field %s in vc %s at %s", field, vc.getSource(), vc));
+        }
+    }
+
     private static void addFieldValue(final Object val, final List<List<String>> result) {
         final int numResultRecords = result.size();
-        
+
         // if we're trying to create a single output record, add it
         if ( numResultRecords == 1 ) {
             result.get(0).add(prettyPrintObject(val));
@@ -364,6 +391,10 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     }
 
     private static String prettyPrintObject(final Object val) {
+        // should never occur
+        if (val == null)
+            return "";
+
         if ( val instanceof List )
             return prettyPrintObject(((List)val).toArray());
 
@@ -400,7 +431,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     // ----------------------------------------------------------------------------------------------------
 
     public static abstract class Getter { public abstract String get(VariantContext vc); }
-    public static final Map<String, Getter> getters = new HashMap<String, Getter>();
+    public static final Map<String, Getter> getters = new HashMap<>();
 
     static {
         // #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT
