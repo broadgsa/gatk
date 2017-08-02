@@ -851,9 +851,13 @@ public class GATKVariantContextUtils {
 
                 if ( newLikelihoods == null || (originalVC.getAttributeAsInt(VCFConstants.DEPTH_KEY, 0) == 0 && likelihoodsAreUninformative(newLikelihoods) )) {
                     gb.noPL();
+                    gb.noGQ();
                 } else {
                     gb.PL(newLikelihoods);
+                    final int PLindex = MathUtils.maxElementIndex(newLikelihoods);
+                    gb.log10PError(GenotypeLikelihoods.getGQLog10FromLikelihoods(PLindex, newLikelihoods));
                 }
+
             }
 
             // create the new strand allele counts array from the used alleles
