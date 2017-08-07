@@ -98,7 +98,7 @@ import java.util.*;
  *
  * <h3>Caveats</h3>
  * <ul>
- *     <li>Some annotations cannot be applied to all variant sites, so VCFs typically contain records where some annotation values are missing. By default this tool the tool will emit the special value NA for the missing annotations if you request export of an annotation for which not all records have values. You can override this behavior by setting --errorIfMissingData in the command line. As a result, the tool will throw an error if a record is missing a value.</li>
+ *     <li>Some annotations cannot be applied to all variant sites, so VCFs typically contain records where some annotation values are missing. By default this tool will emit the special value NA for the missing annotations if you request export of an annotation for which not all records have values. You can override this behavior by setting --errorIfMissingData in the command line. As a result, the tool will throw an error if a record is missing a value.</li>
  *     <li>When you request export of sample-level annotations (FORMAT field annotations such as GT), the annotations will be identified per-sample. If multiple samples are present in the VCF, the columns will be ordered alphabetically by sample name (SM tag).</li>
  * </ul>
  *
@@ -181,7 +181,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * By default, this tool will write out NA values indicating missing data when it encounters a field without a value in a record.
-     * If this flag is added to the command, the tool will instead exit with an error if missing data is encountered..
+     * If this flag is added to the command, the tool will instead exit with an error if missing data is encountered.
      */
     @Advanced
     @Argument(fullName="errorIfMissingData", shortName="EMD", doc="If provided, we will require every record to contain every field", required=false)
