@@ -43,9 +43,9 @@ public class SplitSamFileIntegrationTest extends WalkerTest {
                         " --outputRoot " + prefix,
                 Collections.<String>emptyList()
         );
-        addSplitOutput(spec, prefix, "NA12878", "3e28b666fb673be138eca9bd3db9520b");
-        addSplitOutput(spec, prefix, "NA12891", "af01069bc3da4252ce8417a03d11f48b");
-        addSplitOutput(spec, prefix, "NA12892", "cfa1cb6aaca03900160bd5627f4f698b");
+        addSplitOutput(spec, prefix, "NA12878", "356bddf614a44a0234f7b116f5cde998");
+        addSplitOutput(spec, prefix, "NA12891", "5dd92a0089e3f781e77d94010264b9fd");
+        addSplitOutput(spec, prefix, "NA12892", "ea8f16c18c89b49ce9d32d76c6af75f9");
         executeTest("testSplitSamFile", spec);
     }
 
