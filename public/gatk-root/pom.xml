@@ -12,7 +12,7 @@
 
     <groupId>org.broadinstitute.gatk</groupId>
     <artifactId>gatk-root</artifactId>
-    <version>3.8</version>
+    <version>3.9-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>GATK Root</name>
 
