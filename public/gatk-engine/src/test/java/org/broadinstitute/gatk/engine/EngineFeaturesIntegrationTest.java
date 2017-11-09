@@ -324,12 +324,12 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     @Test()
     public void testDefaultBaseQualities20() {
-        executeTest("testDefaultBaseQualities20", testDefaultBaseQualities(20, "90a450f74554bbd2cc3a9e0f9de68e26"));
+        executeTest("testDefaultBaseQualities20", testDefaultBaseQualities(20, "da5a4293e125f00ecbdfd450b80d8357"));
     }
 
     @Test()
     public void testDefaultBaseQualities30() {
-        executeTest("testDefaultBaseQualities30", testDefaultBaseQualities(30, "ec11db4173ce3b8e43997f00dab5ae26"));
+        executeTest("testDefaultBaseQualities30", testDefaultBaseQualities(30, "c82e72ee08d545266927a7f2e8ab24c3"));
     }
 
     @Test(expectedExceptions = Exception.class)
@@ -732,10 +732,10 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     public void testSAMWriterFeatures() {
         testBAMFeatures("-compress 0", "49228d4f5b14c4cfed4a09372eb71139");
         testBAMFeatures("-compress 9", "bc61a1b2b53a2ec7c63b533fa2f8701b");
-        testBAMFeatures("-simplifyBAM", "a1127bab46674b165496b79bb9fa7964");
+        testBAMFeatures("-simplifyBAM", "f66b671b32d1bbbf65a88585a64b556a");
 
         //Validate MD5
-        final String expectedMD5 = "c58b9114fc15b53655f2c03c819c29fd";
+        final String expectedMD5 = "a0c0f1fafc248ac82a84b8ca71292caf";
         final File md5Target = testBAMFeatures("--generate_md5", expectedMD5);
         final File md5File = new File(md5Target.getAbsoluteFile() + ".md5");
         md5File.deleteOnExit();

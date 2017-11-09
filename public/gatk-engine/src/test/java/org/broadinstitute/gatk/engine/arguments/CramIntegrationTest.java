@@ -41,16 +41,16 @@ public class CramIntegrationTest extends WalkerTest {
         return new Object[][] {
                 {"PrintReads", "exampleBAM.bam", "", "cram", ""}, // Bypass MD5 check since the CRAM header stores the file name
                 {"PrintReads", "exampleCRAM.cram", "", "cram", ""},
-                {"PrintReads", "exampleCRAM.cram", "", "bam", "e7834d5992a69143d7c463275213bbf8"},
-                {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "d362fbf30a2c77a2653f1c8eb2dd8fc1"},
+                {"PrintReads", "exampleCRAM.cram", "", "bam", "50c55e1040aa0ffd4036aa581fcfe8af"},
+                {"PrintReads", "exampleCRAM.cram", " -L chr1:200", "bam", "f74f78bd16aed8a395f0e79e3898ab19"},
                 {"CountLoci", "exampleCRAM.cram", "", "txt", "ade93df31a6150321c1067e749cae9be"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
                 {"CountReads", "exampleCRAM.cram", "", "txt", "4fbafd6948b6529caa2b78e476359875"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200", "txt", "b026324c6904b2a9cb4b88d6d61c81d1"},
-                {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "a11bd125b69f651aaa2ae68c8ccab22f"},
+                {"PrintReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "bam", "1a6331f0e7afdccd07425df251d28811"},
                 {"CountLoci", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
-                {"PrintReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "bam", "9e3e8b5a58dfcb50f5b270547c01d56a"},
+                {"PrintReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "bam", "41f8ebb256120befc6ea7d228915b349"},
                 {"CountLoci", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "txt", "26ab0db90d72e28ad0ba1e22ee510510"},
                 {"CountReads", "exampleCRAM-nobai-withcrai.cram", " -L chr1:200 -L chr1:89597", "txt", "6d7fce9fee471194aa8b5b6e47267f03"},
         };

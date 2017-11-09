@@ -59,27 +59,27 @@ public class PrintReadsIntegrationTest extends WalkerTest {
     @DataProvider(name = "PRTest")
     public Object[][] createPrintReadsTestData() {
         return new Object[][]{
-                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, "", "0aa3505ba61e05663e629011dd54e423")},
+                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, "", "83d1454dc01cd2e7458dad4012695f64")},
                 {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -compress 0", "0aec10d19e0dbdfe1d0cbb3eddaf623a")},
-                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -simplifyBAM", "c565d9cd4838a313e7bdb30530c0cf71")},
-                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -n 10", "917440a38aba707ec0e012168590981a")},
+                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -simplifyBAM", "60255a68df1b8f2fbba373d75274f0de")},
+                {new PRTest(hg18Reference, new String[]{"HiSeq.1mb.bam"}, " -n 10", "eb7c6bacca5fee09b8df50880eb81ee6")},
                 // See: GATKBAMIndex.getStartOfLastLinearBin(), BAMScheduler.advance(), IntervalOverlapFilteringIterator.advance()
-                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, "", "0b58c903f54e8543a8b2ce1439aa769b")},
-                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1", "5b1154cc81dba6bcfe76188e4df8d79c")},
-                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.cram"}, " -L 1:10001 -L GL000192.1:500204", "a84efdc3d4a8d6329b5f0b494dd280d2")},
-                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L unmapped", "cbd3d1d50c8674f79033aa8c36aa3cd1")},
-                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1 -L unmapped", "5b1154cc81dba6bcfe76188e4df8d79c")},
-                {new PRTest(b37KGReference, new String[]{"oneReadAllInsertion.bam"}, "",  "e212d1799ae797e781b17e630656a9a1")},
-                {new PRTest(b37KGReference, new String[]{"NA12878.1_10mb_2_10mb.bam"}, "",  "0387c61303140d8899fcbfdd3e72ed80")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, "", "3d67c398ce2ac1deeddbccbd850380a7")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1", "37cdd8871843693f2650d7b48c8ae1d4")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.cram"}, " -L 1:10001 -L GL000192.1:500204", "4d63fd6e977a53e5d9590bd030b40bd0")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L unmapped", "a834400e3bd69045eb8a9e94131633f5")},
+                {new PRTest(b37KGReference, new String[]{"unmappedFlagReadsInLastLinearBin.bam"}, " -L 1 -L unmapped", "37cdd8871843693f2650d7b48c8ae1d4")},
+                {new PRTest(b37KGReference, new String[]{"oneReadAllInsertion.bam"}, "",  "6c04aac25e2136fee395897aac96bea8")},
+                {new PRTest(b37KGReference, new String[]{"NA12878.1_10mb_2_10mb.bam"}, "",  "57a9bc1f7dd4e7717ee796c484bcf45a")},
                 // Tests for filtering options
                 {new PRTest(b37KGReference, new String[]{"NA12878.1_10mb_2_10mb.bam", "NA20313.highCoverageRegion.bam"},
-                        "",  "ad56da66be0bdab5a8992de9617ae6a5")},
+                        "",  "e691d61df10f7614d73c8ecb46c75ee1")},
                 {new PRTest(b37KGReference, new String[]{"NA12878.1_10mb_2_10mb.bam", "NA20313.highCoverageRegion.bam"},
-                        " -readGroup SRR359098",  "c3bfe28722a665e666098dbb7048a9f1")},
+                        " -readGroup SRR359098",  "7644eab114bf537411218f782d75a6a6")},
                 {new PRTest(b37KGReference, new String[]{"NA12878.1_10mb_2_10mb.bam", "NA20313.highCoverageRegion.bam"},
-                        " -readGroup 20FUK.3 -sn NA12878",  "8191f8d635d00b1f4d0993b785cc46c5")},
+                        " -readGroup 20FUK.3 -sn NA12878",  "351d5da29874033e50d29c5c36575a6c")},
                 {new PRTest(b37KGReference, new String[]{"NA12878.1_10mb_2_10mb.bam", "NA20313.highCoverageRegion.bam"},
-                        " -sn na12878",  "92a85b4223ec45e114f12a1fe6ebbaeb")},
+                        " -sn na12878",  "9056d852418dd2083f38e3eac1551fcd")},
         };
     }
 
