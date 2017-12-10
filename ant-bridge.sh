@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 default_args="verify '-Ddisable.shadepackage'"
 mvn_args="${default_args}"
